@@ -12,11 +12,13 @@ function App() {
   return (
     <Container maxWidth="md">
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+  sx={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+  }}
+>
         <Card elevation={3} sx={{ width: '100%', maxWidth: 650 }}>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Typography variant="h4" gutterBottom>

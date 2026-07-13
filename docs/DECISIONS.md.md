@@ -116,3 +116,7 @@ Features not required for daily PG operations are postponed.
 ## Status
 
 Accepted
+
+Decision 006 — Flatten Repository Structure
+
+The React application is the primary application in RPGMS 2.0. The repository is flattened so that the Vite project resides at the repository root. Project documentation is organized under docs/. This reduces duplicate configuration, simplifies development, and matches the current single-application architecture.

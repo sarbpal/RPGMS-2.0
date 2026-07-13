@@ -355,3 +355,13 @@ Can we write it ourselves easily?
 Does this dependency save significant time?
 
 If not, we don't install it.
+
+Rule: Build Integrity
+
+Every milestone must end with:
+
+npm run build succeeds.
+npm run lint succeeds (when applicable).
+The application runs without runtime errors.
+
+No milestone is considered complete until the project is in a runnable state.

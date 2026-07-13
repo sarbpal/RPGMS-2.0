@@ -6,7 +6,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { APP } from './constants/app';
+import { APP } from '../constants/app';
 
 function App() {
   return (

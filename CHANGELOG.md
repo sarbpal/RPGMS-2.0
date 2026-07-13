@@ -20,3 +20,11 @@ All notable changes to this project will be documented here.
 ### Status
 
 Project Initialization Complete
+
+## Sprint 0.5
+
+### Changed
+
+- Flattened repository structure.
+- Removed duplicate package.json.
+- Standardized project root.

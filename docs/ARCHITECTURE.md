@@ -306,19 +306,20 @@ Architecture should not change without documenting the reason.
 
 Each document has a single responsibility.
 
-| Document           | Purpose                       |
-| ------------------ | ----------------------------- |
-| README.md          | Project overview              |
-| PROJECT_RULES.md   | Non-negotiable project rules  |
-| AI_CONTEXT.md      | AI development context        |
-| AI_INSTRUCTIONS.md | AI operating instructions     |
-| ARCHITECTURE.md    | Software architecture         |
-| DECISIONS.md       | Architecture decision records |
-| ROADMAP.md         | Development roadmap           |
-| BACKLOG.md         | Deferred work                 |
-| CHANGELOG.md       | Change history                |
+| Document           | Purpose                            |
+| ------------------ | ---------------------------------- |
+| README.md          | Project overview                   |
+| AI_GOVERNANCE.md   | AI governance and responsibilities |
+| PROJECT_RULES.md   | Non-negotiable engineering rules   |
+| AI_CONTEXT.md      | Project context                    |
+| AI_INSTRUCTIONS.md | AI implementation instructions     |
+| ARCHITECTURE.md    | Software architecture              |
+| DECISIONS.md       | Architecture decisions             |
+| ROADMAP.md         | Product roadmap                    |
+| BACKLOG.md         | Deferred work                      |
+| CHANGELOG.md       | Change history                     |
+| SESSION.md         | Current sprint status              |
 
----
 
 # 10. Guiding Principle
 
@@ -331,3 +332,20 @@ The top-level src folder structure is considered stable.
 New top-level folders require an architectural review and, if accepted, an entry in docs/DECISIONS.md.
 
 Feature modules may evolve internally without changing the overall architecture.
+
+# 11. Architecture Stability
+The architecture is considered stable.
+
+Changes to:
+
+- top-level folders
+- dependency direction
+- feature organisation
+
+require an architectural review and an entry in DECISIONS.md.
+
+# 12. Prompts
+
+The prompts folder contains reusable AI prompt templates and sprint implementation specifications.
+
+It is part of the development process and not part of the application runtime.

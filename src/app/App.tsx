@@ -6,19 +6,24 @@ import {
   Typography,
 } from '@mui/material';
 
+import { Header } from '../components/layout/Header';
 import { APP } from '../constants/app';
 
 function App() {
   return (
-    <Container maxWidth="md">
+    <>
+      <Header />
+
+      <Container maxWidth="md">
       <Box
-  sx={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-  }}
->
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: 'calc(100vh - 64px)',
+          pt: '64px',
+        }}
+      >
         <Card elevation={3} sx={{ width: '100%', maxWidth: 650 }}>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Typography variant="h4" gutterBottom>
@@ -43,7 +48,8 @@ function App() {
           </CardContent>
         </Card>
       </Box>
-    </Container>
+      </Container>
+    </>
   );
 }
 

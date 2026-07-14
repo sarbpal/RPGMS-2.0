@@ -54,3 +54,36 @@ Sprint 0.5 completed.
 Repository flattened.
 Architecture established.
 Application shell started.
+# Changelog
+
+All notable changes to RPGMS 2.0 will be documented in this file.
+
+The project follows a sprint-based development process.
+
+---
+
+## Sprint 1.1 – Application Header
+
+**Status:** Completed ✅
+
+### Added
+
+* Application Header component.
+* Fixed Material UI AppBar.
+* Centered RPGMS 2.0 application title.
+* Logo placeholder.
+* User avatar placeholder.
+
+### Changed
+
+* Integrated the Header component into the application shell (`App.tsx`).
+* Preserved the existing welcome screen beneath the header.
+
+### Quality
+
+* Project builds successfully (`npm run build`).
+* Header verified in the browser.
+* Code reviewed and accepted.
+* No architecture changes.
+* No business logic introduced.
+* No new dependencies added.

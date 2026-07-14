@@ -27,3 +27,5 @@
 ## Technical Debt
 
 Evaluate flattening the React application from /app to the repository root before Version 1.0 if it provides clear benefits for deployment or maintenance.
+
+Introduce shared layout constants (HEADER_HEIGHT, SIDEBAR_WIDTH) once the application shell is complete.

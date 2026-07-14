@@ -136,3 +136,39 @@ The project follows a sprint-based development process.
 - No business logic introduced.
 - No routing implemented.
 - Application Shell completed.
+
+---
+
+## Sprint 2.1 – Dashboard Foundation
+
+**Status:** Completed ✅
+
+### Added
+
+- Dashboard feature page.
+- Dashboard rendered inside the existing `MainLayout`.
+- Four placeholder summary cards:
+  - Occupancy
+  - Residents
+  - Outstanding Dues
+  - Monthly Collection
+- Quick Actions section.
+
+### Changed
+
+- Replaced the temporary welcome page with the Dashboard.
+- Updated Quick Actions to reflect daily operational tasks:
+  - Add Resident
+  - Record Payment
+  - Occupancy
+  - Add Complaint
+
+### Quality
+
+- Project builds successfully (`npm run build`).
+- Browser verified.
+- Code reviewed and accepted.
+- Architecture preserved.
+- Frozen application shell respected.
+- No business logic introduced.
+- No routing implemented.

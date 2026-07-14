@@ -100,3 +100,86 @@ User → Testing, Commit, Push
 Sprint 1.1 has been reviewed, tested, and accepted.
 
 Proceed with Sprint 1.2.
+
+## Current Sprint
+
+**Sprint 1 – Application Shell**
+
+### Sprint Status
+
+- ✅ Sprint 1.1 – Application Header
+- ✅ Sprint 1.2 – Application Sidebar
+- 🔄 Sprint 1.3 – Main Layout Refactoring (Next)
+# SESSION
+
+## Current Sprint
+
+**Sprint 2 – Dashboard Foundation**
+
+### Sprint Status
+
+- ✅ Sprint 1.1 – Application Header
+- ✅ Sprint 1.2 – Application Sidebar
+- ✅ Sprint 1.3 – Application Shell
+
+---
+
+## Current Project Status
+
+### Completed
+
+- Repository foundation.
+- Governance documents.
+- Project documentation.
+- React + Vite application setup.
+- Material UI integration.
+- Application Header.
+- Application Sidebar.
+- MainLayout.
+- Application Shell.
+- Successful production builds.
+
+---
+
+## Current Architecture Status
+
+**Application Shell:** 🔒 Frozen
+
+The application shell is considered complete.
+
+All future pages shall render through `MainLayout`.
+
+No feature shall directly render `Header` or `Sidebar`.
+
+---
+
+## Next Sprint
+
+**Sprint 2.1 – Dashboard Foundation**
+
+Objective:
+
+Create the Dashboard page as the first business page inside the Application Shell.
+
+The Dashboard shall:
+
+- Use `MainLayout`.
+- Replace the temporary welcome card.
+- Contain placeholder dashboard cards only.
+- Contain no business logic.
+- Contain no live data.
+- Establish the standard page layout for all future modules.
+
+---
+
+## Development Workflow
+
+1. Plan
+2. Codex Implementation
+3. Build
+4. Browser Test
+5. ChatGPT Code Review
+6. Documentation Update
+7. Git Commit
+8. Git Push
+9. Sprint Lock

@@ -87,3 +87,52 @@ The project follows a sprint-based development process.
 * No architecture changes.
 * No business logic introduced.
 * No new dependencies added.
+
+## Sprint 1.2 – Application Sidebar
+
+**Status:** Completed ✅
+
+### Added
+
+- Permanent desktop sidebar.
+- Placeholder navigation menu.
+- Material UI navigation icons.
+
+### Changed
+
+- Integrated the sidebar into the application shell.
+- Updated the application layout to accommodate the sidebar.
+
+### Quality
+
+- Project builds successfully (`npm run build`).
+- Sidebar verified in the browser.
+- Code reviewed and accepted.
+- No business logic introduced.
+- No routing implemented.
+- ---
+
+## Sprint 1.3 – Application Shell
+
+**Status:** Completed ✅
+
+### Added
+
+- Reusable `MainLayout` component.
+- Support for rendering page content through `children`.
+
+### Changed
+
+- Moved `Header` and `Sidebar` into `MainLayout`.
+- Refactored `App.tsx` into a thin composition layer.
+- Preserved the existing application appearance.
+
+### Quality
+
+- Project builds successfully (`npm run build`).
+- Browser verified.
+- Code reviewed and accepted.
+- No visual regressions.
+- No business logic introduced.
+- No routing implemented.
+- Application Shell completed.

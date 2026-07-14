@@ -31,3 +31,5 @@ Protect the existing architecture.
 Keep the MVP focused.
 
 When the task is complete and the build succeeds, stop and wait for further instructions.
+
+Respect the Architecture Freeze Register defined in AI_GOVERNANCE.md.

@@ -343,3 +343,53 @@ Before participating in RPGMS development, the AI Assistant shall internally com
 * Help deliver a production-quality application.
 
 These principles govern every recommendation made for RPGMS 2.0.
+
+---
+
+# Architecture Freeze Register
+
+The following components are considered architecturally stable.
+
+They shall **NOT** be modified, refactored, renamed, relocated, or redesigned unless the current sprint explicitly requires it or the Product Owner approves the change.
+
+## Frozen Components
+
+### Application Shell
+
+Status: 🔒 Frozen
+
+Includes:
+
+- Header.tsx
+- Sidebar.tsx
+- MainLayout.tsx
+
+These components define the standard application shell.
+
+Future pages shall render inside `MainLayout`.
+
+No business module shall directly render `Header` or `Sidebar`.
+
+---
+
+## Frozen Principles
+
+The following architectural principles are also frozen:
+
+- Feature-first architecture.
+- Business-first module organisation.
+- Desktop-first MVP.
+- Ledger as the single source of truth.
+- Keep It Simple.
+- No over-engineering.
+
+---
+
+## Rule
+
+AI assistants shall not modify frozen architecture unless:
+
+- explicitly instructed by the Product Owner, or
+- the current sprint specification authorizes the change.
+
+If a requested implementation appears to require a change to frozen architecture, stop and explain why before making modifications.

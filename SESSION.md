@@ -1,39 +1,44 @@
 # SESSION.md
 
-------------------------------------------------------------------------------
-Document Information
-------------------------------------------------------------------------------
+---
+
+## Document Information
 
 Document ID     : DOC-006
-Version         : 2.0
+Version         : 2.1
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-16
 
-------------------------------------------------------------------------------
-Current Milestone
-------------------------------------------------------------------------------
+---
 
-Milestone M0 – Engineering Foundation
+## Current Milestone
+
+Milestone M1 – Application Shell
 
 Status
 
-In Progress
+Completed
 
-------------------------------------------------------------------------------
-Current Sprint
-------------------------------------------------------------------------------
+---
 
-Documentation Sprint
+## Current Sprint
+
+Sprint 4 – Residents Module Foundation
+
+Status
+
+Planning
 
 Objective
 
-Complete the AI engineering foundation before resuming application
-development.
+Begin implementation of the first business module by establishing the
+Residents module UI foundation without introducing business logic or backend
+integration.
 
-------------------------------------------------------------------------------
-Current Repository Status
-------------------------------------------------------------------------------
+---
+
+## Current Repository Status
 
 Branch
 
@@ -47,9 +52,9 @@ Last Verified
 
 2026-07-16
 
-------------------------------------------------------------------------------
-Completed
-------------------------------------------------------------------------------
+---
+
+## Completed
 
 ✔ Repository foundation
 
@@ -69,38 +74,84 @@ Completed
 
 ✔ Documentation Index
 
-------------------------------------------------------------------------------
-Current Task
-------------------------------------------------------------------------------
+✔ Sprint 3.2 – Placeholder feature pages
 
-Complete:
+✔ Sprint 3.2 – React Router integration
 
-DOC-005 – AI_SESSION_PROTOCOL.md
+✔ Sprint 3.2 – MainLayout + Outlet architecture
 
-------------------------------------------------------------------------------
-Next Task
-------------------------------------------------------------------------------
+✔ Sprint 3.2 – Sidebar navigation
 
-Review all governance documents.
+✔ Sprint 3.2 – Active route highlighting
 
-Commit Milestone M0.
+---
 
-Resume Sprint 3.
+## Current Application State
 
-------------------------------------------------------------------------------
-Known Issues
-------------------------------------------------------------------------------
+The application now provides a fully navigable shell.
+
+Implemented modules:
+
+* Dashboard
+* Residents
+* Accommodation
+* Finance
+* Electricity
+* Maintenance
+* Reports
+* Settings
+
+All modules currently contain placeholder pages only.
+
+No business logic, backend integration, authentication, or state management
+has been introduced beyond the application shell.
+
+---
+
+## Current Task
+
+Plan Sprint 4.
+
+Prepare the Residents module foundation.
+
+---
+
+## Next Task
+
+Implement the Residents module UI foundation.
+
+Develop:
+
+* Residents List page
+* Resident Details page
+* Shared page layout
+* Search UI
+* Filter UI
+
+Static UI only.
+
+---
+
+## Known Issues
 
 None.
 
-------------------------------------------------------------------------------
-Notes
-------------------------------------------------------------------------------
+---
 
-Current development is focused on establishing the engineering foundation.
+## Notes
 
-No feature work should begin until Milestone M0 has been completed.
+The engineering foundation and application shell are complete.
 
-------------------------------------------------------------------------------
+The routing architecture is established using:
+
+RouterProvider
+→ MainLayout
+→ Outlet
+→ Feature Pages
+
+Future development should preserve the established architecture and continue
+following the project's incremental implementation approach.
+
+---
+
 End of Document
-------------------------------------------------------------------------------

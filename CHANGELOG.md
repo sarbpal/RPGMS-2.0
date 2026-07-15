@@ -1,4 +1,26 @@
-# Changelog
+# CHANGELOG.md
+
+------------------------------------------------------------------------------
+Document Information
+------------------------------------------------------------------------------
+
+Document ID     : DOC-008
+Version         : 2.0
+Status          : Active
+Owner           : Development Team
+Created         : 2026-07-16
+Last Updated    : 2026-07-16
+Applies To      : RPGMS 2.0 Repository
+
+Purpose
+
+This document records the historical evolution of RPGMS 2.0.
+
+Unlike SESSION.md, this document is permanent.
+
+Entries are never removed.
+
+Corrections are made by adding new entries rather than rewriting history.
 
 All notable changes to this project will be documented here.
 
@@ -21,46 +43,31 @@ All notable changes to this project will be documented here.
 
 Project Initialization Complete
 
-## Sprint 0.5
+# Sprint 0.5 – Repository Foundation
 
-### Changed
+Status
 
-- Flattened repository structure.
-- Removed duplicate package.json.
-- Standardized project root.
-## Sprint 0.5 – Repository Foundation
+Completed
 
-### Changed
+Summary
 
-* Flattened the repository by moving the Vite application from `/app` to the repository root.
-* Removed duplicate project configuration (`package.json`, `package-lock.json`, `.gitignore`).
-* Reinstalled dependencies using the consolidated project configuration.
-* Relocated the application bootstrap to `src/app/App.tsx`.
-* Created the initial application architecture folders:
+Repository restructured into the production layout.
 
-  * `app`
-  * `components`
-  * `features`
-  * `services`
-  * `types`
-  * `utils`
-* Verified the application builds and runs successfully after the migration.
+Added
 
-### Notes
+• Standard project structure
+• Initial application architecture
 
-* This completes the Repository Foundation phase of Sprint 0.5.
-* Internal application architecture will be refined before Sprint 1 begins.
-Sprint 0.5 completed.
-Repository flattened.
-Architecture established.
-Application shell started.
-# Changelog
+Changed
 
-All notable changes to RPGMS 2.0 will be documented in this file.
+• Flattened repository
+• Consolidated package configuration
+• Standardized project root
 
-The project follows a sprint-based development process.
+Quality
 
----
+• Build verified
+• Application operational
 
 ## Sprint 1.1 – Application Header
 
@@ -172,3 +179,51 @@ The project follows a sprint-based development process.
 - Frozen application shell respected.
 - No business logic introduced.
 - No routing implemented.
+
+===========================================================
+Milestone M0 – Engineering Foundation
+===========================================================
+
+Status
+
+Completed
+
+Summary
+
+Established the AI engineering foundation for RPGMS 2.0.
+
+Completed
+
+• DOCUMENTATION_INDEX.md
+• AI_GOVERNANCE.md
+• AI_CONTEXT.md
+• AI_INSTRUCTIONS.md
+• AI_SESSION_PROTOCOL.md
+• SESSION.md redesign
+• NEXT_TASK.md
+• CHANGELOG.md redesign
+
+Impact
+
+Established a standardized AI-assisted development workflow.
+
+All future development will follow documented governance,
+business context, coding standards and session protocols.
+
+Date
+
+2026-07-16
+
+Version History
+
+1.0
+
+Initial changelog.
+
+2.0
+
+Restructured into chronological milestone and sprint history.
+
+------------------------------------------------------------------------------
+End of Document
+------------------------------------------------------------------------------

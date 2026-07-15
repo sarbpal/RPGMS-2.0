@@ -1,19 +1,39 @@
-# AI Context
+# AI_CONTEXT.md
 
-This document provides context for any AI assistant working on RPGMS 2.0.
+------------------------------------------------------------------------------
+Document Information
+------------------------------------------------------------------------------
 
-Read this document completely before writing or modifying code.
+Document ID     : DOC-003
+Version         : 1.1
+Status          : Active
+Owner           : Project Architecture
+Created         : 2026-07-16
+Last Updated    : 2026-07-16
+Applies To      : All AI Assistants working on RPGMS 2.0
 
-After reading this document, also read:
+------------------------------------------------------------------------------
+Purpose
+------------------------------------------------------------------------------
 
-1. PROJECT_RULES.md
-2. docs/Decisions.md
+This document provides the business and technical context required for any AI
+assistant contributing to RPGMS 2.0.
 
-These documents define the project architecture and must be followed.
+It explains what the project is, why it exists, how the business operates,
+and the core principles that should guide implementation.
 
----
+This document describes the project.
 
-# Project
+It does not define coding standards or AI operating procedures.
+
+Those are documented separately in:
+
+- AI_GOVERNANCE.md
+- AI_INSTRUCTIONS.md
+
+------------------------------------------------------------------------------
+Project Overview
+------------------------------------------------------------------------------
 
 Project Name
 
@@ -21,24 +41,180 @@ RPGMS 2.0
 
 Purpose
 
-Replace the existing Google Sheets + Apps Script based PG Management System with a modern web application.
+Replace the existing Google Sheets + Google Apps Script based PG Management
+System with a modern web application.
 
----
+The goal is to build a commercial-quality Hostel / PG Management System that is:
 
-# Business
+- Simple to operate
+- Financially accurate
+- Easy to maintain
+- Scalable for future growth
 
-Current Scope
+Repository
+
+RPGMS-2.0
+
+Primary Branch
+
+feature/application-shell (current development branch)
+
+Default Branch
+
+main
+
+------------------------------------------------------------------------------
+Business Scope
+------------------------------------------------------------------------------
+
+Current MVP Scope
 
 - Single PG
-- Single Admin
-- Desktop First
+- Single Administrator
+- Desktop-first
 - Responsive UI
+- Single business entity
 
-No multi-property support in Version 1.
+Not included in Version 1
 
----
+- Multi-property support
+- Multi-tenant architecture
+- Franchise management
+- Advanced analytics
+- Mobile-first workflows
 
-# Technology Stack
+These capabilities may be considered in future versions.
+
+------------------------------------------------------------------------------
+Out of Scope (Version 1)
+------------------------------------------------------------------------------
+
+The following are intentionally excluded from the MVP:
+
+- Multi-property management
+- Multiple administrators
+- Native mobile application
+- Offline synchronization
+- Franchise management
+- Advanced analytics
+- AI-powered automation
+
+These features may be considered in future releases.
+
+------------------------------------------------------------------------------
+Business Terminology
+------------------------------------------------------------------------------
+
+Resident
+    A person staying in the PG.
+
+Flat
+    A physical accommodation unit.
+
+Bed
+    The smallest allocatable accommodation unit.
+
+Ledger
+    The authoritative record of financial transactions.
+
+Security Deposit
+    Refundable amount held separately from the resident ledger.
+
+Notice
+    Resident has informed management of their intention to leave.
+
+Checkout
+    Completion of the resident's stay.
+
+Occupancy
+    Current allocation of beds to residents.
+
+Service
+    A chargeable facility or recurring resident service.
+
+------------------------------------------------------------------------------
+Business Architecture
+------------------------------------------------------------------------------
+
+The application follows the natural business workflow.
+
+Accommodation
+        ↓
+Residents
+        ↓
+Finance
+        ↓
+Electricity
+        ↓
+Reports
+
+Business modules should reflect real operational workflows wherever possible.
+
+------------------------------------------------------------------------------
+Business Principles
+------------------------------------------------------------------------------
+
+Financial Principles
+
+- The ledger is the financial source of truth.
+- Financial balances are calculated, never stored.
+- Historical financial records are immutable.
+- Security deposits are maintained separately from the resident ledger.
+
+Accommodation Principles
+
+- One active resident occupies one active primary bed.
+- One bed may have only one active resident.
+- Historical allocations are preserved.
+
+Billing Principles
+
+- Billing must remain auditable.
+- Charges should always be reproducible from source records.
+- Business correctness takes precedence over UI convenience.
+
+------------------------------------------------------------------------------
+Resident Lifecycle
+------------------------------------------------------------------------------
+
+Resident Status
+
+- Active
+- On Notice
+- Checked Out
+
+Business Rules
+
+Notice Date automatically proposes a Checkout Date
+30 days later.
+
+Checkout Date remains editable until checkout is completed.
+
+Historical resident information must always remain available.
+
+------------------------------------------------------------------------------
+Electricity Workflow
+------------------------------------------------------------------------------
+
+Electricity Billing Process
+
+Enter Bill
+
+        ↓
+
+Allocate Consumption
+
+        ↓
+
+Generate Resident Charges
+
+        ↓
+
+Post Ledger Entries
+
+------------------------------------------------------------------------------
+Technology Overview
+------------------------------------------------------------------------------
 
 Frontend
 
@@ -63,123 +239,89 @@ Repository
 
 - GitHub
 
----
+This section provides high-level context only.
 
-# Development Philosophy
+Detailed implementation standards belong in AI_INSTRUCTIONS.md.
+
+------------------------------------------------------------------------------
+Development Philosophy
+------------------------------------------------------------------------------
+
+The project follows these principles:
 
 - MVP First
-- No Over Engineering
-- Ship Working Software
-- Keep Components Small
-- Prefer Readability
+- Keep It Simple
+- Avoid Over-Engineering
+- Deliver Working Software
+- Build for Long-Term Maintainability
+- Prefer Readability over Cleverness
 
----
+------------------------------------------------------------------------------
+User Experience Philosophy
+------------------------------------------------------------------------------
 
-# Architecture
+The application should require minimal training.
 
-Accommodation
+It should be:
 
-↓
+- Simple
+- Fast
+- Consistent
+- Professional
+- Predictable
 
-Residents
+Business users should be able to operate the system confidently without
+extensive technical knowledge.
 
-↓
+------------------------------------------------------------------------------
+Current Project Phase
+------------------------------------------------------------------------------
 
-Finance
+Milestone M0
 
-↓
+Engineering Foundation
 
-Electricity
+Current Focus
 
-The application follows the business workflow.
+- Documentation
+- Governance
+- Architecture
+- Application Shell
 
----
+Business module development begins after the Engineering Foundation milestone
+is completed.
 
-# Financial Rules
+------------------------------------------------------------------------------
+Related Documents
+------------------------------------------------------------------------------
 
-Ledger is the only source of truth.
+- DOCUMENTATION_INDEX.md
+- AI_GOVERNANCE.md
+- AI_INSTRUCTIONS.md
+- ROADMAP.md
+- docs/ARCHITECTURE.md
+- docs/BUSINESS_RULES.md
 
-Never store balances.
+------------------------------------------------------------------------------
+Version History
+------------------------------------------------------------------------------
 
-Never duplicate totals.
+Version    Date         Description
+-------    ----------   -----------------------------------------------
+1.0        2026-07-15   Initial project context.
+1.1        2026-07-16   Expanded business context, terminology,
+                        architecture and project philosophy.
 
-Every financial transaction creates a ledger entry.
+------------------------------------------------------------------------------
+Approval
+------------------------------------------------------------------------------
 
-Deposit Ledger is completely separate from Resident Ledger.
+Status          : Active
 
----
+Approved By     : Project Owner
 
-# Resident Lifecycle
+Approval Date   : 2026-07-16
 
-Resident Status
-
-- Active
-- On Notice
-- Checked Out
-
-Notice Date automatically proposes Checkout Date + 30 days.
-
-Checkout Date remains editable.
-
----
-
-# Electricity
-
-Workflow
-
-Enter Bill
-
-↓
-
-Split Bill
-
-↓
-
-Automatic Ledger Posting
-
----
-
-# Coding Guidelines
-
-- TypeScript
-- Functional Components
-- Material UI
-- No any
-- No duplicate code
-- Keep files small
-- Use meaningful names
-
----
-
-# User Experience
-
-The application should require almost no training.
-
-Simple.
-
-Fast.
-
-Professional.
-
----
-
-# Current Sprint
-
-Read ROADMAP.md
-
-Current Deliverable will always be provided in the prompt.
-
-Only implement the requested deliverable.
-
-Do not build future functionality unless explicitly instructed.
-
----
-
-# Before Writing Code
-
-Always verify:
-
-- Does this follow PROJECT_RULES.md?
-- Does this violate any Architecture Decision?
-- Is this the simplest solution?
-- Is this required for the MVP?
+------------------------------------------------------------------------------
+End of Document
+------------------------------------------------------------------------------

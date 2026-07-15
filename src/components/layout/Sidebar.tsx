@@ -16,18 +16,19 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
+import { NavLink } from 'react-router-dom';
 
 const sidebarWidth = 240;
 
 const menuItems = [
-  { label: 'Dashboard', icon: <Dashboard /> },
-  { label: 'Accommodation', icon: <Apartment /> },
-  { label: 'Residents', icon: <People /> },
-  { label: 'Finance', icon: <AccountBalanceWallet /> },
-  { label: 'Electricity', icon: <Bolt /> },
-  { label: 'Maintenance', icon: <Build /> },
-  { label: 'Reports', icon: <Assessment /> },
-  { label: 'Settings', icon: <Settings /> },
+  { label: 'Dashboard', icon: <Dashboard />, to: '/' },
+  { label: 'Accommodation', icon: <Apartment />, to: '/accommodation' },
+  { label: 'Residents', icon: <People />, to: '/residents' },
+  { label: 'Finance', icon: <AccountBalanceWallet />, to: '/finance' },
+  { label: 'Electricity', icon: <Bolt />, to: '/electricity' },
+  { label: 'Maintenance', icon: <Build />, to: '/maintenance' },
+  { label: 'Reports', icon: <Assessment />, to: '/reports' },
+  { label: 'Settings', icon: <Settings />, to: '/settings' },
 ];
 
 export function Sidebar() {
@@ -46,9 +47,23 @@ export function Sidebar() {
       }}
     >
       <List sx={{ px: 1, py: 2 }}>
-        {menuItems.map(({ label, icon }) => (
+        {menuItems.map(({ label, icon, to }) => (
           <ListItem key={label} disablePadding>
-            <ListItemButton sx={{ borderRadius: 1.5, px: 1.5, py: 1 }}>
+            <ListItemButton
+              component={NavLink}
+              end={to === '/'}
+              sx={{
+                borderRadius: 1.5,
+                px: 1.5,
+                py: 1,
+                '&.active': {
+                  bgcolor: 'action.selected',
+                  color: 'primary.main',
+                  '& .MuiListItemIcon-root': { color: 'primary.main' },
+                },
+              }}
+              to={to}
+            >
               <ListItemIcon sx={{ minWidth: 40 }}>{icon}</ListItemIcon>
               <ListItemText primary={label} />
             </ListItemButton>

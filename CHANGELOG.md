@@ -314,6 +314,13 @@ Initial changelog.
 
 Restructured into chronological milestone and sprint history.
 
+## Documentation
+
+- Added AI_ONBOARDING.md as the primary onboarding guide for AI assistants.
+- Added AI_HANDOFF.md for rapid project handoff between AI assistants.
+- Updated README.md with AI Documentation section.
+- Strengthened AI governance for multi-assistant development (ChatGPT, Gemini, Codex, Claude).
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -152,6 +152,18 @@ RouterProvider
 Future development should preserve the established architecture and continue
 following the project's incremental implementation approach.
 
+Current Sprint: Sprint 4 – Accommodation Foundation
+Completed:
+Sprint 4.1 – Accommodation Page Shell ✅
+Sprint 4.2 – Flat Card Foundation ✅
+Current Status:
+Accommodation page foundation complete
+Flat → Area → Bed hierarchy implemented
+Mock data in place
+UI reviewed and approved
+Next Task:
+Sprint 4.3 – Design and implement the Add Flat workflow
+
 ---
 
 End of Document

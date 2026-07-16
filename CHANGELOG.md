@@ -321,6 +321,18 @@ Restructured into chronological milestone and sprint history.
 - Updated README.md with AI Documentation section.
 - Strengthened AI governance for multi-assistant development (ChatGPT, Gemini, Codex, Claude).
 
+
+## Sprint 4 – Accommodation Foundation
+
+### Completed
+- Implemented Accommodation page shell
+- Added summary cards and search toolbar
+- Implemented FlatCard, AreaSection, and BedCard components
+- Established Flat → Area → Bed domain hierarchy
+- Added realistic mock accommodation data
+- Refined UI based on review (typography, spacing, hierarchy)
+- Completed build and lint verification
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

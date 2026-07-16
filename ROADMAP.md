@@ -128,6 +128,8 @@ Planned Work
 * Automated testing
 * CI/CD pipeline
 
+Sprint 4.1 ✅
+Sprint 4.2 ✅
 ---
 
 End of Document

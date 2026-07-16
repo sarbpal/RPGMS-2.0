@@ -13,6 +13,7 @@ export interface Bed {
   id: string; // E.g., '101-B1', '101-H2', '103-S1'
   name: string; // E.g., 'B1', 'H2', 'S1'
   status: BedStatus;
+  residentName?: string; // Optional mock resident name for occupied beds
 }
 
 export interface Area {

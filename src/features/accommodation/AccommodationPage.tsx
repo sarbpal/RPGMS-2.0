@@ -1,20 +1,51 @@
 import { useState } from 'react';
 
-import { Apartment, Add } from '@mui/icons-material';
-import { Button, Container } from '@mui/material';
+import { Add, Apartment } from '@mui/icons-material';
+import { Button, Container, Stack } from '@mui/material';
 
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { AccommodationSummary } from './components/AccommodationSummary';
 import { AccommodationToolbar } from './components/AccommodationToolbar';
+import { FlatCard } from './components/FlatCard';
+import { mockFlats } from './mock/accommodationData';
+import { BedStatus } from './types';
 
 export default function AccommodationPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  // Triggered when clicking "Add Flat" action
+  // Derive summary metrics dynamically from mock data
+  const totalFlats = mockFlats.length;
+  let totalBeds = 0;
+  let vacantBeds = 0;
+  let occupiedBeds = 0;
+  let onNoticeBeds = 0;
+
+  mockFlats.forEach((flat) => {
+    flat.areas.forEach((area) => {
+      area.beds.forEach((bed) => {
+        totalBeds++;
+        if (bed.status === BedStatus.VACANT) {
+          vacantBeds++;
+        } else if (bed.status === BedStatus.OCCUPIED) {
+          occupiedBeds++;
+        } else if (bed.status === BedStatus.ON_NOTICE) {
+          onNoticeBeds++;
+        }
+      });
+    });
+  });
+
+  const stats = {
+    totalFlats,
+    totalBeds,
+    vacantBeds,
+    occupiedBeds,
+    onNoticeBeds,
+  };
+
   const handleAddFlatClick = () => {
-    // Dialog rendering is out of scope for Sprint 4.1
     console.log('Add Flat clicked');
   };
 
@@ -34,7 +65,7 @@ export default function AccommodationPage() {
         title="Accommodation"
       />
 
-      <AccommodationSummary />
+      <AccommodationSummary stats={stats} />
 
       <AccommodationToolbar
         searchQuery={searchQuery}
@@ -43,20 +74,28 @@ export default function AccommodationPage() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      <EmptyState
-        description="Get started by adding a new flat to set up logical areas and bed spaces."
-        icon={<Apartment />}
-        title="No Accommodation Units Found"
-        action={
-          <Button
-            startIcon={<Add />}
-            variant="outlined"
-            onClick={handleAddFlatClick}
-          >
-            Add First Flat
-          </Button>
-        }
-      />
+      {mockFlats.length === 0 ? (
+        <EmptyState
+          action={
+            <Button
+              startIcon={<Add />}
+              variant="outlined"
+              onClick={handleAddFlatClick}
+            >
+              Add First Flat
+            </Button>
+          }
+          description="Get started by adding a new flat to set up logical areas and bed spaces."
+          icon={<Apartment />}
+          title="No Accommodation Units Found"
+        />
+      ) : (
+        <Stack spacing={4}>
+          {mockFlats.map((flat) => (
+            <FlatCard key={flat.id} flat={flat} />
+          ))}
+        </Stack>
+      )}
     </Container>
   );
 }

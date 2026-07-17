@@ -17,9 +17,10 @@ import type { Resident } from '../types';
 interface ResidentsTableProps {
   residents: Resident[];
   onEdit: (resident: Resident) => void;
+  onRowClick: (id: string) => void;
 }
 
-export function ResidentsTable({ residents, onEdit }: ResidentsTableProps) {
+export function ResidentsTable({ residents, onEdit, onRowClick }: ResidentsTableProps) {
   const getStatusChipColor = (status: ResidentStatus) => {
     switch (status) {
       case ResidentStatus.ACTIVE:
@@ -50,13 +51,11 @@ export function ResidentsTable({ residents, onEdit }: ResidentsTableProps) {
       <Table sx={{ minWidth: 650 }} aria-label="residents table">
         <TableHead sx={{ bgcolor: 'grey.50' }}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 'bold' }}>Resident ID</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Resident No.</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Mobile Number</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Mobile</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Flat</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Assigned Beds</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Joining Date</TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }}>Beds</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="right">
               Actions
@@ -66,24 +65,31 @@ export function ResidentsTable({ residents, onEdit }: ResidentsTableProps) {
         <TableBody>
           {residents.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+              <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
                 No residents found.
               </TableCell>
             </TableRow>
           ) : (
             residents.map((resident) => (
-              <TableRow key={resident.id} hover>
+              <TableRow
+                key={resident.id}
+                hover
+                onClick={() => onRowClick(resident.id)}
+                sx={{ cursor: 'pointer' }}
+              >
                 <TableCell>{resident.personalInfo.residentId}</TableCell>
                 <TableCell sx={{ fontWeight: 500 }}>
                   {resident.personalInfo.fullName}
                 </TableCell>
                 <TableCell>{resident.personalInfo.mobileNumber}</TableCell>
-                <TableCell>{resident.personalInfo.email || '-'}</TableCell>
-                <TableCell>Flat {resident.flatId}</TableCell>
                 <TableCell>
-                  {resident.assignedBedIds.map((bedId) => bedId.replace(`${resident.flatId}-`, '')).join(', ')}
+                  {resident.flatId ? `Flat ${resident.flatId}` : 'Not Assigned'}
                 </TableCell>
-                <TableCell>{resident.joiningDate}</TableCell>
+                <TableCell>
+                  {resident.assignedBedIds.length > 0
+                    ? resident.assignedBedIds.map((bedId) => bedId.replace(`${resident.flatId}-`, '')).join(', ')
+                    : 'None'}
+                </TableCell>
                 <TableCell>
                   <Chip
                     label={resident.status}
@@ -97,7 +103,10 @@ export function ResidentsTable({ residents, onEdit }: ResidentsTableProps) {
                     startIcon={<EditIcon />}
                     variant="outlined"
                     size="small"
-                    onClick={() => onEdit(resident)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(resident);
+                    }}
                   >
                     Edit
                   </Button>

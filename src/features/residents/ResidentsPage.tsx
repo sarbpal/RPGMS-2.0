@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Add } from '@mui/icons-material';
 import { Alert, Button, Container, Snackbar } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '../../components/PageHeader';
 import type { Flat } from '../accommodation/types';
@@ -11,6 +12,8 @@ import { ResidentsToolbar } from './components/ResidentsToolbar';
 import type { Resident } from './types';
 
 export default function ResidentsPage() {
+  const navigate = useNavigate();
+
   const [residents, setResidents] = useState<Resident[]>(() => {
     const saved = localStorage.getItem('rpgms_residents');
     return saved ? JSON.parse(saved) : [];
@@ -130,6 +133,10 @@ export default function ResidentsPage() {
     setResidentToEdit(undefined);
   };
 
+  const handleRowClick = (id: string) => {
+    navigate(`/residents/${id}`);
+  };
+
   // Filter residents
   const filteredResidents = residents.filter((resident) => {
     // 1. Status Filter
@@ -139,6 +146,7 @@ export default function ResidentsPage() {
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
       !query ||
+      resident.personalInfo.residentId.toLowerCase().includes(query) ||
       resident.personalInfo.fullName.toLowerCase().includes(query) ||
       resident.personalInfo.mobileNumber.toLowerCase().includes(query) ||
       resident.flatId.toLowerCase().includes(query);
@@ -176,7 +184,11 @@ export default function ResidentsPage() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      <ResidentsTable residents={filteredResidents} onEdit={handleEditResidentClick} />
+      <ResidentsTable
+        residents={filteredResidents}
+        onEdit={handleEditResidentClick}
+        onRowClick={handleRowClick}
+      />
 
       <ResidentDialog
         key={isDialogOpen ? (residentToEdit ? `edit-${residentToEdit.id}` : 'new-resident') : 'closed'}

@@ -40,7 +40,7 @@ export function ResidentsToolbar({
       }}
     >
       <OutlinedInput
-        placeholder="Search by name, mobile, or flat (e.g., John, 9876, 101)..."
+        placeholder="Search by Resident No., Name, Mobile or Flat..."
         size="small"
         sx={{ flexGrow: 1 }}
         value={searchQuery}

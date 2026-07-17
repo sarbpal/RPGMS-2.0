@@ -5,7 +5,7 @@
 ## Document Information
 
 Document ID     : DOC-006
-Version         : 2.8
+Version         : 2.10
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-18
@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 6.1 – Residents Foundation & State Persistence Bugfix
+Sprint 6.3 – Resident Onboarding Simplification
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Create the foundation of the Residents module and fix the sibling route state persistence bug.
+Refine the Resident onboarding workflow to match the actual business process of Ritu PG Services.
 
 ---
 
@@ -71,18 +71,20 @@ Last Verified
 ✔ Sprint 5.2 – Delete Flat Workflow
 ✔ Sprint 6.1 – Residents Foundation
 ✔ Bugfix – Accommodation & Residents State Persistence
+✔ Sprint 6.2 – Residents UX Refinement
+✔ Sprint 6.3 – Resident Onboarding Simplification
 
 ---
 
 ## Current Application State
 
-The PG Management System now has functional modules for both Accommodation and Residents, with in-memory persistence properly synchronized using `localStorage`.
+The PG Management System has functional modules for both Accommodation and Residents, with in-memory persistence properly synchronized using `localStorage`.
 
 Implemented features:
-* Flats management (creation, layout edits, deletion) fully functional and reactive.
-* Residents registry (CRUD foundation, add/edit dialogue) operational.
-* Dynamic Bed Allocation system.
-* Local state synchronization between sibling feature pages persists in `localStorage` securely, preventing any initial render empty state overwrites.
+* Flats management (creation, layout edits, deletion) fully functional.
+* Residents registry (CRUD, read-only profiles, auto ID sequence generator) operational.
+* Navigation and routes configured for viewing resident profiles.
+* Unified search filters and simplified onboarding flows.
 
 No backend database is yet connected.
 
@@ -90,12 +92,12 @@ No backend database is yet connected.
 
 ## Next Task
 
-Sprint 6.2 – Residents Checkout & Archival Workflow
+Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
 
 Develop:
-* Checkout procedural forms
-* Archive historical residency logs
-* clear beds on formal checkouts
+* Add monthly rent and security deposit fields to `Resident` models.
+* Outstanding balance summaries on Profile.
+* Transactional ledger scaffolding.
 
 ---
 
@@ -111,7 +113,7 @@ The build compiles cleanly, and ESLint is green. Sibling routing states are full
 
 ---
 
-# Session Summary - Sprint 6.1 Bugfix Complete
+# Session Summary - Sprint 6.3 Complete
 
 ## Milestone
 
@@ -119,7 +121,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 6.1 Bugfix – Accommodation & Residents State Persistence
+Sprint 6.3 – Resident Onboarding Simplification
 
 ## Status
 
@@ -129,9 +131,10 @@ Sprint 6.1 Bugfix – Accommodation & Residents State Persistence
 
 ## Completed Features
 
-- Added lazy initializer function in `AccommodationPage`'s `useState` to load initial flat state from `localStorage` on mount.
-- Added synchronous writes to `localStorage` inside all action handlers in `AccommodationPage` (add, save, delete), bypassing side-effect loops and preventing initial renders from erasing saved data.
-- Navigation and page refreshes now preserve flats and bed allocation updates consistently.
+- Removed the `Status` dropdown from the onboarding and edit dialog UI.
+- Programmed automatic `ACTIVE` status assignment upon creation, while preserving status during editing.
+- Stripped unnecessary onboarding inputs (Email, DOB, Gender, and Emergency Contact fields) from the dialog, keeping only critical fields.
+- Preserved existing personal/emergency profile fields when editing.
 
 ---
 
@@ -139,7 +142,7 @@ Sprint 6.1 Bugfix – Accommodation & Residents State Persistence
 
 - Build successful
 - Lint successful
-- State persistence fully resolved.
+- Component structure remains presentational.
 
 ---
 

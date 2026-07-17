@@ -5,7 +5,7 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-007
-Version         : 2.4
+Version         : 2.6
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
@@ -17,17 +17,17 @@ Current Task
 
 Task ID
 
-SPR-6.2-001
+SPR-6.4-001
 
 Title
 
-Sprint 6.2 – Residents Checkout & Archival Workflow
+Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
 
 ------------------------------------------------------------------------------
 Objective
 ------------------------------------------------------------------------------
 
-Implement checkout procedures for residents, including checkout date tracking, formal checkout dialog forms, and automated bed clearance logic upon checkout completion.
+Introduce financial ledger entries, rent rules, and security deposit attributes to the Resident domain model and setup read-only summaries on the Resident Profile page.
 
 ------------------------------------------------------------------------------
 Scope
@@ -35,24 +35,22 @@ Scope
 
 Included
 
-- Checkout dialog workflow to gather checkout dates.
-- Transitioning active residents to Checked Out and Alumni states.
-- Automated bed de-allocation upon checkout completion.
-- Tracking historical records of checked-out beds.
+- Add monthly rent and security deposit fields to `Resident` models.
+- Display outstanding balance summaries on the Resident Profile page.
+- Scaffold basic transactional ledger histories.
 
 Excluded
 
-- Supabase integration.
-- Refund calculations or deposit settling.
+- Online payment gateway integration.
+- Supabase persistence layer.
 
 ------------------------------------------------------------------------------
 Acceptance Criteria
 ------------------------------------------------------------------------------
 
-Sprint 6.2 is complete when:
+Sprint 6.4 is complete when:
 
-- Residents can undergo checkout flow in the UI.
-- Beds occupied by checked-out residents are immediately marked vacant.
+- Profile page shows rent and outstanding dues.
 - Build succeeds.
 - Lint succeeds.
 

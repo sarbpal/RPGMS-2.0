@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   FormControl,
   FormControlLabel,
   FormHelperText,
@@ -19,12 +18,12 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Divider,
 } from '@mui/material';
 import { useState } from 'react';
 
 import type { Flat } from '../../accommodation/types';
 import { BedStatus } from '../../accommodation/types';
-import { ResidentStatus } from '../types';
 import type { Resident } from '../types';
 
 interface ResidentDialogProps {
@@ -35,6 +34,21 @@ interface ResidentDialogProps {
   existingResidents: Resident[];
   residentToEdit?: Resident;
 }
+
+const generateResidentNumber = (existingResidents: { personalInfo: { residentId: string } }[]): string => {
+  let maxSeq = 0;
+  existingResidents.forEach((res) => {
+    const id = res.personalInfo.residentId;
+    if (id.startsWith('R') && id.length === 7) {
+      const seq = parseInt(id.slice(1), 10);
+      if (!isNaN(seq) && seq > maxSeq) {
+        maxSeq = seq;
+      }
+    }
+  });
+  const nextSeq = maxSeq + 1;
+  return `R${String(nextSeq).padStart(6, '0')}`;
+};
 
 export function ResidentDialog({
   open,
@@ -48,39 +62,25 @@ export function ResidentDialog({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Personal Info States
-  const [residentId, setResidentId] = useState(residentToEdit ? residentToEdit.personalInfo.residentId : '');
-  const [residentIdTouched, setResidentIdTouched] = useState(false);
+  const [residentId] = useState(() => {
+    if (residentToEdit) return residentToEdit.personalInfo.residentId;
+    return generateResidentNumber(existingResidents);
+  });
   
   const [fullName, setFullName] = useState(residentToEdit ? residentToEdit.personalInfo.fullName : '');
   const [fullNameTouched, setFullNameTouched] = useState(false);
   
   const [mobileNumber, setMobileNumber] = useState(residentToEdit ? residentToEdit.personalInfo.mobileNumber : '');
   const [mobileNumberTouched, setMobileNumberTouched] = useState(false);
-  
-  const [email, setEmail] = useState(residentToEdit ? (residentToEdit.personalInfo.email || '') : '');
-  const [dateOfBirth, setDateOfBirth] = useState(residentToEdit ? (residentToEdit.personalInfo.dateOfBirth || '') : '');
-  const [gender, setGender] = useState(residentToEdit ? (residentToEdit.personalInfo.gender || '') : '');
-
-  // Emergency Contact States
-  const [emergencyName, setEmergencyName] = useState(residentToEdit ? residentToEdit.emergencyContact.name : '');
-  const [emergencyRelationship, setEmergencyRelationship] = useState(residentToEdit ? residentToEdit.emergencyContact.relationship : '');
-  const [emergencyPhone, setEmergencyPhone] = useState(residentToEdit ? residentToEdit.emergencyContact.mobileNumber : '');
 
   // Accommodation States
   const [flatId, setFlatId] = useState(residentToEdit ? residentToEdit.flatId : '');
   const [flatIdTouched, setFlatIdTouched] = useState(false);
   const [selectedBeds, setSelectedBeds] = useState<string[]>(residentToEdit ? residentToEdit.assignedBedIds : []);
   const [joiningDate, setJoiningDate] = useState(residentToEdit ? residentToEdit.joiningDate : new Date().toISOString().split('T')[0]);
-  const [status, setStatus] = useState<ResidentStatus>(residentToEdit ? residentToEdit.status : 'Active');
 
   // Compute validation states
-  const isResidentIdDuplicate = existingResidents.some(
-    (res) =>
-      res.personalInfo.residentId.trim().toUpperCase() === residentId.trim().toUpperCase() &&
-      (!residentToEdit || res.id !== residentToEdit.id)
-  );
-
-  const isResidentIdValid = residentId.trim() !== '' && !isResidentIdDuplicate;
+  const isResidentIdValid = residentId.trim() !== '';
   const isFullNameValid = fullName.trim() !== '';
   const isMobileNumberValid = mobileNumber.trim() !== '';
   const isFlatIdValid = flatId !== '';
@@ -95,7 +95,6 @@ export function ResidentDialog({
 
   // Filter flats that have vacant beds (or are currently assigned to the edited resident)
   const availableFlats = flats.filter((flat) => {
-    // Beds are vacant OR already occupied by this resident
     const vacantBedsInFlat = flat.areas.flatMap((a) => a.beds).filter((bed) => {
       const isVacant = bed.status === BedStatus.VACANT;
       const isCurrentlyAssignedToMe = residentToEdit && residentToEdit.assignedBedIds.includes(bed.id);
@@ -111,7 +110,7 @@ export function ResidentDialog({
   const handleFlatChange = (e: SelectChangeEvent) => {
     setFlatId(e.target.value);
     setFlatIdTouched(true);
-    setSelectedBeds([]); // Clear previous bed selection as per rules
+    setSelectedBeds([]); // Clear previous bed selection on flat change
   };
 
   const handleBedToggle = (bedId: string) => {
@@ -123,48 +122,39 @@ export function ResidentDialog({
   const handleSave = () => {
     if (!isFormValid) return;
 
+    // Build the resident payload, preserving non-onboarding fields if editing
     onSubmit({
-      id: residentToEdit?.id, // Keep the same ID if editing
+      id: residentToEdit?.id,
       personalInfo: {
         residentId: residentId.trim(),
         fullName: fullName.trim(),
         mobileNumber: mobileNumber.trim(),
-        email: email.trim() || undefined,
-        dateOfBirth: dateOfBirth || undefined,
-        gender: gender || undefined,
+        email: residentToEdit?.personalInfo.email,
+        dateOfBirth: residentToEdit?.personalInfo.dateOfBirth,
+        gender: residentToEdit?.personalInfo.gender,
       },
       emergencyContact: {
-        name: emergencyName.trim(),
-        relationship: emergencyRelationship.trim(),
-        mobileNumber: emergencyPhone.trim(),
+        name: residentToEdit ? residentToEdit.emergencyContact.name : '',
+        relationship: residentToEdit ? residentToEdit.emergencyContact.relationship : '',
+        mobileNumber: residentToEdit ? residentToEdit.emergencyContact.mobileNumber : '',
       },
       flatId,
       assignedBedIds: selectedBeds,
       joiningDate,
-      status,
+      status: residentToEdit ? residentToEdit.status : 'Active', // Auto-Active for new residents
     });
     handleClose();
   };
 
   const handleClose = () => {
-    // Reset states
-    setResidentId('');
-    setResidentIdTouched(false);
     setFullName('');
     setFullNameTouched(false);
     setMobileNumber('');
     setMobileNumberTouched(false);
-    setEmail('');
-    setDateOfBirth('');
-    setGender('');
-    setEmergencyName('');
-    setEmergencyRelationship('');
-    setEmergencyPhone('');
     setFlatId('');
     setFlatIdTouched(false);
     setSelectedBeds([]);
     setJoiningDate(new Date().toISOString().split('T')[0]);
-    setStatus('Active');
     onClose();
   };
 
@@ -183,33 +173,14 @@ export function ResidentDialog({
 
       <DialogContent dividers sx={{ p: 3 }}>
         <Grid container spacing={3}>
-          {/* Section: Personal Info */}
-          <Grid size={{ xs: 12 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
-              Personal Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               required
               fullWidth
-              label="Resident ID"
-              placeholder="e.g. RES101"
+              label="Resident No."
               value={residentId}
-              onChange={(e) => {
-                setResidentId(e.target.value);
-                setResidentIdTouched(true);
-              }}
-              error={residentIdTouched && !isResidentIdValid}
-              helperText={
-                residentIdTouched && isResidentIdDuplicate
-                  ? 'Resident ID must be unique.'
-                  : residentIdTouched && !residentId.trim()
-                  ? 'Resident ID is required.'
-                  : ''
-              }
+              slotProps={{ input: { readOnly: true } }}
+              helperText="Automatically generated unique identifier."
             />
           </Grid>
 
@@ -229,7 +200,7 @@ export function ResidentDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               required
               fullWidth
@@ -245,92 +216,19 @@ export function ResidentDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
+              required
               fullWidth
-              label="Email Address"
-              type="email"
-              placeholder="e.g. john@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 2 }}>
-            <TextField
-              fullWidth
-              label="DOB"
+              label="Joining Date"
               type="date"
               slotProps={{ inputLabel: { shrink: true } }}
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
+              value={joiningDate}
+              onChange={(e) => setJoiningDate(e.target.value)}
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel id="gender-label">Gender</InputLabel>
-              <Select
-                label="Gender"
-                labelId="gender-label"
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-              >
-                <MenuItem value="">Select</MenuItem>
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Section: Emergency Contact */}
-          <Grid size={{ xs: 12 }} sx={{ mt: 1 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
-              Emergency Contact
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              fullWidth
-              label="Contact Name"
-              placeholder="e.g. Sarah Doe"
-              value={emergencyName}
-              onChange={(e) => setEmergencyName(e.target.value)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              fullWidth
-              label="Relationship"
-              placeholder="e.g. Mother"
-              value={emergencyRelationship}
-              onChange={(e) => setEmergencyRelationship(e.target.value)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              fullWidth
-              label="Contact Number"
-              placeholder="e.g. 9876543211"
-              value={emergencyPhone}
-              onChange={(e) => setEmergencyPhone(e.target.value)}
-            />
-          </Grid>
-
-          {/* Section: Accommodation details */}
-          <Grid size={{ xs: 12 }} sx={{ mt: 1 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
-              Accommodation & Status
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12 }}>
             <FormControl fullWidth required error={flatIdTouched && !isFlatIdValid}>
               <InputLabel id="dialog-flat-label">Select Flat</InputLabel>
               <Select
@@ -357,35 +255,6 @@ export function ResidentDialog({
               {flatIdTouched && !isFlatIdValid && (
                 <FormHelperText>Flat selection is required.</FormHelperText>
               )}
-            </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              required
-              fullWidth
-              label="Joining Date"
-              type="date"
-              slotProps={{ inputLabel: { shrink: true } }}
-              value={joiningDate}
-              onChange={(e) => setJoiningDate(e.target.value)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <FormControl fullWidth>
-              <InputLabel id="dialog-status-label">Status</InputLabel>
-              <Select
-                label="Status"
-                labelId="dialog-status-label"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ResidentStatus)}
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="On Notice">On Notice</MenuItem>
-                <MenuItem value="Checked Out">Checked Out</MenuItem>
-                <MenuItem value="Alumni">Alumni</MenuItem>
-              </Select>
             </FormControl>
           </Grid>
 

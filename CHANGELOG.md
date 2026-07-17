@@ -479,6 +479,36 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - State is preserved across route changes and page refreshes.
 
+## [Sprint 6.2] - Residents UX Refinement
+
+### Added
+- Created `ResidentProfilePage` component under `src/features/residents/` as a read-only profile dashboard dividing Personal Info, Accommodation Details, and Emergency Contacts into card sections.
+- Configured a route for `residents/:id` in `src/app/router.tsx` to handle profile rendering.
+- Integrated click events on `ResidentsTable` rows to trigger route transitions to the profile page using the `useNavigate` hook, while keeping the presentational Edit button from triggering page routing using `e.stopPropagation()`.
+- Added a pure utility `generateResidentNumber` that reads active resident registry sequences to auto-fill the unique Resident ID on creation (in format `Rxxxxxx`), locking the input to read-only in the dialog.
+
+### Changed
+- Simplified `ResidentsTable` to display only Resident No., Name, Mobile, Flat, Beds, Status, and Actions, removing Email and Joining Date fields.
+- Updated `ResidentsToolbar` search input placeholder to `"Search by Resident No., Name, Mobile or Flat..."`.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 6.3] - Resident Onboarding Simplification
+
+### Changed
+- Removed the `Status` dropdown from the `ResidentDialog` component (making the status selection non-editable in both Add and Edit modes).
+- Configured application logic to automatically assign `ACTIVE` status to newly registered residents upon onboarding, while preserving the existing status of already registered residents during layout edits.
+- Simplified `ResidentDialog` layout to include only the minimal fields required to occupy a bed (Resident No., Full Name, Mobile, Joining Date, Flat, and Bed checkboxes), removing inputs for Email, DOB, Gender, and Emergency Contacts.
+- Preserved existing values for Email, DOB, Gender, and Emergency Contacts when saving details in edit mode.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Resident Profile page continues to display the full status and supplementary fields.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-import { Box, Button, Card, CardContent, Divider, Typography } from '@mui/material';
-import { Edit as EditIcon } from '@mui/icons-material';
+import { Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material';
+import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 
 import { BedStatus } from '../types';
 import type { Flat } from '../types';
@@ -8,9 +8,10 @@ import { AreaSection } from './AreaSection';
 interface FlatCardProps {
   flat: Flat;
   onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function FlatCard({ flat, onEdit }: FlatCardProps) {
+export function FlatCard({ flat, onEdit, onDelete }: FlatCardProps) {
   // Derive metrics dynamically
   let totalBeds = 0;
   let occupiedBeds = 0;
@@ -57,16 +58,29 @@ export function FlatCard({ flat, onEdit }: FlatCardProps) {
           <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1 }}>
             ({totalBeds} Beds &bull; {occupiedBeds} Occupied &bull; {vacantBeds} Vacant)
           </Typography>
-          {onEdit && (
-            <Button
-              startIcon={<EditIcon />}
-              variant="outlined"
-              size="small"
-              onClick={onEdit}
-            >
-              Edit
-            </Button>
-          )}
+          <Stack direction="row" spacing={1}>
+            {onEdit && (
+              <Button
+                startIcon={<EditIcon />}
+                variant="outlined"
+                size="small"
+                onClick={onEdit}
+              >
+                Edit
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                startIcon={<DeleteIcon />}
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={onDelete}
+              >
+                Delete
+              </Button>
+            )}
+          </Stack>
         </Box>
 
         <Divider sx={{ mb: 3 }} />

@@ -436,6 +436,19 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 5.2] - Delete Flat Workflow
+
+### Added
+- Added an `onDelete` callback prop to the `FlatCard` component.
+- Rendered a presentational Delete button next to the Edit button in `FlatCard`'s header section.
+- Designed and integrated a confirmation `Dialog` in `AccommodationPage` that warns the user before deleting a flat.
+- Implemented state-driven deletion logic in `AccommodationPage` that immediately filters the deleted flat out of the state array, reactively updating the summary metrics, search results, and filters.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

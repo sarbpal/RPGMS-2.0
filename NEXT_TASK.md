@@ -5,7 +5,7 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-007
-Version         : 2.2
+Version         : 2.3
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
@@ -17,11 +17,11 @@ Current Task
 
 Task ID
 
-SPR-5.2-001
+SPR-5.3-001
 
 Title
 
-Sprint 5.2 – Bed Allocation & Occupancy View
+Sprint 5.3 – Bed Allocation & Occupancy View
 
 ------------------------------------------------------------------------------
 Objective
@@ -49,7 +49,7 @@ Excluded
 Acceptance Criteria
 ------------------------------------------------------------------------------
 
-Sprint 5.2 is complete when:
+Sprint 5.3 is complete when:
 
 - BedCards render resident assignments accurately.
 - Occupancy metrics are updated immediately.

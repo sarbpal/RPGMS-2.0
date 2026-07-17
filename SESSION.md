@@ -5,7 +5,7 @@
 ## Document Information
 
 Document ID     : DOC-006
-Version         : 2.5
+Version         : 2.6
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-18
@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 5.1 – Edit Flat UI
+Sprint 5.2 – Delete Flat Workflow
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Implement editing of existing flats by reusing the existing AddFlatDialog.
+Implement deletion of existing Flats while preserving the current architecture.
 
 ---
 
@@ -68,19 +68,19 @@ Last Verified
 ✔ Sprint 4.4.1a – Validation Hardening
 ✔ Sprint 4.4.2 – Accommodation List Integration
 ✔ Sprint 5.1 – Edit Flat UI
+✔ Sprint 5.2 – Delete Flat Workflow
 
 ---
 
 ## Current Application State
 
-The Accommodation page now supports full creation and inline editing of flat layouts (including floor, description, and area details) using a unified dialog.
+The Accommodation page now supports creation, inline editing, and deletion of flat layouts (including floor, description, and area details) using unified dialogs and confirmation alerts.
 
 Implemented features:
 * Editing triggered by an Edit button on each Flat Card.
-* Unification of dialog in `<AddFlatDialog>` supporting both edit and create modes.
-* Preserving matching bed statuses and occupancies when editing.
-* Uniqueness checks bypass validation duplicates for the currently edited flat.
-* Components mount dynamically using a state key to ensure fresh initial states on mount.
+* Deletion triggered by a Delete button on each Flat Card, opening a confirmation Dialog.
+* Removal of flat from parent state immediately recalculates and refreshes metrics, search, and filters.
+* All data constraints (uniqueness checks, prefix limits) remain active.
 
 No backend persistence is yet connected.
 
@@ -88,7 +88,7 @@ No backend persistence is yet connected.
 
 ## Next Task
 
-Sprint 5.2 – Bed Allocation & Occupancy View
+Sprint 5.3 – Bed Allocation & Occupancy View
 
 Develop:
 * Allocation status displays
@@ -105,11 +105,11 @@ None.
 
 ## Notes
 
-The build compiles cleanly, and ESLint is green. The components remain presentational.
+The build compiles cleanly, and ESLint is green. Deletion flows fit perfectly within the presentational architecture.
 
 ---
 
-# Session Summary - Sprint 5.1 Complete
+# Session Summary - Sprint 5.2 Complete
 
 ## Milestone
 
@@ -117,7 +117,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 5.1 – Edit Flat UI
+Sprint 5.2 – Delete Flat Workflow
 
 ## Status
 
@@ -127,11 +127,10 @@ Sprint 5.1 – Edit Flat UI
 
 ## Completed Features
 
-- Pre-populated Edit dialog using a single unified React component.
-- Layout modification state mapping (floor, description, name, bedPrefix, bedCount).
-- Preserved Bed Statuses & Resident Names for matching Bed IDs.
-- Submits and updates local state dynamically.
-- Auto-resetting state using dynamic mounting keys.
+- Delete button on `FlatCard` rendering next to Edit.
+- `onDelete` props callback integration.
+- Confirmation `Dialog` with custom styling and Cancel/Delete operations.
+- State filtering immediately updates summary totals and toolbar query results.
 
 ---
 
@@ -139,7 +138,7 @@ Sprint 5.1 – Edit Flat UI
 
 - Build successful
 - Lint successful
-- Code maintains clean separation of concerns.
+- Components remain completely presentational.
 
 ---
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Add, Apartment } from '@mui/icons-material';
-import { Alert, Button, Container, Snackbar, Stack } from '@mui/material';
+import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
 
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
@@ -15,6 +15,8 @@ import type { Flat } from './types';
 export default function AccommodationPage() {
   const [flats, setFlats] = useState<Flat[]>([]);
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
+  const [flatToDelete, setFlatToDelete] = useState<Flat | undefined>(undefined);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -127,6 +129,24 @@ export default function AccommodationPage() {
     setIsAddDialogOpen(true);
   };
 
+  const handleDeleteFlatClick = (flat: Flat) => {
+    setFlatToDelete(flat);
+    setIsDeleteConfirmationOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (flatToDelete) {
+      setFlats((prev) => prev.filter((f) => f.id !== flatToDelete.id));
+      setSnackbar({
+        open: true,
+        message: `Flat ${flatToDelete.name} deleted successfully.`,
+        severity: 'success',
+      });
+    }
+    setIsDeleteConfirmationOpen(false);
+    setFlatToDelete(undefined);
+  };
+
   // Filter flats dynamically
   const filteredFlats = flats.filter((flat) => {
     // 1. Status Filter: A flat matches if it has at least one bed matching the filter,
@@ -210,6 +230,7 @@ export default function AccommodationPage() {
               key={flat.id}
               flat={flat}
               onEdit={() => handleEditFlatClick(flat)}
+              onDelete={() => handleDeleteFlatClick(flat)}
             />
           ))}
           {filteredFlats.length === 0 && (
@@ -233,6 +254,43 @@ export default function AccommodationPage() {
         existingFlatNumbers={flats.map((f) => f.name)}
         flatToEdit={flatToEdit}
       />
+
+      <Dialog
+        open={isDeleteConfirmationOpen}
+        onClose={() => {
+          setIsDeleteConfirmationOpen(false);
+          setFlatToDelete(undefined);
+        }}
+        aria-labelledby="delete-flat-dialog-title"
+      >
+        <DialogTitle id="delete-flat-dialog-title">
+          Delete Flat {flatToDelete?.name}?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => {
+              setIsDeleteConfirmationOpen(false);
+              setFlatToDelete(undefined);
+            }}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            autoFocus
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

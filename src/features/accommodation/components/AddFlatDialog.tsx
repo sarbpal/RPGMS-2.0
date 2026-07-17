@@ -26,9 +26,25 @@ import {
 
 import { generateBeds } from '../utils/generateBeds';
 
+export interface FlatDraftArea {
+  name: string;
+  bedPrefix: string;
+  beds: string[];
+}
+
+export interface FlatDraft {
+  flatNumber: string;
+  floor: string;
+  description: string;
+  capacity: number;
+  areas: FlatDraftArea[];
+}
+
 interface AddFlatDialogProps {
   open: boolean;
   onClose: () => void;
+  onSubmit: (draft: FlatDraft) => void;
+  existingFlatNumbers: string[];
 }
 
 interface AreaDraft {
@@ -44,21 +60,7 @@ interface AreaDraft {
   };
 }
 
-interface FlatDraftArea {
-  name: string;
-  bedPrefix: string;
-  beds: string[];
-}
-
-interface FlatDraft {
-  flatNumber: string;
-  floor: string;
-  description: string;
-  capacity: number;
-  areas: FlatDraftArea[];
-}
-
-export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
+export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [] }: AddFlatDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -70,9 +72,6 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
   const [description, setDescription] = useState('');
   const [areas, setAreas] = useState<AreaDraft[]>([]);
   const [newestAreaId, setNewestAreaId] = useState<string | null>(null);
-  
-  // Developer Section State
-  const [draftPreview, setDraftPreview] = useState<FlatDraft | null>(null);
 
   const handleClose = () => {
     setFlatNumber('');
@@ -82,7 +81,6 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
     setDescription('');
     setAreas([]);
     setNewestAreaId(null);
-    setDraftPreview(null);
     onClose();
   };
 
@@ -151,16 +149,26 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
 
         // Auto-normalization / Suggestion mapping rules
         if (key === 'name') {
-          // If prefix wasn't manually edited, update suggestion
+          const newName = value as string;
+          const newSuggested = getSuggestedPrefix(newName);
           if (!area.isPrefixManuallyEdited) {
-            updated.bedPrefix = getSuggestedPrefix(value as string);
+            updated.bedPrefix = newSuggested;
+          } else {
+            if (newSuggested) {
+              const newLockedChar = newSuggested[0].toUpperCase();
+              const oldSecondChar = area.bedPrefix.length > 1 ? area.bedPrefix[1] : '';
+              updated.bedPrefix = newLockedChar + oldSecondChar;
+            } else {
+              updated.bedPrefix = '';
+            }
           }
         } else if (key === 'bedPrefix') {
           const valStr = (value as string).trim();
-          if (valStr === '') {
-            // cleared prefix -> resume auto-suggestions
+          const suggested = getSuggestedPrefix(area.name);
+          if (valStr === '' || valStr === suggested) {
+            // cleared prefix or matching default suggestion -> resume auto-suggestions
             updated.isPrefixManuallyEdited = false;
-            updated.bedPrefix = getSuggestedPrefix(area.name);
+            updated.bedPrefix = suggested;
           } else {
             updated.isPrefixManuallyEdited = true;
           }
@@ -187,8 +195,17 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
         // Normalize on Blur
         if (field === 'name') {
           updated.name = toTitleCase(area.name);
+          const newSuggested = getSuggestedPrefix(updated.name);
           if (!area.isPrefixManuallyEdited) {
-            updated.bedPrefix = getSuggestedPrefix(updated.name);
+            updated.bedPrefix = newSuggested;
+          } else {
+            if (newSuggested) {
+              const newLockedChar = newSuggested[0].toUpperCase();
+              const oldSecondChar = area.bedPrefix.length > 1 ? area.bedPrefix[1] : '';
+              updated.bedPrefix = newLockedChar + oldSecondChar;
+            } else {
+              updated.bedPrefix = '';
+            }
           }
         } else if (field === 'bedPrefix') {
           updated.bedPrefix = area.bedPrefix.trim().toUpperCase();
@@ -220,7 +237,10 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
   };
 
   // Derive form-wide validation state
-  const isFlatNumberValid = flatNumber.trim() !== '';
+  const isFlatNumberDuplicate = existingFlatNumbers.some(
+    (num) => num.trim().toUpperCase() === flatNumber.trim().toUpperCase()
+  );
+  const isFlatNumberValid = flatNumber.trim() !== '' && !isFlatNumberDuplicate;
   const isFloorValid = floor !== '';
   const hasAreas = areas.length > 0;
 
@@ -245,21 +265,38 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
     return isNameValid && isPrefixValid && isCountValid && isNameUnique && isPrefixUnique;
   });
 
+  // Run layout preview calculation
+  const previewResult = generateBeds(areas);
+
+  const allBedIds = previewResult.areas.flatMap((a) => a.bedIds);
+  const hasDuplicateBedIds = allBedIds.some(
+    (bedId, index) => allBedIds.indexOf(bedId) !== index
+  );
+
   const isFormValid =
     isFlatNumberValid &&
     isFloorValid &&
     hasAreas &&
     areAreasValid &&
     !hasDuplicateNames &&
-    !hasDuplicatePrefixes;
-
-  // Run layout preview calculation
-  const previewResult = generateBeds(areas);
+    !hasDuplicatePrefixes &&
+    !hasDuplicateBedIds;
 
   // Form submission handler
   const handleCreateFlat = () => {
     const bedsResult = generateBeds(areas);
     
+    // Safety guard to check generated bed ID uniqueness
+    const allBedIds = bedsResult.areas.flatMap((a) => a.bedIds);
+    const hasDuplicateBedIds = allBedIds.some(
+      (bedId, index) => allBedIds.indexOf(bedId) !== index
+    );
+
+    if (hasDuplicateBedIds) {
+      console.error('Cannot create flat: Duplicate Bed IDs detected.');
+      return;
+    }
+
     const draft: FlatDraft = {
       flatNumber: flatNumber.trim().toUpperCase(),
       floor: floor.toUpperCase(),
@@ -272,11 +309,8 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
       })),
     };
 
-    // log to developer console
-    console.log('Flat Draft Object Created:', draft);
-
-    // Save state for developer preview section
-    setDraftPreview(draft);
+    onSubmit(draft);
+    handleClose();
   };
 
   return (
@@ -309,8 +343,14 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
               setFlatNumberTouched(true);
               setFlatNumber((prev) => prev.trim());
             }}
-            error={flatNumberTouched && !flatNumber.trim()}
-            helperText={flatNumberTouched && !flatNumber.trim() ? 'Flat Number is required' : ''}
+            error={(!flatNumber.trim() && flatNumberTouched) || isFlatNumberDuplicate}
+            helperText={
+              !flatNumber.trim()
+                ? (flatNumberTouched ? 'Flat Number is required' : '')
+                : isFlatNumberDuplicate
+                ? 'Flat Number already exists'
+                : ''
+            }
             placeholder="e.g. G01, 101, 205"
           />
 
@@ -391,21 +431,21 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
 
                 // Inline field error checks
                 const areaNameError = (() => {
-                  if (area.touched?.name && !area.name.trim()) {
-                    return 'Area Name is required';
-                  }
                   if (hasDuplicateName(area.id, area.name)) {
                     return 'Duplicate Area Name';
+                  }
+                  if (area.touched?.name && !area.name.trim()) {
+                    return 'Area Name is required';
                   }
                   return '';
                 })();
 
                 const bedPrefixError = (() => {
-                  if (area.touched?.bedPrefix && !area.bedPrefix.trim()) {
-                    return 'Bed Prefix is required';
-                  }
                   if (hasDuplicatePrefix(area.id, area.bedPrefix)) {
                     return 'Duplicate Bed Prefix';
+                  }
+                  if (area.touched?.bedPrefix && !area.bedPrefix.trim()) {
+                    return 'Bed Prefix is required';
                   }
                   return '';
                 })();
@@ -448,7 +488,22 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
                     <TextField
                       label="Bed Prefix"
                       value={area.bedPrefix}
-                      onChange={(e) => handleUpdateArea(area.id, 'bedPrefix', e.target.value.toUpperCase())}
+                      disabled={!area.name.trim()}
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        const suggested = getSuggestedPrefix(area.name);
+                        
+                        if (!suggested) {
+                          return;
+                        }
+
+                        const lockedChar = suggested[0].toUpperCase();
+                        const cleanValue = rawValue.toUpperCase().startsWith(lockedChar)
+                          ? lockedChar + rawValue.toUpperCase().slice(lockedChar.length).replace(/[^A-Z]/g, '').slice(0, 1)
+                          : lockedChar;
+
+                        handleUpdateArea(area.id, 'bedPrefix', cleanValue);
+                      }}
                       onBlur={() => handleBlurField(area.id, 'bedPrefix')}
                       error={!!bedPrefixError}
                       helperText={bedPrefixError || 'Suggested automatically, edit if needed.'}
@@ -583,41 +638,7 @@ export function AddFlatDialog({ open, onClose }: AddFlatDialogProps) {
             </>
           )}
 
-          {draftPreview && (
-            <>
-              <Divider sx={{ my: 1 }} />
-              <Box
-                sx={{
-                  p: 2.5,
-                  bgcolor: 'grey.900',
-                  color: 'grey.100',
-                  borderRadius: 1.5,
-                  border: '1px solid',
-                  borderColor: 'common.black',
-                  fontFamily: 'monospace',
-                  fontSize: '0.8125rem',
-                  overflowX: 'auto',
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                  <Typography variant="subtitle2" color="primary.light" sx={{ fontWeight: 'bold' }}>
-                    [Developer Mode] Flat Draft Object Assembled:
-                  </Typography>
-                  <Button
-                    size="small"
-                    color="inherit"
-                    onClick={() => setDraftPreview(null)}
-                    sx={{ textTransform: 'none', fontSize: '0.75rem', py: 0 }}
-                  >
-                    Clear Preview
-                  </Button>
-                </Box>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                  {JSON.stringify(draftPreview, null, 2)}
-                </pre>
-              </Box>
-            </>
-          )}
+
         </Stack>
       </DialogContent>
 

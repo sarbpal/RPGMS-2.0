@@ -366,6 +366,44 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 4.4.1] - Local Application State
+
+### Added
+- Local React state for flats collection in `AccommodationPage`.
+- Integrated `AddFlatDialog`'s submission with parent state, replacing the temporary developer JSON preview block.
+- Dynamically calculated summary statistics and filtering (by search query and bed status) based on local state.
+- Real-time page layout updates upon flat creation.
+- MUI Snackbar and Alert notifications for success feedback on new flat additions.
+
+### Changed
+- Removed mock data from rendered flats list (initially loads empty and displays empty state).
+- Cleaned up developer logs and preview sections from `AddFlatDialog`.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 4.4.1a] - Validation Hardening
+
+### Added
+- Added `existingFlatNumbers` prop to `AddFlatDialog` to enforce Flat Number uniqueness validation.
+- Added inline validation error indicators for duplicate Flat Numbers immediately upon typing.
+- Swapped priority of Area Name and Bed Prefix checks to show duplicate errors immediately without waiting for touched blur.
+- Implemented immediate generated Bed ID uniqueness validation before flat creation.
+- Disabled the Create Flat button if any validation errors are active.
+
+### Changed
+- Locked the first character of Bed Prefix inputs to system-suggested prefix (e.g. 'B' for Bedroom, 'H' for Hall).
+- Limited Bed Prefix typing to only allow one extra user-editable second character, restricted to uppercase letters A-Z (rejecting invalid input immediately).
+- Disabled the Bed Prefix input field when the Area Name is empty.
+- Restored auto-suggestions for Bed Prefixes if the custom prefix is cleared back to matching the default suggestion.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

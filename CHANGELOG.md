@@ -418,6 +418,24 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 5.1] - Edit Flat UI
+
+### Added
+- Extended the `Flat` interface with `floor` and `description` fields, and the `Area` interface with a `bedPrefix` field.
+- Added a presentational Edit button to the header of every `FlatCard`.
+- Integrated `flatToEdit` prop in `AddFlatDialog` to enable dual mode support (create and edit modes) inside the same dialog.
+- Configured a dynamic key `key={isAddDialogOpen ? (flatToEdit ? \`edit-\${flatToEdit.id}\` : 'new-flat') : 'closed'}` in the parent to force React to mount fresh dialogs and re-initialize state, avoiding performance issues from asynchronous state updates in `useEffect`.
+- Handled preserving existing occupied bed statuses and resident names when matching bed IDs are found during layout modifications.
+- Ignored the currently edited flat's number when checking for Flat Number duplicates in edit mode.
+
+### Changed
+- Refactored `toTitleCase` and `getSuggestedPrefix` outside of the `AddFlatDialog` component scope as pure global functions to prevent hoisting and access errors.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

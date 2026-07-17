@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Divider, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Divider, Typography } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
 
 import { BedStatus } from '../types';
 import type { Flat } from '../types';
@@ -6,9 +7,10 @@ import { AreaSection } from './AreaSection';
 
 interface FlatCardProps {
   flat: Flat;
+  onEdit?: () => void;
 }
 
-export function FlatCard({ flat }: FlatCardProps) {
+export function FlatCard({ flat, onEdit }: FlatCardProps) {
   // Derive metrics dynamically
   let totalBeds = 0;
   let occupiedBeds = 0;
@@ -44,7 +46,7 @@ export function FlatCard({ flat }: FlatCardProps) {
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'flex-start', sm: 'baseline' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
             gap: 1.5,
             mb: 2.5,
           }}
@@ -52,9 +54,19 @@ export function FlatCard({ flat }: FlatCardProps) {
           <Typography variant="h5">
             Flat {flat.name}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1 }}>
             ({totalBeds} Beds &bull; {occupiedBeds} Occupied &bull; {vacantBeds} Vacant)
           </Typography>
+          {onEdit && (
+            <Button
+              startIcon={<EditIcon />}
+              variant="outlined"
+              size="small"
+              onClick={onEdit}
+            >
+              Edit
+            </Button>
+          )}
         </Box>
 
         <Divider sx={{ mb: 3 }} />

@@ -20,10 +20,13 @@ export interface Area {
   id: string; // Unique identifier for the logical area within the flat
   name: string; // E.g., 'Bedroom', 'Hall', 'Small Bedroom'
   beds: Bed[];
+  bedPrefix?: string; // Optional bed prefix (e.g. 'B', 'H')
 }
 
 export interface Flat {
   id: string; // E.g., '101'
   name: string; // E.g., '101'
   areas: Area[];
+  floor?: string; // Optional floor
+  description?: string; // Optional description
 }

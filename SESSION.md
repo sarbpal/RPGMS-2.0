@@ -5,7 +5,7 @@
 ## Document Information
 
 Document ID     : DOC-006
-Version         : 2.4
+Version         : 2.5
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-18
@@ -24,15 +24,15 @@ In Progress
 
 ## Current Sprint
 
-Sprint 4.4 – Accommodation Persistence & List Integration
+Sprint 5.1 – Edit Flat UI
 
 Status
 
-Complete (Sprint 4.4.2 – Accommodation List Integration)
+Complete
 
 Objective
 
-Refine the Accommodation module so every UI component is driven by the same application state.
+Implement editing of existing flats by reusing the existing AddFlatDialog.
 
 ---
 
@@ -67,19 +67,20 @@ Last Verified
 ✔ Sprint 4.4.1 – Local React State Integration
 ✔ Sprint 4.4.1a – Validation Hardening
 ✔ Sprint 4.4.2 – Accommodation List Integration
+✔ Sprint 5.1 – Edit Flat UI
 
 ---
 
 ## Current Application State
 
-The Accommodation page now owns its flats collection using local React state, with stats derived dynamically and passed to child components.
+The Accommodation page now supports full creation and inline editing of flat layouts (including floor, description, and area details) using a unified dialog.
 
 Implemented features:
-* `AccommodationPage` uses state to store and render `flats`.
-* `AccommodationSummary` is driven by derived statistics of the full flat state.
-* Summary cards emit clicks that synchronize with the `statusFilter` state (e.g. clicking "Vacant Beds" updates the toolbar dropdown and filters flats reactively).
-* All mock data structures have been removed completely.
-* Verification constraints for Flat number, Area Names, Bed Prefixes, and generated Bed IDs remain active.
+* Editing triggered by an Edit button on each Flat Card.
+* Unification of dialog in `<AddFlatDialog>` supporting both edit and create modes.
+* Preserving matching bed statuses and occupancies when editing.
+* Uniqueness checks bypass validation duplicates for the currently edited flat.
+* Components mount dynamically using a state key to ensure fresh initial states on mount.
 
 No backend persistence is yet connected.
 
@@ -87,12 +88,12 @@ No backend persistence is yet connected.
 
 ## Next Task
 
-Sprint 4.5 – Edit Flat Workflow / Supabase Persistence Scaffolding
+Sprint 5.2 – Bed Allocation & Occupancy View
 
 Develop:
-* Edit Flat Dialog
-* Loading existing flat data and modifying it
-* Persistence layer scaffolding
+* Allocation status displays
+* Occupancy layout tools
+* Assigning/unassigning residents
 
 ---
 
@@ -104,11 +105,11 @@ None.
 
 ## Notes
 
-The list integration is fully verified. The build compiles cleanly, and ESLint is green.
+The build compiles cleanly, and ESLint is green. The components remain presentational.
 
 ---
 
-# Session Summary - Sprint 4.4.2 Complete
+# Session Summary - Sprint 5.1 Complete
 
 ## Milestone
 
@@ -116,7 +117,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 4.4.2 – Accommodation List Integration
+Sprint 5.1 – Edit Flat UI
 
 ## Status
 
@@ -126,10 +127,11 @@ Sprint 4.4.2 – Accommodation List Integration
 
 ## Completed Features
 
-- Local React state handles flat rendering and summary metrics dynamically.
-- Accommodation Summary click integration with page filters.
-- Removed mock data folder completely.
-- Form submissions, uniqueness indicators, and button constraints are fully operational.
+- Pre-populated Edit dialog using a single unified React component.
+- Layout modification state mapping (floor, description, name, bedPrefix, bedCount).
+- Preserved Bed Statuses & Resident Names for matching Bed IDs.
+- Submits and updates local state dynamically.
+- Auto-resetting state using dynamic mounting keys.
 
 ---
 
@@ -137,8 +139,7 @@ Sprint 4.4.2 – Accommodation List Integration
 
 - Build successful
 - Lint successful
-- Zero mock data remains for rendered Flats.
-- Pure business logic in `generateBeds()` untouched.
+- Code maintains clean separation of concerns.
 
 ---
 

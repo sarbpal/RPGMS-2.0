@@ -14,6 +14,7 @@ import type { Flat } from './types';
 
 export default function AccommodationPage() {
   const [flats, setFlats] = useState<Flat[]>([]);
+  const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -31,28 +32,59 @@ export default function AccommodationPage() {
     setFlats((prev) => [...prev, flat]);
   };
 
-  const handleCreateFlat = (draft: FlatDraft) => {
+  const handleSaveFlat = (draft: FlatDraft) => {
     // Transform FlatDraft to Flat
     const newFlat: Flat = {
       id: draft.flatNumber,
       name: draft.flatNumber,
+      floor: draft.floor,
+      description: draft.description,
       areas: draft.areas.map((area) => ({
         id: `${draft.flatNumber}-${area.name.toLowerCase().replace(/\s+/g, '-')}`,
         name: area.name,
-        beds: area.beds.map((bedId) => ({
-          id: `${draft.flatNumber}-${bedId}`,
-          name: bedId,
-          status: BedStatus.VACANT,
-        })),
+        bedPrefix: area.bedPrefix,
+        beds: area.beds.map((bedId) => {
+          const fullBedId = `${draft.flatNumber}-${bedId}`;
+          let existingBedStatus: BedStatus = BedStatus.VACANT;
+          let existingResidentName: string | undefined = undefined;
+
+          if (flatToEdit) {
+            const foundBed = flatToEdit.areas
+              .flatMap((a) => a.beds)
+              .find((b) => b.id === fullBedId);
+            if (foundBed) {
+              existingBedStatus = foundBed.status;
+              existingResidentName = foundBed.residentName;
+            }
+          }
+
+          return {
+            id: fullBedId,
+            name: bedId,
+            status: existingBedStatus,
+            residentName: existingResidentName,
+          };
+        }),
       })),
     };
 
-    addFlat(newFlat);
-    setSnackbar({
-      open: true,
-      message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
-      severity: 'success',
-    });
+    if (flatToEdit) {
+      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? newFlat : f)));
+      setSnackbar({
+        open: true,
+        message: `Flat ${draft.flatNumber} updated successfully.`,
+        severity: 'success',
+      });
+    } else {
+      addFlat(newFlat);
+      setSnackbar({
+        open: true,
+        message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
+        severity: 'success',
+      });
+    }
+
+    setFlatToEdit(undefined);
   };
 
   // Derive summary metrics dynamically from state
@@ -86,6 +118,12 @@ export default function AccommodationPage() {
   };
 
   const handleAddFlatClick = () => {
+    setFlatToEdit(undefined);
+    setIsAddDialogOpen(true);
+  };
+
+  const handleEditFlatClick = (flat: Flat) => {
+    setFlatToEdit(flat);
     setIsAddDialogOpen(true);
   };
 
@@ -168,7 +206,11 @@ export default function AccommodationPage() {
       ) : (
         <Stack spacing={4}>
           {filteredFlats.map((flat) => (
-            <FlatCard key={flat.id} flat={flat} />
+            <FlatCard
+              key={flat.id}
+              flat={flat}
+              onEdit={() => handleEditFlatClick(flat)}
+            />
           ))}
           {filteredFlats.length === 0 && (
             <EmptyState
@@ -181,10 +223,15 @@ export default function AccommodationPage() {
       )}
 
       <AddFlatDialog
+        key={isAddDialogOpen ? (flatToEdit ? `edit-${flatToEdit.id}` : 'new-flat') : 'closed'}
         open={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
-        onSubmit={handleCreateFlat}
+        onClose={() => {
+          setIsAddDialogOpen(false);
+          setFlatToEdit(undefined);
+        }}
+        onSubmit={handleSaveFlat}
         existingFlatNumbers={flats.map((f) => f.name)}
+        flatToEdit={flatToEdit}
       />
 
       <Snackbar

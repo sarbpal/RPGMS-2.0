@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 
 import { generateBeds } from '../utils/generateBeds';
+import type { Flat } from '../types';
 
 export interface FlatDraftArea {
   name: string;
@@ -45,6 +46,7 @@ interface AddFlatDialogProps {
   onClose: () => void;
   onSubmit: (draft: FlatDraft) => void;
   existingFlatNumbers: string[];
+  flatToEdit?: Flat;
 }
 
 interface AreaDraft {
@@ -60,17 +62,71 @@ interface AreaDraft {
   };
 }
 
-export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [] }: AddFlatDialogProps) {
+const toTitleCase = (str: string): string => {
+  const trimmed = str.trim();
+  if (!trimmed) return '';
+  return trimmed
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const getSuggestedPrefix = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+
+  const mapping: Record<string, string> = {
+    bedroom: 'B',
+    hall: 'H',
+    'small bedroom': 'SB',
+    study: 'ST',
+    lobby: 'L',
+    balcony: 'BA',
+  };
+
+  const lowerName = trimmed.toLowerCase();
+  if (mapping[lowerName]) {
+    return mapping[lowerName];
+  }
+
+  return trimmed
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase();
+};
+
+export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [], flatToEdit }: AddFlatDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Form local states
-  const [flatNumber, setFlatNumber] = useState('');
+  // Form local states initialized from flatToEdit if provided
+  const [flatNumber, setFlatNumber] = useState(flatToEdit ? flatToEdit.name : '');
   const [flatNumberTouched, setFlatNumberTouched] = useState(false);
-  const [floor, setFloor] = useState('');
+  const [floor, setFloor] = useState(flatToEdit ? (flatToEdit.floor || '') : '');
   const [floorTouched, setFloorTouched] = useState(false);
-  const [description, setDescription] = useState('');
-  const [areas, setAreas] = useState<AreaDraft[]>([]);
+  const [description, setDescription] = useState(flatToEdit ? (flatToEdit.description || '') : '');
+  const [areas, setAreas] = useState<AreaDraft[]>(() => {
+    if (flatToEdit) {
+      return flatToEdit.areas.map((a) => {
+        const defaultSuggested = getSuggestedPrefix(a.name);
+        const currentPrefix = a.bedPrefix || '';
+        return {
+          id: a.id,
+          name: a.name,
+          bedPrefix: currentPrefix,
+          bedCount: a.beds.length,
+          isPrefixManuallyEdited: currentPrefix !== defaultSuggested,
+          touched: {
+            name: true,
+            bedPrefix: true,
+            bedCount: true,
+          },
+        };
+      });
+    }
+    return [];
+  });
   const [newestAreaId, setNewestAreaId] = useState<string | null>(null);
 
   const handleClose = () => {
@@ -82,40 +138,6 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     setAreas([]);
     setNewestAreaId(null);
     onClose();
-  };
-
-  const toTitleCase = (str: string): string => {
-    const trimmed = str.trim();
-    if (!trimmed) return '';
-    return trimmed
-      .split(/\s+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  const getSuggestedPrefix = (name: string): string => {
-    const trimmed = name.trim();
-    if (!trimmed) return '';
-
-    const mapping: Record<string, string> = {
-      bedroom: 'B',
-      hall: 'H',
-      'small bedroom': 'SB',
-      study: 'ST',
-      lobby: 'L',
-      balcony: 'BA',
-    };
-
-    const lowerName = trimmed.toLowerCase();
-    if (mapping[lowerName]) {
-      return mapping[lowerName];
-    }
-
-    return trimmed
-      .split(/\s+/)
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase();
   };
 
   const handleAddArea = () => {
@@ -238,7 +260,9 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
 
   // Derive form-wide validation state
   const isFlatNumberDuplicate = existingFlatNumbers.some(
-    (num) => num.trim().toUpperCase() === flatNumber.trim().toUpperCase()
+    (num) =>
+      num.trim().toUpperCase() === flatNumber.trim().toUpperCase() &&
+      (!flatToEdit || num.trim().toUpperCase() !== flatToEdit.name.trim().toUpperCase())
   );
   const isFlatNumberValid = flatNumber.trim() !== '' && !isFlatNumberDuplicate;
   const isFloorValid = floor !== '';
@@ -323,7 +347,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
       aria-labelledby="add-flat-dialog-title"
     >
       <DialogTitle id="add-flat-dialog-title">
-        Add Flat
+        {flatToEdit ? 'Edit Flat' : 'Add Flat'}
       </DialogTitle>
       
       <DialogContent dividers>
@@ -652,7 +676,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
           disabled={!isFormValid}
           onClick={handleCreateFlat}
         >
-          Create Flat
+          {flatToEdit ? 'Save Changes' : 'Create Flat'}
         </Button>
       </DialogActions>
     </Dialog>

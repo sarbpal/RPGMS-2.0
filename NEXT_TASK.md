@@ -5,7 +5,7 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-007
-Version         : 2.1
+Version         : 2.2
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
@@ -17,17 +17,17 @@ Current Task
 
 Task ID
 
-SPR-4.5-001
+SPR-5.2-001
 
 Title
 
-Sprint 4.5 – Edit Flat Workflow
+Sprint 5.2 – Bed Allocation & Occupancy View
 
 ------------------------------------------------------------------------------
 Objective
 ------------------------------------------------------------------------------
 
-Begin implementation of editing flat details, updating areas, and regenerating bed layouts.
+Develop a view of bed allocations and occupancies, enabling visual representations of resident assignments to specific beds.
 
 ------------------------------------------------------------------------------
 Scope
@@ -35,26 +35,25 @@ Scope
 
 Included
 
-- Add Edit button on Flat Cards.
-- Create Edit Flat Dialog (pre-populated with existing Flat state).
-- Allow updating flat description, adding/deleting areas, and updating bed prefix/counts.
-- Recalculate capacity and regenerate bed lists on confirmation.
-- Save modified Flat object back to the local React state.
+- Add resident allocation badges to BedCards.
+- Develop layout tools to visualize occupied/vacant beds.
+- Support assigning/unassigning mock resident data to vacant beds.
+- Maintain stats updates in real-time.
 
 Excluded
 
-- Supabase database integration
-- Resident relocation/allocation handling during edit
+- Supabase integration (which will follow in subsequent database sprints)
+- Finance ledger updates for allocations
 
 ------------------------------------------------------------------------------
 Acceptance Criteria
 ------------------------------------------------------------------------------
 
-Sprint 4.5 is complete when:
+Sprint 5.2 is complete when:
 
-- Existing flat details load correctly into the Edit Dialog.
-- Modified data updates the parent state immediately.
-- Beds are regenerated successfully conforming to generateBeds().
+- BedCards render resident assignments accurately.
+- Occupancy metrics are updated immediately.
+- Mock allocations can be toggled or created in the UI.
 - Build succeeds.
 - Lint succeeds.
 
@@ -66,7 +65,6 @@ Required Documents
 
 - PROJECT_RULES.md
 - docs/ARCHITECTURE.md
-- docs/DECISIONS.md
 
 ------------------------------------------------------------------------------
 Status

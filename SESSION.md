@@ -5,7 +5,7 @@
 ## Document Information
 
 Document ID     : DOC-006
-Version         : 2.6
+Version         : 2.8
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-18
@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 5.2 – Delete Flat Workflow
+Sprint 6.1 – Residents Foundation & State Persistence Bugfix
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Implement deletion of existing Flats while preserving the current architecture.
+Create the foundation of the Residents module and fix the sibling route state persistence bug.
 
 ---
 
@@ -69,31 +69,33 @@ Last Verified
 ✔ Sprint 4.4.2 – Accommodation List Integration
 ✔ Sprint 5.1 – Edit Flat UI
 ✔ Sprint 5.2 – Delete Flat Workflow
+✔ Sprint 6.1 – Residents Foundation
+✔ Bugfix – Accommodation & Residents State Persistence
 
 ---
 
 ## Current Application State
 
-The Accommodation page now supports creation, inline editing, and deletion of flat layouts (including floor, description, and area details) using unified dialogs and confirmation alerts.
+The PG Management System now has functional modules for both Accommodation and Residents, with in-memory persistence properly synchronized using `localStorage`.
 
 Implemented features:
-* Editing triggered by an Edit button on each Flat Card.
-* Deletion triggered by a Delete button on each Flat Card, opening a confirmation Dialog.
-* Removal of flat from parent state immediately recalculates and refreshes metrics, search, and filters.
-* All data constraints (uniqueness checks, prefix limits) remain active.
+* Flats management (creation, layout edits, deletion) fully functional and reactive.
+* Residents registry (CRUD foundation, add/edit dialogue) operational.
+* Dynamic Bed Allocation system.
+* Local state synchronization between sibling feature pages persists in `localStorage` securely, preventing any initial render empty state overwrites.
 
-No backend persistence is yet connected.
+No backend database is yet connected.
 
 ---
 
 ## Next Task
 
-Sprint 5.3 – Bed Allocation & Occupancy View
+Sprint 6.2 – Residents Checkout & Archival Workflow
 
 Develop:
-* Allocation status displays
-* Occupancy layout tools
-* Assigning/unassigning residents
+* Checkout procedural forms
+* Archive historical residency logs
+* clear beds on formal checkouts
 
 ---
 
@@ -105,11 +107,11 @@ None.
 
 ## Notes
 
-The build compiles cleanly, and ESLint is green. Deletion flows fit perfectly within the presentational architecture.
+The build compiles cleanly, and ESLint is green. Sibling routing states are fully synchronized in browser storage.
 
 ---
 
-# Session Summary - Sprint 5.2 Complete
+# Session Summary - Sprint 6.1 Bugfix Complete
 
 ## Milestone
 
@@ -117,7 +119,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 5.2 – Delete Flat Workflow
+Sprint 6.1 Bugfix – Accommodation & Residents State Persistence
 
 ## Status
 
@@ -127,10 +129,9 @@ Sprint 5.2 – Delete Flat Workflow
 
 ## Completed Features
 
-- Delete button on `FlatCard` rendering next to Edit.
-- `onDelete` props callback integration.
-- Confirmation `Dialog` with custom styling and Cancel/Delete operations.
-- State filtering immediately updates summary totals and toolbar query results.
+- Added lazy initializer function in `AccommodationPage`'s `useState` to load initial flat state from `localStorage` on mount.
+- Added synchronous writes to `localStorage` inside all action handlers in `AccommodationPage` (add, save, delete), bypassing side-effect loops and preventing initial renders from erasing saved data.
+- Navigation and page refreshes now preserve flats and bed allocation updates consistently.
 
 ---
 
@@ -138,7 +139,7 @@ Sprint 5.2 – Delete Flat Workflow
 
 - Build successful
 - Lint successful
-- Components remain completely presentational.
+- State persistence fully resolved.
 
 ---
 

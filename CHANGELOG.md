@@ -449,6 +449,36 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 6.1] - Residents Foundation
+
+### Added
+- Created the Residents module foundation, including types, components, and controllers.
+- Defined `Resident`, `PersonalInfo`, and `EmergencyContact` models in `src/features/residents/types/index.ts`.
+- Developed presentational UI components `ResidentsToolbar` and `ResidentsTable` under `src/features/residents/components/`.
+- Implemented `ResidentDialog` that supports Add and Edit workflows, utilizing MUI v6 `<Grid>` sizes and dynamic pre-population.
+- Configured dynamic dropdown filtering to only display flats with at least one vacant bed (including beds currently assigned to the edited resident to prevent lockouts).
+- Grouped beds inside the dialog by their actual Area names dynamically loaded from Accommodation data.
+- Built a validation system to enforce unique resident IDs, mobile number, full name, flat, and at least one bed selection.
+- Programmed automatic de-allocation of beds when checked-out or alumni statuses are saved.
+- Synchronized `residents` and `flats` local state via browser `localStorage` to preserve database consistency across sibling route navigations.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 6.1 - Bugfix] - Accommodation & Residents State Persistence Bug
+
+### Fixed
+- Fixed a state persistence bug where Flat and Bed information created in `AccommodationPage` was lost during routing transitions to `ResidentsPage`.
+- Configured `AccommodationPage` to load its initial state from browser `localStorage` on mount (matching `ResidentsPage`).
+- Configured `AccommodationPage` to write state changes to `localStorage` immediately inside actions (add, edit, delete), ensuring that initial renders never save empty arrays over existing data and Accommodation remains the single source of truth for Flat data.
+
+### Quality
+- Build passes.
+- Lint passes.
+- State is preserved across route changes and page refreshes.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

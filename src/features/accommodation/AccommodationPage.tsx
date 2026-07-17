@@ -13,7 +13,10 @@ import { BedStatus } from './types';
 import type { Flat } from './types';
 
 export default function AccommodationPage() {
-  const [flats, setFlats] = useState<Flat[]>([]);
+  const [flats, setFlats] = useState<Flat[]>(() => {
+    const saved = localStorage.getItem('rpgms_flats');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
   const [flatToDelete, setFlatToDelete] = useState<Flat | undefined>(undefined);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
@@ -31,7 +34,11 @@ export default function AccommodationPage() {
   });
 
   const addFlat = (flat: Flat) => {
-    setFlats((prev) => [...prev, flat]);
+    setFlats((prev) => {
+      const next = [...prev, flat];
+      localStorage.setItem('rpgms_flats', JSON.stringify(next));
+      return next;
+    });
   };
 
   const handleSaveFlat = (draft: FlatDraft) => {
@@ -71,7 +78,11 @@ export default function AccommodationPage() {
     };
 
     if (flatToEdit) {
-      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? newFlat : f)));
+      setFlats((prev) => {
+        const next = prev.map((f) => (f.id === flatToEdit.id ? newFlat : f));
+        localStorage.setItem('rpgms_flats', JSON.stringify(next));
+        return next;
+      });
       setSnackbar({
         open: true,
         message: `Flat ${draft.flatNumber} updated successfully.`,
@@ -136,7 +147,11 @@ export default function AccommodationPage() {
 
   const handleConfirmDelete = () => {
     if (flatToDelete) {
-      setFlats((prev) => prev.filter((f) => f.id !== flatToDelete.id));
+      setFlats((prev) => {
+        const next = prev.filter((f) => f.id !== flatToDelete.id);
+        localStorage.setItem('rpgms_flats', JSON.stringify(next));
+        return next;
+      });
       setSnackbar({
         open: true,
         message: `Flat ${flatToDelete.name} deleted successfully.`,

@@ -5,7 +5,7 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-007
-Version         : 2.3
+Version         : 2.4
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
@@ -17,17 +17,17 @@ Current Task
 
 Task ID
 
-SPR-5.3-001
+SPR-6.2-001
 
 Title
 
-Sprint 5.3 – Bed Allocation & Occupancy View
+Sprint 6.2 – Residents Checkout & Archival Workflow
 
 ------------------------------------------------------------------------------
 Objective
 ------------------------------------------------------------------------------
 
-Develop a view of bed allocations and occupancies, enabling visual representations of resident assignments to specific beds.
+Implement checkout procedures for residents, including checkout date tracking, formal checkout dialog forms, and automated bed clearance logic upon checkout completion.
 
 ------------------------------------------------------------------------------
 Scope
@@ -35,25 +35,24 @@ Scope
 
 Included
 
-- Add resident allocation badges to BedCards.
-- Develop layout tools to visualize occupied/vacant beds.
-- Support assigning/unassigning mock resident data to vacant beds.
-- Maintain stats updates in real-time.
+- Checkout dialog workflow to gather checkout dates.
+- Transitioning active residents to Checked Out and Alumni states.
+- Automated bed de-allocation upon checkout completion.
+- Tracking historical records of checked-out beds.
 
 Excluded
 
-- Supabase integration (which will follow in subsequent database sprints)
-- Finance ledger updates for allocations
+- Supabase integration.
+- Refund calculations or deposit settling.
 
 ------------------------------------------------------------------------------
 Acceptance Criteria
 ------------------------------------------------------------------------------
 
-Sprint 5.3 is complete when:
+Sprint 6.2 is complete when:
 
-- BedCards render resident assignments accurately.
-- Occupancy metrics are updated immediately.
-- Mock allocations can be toggled or created in the UI.
+- Residents can undergo checkout flow in the UI.
+- Beds occupied by checked-out residents are immediately marked vacant.
 - Build succeeds.
 - Lint succeeds.
 

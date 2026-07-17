@@ -349,3 +349,46 @@ require an architectural review and an entry in DECISIONS.md.
 The prompts folder contains reusable AI prompt templates and sprint implementation specifications.
 
 It is part of the development process and not part of the application runtime.
+
+# Accommodation Module Architecture (Sprint 4.3)
+
+## Domain Model
+
+Flat
+├── Flat Details
+├── Areas
+│   ├── Area Name
+│   ├── Bed Prefix
+│   └── Bed Count
+└── Generated Beds
+
+## Design Principles
+
+- A Flat is composed of one or more Areas.
+- Areas define bed generation.
+- Beds are never manually entered.
+- Capacity is derived from generated beds.
+- Business logic is separated from UI components.
+
+## Single Source of Truth
+
+The `generateBeds()` utility is the authoritative source for:
+
+- Bed generation
+- Bed numbering
+- Capacity calculation
+
+Both the Live Layout Preview and Flat Draft generation consume this utility.
+
+Future Edit Flat functionality must also reuse it.
+
+## UI Responsibilities
+
+The Add Flat dialog is responsible for:
+
+- Collecting user input
+- Validation
+- Invoking `generateBeds()`
+- Assembling the Flat Draft object
+
+It is NOT responsible for business calculations.

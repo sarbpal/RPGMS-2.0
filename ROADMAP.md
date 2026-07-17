@@ -131,5 +131,33 @@ Planned Work
 Sprint 4.1 ✅
 Sprint 4.2 ✅
 ---
+## Sprint 4.3
 
+### Status
+
+✅ COMPLETE
+
+### Deliverables
+
+- Add Flat dialog
+- Area management
+- Smart Bed Prefix suggestions
+- Validation
+- Live Layout Preview
+- Flat Draft generation
+- Keyboard UX improvements
+
+---
+
+## Next Sprint
+
+Sprint 4.4 – Accommodation Persistence & List Integration
+
+Planned goals:
+
+- Integrate Flat Draft with application state.
+- Replace developer preview with persistence workflow.
+- Refresh Accommodation list after creation.
+- Prepare for Supabase integration.
+- 
 End of Document

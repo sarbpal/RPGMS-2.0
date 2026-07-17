@@ -365,3 +365,45 @@ npm run lint succeeds (when applicable).
 The application runs without runtime errors.
 
 No milestone is considered complete until the project is in a runnable state.
+
+## Data Standards
+
+- Codes and identifiers are stored in UPPERCASE.
+- Display names are normalized to Title Case.
+- Descriptions preserve user formatting.
+- Trim unnecessary whitespace.
+
+## Business Rules
+
+Never ask the user to enter information that can be derived.
+
+Examples:
+
+- Capacity
+- Bed IDs
+- Running totals
+- Outstanding balances
+
+## Architecture Standards
+
+Business logic belongs in reusable utilities.
+
+UI components are responsible for presentation and orchestration.
+
+Avoid duplicating business logic.
+
+## UX Standards
+
+Optimize keyboard navigation for the primary business workflow.
+
+Destructive actions should not interrupt normal data entry.
+
+Prefer:
+
+- Smart defaults
+- Inline validation
+- Live feedback
+- Automatic normalization
+
+over manual user effort.
+

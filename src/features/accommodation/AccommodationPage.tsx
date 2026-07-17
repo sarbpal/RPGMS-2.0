@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { AccommodationSummary } from './components/AccommodationSummary';
 import { AccommodationToolbar } from './components/AccommodationToolbar';
+import { AddFlatDialog } from './components/AddFlatDialog';
 import { FlatCard } from './components/FlatCard';
 import { mockFlats } from './mock/accommodationData';
 import { BedStatus } from './types';
@@ -14,6 +15,7 @@ import { BedStatus } from './types';
 export default function AccommodationPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   // Derive summary metrics dynamically from mock data
   const totalFlats = mockFlats.length;
@@ -46,7 +48,7 @@ export default function AccommodationPage() {
   };
 
   const handleAddFlatClick = () => {
-    console.log('Add Flat clicked');
+    setIsAddDialogOpen(true);
   };
 
   return (
@@ -96,6 +98,11 @@ export default function AccommodationPage() {
           ))}
         </Stack>
       )}
+
+      <AddFlatDialog
+        open={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+      />
     </Container>
   );
 }

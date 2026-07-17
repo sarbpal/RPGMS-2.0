@@ -164,6 +164,65 @@ UI reviewed and approved
 Next Task:
 Sprint 4.3 – Design and implement the Add Flat workflow
 
+# Session Summary - Sprint 4.3 Complete
+
+## Milestone
+
+M1 – Accommodation Foundation
+
+## Sprint
+
+Sprint 4.3 – Add Flat Workflow
+
+## Status
+
+✅ COMPLETE
+
+---
+
+## Completed Features
+
+- Add Flat dialog shell
+- Flat Details form
+- Dynamic Area management
+- Smart Bed Prefix suggestions
+- Validation and normalization
+- Live Layout Preview
+- Pure bed generation utility (`generateBeds()`)
+- Flat Draft object generation
+- Keyboard-first workflow improvements
+- Developer draft preview
+
+---
+
+## Major Decisions
+
+- Accommodation hierarchy:
+  - Flat → Areas → Beds
+- `generateBeds()` is the single source of truth for bed generation.
+- Capacity is calculated from generated beds.
+- Validation is derived reactively.
+- Flat Number and Bed Prefix are normalized to uppercase.
+- Area Names are normalized to Title Case.
+- Keyboard workflow optimized for the primary business task.
+- Delete actions should not interrupt the normal tab sequence.
+
+---
+
+## Technical Outcome
+
+- Build successful
+- Lint successful
+- No duplicated business logic
+- Pure business utility extracted
+- Responsive UI maintained
+
+---
+
+## Next Session
+
+Sprint 4.4 – Accommodation List Integration / Persistence (as per roadmap)
+
 ---
 
 End of Document

@@ -333,6 +333,39 @@ Restructured into chronological milestone and sprint history.
 - Refined UI based on review (typography, spacing, hierarchy)
 - Completed build and lint verification
 
+## [Sprint 4.3] - Complete Add Flat Workflow
+
+### Added
+
+- Add Flat dialog
+- Dynamic Area configuration
+- Smart Bed Prefix suggestions
+- Validation and normalization
+- Live Layout Preview
+- `generateBeds()` utility
+- Flat Draft object generation
+- Developer draft preview
+- Keyboard-first navigation improvements
+
+### Changed
+
+- Improved Add Area keyboard workflow.
+- Removed Delete button from the normal tab order.
+- Added automatic focus to newly created Areas.
+- Standardized Area Name formatting to Title Case.
+
+### Technical
+
+- Extracted reusable bed generation logic.
+- Preserved single source of truth for capacity calculation.
+- Maintained clean separation between UI and business logic.
+
+### Quality
+
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -404,6 +404,20 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 4.4.2] - Accommodation List Integration
+
+### Added
+- Integrated interactive card click events on `AccommodationSummary` to update `statusFilter` immediately when users click stats cards (e.g. clicking "Vacant Beds" filters the list of flats for vacant beds and highlights it in the toolbar, keeping filters and summary cards fully synchronized).
+- Centralized derived calculations in `AccommodationPage` to feed stats downstream into components.
+
+### Changed
+- Removed mock data folder (`src/features/accommodation/mock/`) completely to clean up temporary development data.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 ## Document Information
 
 Document ID     : DOC-006
-Version         : 2.3
+Version         : 2.4
 Status          : Active
 Owner           : Development Team
 Last Updated    : 2026-07-18
@@ -28,11 +28,11 @@ Sprint 4.4 – Accommodation Persistence & List Integration
 
 Status
 
-Complete (Sprint 4.4.1a – Validation Hardening)
+Complete (Sprint 4.4.2 – Accommodation List Integration)
 
 Objective
 
-Strengthen validation in the Add Flat workflow to prevent invalid business data from entering the application state.
+Refine the Accommodation module so every UI component is driven by the same application state.
 
 ---
 
@@ -66,22 +66,20 @@ Last Verified
 ✔ Sprint 4.3 – Add Flat Workflow (dialog, preview, bed generation)
 ✔ Sprint 4.4.1 – Local React State Integration
 ✔ Sprint 4.4.1a – Validation Hardening
+✔ Sprint 4.4.2 – Accommodation List Integration
 
 ---
 
 ## Current Application State
 
-The Accommodation page now owns its flats collection using local React state with hardened validation constraints in place.
+The Accommodation page now owns its flats collection using local React state, with stats derived dynamically and passed to child components.
 
 Implemented features:
 * `AccommodationPage` uses state to store and render `flats`.
-* Validation guards:
-  * Flat number is checked for uniqueness against the current state immediately upon typing.
-  * Area names are validated for case-insensitive duplicate checks immediately.
-  * Bed prefixes are validated for duplicates immediately.
-  * Generated Bed IDs are verified for uniqueness before allowing Flat creation.
-  * Bed prefix first character is locked, and typing is limited to 2 characters (letters A-Z only, checked in `onChange`).
-  * Create button is disabled if any validation fails.
+* `AccommodationSummary` is driven by derived statistics of the full flat state.
+* Summary cards emit clicks that synchronize with the `statusFilter` state (e.g. clicking "Vacant Beds" updates the toolbar dropdown and filters flats reactively).
+* All mock data structures have been removed completely.
+* Verification constraints for Flat number, Area Names, Bed Prefixes, and generated Bed IDs remain active.
 
 No backend persistence is yet connected.
 
@@ -106,11 +104,11 @@ None.
 
 ## Notes
 
-The validation workflows comply perfectly with PROJECT_RULES.md (Uppercase normalization, Title Case area names, validation of duplicates, disabled submit button). The build and linter run cleanly.
+The list integration is fully verified. The build compiles cleanly, and ESLint is green.
 
 ---
 
-# Session Summary - Sprint 4.4.1a Complete
+# Session Summary - Sprint 4.4.2 Complete
 
 ## Milestone
 
@@ -118,7 +116,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 4.4.1a – Validation Hardening
+Sprint 4.4.2 – Accommodation List Integration
 
 ## Status
 
@@ -128,12 +126,10 @@ Sprint 4.4.1a – Validation Hardening
 
 ## Completed Features
 
-- Flat Number uniqueness checks via `existingFlatNumbers` prop.
-- Inline, immediate duplicate check indicators for Area Names, Bed Prefixes, and Flat Numbers.
-- Strict input intercepting on Bed Prefixes (locked system first character, upper A-Z limit, 2 char length max, disabled input on empty area name).
-- Auto-suggestion restoring when manual prefix changes match defaults.
-- Generated Bed ID uniqueness check before creation.
-- Disabled state control on the Create button.
+- Local React state handles flat rendering and summary metrics dynamically.
+- Accommodation Summary click integration with page filters.
+- Removed mock data folder completely.
+- Form submissions, uniqueness indicators, and button constraints are fully operational.
 
 ---
 

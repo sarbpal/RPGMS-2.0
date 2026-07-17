@@ -132,7 +132,16 @@ export default function AccommodationPage() {
         title="Accommodation"
       />
 
-      <AccommodationSummary stats={stats} />
+      <AccommodationSummary
+        stats={stats}
+        onCardClick={(key) => {
+          if (key === 'VACANT' || key === 'OCCUPIED' || key === 'ON_NOTICE') {
+            setStatusFilter(key);
+          } else {
+            setStatusFilter('ALL');
+          }
+        }}
+      />
 
       <AccommodationToolbar
         searchQuery={searchQuery}

@@ -1,8 +1,8 @@
-# RPGMS 2.0 - Project Rules
+# RPGMS 2.0 – Project Rules
 
-**Version:** 1.0
-**Status:** Locked
-**Last Updated:** July 2026
+**Version:** 1.1  
+**Status:** Active  
+**Last Updated:** 17 July 2026
 
 ---
 
@@ -10,7 +10,7 @@
 
 Build a modern, fast, reliable PG Management System that replaces the existing Google Sheets + Apps Script solution.
 
-The objective is to deliver a usable application as quickly as possible while maintaining clean architecture and high code quality.
+Deliver a usable application as quickly as possible while maintaining clean architecture, high code quality, and long-term maintainability.
 
 ---
 
@@ -18,38 +18,42 @@ The objective is to deliver a usable application as quickly as possible while ma
 
 > Build for today's business requirements, not tomorrow's possibilities.
 
-The application should solve real operational problems first.
+Solve real operational problems first.
+
 Future enhancements will be added incrementally.
 
 ---
 
 # Project Objectives
 
-- Replace Google Sheets with a web application.
-- Maintain existing business workflows.
+- Replace Google Sheets with a modern web application.
+- Preserve existing business workflows.
 - Improve usability.
 - Reduce manual work.
-- Provide a strong foundation for future growth.
+- Build a strong foundation for future growth.
 
 ---
 
 # Technology Stack (Locked)
 
-Frontend
+## Frontend
+
 - React
 - TypeScript
 - Vite
 - Material UI
 
-Backend
+## Backend
+
 - Supabase
 - PostgreSQL
 
-Deployment
+## Deployment
+
 - GitHub
 - Vercel
 
-No technology changes unless there is a compelling business reason.
+Technology changes require explicit Product Owner approval.
 
 ---
 
@@ -58,7 +62,7 @@ No technology changes unless there is a compelling business reason.
 ## Current Scope
 
 - Single PG
-- Single Admin
+- Single Administrator
 - Desktop First
 - Responsive Design
 
@@ -66,31 +70,27 @@ Multi-property support is intentionally excluded from Version 1.
 
 ---
 
-# Core Architectural Principles
+# Core Business Principles
 
-## Rule 1
+## Rule 1 – Ledger is the Single Source of Truth
 
-### Ledger is the only source of truth.
+Outstanding balances, collections, and reports are always calculated from ledger entries.
 
-No balances shall be stored.
-
-Outstanding amounts, collections and reports are always calculated from ledger entries.
+Running balances are never stored.
 
 ---
 
-## Rule 2
+## Rule 2 – Separate Deposit Ledger
 
-Security Deposit has its own ledger.
+Security Deposit has its own independent ledger.
 
 Deposit transactions are never mixed with the resident ledger.
 
 ---
 
-## Rule 3
+## Rule 3 – Every Financial Event Creates a Ledger Entry
 
-Every financial event creates a ledger entry.
-
-Examples
+Examples:
 
 - Monthly Rent
 - Electricity
@@ -101,71 +101,65 @@ Examples
 
 ---
 
-## Rule 4
+## Rule 4 – Ledger Entries are Immutable
 
-Ledger entries are immutable.
-
-Corrections are made through reversing entries.
+Corrections are made using reversing entries.
 
 Existing ledger entries are never edited.
 
 ---
 
-## Rule 5
+## Rule 5 – Accommodation Drives the Business
 
-Accommodation drives everything.
+Business hierarchy:
 
-Business flow:
-
+```text
 Flat
-↓
-
+    ↓
+Area
+    ↓
 Bed
-↓
-
-Rent
-↓
-
+    ↓
 Resident
-↓
-
+    ↓
 Ledger
+```
+
+Accommodation is the foundation for occupancy, billing, and reporting.
 
 ---
 
-## Rule 6
+## Rule 6 – Resident Lifecycle
 
-Residents have three lifecycle states.
+Residents progress through three operational states:
 
 - Active
 - On Notice
 - Checked Out
 
-Notice Date defaults Checkout Date to Notice Date + 30 days.
+Notice Date automatically suggests:
+
+Checkout Date = Notice Date + 30 days
 
 Checkout Date remains editable.
 
 ---
 
-## Rule 7
+## Rule 7 – Electricity Workflow
 
-Electricity workflow
-
+```text
 Enter Bill
-
-↓
-
+      ↓
 Split Bill
-
-↓
-
+      ↓
 Automatic Ledger Entries
+```
 
-No manual posting.
+Manual ledger posting is not permitted.
 
 ---
 
-# Development Rules
+# Development Principles
 
 ## Ship Working Software
 
@@ -175,7 +169,7 @@ Every sprint must produce working software.
 
 ## MVP First
 
-Only build features required to run the PG.
+Only build features required to operate the PG.
 
 Everything else belongs in the backlog.
 
@@ -189,16 +183,15 @@ Prefer the simplest maintainable solution.
 
 ---
 
-## One Feature At A Time
+## One Feature at a Time
 
 Complete one feature before starting another.
 
 ---
 
-## Two Day Rule
+## Two-Day Rule
 
-If a feature grows beyond two days of work,
-split it into smaller deliverables.
+If implementation exceeds approximately two days, split it into smaller deliverables.
 
 ---
 
@@ -215,7 +208,7 @@ Every completed feature should be:
 
 ## Zero Training
 
-The application should be intuitive enough that a new user can understand it without reading documentation.
+The application should be intuitive enough that a new user can operate it without documentation.
 
 ---
 
@@ -233,6 +226,7 @@ The application should be intuitive enough that a new user can understand it wit
 ## Accommodation
 
 - Flats
+- Areas
 - Beds
 - Bed Rent
 
@@ -240,8 +234,8 @@ The application should be intuitive enough that a new user can understand it wit
 
 ## Residents
 
-- Add
-- Edit
+- Add Resident
+- Edit Resident
 - On Notice
 - Checkout
 
@@ -259,14 +253,14 @@ The application should be intuitive enough that a new user can understand it wit
 ## Electricity
 
 - Monthly Bill Entry
-- Auto Split
-- Auto Ledger Posting
+- Automatic Bill Split
+- Automatic Ledger Posting
 
 ---
 
 ## Settings
 
-Basic Configuration
+- Basic Configuration
 
 ---
 
@@ -282,7 +276,7 @@ The following features are intentionally postponed.
 - Advanced Reports
 - Inventory
 - Vendor Management
-- Multi PG
+- Multi-PG Support
 - Analytics
 
 ---
@@ -290,109 +284,97 @@ The following features are intentionally postponed.
 # Coding Standards
 
 - TypeScript only
-- No duplicate logic
+- No duplicated business logic
 - Reusable components
-- Clean naming
-- Small functions
+- Clear naming
+- Small focused functions
 - No dead code
+
+---
+
+# Build Integrity
+
+Every milestone must end with:
+
+- `npm run build` succeeds
+- `npm run lint` succeeds (when applicable)
+- Application runs without runtime errors
+
+A milestone is not complete until the project is runnable.
+
+---
+
+# Minimal Dependencies
+
+Every dependency must have a clear purpose.
+
+Before adding a package, ask:
+
+1. Can React already do this?
+2. Can we implement it ourselves simply?
+3. Does this dependency save significant development time?
+
+If the answer is **No**, do not install it.
 
 ---
 
 # Definition of Done
 
-A task is complete only if:
+A task is complete only when:
 
-✓ Code compiles
-
-✓ No TypeScript errors
-
-✓ Tested locally
-
-✓ Pushed to GitHub
-
-✓ Deployed on Vercel
-
-✓ Accepted by Product Owner
+- ✓ Code compiles
+- ✓ No TypeScript errors
+- ✓ Build succeeds
+- ✓ Tested locally
+- ✓ Documentation updated (when applicable)
+- ✓ Pushed to GitHub
+- ✓ Deployed to Vercel
+- ✓ Accepted by the Product Owner
 
 ---
 
-# Decision Rule
+# Data Standards
 
-Whenever a design decision is required, ask:
-
-> "Does this help us deliver a usable application faster without creating major future problems?"
-
-If the answer is YES, implement it.
-
-If the answer is NO, postpone it.
-
-# Non-Negotiables
-
-The following principles require explicit approval before they can be changed:
-
-- Technology Stack
-- Ledger is the only source of truth
-- Separate Deposit Ledger
-- Single PG Architecture
-- MVP First Strategy
-- No Over Engineering
-# IMPORTANT
-
-Before implementing any feature, every developer or AI assistant working on this project must read this document completely.
-
-These rules take precedence over implementation convenience.
-
-If any implementation conflicts with these rules, the rules must be followed unless explicitly changed by the Product Owner.
-
-Minimal Dependencies
-
-Every dependency must have a purpose.
-
-Before adding any package, we ask:
-
-Does React already provide this?
-Can we write it ourselves easily?
-Does this dependency save significant time?
-
-If not, we don't install it.
-
-Rule: Build Integrity
-
-Every milestone must end with:
-
-npm run build succeeds.
-npm run lint succeeds (when applicable).
-The application runs without runtime errors.
-
-No milestone is considered complete until the project is in a runnable state.
-
-## Data Standards
-
-- Codes and identifiers are stored in UPPERCASE.
-- Display names are normalized to Title Case.
+- Codes and identifiers are stored in **UPPERCASE**.
+- Display names are normalized to **Title Case**.
 - Descriptions preserve user formatting.
-- Trim unnecessary whitespace.
+- Leading and trailing whitespace is removed automatically.
 
-## Business Rules
+---
 
-Never ask the user to enter information that can be derived.
+# Business Standards
+
+Never ask the user to enter information that the system can derive.
 
 Examples:
 
-- Capacity
+- Flat Capacity
 - Bed IDs
-- Running totals
-- Outstanding balances
+- Running Totals
+- Outstanding Balances
 
-## Architecture Standards
+Users describe the business.
+
+The system derives the operational data.
+
+---
+
+# Architecture Standards
 
 Business logic belongs in reusable utilities.
 
-UI components are responsible for presentation and orchestration.
+UI components are responsible only for:
 
-Avoid duplicating business logic.
+- User interaction
+- Presentation
+- Validation
+- Orchestration
 
-## UX Standards
+Business calculations must never be duplicated across UI components.
+
+---
+
+# UX Standards
 
 Optimize keyboard navigation for the primary business workflow.
 
@@ -407,3 +389,37 @@ Prefer:
 
 over manual user effort.
 
+---
+
+# Decision Rule
+
+Whenever a design decision is required, ask:
+
+> "Does this help us deliver a usable application faster without creating major future problems?"
+
+If **Yes**, implement it.
+
+If **No**, postpone it.
+
+---
+
+# Non-Negotiables
+
+The following principles require explicit Product Owner approval before they can be changed:
+
+- Technology Stack
+- Ledger is the Single Source of Truth
+- Separate Deposit Ledger
+- Single PG Architecture
+- MVP First Strategy
+- No Over Engineering
+
+---
+
+# Important
+
+Every developer and every AI assistant working on RPGMS 2.0 must read this document before implementing any feature.
+
+These rules take precedence over implementation convenience.
+
+If implementation conflicts with these rules, the rules must be followed unless explicitly changed by the Product Owner.

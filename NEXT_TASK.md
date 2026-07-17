@@ -5,11 +5,11 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-007
-Version         : 1.0
+Version         : 2.0
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
-Last Updated    : 2026-07-16
+Last Updated    : 2026-07-17
 
 ------------------------------------------------------------------------------
 Current Task
@@ -17,29 +17,59 @@ Current Task
 
 Task ID
 
-M0-DOC-005
+SPR-4.4-001
 
 Title
 
-Review and approve AI_SESSION_PROTOCOL.md
+Sprint 4.4 – Accommodation Persistence & List Integration
 
 ------------------------------------------------------------------------------
 Objective
 ------------------------------------------------------------------------------
 
-Complete the review of AI_SESSION_PROTOCOL.md and approve it as the final
-document required to complete Milestone M0 – Engineering Foundation.
+Complete the integration of the Add Flat workflow with the Accommodation
+module.
+
+The Add Flat dialog currently assembles a validated Flat Draft object.
+The next objective is to connect this draft to the application state and
+prepare the module for future Supabase persistence.
+
+------------------------------------------------------------------------------
+Scope
+------------------------------------------------------------------------------
+
+Included
+
+- Connect Flat Draft to application state.
+- Replace the Developer Preview with the production workflow.
+- Refresh the Accommodation list after successful creation.
+- Display the newly created Flat immediately.
+- Prepare the data model for future Supabase integration.
+
+Excluded
+
+- Database persistence
+- Resident allocation
+- Edit Flat
+- Delete Flat
+- Occupancy management
+
+These remain part of future sprints.
 
 ------------------------------------------------------------------------------
 Acceptance Criteria
 ------------------------------------------------------------------------------
 
-The task is complete when:
+Sprint 4.4 is complete when:
 
-- AI_SESSION_PROTOCOL.md has been reviewed.
-- Any required revisions have been incorporated.
-- The document has been approved.
-- Documentation remains internally consistent.
+- Flat creation updates the application state.
+- Newly created Flats appear immediately.
+- Developer Preview is removed.
+- User receives appropriate success feedback.
+- Build succeeds.
+- Lint succeeds.
+- Documentation is updated.
+- Product Owner approval obtained.
 
 ------------------------------------------------------------------------------
 Dependencies
@@ -47,16 +77,21 @@ Dependencies
 
 Required Documents
 
-- DOCUMENTATION_INDEX.md
-- AI_GOVERNANCE.md
+- PROJECT_RULES.md
 - AI_CONTEXT.md
 - AI_INSTRUCTIONS.md
+- docs/ARCHITECTURE.md
+- docs/DECISIONS.md
+- ROADMAP.md
 
 ------------------------------------------------------------------------------
 Deliverables
 ------------------------------------------------------------------------------
 
-- Final AI_SESSION_PROTOCOL.md
+- Integrated Add Flat workflow
+- Updated Accommodation list
+- Production-ready create flow
+- Clean application state integration
 
 ------------------------------------------------------------------------------
 After Completion
@@ -64,17 +99,43 @@ After Completion
 
 Next Planned Task
 
-Review operational documents.
+Sprint 4.5 – Edit Flat Workflow
 
-Prepare Git commit for:
+Expected objectives:
 
-Milestone M0 – Engineering Foundation
+- Load existing Flat
+- Edit Areas
+- Regenerate Beds
+- Preserve business rules
+- Prepare for Resident allocation
 
 ------------------------------------------------------------------------------
 Status
 ------------------------------------------------------------------------------
 
 Ready
+
+------------------------------------------------------------------------------
+Notes
+------------------------------------------------------------------------------
+
+Before implementation:
+
+- Review PROJECT_RULES.md
+- Review AI_CONTEXT.md
+- Review AI_INSTRUCTIONS.md
+
+Follow the established Accommodation architecture:
+
+Flat
+    ↓
+Areas
+    ↓
+generateBeds()
+    ↓
+Generated Beds
+
+Do not duplicate business logic.
 
 ------------------------------------------------------------------------------
 End of Document

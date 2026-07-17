@@ -1,8 +1,8 @@
 # RPGMS 2.0 – Architecture
 
-**Version:** 1.0
-**Status:** Active
-**Last Updated:** 13 July 2026
+**Version:** 1.1  
+**Status:** Active  
+**Last Updated:** 17 July 2026
 
 ---
 
@@ -10,9 +10,9 @@
 
 This document defines the software architecture of RPGMS 2.0.
 
-Its purpose is to ensure the application remains simple, consistent, maintainable and scalable throughout its lifetime.
+Its purpose is to ensure the application remains simple, consistent, maintainable, and scalable throughout its lifetime.
 
-This document describes **how the application is organized**. It does **not** describe business rules, implementation details or future roadmap items.
+This document describes **how the application is organized**. It does **not** describe business rules, implementation details, or future roadmap items.
 
 ---
 
@@ -26,14 +26,14 @@ The application is organized around business capabilities rather than technical 
 
 Examples:
 
-* Dashboard
-* Residents
-* Accommodation
-* Finance
-* Electricity
-* Settings
+- Dashboard
+- Residents
+- Accommodation
+- Finance
+- Electricity
+- Settings
 
-Business modules should own their own implementation.
+Business modules own their own implementation and encapsulate their business logic.
 
 ---
 
@@ -53,7 +53,7 @@ Introduce complexity only when there is a demonstrated need.
 
 Business functionality belongs inside Feature modules.
 
-Reusable functionality belongs in Shared modules.
+Reusable functionality belongs inside Shared modules.
 
 ---
 
@@ -73,9 +73,24 @@ Do not duplicate code across features.
 
 ---
 
+## 2.6 Derive Before Store
+
+Whenever information can be calculated from existing data, it should be derived instead of stored.
+
+Examples:
+
+- Flat Capacity
+- Bed IDs
+- Outstanding Balance
+- Running Totals
+
+Derived data reduces inconsistency and simplifies maintenance.
+
+---
+
 # 3. Repository Structure
 
-```
+```text
 RPGMS-2.0/
 
 src/
@@ -100,7 +115,7 @@ There is only one project root.
 
 # 4. Source Structure
 
-```
+```text
 src/
 
 app/
@@ -130,9 +145,9 @@ Application bootstrap.
 
 Examples:
 
-* App
-* Router
-* Providers
+- App
+- Router
+- Providers
 
 ---
 
@@ -140,11 +155,9 @@ Examples:
 
 Static assets.
 
-Images.
-
-Icons.
-
-Fonts.
+- Images
+- Icons
+- Fonts
 
 ---
 
@@ -172,10 +185,11 @@ Each feature owns its own implementation.
 
 Example:
 
-```
+```text
 features/
 
 dashboard/
+accommodation/
 residents/
 finance/
 electricity/
@@ -183,11 +197,12 @@ electricity/
 
 As features grow, they may contain:
 
-* components
-* hooks
-* services
-* types
-* validation
+- components
+- hooks
+- services
+- types
+- utils
+- validation
 
 Everything related to a business capability should remain together.
 
@@ -199,11 +214,11 @@ Application-wide services.
 
 Examples:
 
-* Supabase client
-* Authentication
-* Storage
+- Supabase client
+- Authentication
+- Storage
 
-Business-specific services belong inside their respective Feature.
+Business-specific services belong inside their respective feature.
 
 ---
 
@@ -221,7 +236,7 @@ Design tokens.
 
 Shared application types.
 
-Business-specific types belong inside their Feature.
+Business-specific types belong inside their feature.
 
 ---
 
@@ -229,9 +244,13 @@ Business-specific types belong inside their Feature.
 
 Pure helper functions.
 
-No business logic.
+Utilities should:
 
-No side effects.
+- be deterministic
+- have no side effects
+- remain framework independent
+
+Business-specific utilities belong inside their owning feature.
 
 ---
 
@@ -239,53 +258,47 @@ No side effects.
 
 Dependencies should always flow inward.
 
-```
+```text
 main.tsx
-
-↓
-
+    ↓
 app
-
-↓
-
+    ↓
 features
-
-↓
-
+    ↓
 components
-
-↓
-
+    ↓
 utils
 ```
 
-Lower layers must never depend on higher layers.
+Rules:
 
-Business features should never import implementation details from other business features.
+- Lower layers must never depend on higher layers.
+- Features should not depend on implementation details of other features.
+- Shared modules must never depend on business modules.
 
 ---
 
 # 7. Naming Conventions
 
-Folders
+## Folders
 
-* lowercase
+- lowercase
 
-Files
+## Files
 
-* PascalCase for React components
-* camelCase for utilities
-* camelCase for services
-* camelCase for hooks
+- PascalCase → React Components
+- camelCase → utilities
+- camelCase → hooks
+- camelCase → services
 
 Examples:
 
-```
+```text
 ResidentCard.tsx
 MainLayout.tsx
 
+generateBeds.ts
 currency.ts
-date.ts
 
 supabase.ts
 
@@ -296,99 +309,162 @@ useResidents.ts
 
 # 8. Architectural Decisions
 
-Major architectural changes must be recorded in `docs/DECISIONS.md`.
+Major architectural decisions must be documented in:
 
-Architecture should not change without documenting the reason.
+`docs/DECISIONS.md`
+
+Architecture should never evolve without recording **why** the change was made.
 
 ---
 
 # 9. Documentation Hierarchy
 
+| Document | Responsibility |
+|-----------|----------------|
+| README.md | Project overview |
+| PROJECT_RULES.md | Engineering rules |
+| AI_CONTEXT.md | Project context |
+| AI_INSTRUCTIONS.md | AI implementation guidance |
+| ARCHITECTURE.md | Software architecture |
+| DECISIONS.md | Architectural decisions |
+| ROADMAP.md | Product roadmap |
+| BACKLOG.md | Deferred work |
+| CHANGELOG.md | Project history |
+| SESSION.md | Current sprint |
+| NEXT_TASK.md | Immediate implementation task |
+
 Each document has a single responsibility.
 
-| Document           | Purpose                            |
-| ------------------ | ---------------------------------- |
-| README.md          | Project overview                   |
-| AI_GOVERNANCE.md   | AI governance and responsibilities |
-| PROJECT_RULES.md   | Non-negotiable engineering rules   |
-| AI_CONTEXT.md      | Project context                    |
-| AI_INSTRUCTIONS.md | AI implementation instructions     |
-| ARCHITECTURE.md    | Software architecture              |
-| DECISIONS.md       | Architecture decisions             |
-| ROADMAP.md         | Product roadmap                    |
-| BACKLOG.md         | Deferred work                      |
-| CHANGELOG.md       | Change history                     |
-| SESSION.md         | Current sprint status              |
-
+---
 
 # 10. Guiding Principle
 
 The objective of this architecture is **clarity over cleverness**.
 
-The best architecture is the one that allows future development to remain predictable, maintainable and understandable.
-No new top-level folders may be added to src without an Architecture Decision.
-The top-level src folder structure is considered stable.
+The best architecture is the one that allows future development to remain predictable, maintainable, and understandable.
 
-New top-level folders require an architectural review and, if accepted, an entry in docs/DECISIONS.md.
+No new top-level folders may be added to `src` without an Architecture Decision.
 
-Feature modules may evolve internally without changing the overall architecture.
+The top-level `src` structure is considered stable.
+
+Feature modules may evolve internally without affecting the overall architecture.
+
+---
 
 # 11. Architecture Stability
-The architecture is considered stable.
 
-Changes to:
+The following require architectural review:
 
-- top-level folders
-- dependency direction
-- feature organisation
+- Top-level folders
+- Dependency direction
+- Feature organisation
+- Shared infrastructure
 
-require an architectural review and an entry in DECISIONS.md.
+Any approved change must be documented in:
 
-# 12. Prompts
+`docs/DECISIONS.md`
 
-The prompts folder contains reusable AI prompt templates and sprint implementation specifications.
+---
 
-It is part of the development process and not part of the application runtime.
+# 12. Development Assets
 
-# Accommodation Module Architecture (Sprint 4.3)
+The `prompts/` folder contains reusable AI implementation prompts, sprint specifications, and development templates.
+
+It is part of the development workflow but is **not** part of the application runtime.
+
+---
+
+# 13. Accommodation Module Architecture (Sprint 4.3)
 
 ## Domain Model
 
+```text
 Flat
+│
 ├── Flat Details
+│
 ├── Areas
-│   ├── Area Name
-│   ├── Bed Prefix
-│   └── Bed Count
+│     ├── Area Name
+│     ├── Bed Prefix
+│     └── Bed Count
+│
 └── Generated Beds
+```
+
+---
+
+## Business Flow
+
+```text
+Flat
+    ↓
+Areas
+    ↓
+generateBeds()
+    ↓
+Generated Beds
+    ↓
+Capacity
+```
+
+Capacity is always derived from generated beds.
+
+---
 
 ## Design Principles
 
 - A Flat is composed of one or more Areas.
-- Areas define bed generation.
-- Beds are never manually entered.
-- Capacity is derived from generated beds.
-- Business logic is separated from UI components.
+- Areas define the accommodation layout.
+- Beds are generated by the system.
+- Bed IDs are never manually entered.
+- Capacity is calculated automatically.
+- Business logic remains independent of the UI.
+
+---
 
 ## Single Source of Truth
 
-The `generateBeds()` utility is the authoritative source for:
+`generateBeds()` is the authoritative business utility responsible for:
 
 - Bed generation
 - Bed numbering
 - Capacity calculation
 
-Both the Live Layout Preview and Flat Draft generation consume this utility.
+It is consumed by:
 
-Future Edit Flat functionality must also reuse it.
+- Live Layout Preview
+- Flat Draft generation
+- Future Edit Flat workflow
+- Future persistence layer
+
+Any future feature requiring bed generation must reuse this utility.
+
+---
 
 ## UI Responsibilities
 
-The Add Flat dialog is responsible for:
+The Add Flat dialog is responsible only for:
 
 - Collecting user input
-- Validation
+- Performing validation
+- Normalizing display values
 - Invoking `generateBeds()`
 - Assembling the Flat Draft object
 
-It is NOT responsible for business calculations.
+Business calculations remain outside the UI.
+
+---
+
+## Architectural Outcome
+
+Sprint 4.3 established the canonical Accommodation architecture:
+
+```text
+Flat
+    ↓
+Areas
+    ↓
+Generated Beds
+```
+
+Future Accommodation features—including Edit Flat, Occupancy Management, and Resident Allocation—will build upon this model without changing the core hierarchy.

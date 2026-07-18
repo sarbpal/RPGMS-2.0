@@ -12,6 +12,7 @@ import { FlatCard } from './components/FlatCard';
 import { BedStatus } from './types';
 import type { Flat } from './types';
 import type { Resident } from '../residents/types';
+import { ResidentStatus } from '../residents';
 
 export default function AccommodationPage() {
   const [flats, setFlats] = useState<Flat[]>(() => {
@@ -26,9 +27,9 @@ export default function AccommodationPage() {
     // Create a map of bedId -> Resident for self-healing status synchronization
     const residentBedMap = new Map();
     residents.forEach((res: Resident) => {
-      const isOccupying = res.status === 'Active' || res.status === 'On Notice';
-      if (isOccupying && res.assignedBedIds) {
-        res.assignedBedIds.forEach((bedId: string) => {
+      const isOccupying = res.status === ResidentStatus.ACTIVE || res.status === ResidentStatus.ON_NOTICE;
+      if (isOccupying && res.allocatedBedIds) {
+        res.allocatedBedIds.forEach((bedId: string) => {
           residentBedMap.set(bedId, res);
         });
       }
@@ -49,8 +50,8 @@ export default function AccommodationPage() {
           const expectedBedDeposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : expectedAreaDeposit;
 
           if (resident) {
-            expectedStatus = resident.status === 'On Notice' ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
-            expectedResidentName = resident.personalInfo.fullName;
+            expectedStatus = resident.status === ResidentStatus.ON_NOTICE ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
+            expectedResidentName = resident.fullName;
           } else {
             expectedResidentName = undefined;
             // Keep status if not occupied or on notice (e.g. maintenance, blocked, reserved)

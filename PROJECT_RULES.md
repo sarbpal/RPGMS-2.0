@@ -131,11 +131,12 @@ Accommodation is the foundation for occupancy, billing, and reporting.
 
 ## Rule 6 – Resident Lifecycle
 
-Residents progress through three operational states:
+Residents progress through four operational states:
 
-- Active
-- On Notice
-- Checked Out
+- ACTIVE
+- ON_NOTICE
+- CHECKED_OUT
+- ALUMNI
 
 Notice Date automatically suggests:
 

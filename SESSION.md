@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 5 – Accommodation Pricing
+Sprint 6.1 – Resident Module Foundation
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Implement default rent and default deposit support for the Accommodation module.
+Create the foundational Resident module for RPGMS 2.0.
 
 ---
 
@@ -67,13 +67,8 @@ Last Verified
 ✔ Sprint 4.4.1 – Local React State Integration
 ✔ Sprint 4.4.1a – Validation Hardening
 ✔ Sprint 4.4.2 – Accommodation List Integration
-✔ Sprint 5.1 – Edit Flat UI
-✔ Sprint 5.2 – Delete Flat Workflow
-✔ Sprint 6.1 – Residents Foundation
-✔ Bugfix – Accommodation & Residents State Persistence
-✔ Sprint 6.2 – Residents UX Refinement
-✔ Sprint 6.3 – Resident Onboarding Simplification
 ✔ Sprint 5 – Accommodation Pricing
+✔ Sprint 6.1 – Resident Module Foundation
 
 ---
 
@@ -83,22 +78,14 @@ The PG Management System has functional modules for both Accommodation and Resid
 
 Implemented features:
 * Flats management (creation, layout edits, deletion) fully functional with default pricing configurations.
-* Residents registry (CRUD, read-only profiles, auto ID sequence generator) operational.
-* Navigation and routes configured for viewing resident profiles.
-* Unified search filters and simplified onboarding flows.
-
-No backend database is yet connected.
+* Residents Registry type schema and enums established with placeholder router pages.
+* Mock residents data demonstrating single and multi-bed allocation.
 
 ---
 
 ## Next Task
 
-Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
-
-Develop:
-* Add monthly rent and security deposit fields to `Resident` models.
-* Outstanding balance summaries on Profile.
-* Transactional ledger scaffolding.
+Sprint 6.2 – Resident Onboarding Wizard / UI
 
 ---
 
@@ -110,11 +97,11 @@ None.
 
 ## Notes
 
-The build compiles cleanly, and ESLint is green. Sibling routing states are fully synchronized in browser storage.
+The build compiles cleanly, and ESLint is green.
 
 ---
 
-# Session Summary - Sprint 5 Complete
+# Session Summary - Sprint 6.1 Complete
 
 ## Milestone
 
@@ -122,7 +109,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 5 – Accommodation Pricing
+Sprint 6.1 – Resident Module Foundation
 
 ## Status
 
@@ -132,12 +119,12 @@ Status: ✅ COMPLETE
 
 ## Completed Features
 
-- Extended `Bed` and `Area` interfaces with `defaultRent` and `defaultDeposit` properties.
-- Enhanced `generateBeds` utility to accept area default Rent and Deposit values and assign them to generated beds.
-- Updated `AddFlatDialog` to collect non-negative integer values for default Rent and default Deposit per Area, maintaining validation and UI behavior.
-- Added Bed Code and Default Rent side-by-side inside the Live Layout Preview of `AddFlatDialog`.
-- Implemented self-healing synchronization on load in `AccommodationPage` to automatically migrate existing beds and areas to have default Rent and Deposit values initialized to `0`.
-- Displayed default Rent and Deposit on each bed's card in `BedCard`.
+- Formulated the Resident domain model containing GUID `id`, system-managed `residentCode`, `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`, `status`, `createdAt`, and `updatedAt`.
+- Created `ResidentDraft` model representing onboarding data without system-managed fields.
+- Setup `ResidentStatus` (`ACTIVE`, `ON_NOTICE`, `CHECKED_OUT`, `ALUMNI`) and `DocumentType` enums.
+- Created `mockResidents.ts` under `src/features/residents/data/` showing single-bed and multi-bed allocations.
+- Re-architected the `residents` folder directory structure (`components`, `pages`, `types`, `hooks`, `utils`, `data`, `constants`) and updated module exports.
+- Setup clean placeholders for `ResidentsPage` and `ResidentProfilePage` to satisfy router loading.
 
 ---
 

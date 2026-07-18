@@ -1,2 +1,4 @@
-export { default as ResidentsPage } from './ResidentsPage';
-export { default as ResidentProfilePage } from './ResidentProfilePage';
+export * from './types';
+export * from './data/mockResidents';
+export { default as ResidentsPage } from './pages/ResidentsPage';
+export { default as ResidentProfilePage } from './pages/ResidentProfilePage';

@@ -524,6 +524,21 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 6.1] - Resident Module Foundation
+
+### Added
+- Formulated the Resident domain model containing GUID `id`, system-managed `residentCode`, `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`, `status`, `createdAt`, and `updatedAt` in `src/features/residents/types/index.ts`.
+- Introduced `ResidentDraft` model representing onboarding data without system-managed fields.
+- Created `ResidentStatus` (`ACTIVE`, `ON_NOTICE`, `CHECKED_OUT`, `ALUMNI`) and `DocumentType` enums.
+- Created `mockResidents.ts` under `src/features/residents/data/` showing single-bed and multi-bed allocations.
+- Re-architected the `residents` folder directory structure (`components`, `pages`, `types`, `hooks`, `utils`, `data`, `constants`) and updated module exports.
+- Setup clean placeholders for `ResidentsPage` and `ResidentProfilePage` to satisfy router loading while keeping the focus on the model foundation.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -475,3 +475,39 @@ Generated Beds
 ```
 
 Future Accommodation features—including Edit Flat, Occupancy Management, and Resident Allocation—will build upon this model without changing the core hierarchy.
+
+---
+
+# 14. Resident Module Architecture (Sprint 6.1)
+
+## Domain Model
+
+```text
+Resident
+├── id (string)
+├── residentCode (string)
+├── fullName (string)
+├── mobileNumber (string)
+├── documentType (DocumentType)
+├── documentNumber (string)
+├── joiningDate (string)
+├── flatId (string)
+├── allocatedBedIds (string[])
+├── agreedRent (number)
+├── agreedDeposit (number)
+├── status (ResidentStatus)
+├── createdAt (string)
+└── updatedAt (string)
+```
+
+## System Managed Fields
+
+The system manages the following fields internally:
+* `residentCode`: Automatically generated code.
+* `status`: Set automatically to `ACTIVE` upon creation.
+* `createdAt` / `updatedAt`: Timestamps of creation/modification.
+
+## Resident Draft Model
+
+The onboarding flow uses a subset of the fields represented as `ResidentDraft`:
+* `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`.

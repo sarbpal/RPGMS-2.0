@@ -478,7 +478,7 @@ Future Accommodation features—including Edit Flat, Occupancy Management, and R
 
 ---
 
-# 14. Resident Module Architecture (Sprint 6.1)
+# 14. Resident Module Architecture (Sprint 6.1 - 6.2)
 
 ## Domain Model
 
@@ -511,3 +511,14 @@ The system manages the following fields internally:
 
 The onboarding flow uses a subset of the fields represented as `ResidentDraft`:
 * `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`.
+
+---
+
+## Resident Onboarding Wizard (Sprint 6.2)
+
+A three-step horizontal Stepper workflow is introduced to handle resident onboarding:
+1. **Resident Details**: Collects user identification (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation.
+2. **Accommodation Details**: Page structure outlining the joining date, flat selection, bed allocation, agreed rent, and agreed deposit (driven by placeholder values for Sprint 6.2).
+3. **Confirmation Summary**: Displays a clean three-column summary dividing Resident Identity, Accommodation allocation, and Commercial terms before final submission.
+
+All wizard state is driven by React local state tracking a `ResidentDraft` instance as the single source of truth, ensuring input values are preserved during backward/forward navigation.

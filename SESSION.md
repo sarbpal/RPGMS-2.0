@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 6.1 – Resident Module Foundation
+Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Create the foundational Resident module for RPGMS 2.0.
+Build the UI foundation for the Resident Onboarding Wizard.
 
 ---
 
@@ -69,6 +69,7 @@ Last Verified
 ✔ Sprint 4.4.2 – Accommodation List Integration
 ✔ Sprint 5 – Accommodation Pricing
 ✔ Sprint 6.1 – Resident Module Foundation
+✔ Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
 
 ---
 
@@ -79,13 +80,13 @@ The PG Management System has functional modules for both Accommodation and Resid
 Implemented features:
 * Flats management (creation, layout edits, deletion) fully functional with default pricing configurations.
 * Residents Registry type schema and enums established with placeholder router pages.
-* Mock residents data demonstrating single and multi-bed allocation.
+* Three-step Resident Onboarding Wizard UI foundation layout, with step navigation, validation, and layout structures.
 
 ---
 
 ## Next Task
 
-Sprint 6.2 – Resident Onboarding Wizard / UI
+Sprint 6.3 – Onboarding Wizard Integration & Persistence
 
 ---
 
@@ -101,7 +102,7 @@ The build compiles cleanly, and ESLint is green.
 
 ---
 
-# Session Summary - Sprint 6.1 Complete
+# Session Summary - Sprint 6.2 Complete
 
 ## Milestone
 
@@ -109,7 +110,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 6.1 – Resident Module Foundation
+Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
 
 ## Status
 
@@ -119,12 +120,12 @@ Status: ✅ COMPLETE
 
 ## Completed Features
 
-- Formulated the Resident domain model containing GUID `id`, system-managed `residentCode`, `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`, `status`, `createdAt`, and `updatedAt`.
-- Created `ResidentDraft` model representing onboarding data without system-managed fields.
-- Setup `ResidentStatus` (`ACTIVE`, `ON_NOTICE`, `CHECKED_OUT`, `ALUMNI`) and `DocumentType` enums.
-- Created `mockResidents.ts` under `src/features/residents/data/` showing single-bed and multi-bed allocations.
-- Re-architected the `residents` folder directory structure (`components`, `pages`, `types`, `hooks`, `utils`, `data`, `constants`) and updated module exports.
-- Setup clean placeholders for `ResidentsPage` and `ResidentProfilePage` to satisfy router loading.
+- Developed `ResidentOnboardingWizard` component with a three-step horizontal Stepper layout.
+- Integrated `ResidentDraft` state tracking as the single source of truth across steps.
+- Programmed input fields for step 1 (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation and error boundaries.
+- Rendered form layout structures for step 2 (Joining Date, Flat Selection, Allocate Beds, Rent, and Deposit) with placeholders.
+- Built a three-column confirmation grid summarizing Resident identity, Accommodation allocation, and Commercial terms for step 3.
+- Integrated the onboarding wizard directly on `ResidentsPage` to enable interactive testing and visual check-in review.
 
 ---
 

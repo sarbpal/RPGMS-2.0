@@ -539,6 +539,21 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 6.2] - Resident Onboarding Wizard (UI Foundation)
+
+### Added
+- Developed `ResidentOnboardingWizard` component inside `src/features/residents/components/ResidentOnboardingWizard.tsx` with a three-step horizontal Stepper layout.
+- Integrated `ResidentDraft` state tracking as the single source of truth across all three steps.
+- Programmed input fields for step 1 (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation and error boundaries.
+- Rendered form layout structures for step 2 (Joining Date, Flat Selection, Allocate Beds, Rent, and Deposit) with descriptive placeholder data.
+- Built a three-column confirmation grid summarizing Resident identity, Accommodation allocation, and Commercial terms for step 3.
+- Integrated the onboarding wizard directly on `ResidentsPage` to enable interactive testing and visual check-in review.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

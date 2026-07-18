@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 6.3.1 – UX Polish
+Sprint 7 – Resident Profile & Management
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Resolve the remaining UX issues in the Resident Onboarding Wizard.
+Transform the Resident Profile into the primary operational workspace for managing an existing resident.
 
 ---
 
@@ -72,6 +72,9 @@ Last Verified
 ✔ Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
 ✔ Sprint 6.3 – Accommodation Selection & Bed Allocation
 ✔ Sprint 6.3.1 – UX Polish
+✔ Sprint 6.4 – Resident Creation & Persistence
+✔ Sprint 6.5 – Resident Navigation & Routing
+✔ Sprint 7 – Resident Profile & Management
 
 ---
 
@@ -81,14 +84,16 @@ The PG Management System has functional modules for both Accommodation and Resid
 
 Implemented features:
 * Flats management (creation, layout edits, deletion) fully functional with default pricing configurations.
-* Residents Registry type schema and enums established with placeholder router pages.
-* Onboarding Wizard supporting dynamic flat filtering by vacant beds, bed selection grouped by Area, auto-pricing summation, pricing override controls, step validation, backspace-clearing numeric inputs, and title casing resident name formatting.
+* Residents Registry type schema and enums established.
+* Full-fledged onboarding wizard that transactionally handles new resident registration, automatic sequence-based code generation, bed allocation/occupancy assignment, auto-pricing summation, pricing overrides, and inputs validation.
+* Master-detail routing and navigation, dividing registry tables (`/residents`), dedicated wizard workflows (`/residents/new`), and editable resident profile workspaces (`/residents/:id`).
+* Fully functional Read/Edit profile workspace restricting edits to Identity details and Commercial terms, locking structural fields, and executing validations and saves transactionally.
 
 ---
 
 ## Next Task
 
-Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
+Sprint 7.1 – Billing Foundation & Transaction Scaffolding
 
 ---
 
@@ -104,7 +109,7 @@ The build compiles cleanly, and ESLint is green.
 
 ---
 
-# Session Summary - Sprint 6.3.1 Complete
+# Session Summary - Sprint 7 Complete
 
 ## Milestone
 
@@ -112,7 +117,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 6.3.1 – UX Polish
+Sprint 7 – Resident Profile & Management
 
 ## Status
 
@@ -122,9 +127,13 @@ Status: ✅ COMPLETE
 
 ## Completed Features
 
-- Created a reusable `toTitleCase` text formatting utility inside `src/features/residents/utils/formatters.ts`.
-- Integrated `toTitleCase` in the onboarding wizard's name input on blur and confirmation card render.
-- Refactored Rent and Deposit override fields to accept `number | ''` inputs in the local `WizardDraft` state, resolving leading-zero entry issues and allowing operators to backspace-clear numeric fields natively.
+- Redesigned `ResidentProfilePage` workspace header, displaying name, resident code, active status chip, allocated flat and beds, and joining date (formatted in standard `day Month year` layout).
+- Implemented read-only and edit-mode state toggles supporting Edit, Save, and Cancel actions.
+- Added input fields mapping for editable details: Full Name, Mobile, Document Type/Number, Agreed Rent, and Agreed Deposit.
+- Integrated validation rules (empty check, numeric validation, title case name formatting on save, and number | '' clear capability on inputs) for profile edits.
+- Added 4 responsive operational metric summary cards (Total, Active, On Notice, Checked Out) at the top of the `/residents` page.
+- Expanded registry table search criteria to cover matching against allocated bed codes.
+- Designed tailored, user-friendly empty state templates for missing profiles and search filters with zero matches.
 
 ---
 
@@ -135,5 +144,14 @@ Status: ✅ COMPLETE
 - Component structure remains presentational.
 
 ---
+
+
+Sprint 7 completed and tagged (v0.7.0).
+Lifecycle planning.
+Billing planning.
+Contract architecture.
+Readmission architecture.
+Roadmap refinement.
+Next session starts with Sprint 8 – Resident Profile Expansion.
 
 End of Document

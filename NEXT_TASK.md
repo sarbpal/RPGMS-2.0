@@ -69,6 +69,19 @@ Status
 
 Ready
 
+Next Session
+
+Sprint 8 – Resident Profile Expansion
+
+- Identity
+- Contact
+- Address
+- Emergency Contact
+- References
+- Security
+- Vehicle
+- Contract section (display only)
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

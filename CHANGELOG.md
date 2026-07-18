@@ -582,6 +582,59 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 6.4] - Resident Creation & Persistence
+
+### Added
+- Programmed transactional database updates, mapping both `Resident` creation and `Bed` occupancy updates in a single synchronized sequence in `localStorage`.
+- Created an automatic, sequential `residentCode` sequence generator producing sequential strings in `Rxxxxxx` format.
+- Associated the title-case resident name and `OCCUPIED` status with the allocated beds.
+- Persisted agreed commercial terms (`agreedRent` and `agreedDeposit`) onto the resident profile without altering default bed configurations.
+- Integrated automated post-creation workflows: success alerts, state refresh, input field wipes, and wizard resetting.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 6.5] - Resident Navigation & Routing
+
+### Added
+- Replaced the embedded onboarding layout on the default `/residents` route with a standalone, searchable registry data table showing active and historic resident records.
+- Configured dynamic row navigation links mapping clicked data rows directly to resident-specific profile page routes (`/residents/:residentId`).
+- Created a dedicated `/residents/new` onboarding workflow path hosting the multi-step registration wizard, linking it via the "Add Resident" action.
+- Built a read-only details layout for the `ResidentProfilePage` organizing identity markers, bed allocations, commercial agreements, and system timestamps.
+- Added a fallback error card on the profile page to handle invalid parameters gracefully.
+- Configured React Router routes order, registering the literal `/residents/new` before the parameter pattern `/residents/:id`.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 7] - Resident Profile & Management
+
+### Added
+- Redesigned `ResidentProfilePage` workspace header, displaying name, resident code, active status chip, allocated flat and beds, and joining date (formatted in standard `day Month year` layout).
+- Implemented read-only and edit-mode state toggles supporting Edit, Save, and Cancel actions.
+- Added input fields mapping for editable details: Full Name, Mobile, Document Type/Number, Agreed Rent, and Agreed Deposit.
+- Integrated validation rules (empty check, numeric validation, title case name formatting on save, and number | '' clear capability on inputs) for profile edits.
+- Added 4 responsive operational metric summary cards (Total, Active, On Notice, Checked Out) at the top of the `/residents` page.
+- Expanded registry table search criteria to cover matching against allocated bed codes.
+- Designed tailored, user-friendly empty state templates for missing profiles and search filters with zero matches.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+Architectural Design Session
+
+- Defined Resident vs Admission architecture.
+- Defined Resident Contract model.
+- Locked lock-in and notice business rules.
+- Defined notice cancellation behaviour.
+- Defined readmission workflow using new Admissions.
+- Finalized roadmap adjustments for Lifecycle and Billing.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -425,3 +425,9 @@ Every developer and every AI assistant working on RPGMS 2.0 must read this docum
 These rules take precedence over implementation convenience.
 
 If implementation conflicts with these rules, the rules must be followed unless explicitly changed by the Product Owner.
+
+Never duplicate a resident for readmission.
+Admissions are historical records and are never rewritten.
+Billing and Ledger always belong to an Admission.
+Checkout never deletes history.
+Deposit decisions are recommendations based on contract evaluation, not automatic irreversible actions.

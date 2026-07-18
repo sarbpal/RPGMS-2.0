@@ -478,7 +478,7 @@ Future Accommodation features—including Edit Flat, Occupancy Management, and R
 
 ---
 
-# 14. Resident Module Architecture (Sprint 6.1 - 6.2)
+# 14. Resident Module Architecture (Sprint 6.1 - 6.5)
 
 ## Domain Model
 
@@ -514,7 +514,7 @@ The onboarding flow uses a subset of the fields represented as `ResidentDraft`:
 
 ---
 
-## Resident Onboarding Wizard (Sprint 6.2 - 6.3)
+## Resident Onboarding Wizard (Sprint 6.2 - 6.4)
 
 A three-step horizontal Stepper workflow is introduced to handle resident onboarding:
 1. **Resident Details**: Collects user identification (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation.
@@ -528,3 +528,51 @@ All wizard state is driven by React local state tracking a `ResidentDraft` insta
 * **Auto-pricing**: Rent and Deposit sums are calculated automatically by accumulating the default Rent and Deposit properties of all selected beds.
 * **Manual Overrides**: Operators can override either Rent or Deposit with custom values. These overrides are locked to prevent recalculation from overwriting them.
 * **Recalculation Resets**: Recalculation triggers resume if the Flat selection changes, or if the operator explicitly clicks the "Reset to default pricing" action.
+
+### Onboarding Persistence and Bed Status Synchronization (Sprint 6.4)
+
+* **Transactional Consistency**: Saving the onboarded resident and updating the allocated beds' occupancy status are executed as a single atomic transaction using `localStorage` updates.
+* **Bed Synchronization**: Selected beds are marked as `OCCUPIED`, and the resident's title-case name is associated with the bed records. Unrelated beds are left untouched.
+* **Commercial Separability**: Resident `agreedRent` and `agreedDeposit` are persisted directly to the resident object, preventing them from overwriting default bed configurations.
+* **Code Generation**: A sequence code generator yields keys (in `Rxxxxxx` format) by finding the highest integer of the active sequence and incrementing it.
+
+---
+
+## Navigation and Routing Architecture (Sprint 6.5 - 7)
+
+The Residents module follows a standard master-detail navigation workflow:
+* `/residents`: Default registry table view supporting inline search query filters, status selectors, and a layout action button routing to `/residents/new`. In Sprint 7, it displays operational summary cards (Total, Active, On Notice, Checked Out) and allows search queries to match allocated beds.
+* `/residents/new`: Hosts the onboarding wizard. Upon successful creation, the wizard triggers a post-submit navigation callback redirecting the operator back to the landing table.
+* `/residents/:residentId`: Hosts the editable resident profile details workspace.
+
+### Profile Workspace and Read/Edit Modes (Sprint 7)
+
+* **Redesigned Workspace Header**: Aggregates the resident's name, unique resident code, active status badge, current flat allocation, bed allocations, and joining date (e.g. `Joined 17 Jul 2026`).
+* **Editable Inputs Mapping**: Restricts editing access strictly to Identity (Full Name, Mobile Number, Document Type, Document Number) and Commercial Agreements (Agreed Rent, Agreed Deposit) using local state edit forms.
+* **Locked Field Boundaries**: Prevents editing of structural parameters (Resident Code, ID, Status, Joining Date, Flat, Bed Allocations, and Creation timestamps).
+* **Validation Hardening**: Enforces input validation (non-empty fields, correct number entry bounds, and title casing normalization on save) while updating local database records in `localStorage`.
+
+Add a new section (or ADR if you're maintaining architecture decisions) covering:
+
+Resident Person vs Admission (Stay) model.
+A resident can have multiple admissions over their lifetime.
+Resident Code and Resident ID remain permanent.
+Each admission has its own:
+Accommodation
+Commercial terms
+Contract terms
+Billing
+Ledger
+Lifecycle
+Readmission creates a new Admission, not a new Resident.
+
+Also document the locked business rules:
+
+Joining Date is immutable.
+Billing Day is independent of Joining Date.
+Default Lock-in Period = 3 months (configurable).
+Default Notice Period = 30 days (configurable).
+Deposit recommendation is based on contract rules.
+Operator overrides require a reason.
+Cancelling a notice creates a new Admission/Contract with a fresh lock-in period.
+Only one active notice is permitted at any time.

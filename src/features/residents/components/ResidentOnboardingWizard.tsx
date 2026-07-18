@@ -23,7 +23,7 @@ import {
   FormHelperText,
 } from '@mui/material';
 
-import { DocumentType, type ResidentDraft } from '../types';
+import { DocumentType, type Resident, ResidentStatus } from '../types';
 import type { Flat } from '../../accommodation/types';
 import { BedStatus } from '../../accommodation/types';
 import { toTitleCase } from '../utils/formatters';
@@ -32,7 +32,7 @@ const steps = ['Resident Details', 'Accommodation Details', 'Confirmation'];
 
 interface ResidentOnboardingWizardProps {
   onCancel?: () => void;
-  onSubmitSuccess?: (draft: ResidentDraft) => void;
+  onSubmitSuccess?: (resident: Resident) => void;
 }
 
 interface WizardDraft {
@@ -52,7 +52,7 @@ export default function ResidentOnboardingWizard({
   onSubmitSuccess,
 }: ResidentOnboardingWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [flats] = useState<Flat[]>(() => {
+  const [flats, setFlats] = useState<Flat[]>(() => {
     const saved = localStorage.getItem('rpgms_flats');
     return saved ? JSON.parse(saved) : [];
   });
@@ -78,6 +78,7 @@ export default function ResidentOnboardingWizard({
   const [isRentOverridden, setIsRentOverridden] = useState(false);
   const [isDepositOverridden, setIsDepositOverridden] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Field validation checks for Step 1
   const errors = {
@@ -241,16 +242,116 @@ export default function ResidentOnboardingWizard({
     }
   };
 
+  const generateResidentCode = (existingResidents: Resident[]): string => {
+    const codes = existingResidents
+      .map((r) => r.residentCode)
+      .filter((c) => c && c.startsWith('R'));
+    if (codes.length === 0) return 'R000001';
+    
+    const maxNum = Math.max(
+      ...codes.map((c) => parseInt(c.slice(1), 10) || 0)
+    );
+    return `R${String(maxNum + 1).padStart(6, '0')}`;
+  };
+
   const handleCreateResident = () => {
-    const finalDraft: ResidentDraft = {
-      ...draft,
-      agreedRent: draft.agreedRent === '' ? 0 : draft.agreedRent,
-      agreedDeposit: draft.agreedDeposit === '' ? 0 : draft.agreedDeposit,
-    };
-    console.log('Resident Onboarding Draft Submitted:', finalDraft);
-    setSnackbarOpen(true);
-    if (onSubmitSuccess) {
-      onSubmitSuccess(finalDraft);
+    // Validation Safeguard
+    if (!isStep1Valid || !isStep2Valid) {
+      console.error('Onboarding validation failed. Aborting creation.');
+      return;
+    }
+
+    try {
+      // 1. Load existing residents
+      const savedResidents = localStorage.getItem('rpgms_residents');
+      const residentsList: Resident[] = savedResidents ? JSON.parse(savedResidents) : [];
+
+      // 2. Generate values
+      const residentCode = generateResidentCode(residentsList);
+      const residentId = `res_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const finalRent = draft.agreedRent === '' ? 0 : draft.agreedRent;
+      const finalDeposit = draft.agreedDeposit === '' ? 0 : draft.agreedDeposit;
+      const formattedName = toTitleCase(draft.fullName);
+
+      const newResident: Resident = {
+        id: residentId,
+        residentCode,
+        fullName: formattedName,
+        mobileNumber: draft.mobileNumber.trim(),
+        documentType: draft.documentType,
+        documentNumber: draft.documentNumber.trim(),
+        joiningDate: draft.joiningDate,
+        flatId: draft.flatId,
+        allocatedBedIds: draft.allocatedBedIds,
+        agreedRent: finalRent,
+        agreedDeposit: finalDeposit,
+        status: ResidentStatus.ACTIVE,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 3. Prepare Flats updates
+      const savedFlats = localStorage.getItem('rpgms_flats');
+      const flatsList: Flat[] = savedFlats ? JSON.parse(savedFlats) : [];
+
+      const updatedFlats = flatsList.map((flat) => {
+        if (flat.id !== draft.flatId) return flat;
+
+        const updatedAreas = flat.areas.map((area) => {
+          const updatedBeds = area.beds.map((bed) => {
+            if (draft.allocatedBedIds.includes(bed.id)) {
+              return {
+                ...bed,
+                status: BedStatus.OCCUPIED,
+                residentName: formattedName,
+              };
+            }
+            return bed;
+          });
+          return { ...area, beds: updatedBeds };
+        });
+
+        return { ...flat, areas: updatedAreas };
+      });
+
+      // 4. Persist transactionally
+      const updatedResidents = [...residentsList, newResident];
+      localStorage.setItem('rpgms_residents', JSON.stringify(updatedResidents));
+      localStorage.setItem('rpgms_flats', JSON.stringify(updatedFlats));
+
+      // Update local state to trigger rerender/occupancy calculations
+      setFlats(updatedFlats);
+
+      // 5. Success Handling
+      setSnackbarMessage(`Resident ${formattedName} (${residentCode}) onboarded successfully!`);
+      setSnackbarOpen(true);
+
+      // Reset Draft
+      setDraft({
+        fullName: '',
+        mobileNumber: '',
+        documentType: DocumentType.AADHAAR,
+        documentNumber: '',
+        joiningDate: new Date().toISOString().split('T')[0],
+        flatId: '',
+        allocatedBedIds: [],
+        agreedRent: 0,
+        agreedDeposit: 0,
+      });
+      setIsRentOverridden(false);
+      setIsDepositOverridden(false);
+      setTouched({
+        fullName: false,
+        mobileNumber: false,
+        documentNumber: false,
+      });
+      setActiveStep(0);
+
+      if (onSubmitSuccess) {
+        onSubmitSuccess(newResident);
+      }
+    } catch (err) {
+      console.error('Failed to save resident onboarding transaction:', err);
     }
   };
 
@@ -560,7 +661,7 @@ export default function ResidentOnboardingWizard({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert severity="success" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
-          Resident Onboarding Wizard complete!
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </Box>

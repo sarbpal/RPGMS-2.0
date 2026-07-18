@@ -7,7 +7,7 @@ import { ElectricityPage } from '../features/electricity';
 import { FinancePage } from '../features/finance';
 import { MaintenancePage } from '../features/maintenance';
 import { ReportsPage } from '../features/reports';
-import { ResidentProfilePage, ResidentsPage } from '../features/residents';
+import { ResidentOnboardingPage, ResidentProfilePage, ResidentsPage } from '../features/residents';
 import { SettingsPage } from '../features/settings';
 
 export const router = createBrowserRouter([
@@ -21,6 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'residents', element: <ResidentsPage /> },
+      { path: 'residents/new', element: <ResidentOnboardingPage /> },
       { path: 'residents/:id', element: <ResidentProfilePage /> },
       { path: 'accommodation', element: <AccommodationPage /> },
       { path: 'finance', element: <FinancePage /> },

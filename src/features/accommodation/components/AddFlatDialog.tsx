@@ -4,6 +4,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -17,6 +18,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -25,12 +27,15 @@ import {
 } from '@mui/material';
 
 import { generateBeds } from '../utils/generateBeds';
+import { BedStatus } from '../types';
 import type { Flat } from '../types';
 
 export interface FlatDraftArea {
   name: string;
   bedPrefix: string;
   beds: string[];
+  defaultRent: number;
+  defaultDeposit: number;
 }
 
 export interface FlatDraft {
@@ -54,11 +59,15 @@ interface AreaDraft {
   name: string;
   bedPrefix: string;
   bedCount: number;
+  defaultRent: number | '';
+  defaultDeposit: number | '';
   isPrefixManuallyEdited?: boolean;
   touched?: {
     name?: boolean;
     bedPrefix?: boolean;
     bedCount?: boolean;
+    defaultRent?: boolean;
+    defaultDeposit?: boolean;
   };
 }
 
@@ -103,7 +112,11 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
   // Form local states initialized from flatToEdit if provided
   const [flatNumber, setFlatNumber] = useState(flatToEdit ? flatToEdit.name : '');
   const [flatNumberTouched, setFlatNumberTouched] = useState(false);
-  const [floor, setFloor] = useState(flatToEdit ? (flatToEdit.floor || '') : '');
+  const [floor, setFloor] = useState(() => {
+    if (!flatToEdit || !flatToEdit.floor) return '';
+    const f = flatToEdit.floor.trim().toLowerCase();
+    return f.charAt(0).toUpperCase() + f.slice(1);
+  });
   const [floorTouched, setFloorTouched] = useState(false);
   const [description, setDescription] = useState(flatToEdit ? (flatToEdit.description || '') : '');
   const [areas, setAreas] = useState<AreaDraft[]>(() => {
@@ -116,11 +129,15 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
           name: a.name,
           bedPrefix: currentPrefix,
           bedCount: a.beds.length,
+          defaultRent: a.defaultRent || 0,
+          defaultDeposit: a.defaultDeposit || 0,
           isPrefixManuallyEdited: currentPrefix !== defaultSuggested,
           touched: {
             name: true,
             bedPrefix: true,
             bedCount: true,
+            defaultRent: true,
+            defaultDeposit: true,
           },
         };
       });
@@ -128,16 +145,43 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     return [];
   });
   const [newestAreaId, setNewestAreaId] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const handleClose = () => {
-    setFlatNumber('');
-    setFlatNumberTouched(false);
-    setFloor('');
-    setFloorTouched(false);
-    setDescription('');
-    setAreas([]);
-    setNewestAreaId(null);
     onClose();
+    setFlatNumber(flatToEdit ? flatToEdit.name : '');
+    setFlatNumberTouched(false);
+    setFloor(flatToEdit ? (flatToEdit.floor ? (flatToEdit.floor.trim().toLowerCase().charAt(0).toUpperCase() + flatToEdit.floor.trim().toLowerCase().slice(1)) : '') : '');
+    setFloorTouched(false);
+    setDescription(flatToEdit ? (flatToEdit.description || '') : '');
+    if (flatToEdit) {
+      setAreas(
+        flatToEdit.areas.map((a) => {
+          const defaultSuggested = getSuggestedPrefix(a.name);
+          const currentPrefix = a.bedPrefix || '';
+          return {
+            id: a.id,
+            name: a.name,
+            bedPrefix: currentPrefix,
+            bedCount: a.beds.length,
+            defaultRent: a.defaultRent || 0,
+            defaultDeposit: a.defaultDeposit || 0,
+            isPrefixManuallyEdited: currentPrefix !== defaultSuggested,
+            touched: {
+              name: true,
+              bedPrefix: true,
+              bedCount: true,
+              defaultRent: true,
+              defaultDeposit: true,
+            },
+          };
+        })
+      );
+    } else {
+      setAreas([]);
+    }
+    setNewestAreaId(null);
+    setDialogError(null);
   };
 
   const handleAddArea = () => {
@@ -147,11 +191,15 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
       name: '',
       bedPrefix: '',
       bedCount: 1,
+      defaultRent: 0,
+      defaultDeposit: 0,
       isPrefixManuallyEdited: false,
       touched: {
         name: false,
         bedPrefix: false,
         bedCount: false,
+        defaultRent: false,
+        defaultDeposit: false,
       },
     };
     setAreas((prev) => [...prev, newArea]);
@@ -201,7 +249,10 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     );
   };
 
-  const handleBlurField = (id: string, field: 'name' | 'bedPrefix' | 'bedCount') => {
+  const handleBlurField = (
+    id: string,
+    field: 'name' | 'bedPrefix' | 'bedCount' | 'defaultRent' | 'defaultDeposit'
+  ) => {
     setAreas((prev) =>
       prev.map((area) => {
         if (area.id !== id) return area;
@@ -231,6 +282,14 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
           }
         } else if (field === 'bedPrefix') {
           updated.bedPrefix = area.bedPrefix.trim().toUpperCase();
+        } else if (field === 'defaultRent') {
+          if (area.defaultRent === '') {
+            updated.defaultRent = 0;
+          }
+        } else if (field === 'defaultDeposit') {
+          if (area.defaultDeposit === '') {
+            updated.defaultDeposit = 0;
+          }
         }
 
         return updated;
@@ -239,6 +298,24 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
   };
 
   const handleDeleteArea = (id: string) => {
+    if (flatToEdit) {
+      const originalArea = flatToEdit.areas.find((a) => a.id === id);
+      if (originalArea) {
+        const occupiedBeds = originalArea.beds.filter(
+          (b) =>
+            b.status === BedStatus.OCCUPIED ||
+            b.status === BedStatus.ON_NOTICE ||
+            !!b.residentName
+        );
+        if (occupiedBeds.length > 0) {
+          const bedNames = occupiedBeds.map((b) => b.name).join(', ');
+          setDialogError(
+            `Cannot delete Area "${originalArea.name}" because it contains occupied beds (${bedNames}). Please check out or reassign residents first.`
+          );
+          return;
+        }
+      }
+    }
     setAreas((prev) => prev.filter((area) => area.id !== id));
     if (newestAreaId === id) {
       setNewestAreaId(null);
@@ -282,11 +359,54 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     const isNameValid = area.name.trim() !== '';
     const isPrefixValid = area.bedPrefix.trim() !== '';
     const isCountValid = !isNaN(area.bedCount) && area.bedCount > 0;
+    const isRentValid = area.defaultRent === '' || (!isNaN(area.defaultRent) && area.defaultRent >= 0);
+    const isDepositValid = area.defaultDeposit === '' || (!isNaN(area.defaultDeposit) && area.defaultDeposit >= 0);
 
     const isNameUnique = !hasDuplicateName(area.id, area.name);
     const isPrefixUnique = !hasDuplicatePrefix(area.id, area.bedPrefix);
 
-    return isNameValid && isPrefixValid && isCountValid && isNameUnique && isPrefixUnique;
+    let isPrefixAllowed = true;
+    let isCountAllowed = true;
+
+    if (flatToEdit) {
+      const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
+      if (originalArea) {
+        const occupiedBeds = originalArea.beds.filter(
+          (b) =>
+            b.status === BedStatus.OCCUPIED ||
+            b.status === BedStatus.ON_NOTICE ||
+            !!b.residentName
+        );
+        if (occupiedBeds.length > 0) {
+          if (
+            area.bedPrefix.trim().toUpperCase() !==
+            originalArea.bedPrefix?.trim().toUpperCase()
+          ) {
+            isPrefixAllowed = false;
+          }
+          const indices = occupiedBeds.map((b) => {
+            const match = b.name.match(/\d+$/);
+            return match ? parseInt(match[0], 10) : 0;
+          });
+          const maxOccupiedIndex = Math.max(...indices);
+          if (area.bedCount < maxOccupiedIndex) {
+            isCountAllowed = false;
+          }
+        }
+      }
+    }
+
+    return (
+      isNameValid &&
+      isPrefixValid &&
+      isCountValid &&
+      isRentValid &&
+      isDepositValid &&
+      isNameUnique &&
+      isPrefixUnique &&
+      isPrefixAllowed &&
+      isCountAllowed
+    );
   });
 
   // Run layout preview calculation
@@ -330,6 +450,8 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
         name: a.name,
         bedPrefix: a.bedPrefix,
         beds: a.bedIds,
+        defaultRent: a.defaultRent,
+        defaultDeposit: a.defaultDeposit,
       })),
     };
 
@@ -352,6 +474,11 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
       
       <DialogContent dividers>
         <Stack spacing={3} sx={{ mt: 1, mb: 1 }}>
+          {dialogError && (
+            <Alert severity="error" onClose={() => setDialogError(null)}>
+              {dialogError}
+            </Alert>
+          )}
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
             Flat Details
           </Typography>
@@ -471,13 +598,70 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                   if (area.touched?.bedPrefix && !area.bedPrefix.trim()) {
                     return 'Bed Prefix is required';
                   }
+                  if (flatToEdit) {
+                    const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
+                    if (originalArea) {
+                      const hasOccupiedBeds = originalArea.beds.some(
+                        (b) =>
+                          b.status === BedStatus.OCCUPIED ||
+                          b.status === BedStatus.ON_NOTICE ||
+                          !!b.residentName
+                      );
+                      if (
+                        hasOccupiedBeds &&
+                        area.bedPrefix.trim().toUpperCase() !==
+                          originalArea.bedPrefix?.trim().toUpperCase()
+                      ) {
+                        return 'Beds occupied (cannot edit prefix)';
+                      }
+                    }
+                  }
                   return '';
                 })();
 
-                const bedCountError = (() => {
+                 const bedCountError = (() => {
                   if (area.touched?.bedCount) {
                     if (isNaN(area.bedCount) || area.bedCount <= 0) {
                       return 'Must be > 0';
+                    }
+                    if (flatToEdit) {
+                      const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
+                      if (originalArea) {
+                        const occupiedBeds = originalArea.beds.filter(
+                          (b) =>
+                            b.status === BedStatus.OCCUPIED ||
+                            b.status === BedStatus.ON_NOTICE ||
+                            !!b.residentName
+                        );
+                        if (occupiedBeds.length > 0) {
+                          const indices = occupiedBeds.map((b) => {
+                            const match = b.name.match(/\d+$/);
+                            return match ? parseInt(match[0], 10) : 0;
+                          });
+                          const maxOccupiedIndex = Math.max(...indices);
+                          if (area.bedCount < maxOccupiedIndex) {
+                            return `Must be >= ${maxOccupiedIndex} (bed ${area.bedPrefix || originalArea.bedPrefix}${maxOccupiedIndex} is occupied)`;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  return '';
+                })();
+
+                const defaultRentError = (() => {
+                  if (area.touched?.defaultRent) {
+                    if (area.defaultRent !== '' && (isNaN(area.defaultRent) || area.defaultRent < 0)) {
+                      return 'Must be >= 0';
+                    }
+                  }
+                  return '';
+                })();
+
+                const defaultDepositError = (() => {
+                  if (area.touched?.defaultDeposit) {
+                    if (area.defaultDeposit !== '' && (isNaN(area.defaultDeposit) || area.defaultDeposit < 0)) {
+                      return 'Must be >= 0';
                     }
                   }
                   return '';
@@ -507,7 +691,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                       helperText={areaNameError}
                       placeholder="e.g. Bedroom, Hall"
                       fullWidth
-                      sx={{ flex: 3 }}
+                      sx={{ flex: 2 }}
                     />
                     <TextField
                       label="Bed Prefix"
@@ -530,10 +714,10 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                       }}
                       onBlur={() => handleBlurField(area.id, 'bedPrefix')}
                       error={!!bedPrefixError}
-                      helperText={bedPrefixError || 'Suggested automatically, edit if needed.'}
+                      helperText={bedPrefixError || 'Suggested automatically.'}
                       placeholder={prefixPlaceholder}
                       fullWidth
-                      sx={{ flex: 2 }}
+                      sx={{ flex: 1.5 }}
                     />
                     <TextField
                       label="Beds"
@@ -548,7 +732,37 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                       helperText={bedCountError}
                       slotProps={{ htmlInput: { min: 1 } }}
                       fullWidth
-                      sx={{ flex: 1, minWidth: { sm: '80px' } }}
+                      sx={{ flex: 1, minWidth: { sm: '70px' } }}
+                    />
+                    <TextField
+                      label="Rent (₹)"
+                      type="number"
+                      value={area.defaultRent}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                        handleUpdateArea(area.id, 'defaultRent', isNaN(val as number) ? '' : (val as number));
+                      }}
+                      onBlur={() => handleBlurField(area.id, 'defaultRent')}
+                      error={!!defaultRentError}
+                      helperText={defaultRentError}
+                      slotProps={{ htmlInput: { min: 0 } }}
+                      fullWidth
+                      sx={{ flex: 1.5, minWidth: { sm: '90px' } }}
+                    />
+                    <TextField
+                      label="Deposit (₹)"
+                      type="number"
+                      value={area.defaultDeposit}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                        handleUpdateArea(area.id, 'defaultDeposit', isNaN(val as number) ? '' : (val as number));
+                      }}
+                      onBlur={() => handleBlurField(area.id, 'defaultDeposit')}
+                      error={!!defaultDepositError}
+                      helperText={defaultDepositError}
+                      slotProps={{ htmlInput: { min: 0 } }}
+                      fullWidth
+                      sx={{ flex: 1.5, minWidth: { sm: '90px' } }}
                     />
                     <IconButton
                       color="error"
@@ -648,9 +862,20 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                                 fontSize: '0.875rem',
                                 fontWeight: 500,
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 1.5,
                               }}
                             >
-                              {bedId}
+                              <span>{bedId}</span>
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontWeight: 'normal' }}
+                              >
+                                ₹{pArea.defaultRent || 0}
+                              </Typography>
                             </Box>
                           ))
                         )}
@@ -679,6 +904,22 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
           {flatToEdit ? 'Save Changes' : 'Create Flat'}
         </Button>
       </DialogActions>
+
+      <Snackbar
+        open={Boolean(dialogError)}
+        autoHideDuration={6000}
+        onClose={() => setDialogError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setDialogError(null)}
+          severity="warning"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {dialogError}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

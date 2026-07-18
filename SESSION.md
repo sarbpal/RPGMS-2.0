@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 6.3 – Resident Onboarding Simplification
+Sprint 5 – Accommodation Pricing
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Refine the Resident onboarding workflow to match the actual business process of Ritu PG Services.
+Implement default rent and default deposit support for the Accommodation module.
 
 ---
 
@@ -48,7 +48,7 @@ Clean
 
 Last Verified
 
-2026-07-18
+2026-07-19
 
 ---
 
@@ -73,6 +73,7 @@ Last Verified
 ✔ Bugfix – Accommodation & Residents State Persistence
 ✔ Sprint 6.2 – Residents UX Refinement
 ✔ Sprint 6.3 – Resident Onboarding Simplification
+✔ Sprint 5 – Accommodation Pricing
 
 ---
 
@@ -81,7 +82,7 @@ Last Verified
 The PG Management System has functional modules for both Accommodation and Residents, with in-memory persistence properly synchronized using `localStorage`.
 
 Implemented features:
-* Flats management (creation, layout edits, deletion) fully functional.
+* Flats management (creation, layout edits, deletion) fully functional with default pricing configurations.
 * Residents registry (CRUD, read-only profiles, auto ID sequence generator) operational.
 * Navigation and routes configured for viewing resident profiles.
 * Unified search filters and simplified onboarding flows.
@@ -113,7 +114,7 @@ The build compiles cleanly, and ESLint is green. Sibling routing states are full
 
 ---
 
-# Session Summary - Sprint 6.3 Complete
+# Session Summary - Sprint 5 Complete
 
 ## Milestone
 
@@ -121,20 +122,22 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 6.3 – Resident Onboarding Simplification
+Sprint 5 – Accommodation Pricing
 
 ## Status
 
-✅ COMPLETE
+Status: ✅ COMPLETE
 
 ---
 
 ## Completed Features
 
-- Removed the `Status` dropdown from the onboarding and edit dialog UI.
-- Programmed automatic `ACTIVE` status assignment upon creation, while preserving status during editing.
-- Stripped unnecessary onboarding inputs (Email, DOB, Gender, and Emergency Contact fields) from the dialog, keeping only critical fields.
-- Preserved existing personal/emergency profile fields when editing.
+- Extended `Bed` and `Area` interfaces with `defaultRent` and `defaultDeposit` properties.
+- Enhanced `generateBeds` utility to accept area default Rent and Deposit values and assign them to generated beds.
+- Updated `AddFlatDialog` to collect non-negative integer values for default Rent and default Deposit per Area, maintaining validation and UI behavior.
+- Added Bed Code and Default Rent side-by-side inside the Live Layout Preview of `AddFlatDialog`.
+- Implemented self-healing synchronization on load in `AccommodationPage` to automatically migrate existing beds and areas to have default Rent and Deposit values initialized to `0`.
+- Displayed default Rent and Deposit on each bed's card in `BedCard`.
 
 ---
 

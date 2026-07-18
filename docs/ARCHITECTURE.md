@@ -386,9 +386,16 @@ Flat
 ├── Areas
 │     ├── Area Name
 │     ├── Bed Prefix
-│     └── Bed Count
+│     ├── Bed Count
+│     ├── Default Rent
+│     └── Default Deposit
 │
 └── Generated Beds
+      ├── Bed Code / Name
+      ├── Status
+      ├── Resident Name
+      ├── Default Rent
+      └── Default Deposit
 ```
 
 ---

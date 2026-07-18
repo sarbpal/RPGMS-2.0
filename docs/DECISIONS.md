@@ -323,3 +323,20 @@ Reusable business utilities become the authoritative implementation.
 ### Status
 
 Accepted
+
+# ADR-006: Separate Resident Onboarding from Resident Profile
+
+Decision:
+Resident onboarding will collect only the minimum information required
+to allocate a bed.
+
+Detailed resident information will be maintained through the Resident
+Profile page.
+
+Reason:
+This reflects the real business workflow, reduces onboarding time,
+simplifies the UI, and allows resident records to be enriched over time
+without delaying check-in.
+
+Status:
+Accepted

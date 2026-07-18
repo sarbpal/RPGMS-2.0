@@ -229,6 +229,7 @@ The application should be intuitive enough that a new user can operate it withou
 - Areas
 - Beds
 - Bed Rent
+- Bed Deposit
 
 ---
 

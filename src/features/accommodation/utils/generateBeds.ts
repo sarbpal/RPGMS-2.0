@@ -2,12 +2,16 @@ export interface GenerateBedsInputArea {
   name: string;
   bedPrefix: string;
   bedCount: number;
+  defaultRent: number | '';
+  defaultDeposit: number | '';
 }
 
 export interface GeneratedAreaBeds {
   name: string;
   bedPrefix: string;
   bedIds: string[];
+  defaultRent: number;
+  defaultDeposit: number;
 }
 
 export interface GenerateBedsResult {
@@ -41,6 +45,8 @@ export function generateBeds(areas: GenerateBedsInputArea[]): GenerateBedsResult
       name: area.name.trim(),
       bedPrefix: prefix,
       bedIds,
+      defaultRent: typeof area.defaultRent === 'number' ? area.defaultRent : 0,
+      defaultDeposit: typeof area.defaultDeposit === 'number' ? area.defaultDeposit : 0,
     };
   });
 

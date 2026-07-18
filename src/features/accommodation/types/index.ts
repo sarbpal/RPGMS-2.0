@@ -14,6 +14,8 @@ export interface Bed {
   name: string; // E.g., 'B1', 'H2', 'S1'
   status: BedStatus;
   residentName?: string; // Optional mock resident name for occupied beds
+  defaultRent: number;
+  defaultDeposit: number;
 }
 
 export interface Area {
@@ -21,6 +23,8 @@ export interface Area {
   name: string; // E.g., 'Bedroom', 'Hall', 'Small Bedroom'
   beds: Bed[];
   bedPrefix?: string; // Optional bed prefix (e.g. 'B', 'H')
+  defaultRent: number;
+  defaultDeposit: number;
 }
 
 export interface Flat {

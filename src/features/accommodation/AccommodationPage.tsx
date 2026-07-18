@@ -11,11 +11,100 @@ import { AddFlatDialog, type FlatDraft } from './components/AddFlatDialog';
 import { FlatCard } from './components/FlatCard';
 import { BedStatus } from './types';
 import type { Flat } from './types';
+import type { Resident } from '../residents/types';
 
 export default function AccommodationPage() {
   const [flats, setFlats] = useState<Flat[]>(() => {
-    const saved = localStorage.getItem('rpgms_flats');
-    return saved ? JSON.parse(saved) : [];
+    const savedFlats = localStorage.getItem('rpgms_flats');
+    const savedResidents = localStorage.getItem('rpgms_residents');
+    
+    const initialFlats: Flat[] = savedFlats ? JSON.parse(savedFlats) : [];
+    const residents = savedResidents ? JSON.parse(savedResidents) : [];
+    
+    if (initialFlats.length === 0) return [];
+    
+    // Create a map of bedId -> Resident for self-healing status synchronization
+    const residentBedMap = new Map();
+    residents.forEach((res: Resident) => {
+      const isOccupying = res.status === 'Active' || res.status === 'On Notice';
+      if (isOccupying && res.assignedBedIds) {
+        res.assignedBedIds.forEach((bedId: string) => {
+          residentBedMap.set(bedId, res);
+        });
+      }
+    });
+
+    let hasUpdates = false;
+
+    const synchronizedFlats = initialFlats.map((flat) => {
+      const updatedAreas = flat.areas.map((area) => {
+        const expectedAreaRent = area.defaultRent || 0;
+        const expectedAreaDeposit = area.defaultDeposit || 0;
+
+        const updatedBeds = area.beds.map((bed) => {
+          const resident = residentBedMap.get(bed.id);
+          let expectedStatus: BedStatus;
+          let expectedResidentName: string | undefined;
+          const expectedBedRent = bed.defaultRent !== undefined ? bed.defaultRent : expectedAreaRent;
+          const expectedBedDeposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : expectedAreaDeposit;
+
+          if (resident) {
+            expectedStatus = resident.status === 'On Notice' ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
+            expectedResidentName = resident.personalInfo.fullName;
+          } else {
+            expectedResidentName = undefined;
+            // Keep status if not occupied or on notice (e.g. maintenance, blocked, reserved)
+            if (bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE) {
+              expectedStatus = BedStatus.VACANT;
+            } else {
+              expectedStatus = bed.status;
+            }
+          }
+
+          if (
+            bed.status !== expectedStatus ||
+            bed.residentName !== expectedResidentName ||
+            bed.defaultRent !== expectedBedRent ||
+            bed.defaultDeposit !== expectedBedDeposit
+          ) {
+            hasUpdates = true;
+            return {
+              ...bed,
+              status: expectedStatus,
+              residentName: expectedResidentName,
+              defaultRent: expectedBedRent,
+              defaultDeposit: expectedBedDeposit,
+            };
+          }
+          return bed;
+        });
+
+        if (
+          area.defaultRent !== expectedAreaRent ||
+          area.defaultDeposit !== expectedAreaDeposit ||
+          updatedBeds !== area.beds
+        ) {
+          hasUpdates = true;
+          return {
+            ...area,
+            defaultRent: expectedAreaRent,
+            defaultDeposit: expectedAreaDeposit,
+            beds: updatedBeds,
+          };
+        }
+
+        return area;
+      });
+
+      return { ...flat, areas: updatedAreas };
+    });
+
+    if (hasUpdates) {
+      localStorage.setItem('rpgms_flats', JSON.stringify(synchronizedFlats));
+      return synchronizedFlats;
+    }
+
+    return initialFlats;
   });
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
   const [flatToDelete, setFlatToDelete] = useState<Flat | undefined>(undefined);
@@ -52,6 +141,8 @@ export default function AccommodationPage() {
         id: `${draft.flatNumber}-${area.name.toLowerCase().replace(/\s+/g, '-')}`,
         name: area.name,
         bedPrefix: area.bedPrefix,
+        defaultRent: area.defaultRent,
+        defaultDeposit: area.defaultDeposit,
         beds: area.beds.map((bedId) => {
           const fullBedId = `${draft.flatNumber}-${bedId}`;
           let existingBedStatus: BedStatus = BedStatus.VACANT;
@@ -72,6 +163,8 @@ export default function AccommodationPage() {
             name: bedId,
             status: existingBedStatus,
             residentName: existingResidentName,
+            defaultRent: area.defaultRent,
+            defaultDeposit: area.defaultDeposit,
           };
         }),
       })),
@@ -141,12 +234,50 @@ export default function AccommodationPage() {
   };
 
   const handleDeleteFlatClick = (flat: Flat) => {
+    const hasOccupiedBeds = flat.areas.some((area) =>
+      area.beds.some(
+        (bed) =>
+          bed.status === BedStatus.OCCUPIED ||
+          bed.status === BedStatus.ON_NOTICE ||
+          !!bed.residentName
+      )
+    );
+
+    if (hasOccupiedBeds) {
+      setSnackbar({
+        open: true,
+        message: `Cannot delete Flat ${flat.name} because it contains occupied beds. Please check out or reassign residents first.`,
+        severity: 'error',
+      });
+      return;
+    }
+
     setFlatToDelete(flat);
     setIsDeleteConfirmationOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (flatToDelete) {
+      const hasOccupiedBeds = flatToDelete.areas.some((area) =>
+        area.beds.some(
+          (bed) =>
+            bed.status === BedStatus.OCCUPIED ||
+            bed.status === BedStatus.ON_NOTICE ||
+            !!bed.residentName
+        )
+      );
+
+      if (hasOccupiedBeds) {
+        setSnackbar({
+          open: true,
+          message: `Cannot delete Flat ${flatToDelete.name} because it contains occupied beds.`,
+          severity: 'error',
+        });
+        setIsDeleteConfirmationOpen(false);
+        setFlatToDelete(undefined);
+        return;
+      }
+
       setFlats((prev) => {
         const next = prev.filter((f) => f.id !== flatToDelete.id);
         localStorage.setItem('rpgms_flats', JSON.stringify(next));
@@ -169,7 +300,12 @@ export default function AccommodationPage() {
     const matchesStatus =
       statusFilter === 'ALL' ||
       flat.areas.some((area) =>
-        area.beds.some((bed) => bed.status === statusFilter)
+        area.beds.some((bed) => {
+          if (statusFilter === BedStatus.OCCUPIED) {
+            return bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE;
+          }
+          return bed.status === statusFilter;
+        })
       );
 
     // 2. Search Query Filter: matches flat number/name, bed ID/name, or resident name.

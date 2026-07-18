@@ -34,3 +34,8 @@ Replace hardcoded layout dimensions with shared layout constants (HEADER_HEIGHT,
 Add active/selected navigation state.
 Replace placeholder avatars with the RPGMS logo and user profile.
 Review application background consistency.
+
+## UI / UX Enhancements
+
+### Accommodation
+- Refine Bed Status Filter to display matching beds instead of only filtering flats.

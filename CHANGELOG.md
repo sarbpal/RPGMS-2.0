@@ -509,6 +509,21 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Resident Profile page continues to display the full status and supplementary fields.
 
+## [Sprint 5] - Accommodation Pricing
+
+### Added
+- Extended `Bed` and `Area` interfaces with `defaultRent` and `defaultDeposit` properties in `src/features/accommodation/types/index.ts`.
+- Enhanced `generateBeds` utility in `src/features/accommodation/utils/generateBeds.ts` to accept area default Rent and Deposit values and assign them to generated beds.
+- Updated `AddFlatDialog` to collect non-negative integer values for default Rent and default Deposit per Area, maintaining validation and UI behavior.
+- Added Bed Code and Default Rent side-by-side inside the Live Layout Preview of `AddFlatDialog`.
+- Implemented self-healing synchronization on load in `AccommodationPage` to automatically migrate existing beds and areas to have default Rent and Deposit values initialized to `0`.
+- Displayed default Rent and Deposit on each bed's card in `BedCard`.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

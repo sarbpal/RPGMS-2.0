@@ -10,6 +10,7 @@ import { ResidentDialog } from './components/ResidentDialog';
 import { ResidentsTable } from './components/ResidentsTable';
 import { ResidentsToolbar } from './components/ResidentsToolbar';
 import type { Resident } from './types';
+import { ResidentStatus } from './types';
 
 export default function ResidentsPage() {
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ export default function ResidentsPage() {
 
             // Assign new beds
             if (newResident.assignedBedIds.includes(bed.id)) {
-              nextStatus = BedStatus.OCCUPIED;
+              nextStatus = newResident.status === ResidentStatus.ON_NOTICE ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
               nextResidentName = newResident.personalInfo.fullName;
             }
 

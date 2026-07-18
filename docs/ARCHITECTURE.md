@@ -514,11 +514,17 @@ The onboarding flow uses a subset of the fields represented as `ResidentDraft`:
 
 ---
 
-## Resident Onboarding Wizard (Sprint 6.2)
+## Resident Onboarding Wizard (Sprint 6.2 - 6.3)
 
 A three-step horizontal Stepper workflow is introduced to handle resident onboarding:
 1. **Resident Details**: Collects user identification (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation.
-2. **Accommodation Details**: Page structure outlining the joining date, flat selection, bed allocation, agreed rent, and agreed deposit (driven by placeholder values for Sprint 6.2).
+2. **Accommodation Details**: Handles flat selection (filtering for vacant beds), bed allocation (grouped by Area), joining date inputs, and pricing rules.
 3. **Confirmation Summary**: Displays a clean three-column summary dividing Resident Identity, Accommodation allocation, and Commercial terms before final submission.
 
 All wizard state is driven by React local state tracking a `ResidentDraft` instance as the single source of truth, ensuring input values are preserved during backward/forward navigation.
+
+### Pricing Summation and Override Rules (Sprint 6.3)
+
+* **Auto-pricing**: Rent and Deposit sums are calculated automatically by accumulating the default Rent and Deposit properties of all selected beds.
+* **Manual Overrides**: Operators can override either Rent or Deposit with custom values. These overrides are locked to prevent recalculation from overwriting them.
+* **Recalculation Resets**: Recalculation triggers resume if the Flat selection changes, or if the operator explicitly clicks the "Reset to default pricing" action.

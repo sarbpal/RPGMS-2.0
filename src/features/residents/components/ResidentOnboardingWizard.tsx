@@ -17,9 +17,16 @@ import {
   Typography,
   Snackbar,
   Alert,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  FormHelperText,
 } from '@mui/material';
 
 import { DocumentType, type ResidentDraft } from '../types';
+import type { Flat } from '../../accommodation/types';
+import { BedStatus } from '../../accommodation/types';
+import { toTitleCase } from '../utils/formatters';
 
 const steps = ['Resident Details', 'Accommodation Details', 'Confirmation'];
 
@@ -28,19 +35,36 @@ interface ResidentOnboardingWizardProps {
   onSubmitSuccess?: (draft: ResidentDraft) => void;
 }
 
+interface WizardDraft {
+  fullName: string;
+  mobileNumber: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  joiningDate: string;
+  flatId: string;
+  allocatedBedIds: string[];
+  agreedRent: number | '';
+  agreedDeposit: number | '';
+}
+
 export default function ResidentOnboardingWizard({
   onCancel,
   onSubmitSuccess,
 }: ResidentOnboardingWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [draft, setDraft] = useState<ResidentDraft>({
+  const [flats] = useState<Flat[]>(() => {
+    const saved = localStorage.getItem('rpgms_flats');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [draft, setDraft] = useState<WizardDraft>({
     fullName: '',
     mobileNumber: '',
     documentType: DocumentType.AADHAAR,
     documentNumber: '',
-    joiningDate: '2026-07-19', // Default placeholder date
-    flatId: 'flat-placeholder-101', // Placeholder flat
-    allocatedBedIds: ['101-B1'], // Placeholder bed
+    joiningDate: new Date().toISOString().split('T')[0], // Default to current date
+    flatId: '',
+    allocatedBedIds: [],
     agreedRent: 0,
     agreedDeposit: 0,
   });
@@ -51,9 +75,11 @@ export default function ResidentOnboardingWizard({
     documentNumber: false,
   });
 
+  const [isRentOverridden, setIsRentOverridden] = useState(false);
+  const [isDepositOverridden, setIsDepositOverridden] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  // Field validation checks
+  // Field validation checks for Step 1
   const errors = {
     fullName: touched.fullName && draft.fullName.trim() === '' ? 'Full name is required' : '',
     mobileNumber: touched.mobileNumber && draft.mobileNumber.trim() === '' ? 'Mobile number is required' : '',
@@ -65,15 +91,125 @@ export default function ResidentOnboardingWizard({
     draft.mobileNumber.trim() !== '' &&
     draft.documentNumber.trim() !== '';
 
+  const getVacantBeds = (flat: Flat) => {
+    return flat.areas.flatMap((area) =>
+      area.beds.filter((bed) => bed.status === BedStatus.VACANT)
+    );
+  };
+
+  const availableFlats = flats.filter((flat) => getVacantBeds(flat).length > 0);
+  const selectedFlat = flats.find((f) => f.id === draft.flatId);
+
+  const isStep2Valid =
+    draft.joiningDate.trim() !== '' &&
+    draft.flatId.trim() !== '' &&
+    draft.allocatedBedIds.length > 0 &&
+    (draft.agreedRent === '' || draft.agreedRent >= 0) &&
+    (draft.agreedDeposit === '' || draft.agreedDeposit >= 0);
+
+  const calculateTotalDefaultRent = (flat: Flat | undefined, bedIds: string[]): number => {
+    let total = 0;
+    if (!flat) return 0;
+    flat.areas.forEach((area) => {
+      area.beds.forEach((bed) => {
+        if (bedIds.includes(bed.id)) {
+          total += bed.defaultRent || 0;
+        }
+      });
+    });
+    return total;
+  };
+
+  const calculateTotalDefaultDeposit = (flat: Flat | undefined, bedIds: string[]): number => {
+    let total = 0;
+    if (!flat) return 0;
+    flat.areas.forEach((area) => {
+      area.beds.forEach((bed) => {
+        if (bedIds.includes(bed.id)) {
+          total += bed.defaultDeposit || 0;
+        }
+      });
+    });
+    return total;
+  };
+
+  const handleFlatChange = (flatId: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      flatId,
+      allocatedBedIds: [],
+      agreedRent: 0,
+      agreedDeposit: 0,
+    }));
+    setIsRentOverridden(false);
+    setIsDepositOverridden(false);
+  };
+
+  const handleBedToggle = (bedId: string, checked: boolean) => {
+    const newBedIds = checked
+      ? [...draft.allocatedBedIds, bedId]
+      : draft.allocatedBedIds.filter((id) => id !== bedId);
+
+    const newRent = isRentOverridden ? draft.agreedRent : calculateTotalDefaultRent(selectedFlat, newBedIds);
+    const newDeposit = isDepositOverridden ? draft.agreedDeposit : calculateTotalDefaultDeposit(selectedFlat, newBedIds);
+
+    setDraft((prev) => ({
+      ...prev,
+      allocatedBedIds: newBedIds,
+      agreedRent: newRent,
+      agreedDeposit: newDeposit,
+    }));
+  };
+
+  const handleRentChange = (value: number | '') => {
+    setIsRentOverridden(true);
+    setDraft((prev) => ({
+      ...prev,
+      agreedRent: value,
+    }));
+  };
+
+  const handleDepositChange = (value: number | '') => {
+    setIsDepositOverridden(true);
+    setDraft((prev) => ({
+      ...prev,
+      agreedDeposit: value,
+    }));
+  };
+
+  const handleResetPricing = () => {
+    setIsRentOverridden(false);
+    setIsDepositOverridden(false);
+    setDraft((prev) => ({
+      ...prev,
+      agreedRent: calculateTotalDefaultRent(selectedFlat, prev.allocatedBedIds),
+      agreedDeposit: calculateTotalDefaultDeposit(selectedFlat, prev.allocatedBedIds),
+    }));
+  };
+
+  const handlePricingBlur = (field: 'agreedRent' | 'agreedDeposit') => {
+    setDraft((prev) => {
+      if (prev[field] === '') {
+        return {
+          ...prev,
+          [field]: 0,
+        };
+      }
+      return prev;
+    });
+  };
+
   const handleNext = () => {
     if (activeStep === 0) {
-      // Trigger touched for all step 1 fields
       setTouched({
         fullName: true,
         mobileNumber: true,
         documentNumber: true,
       });
       if (!isStep1Valid) return;
+    }
+    if (activeStep === 1) {
+      if (!isStep2Valid) return;
     }
     setActiveStep((prev) => prev + 1);
   };
@@ -82,9 +218,9 @@ export default function ResidentOnboardingWizard({
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleFieldChange = <K extends keyof ResidentDraft>(
+  const handleFieldChange = <K extends keyof WizardDraft>(
     field: K,
-    value: ResidentDraft[K]
+    value: WizardDraft[K]
   ) => {
     setDraft((prev) => ({
       ...prev,
@@ -97,13 +233,24 @@ export default function ResidentOnboardingWizard({
       ...prev,
       [field]: true,
     }));
+    if (field === 'fullName') {
+      setDraft((prev) => ({
+        ...prev,
+        fullName: toTitleCase(prev.fullName),
+      }));
+    }
   };
 
   const handleCreateResident = () => {
-    console.log('Resident Onboarding Draft Submitted:', draft);
+    const finalDraft: ResidentDraft = {
+      ...draft,
+      agreedRent: draft.agreedRent === '' ? 0 : draft.agreedRent,
+      agreedDeposit: draft.agreedDeposit === '' ? 0 : draft.agreedDeposit,
+    };
+    console.log('Resident Onboarding Draft Submitted:', finalDraft);
     setSnackbarOpen(true);
     if (onSubmitSuccess) {
-      onSubmitSuccess(draft);
+      onSubmitSuccess(finalDraft);
     }
   };
 
@@ -185,61 +332,123 @@ export default function ResidentOnboardingWizard({
             </Box>
           )}
 
-          {/* Step 2: Accommodation Details Placeholder */}
+          {/* Step 2: Accommodation Details */}
           {activeStep === 1 && (
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-                Accommodation Allocation (Sprint 6.2 Placeholders)
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                This step will support flat filtering, bed selection, and automated price populating in subsequent sprints.
+                Accommodation Allocation
               </Typography>
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
-                    disabled
+                    required
                     label="Joining Date"
+                    type="date"
                     value={draft.joiningDate}
-                    helperText="Onboarding Date (Placeholder)"
+                    onChange={(e) => handleFieldChange('joiningDate', e.target.value)}
+                    slotProps={{ inputLabel: { shrink: true } }}
                     fullWidth
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    disabled
-                    label="Flat Selection"
-                    value={draft.flatId}
-                    helperText="Target flat allocation (Placeholder)"
-                    fullWidth
-                  />
+                  <FormControl fullWidth required>
+                    <InputLabel id="flat-select-label">Flat Selection</InputLabel>
+                    <Select
+                      labelId="flat-select-label"
+                      label="Flat Selection"
+                      value={draft.flatId}
+                      onChange={(e) => handleFlatChange(e.target.value as string)}
+                    >
+                      {availableFlats.map((flat) => {
+                        const vacantCount = getVacantBeds(flat).length;
+                        return (
+                          <MenuItem key={flat.id} value={flat.id}>
+                            Flat {flat.name} ({vacantCount} vacant {vacantCount === 1 ? 'bed' : 'beds'})
+                          </MenuItem>
+                        );
+                      })}
+                    </Select>
+                  </FormControl>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    disabled
-                    label="Allocate Beds"
-                    value={draft.allocatedBedIds.join(', ')}
-                    helperText="Bed allocations (Placeholder)"
-                    fullWidth
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    disabled
-                    label="Default Rent"
-                    value={`₹${draft.agreedRent}`}
-                    helperText="Agreed Rent (Placeholder)"
-                    fullWidth
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    disabled
-                    label="Default Deposit"
-                    value={`₹${draft.agreedDeposit}`}
-                    helperText="Agreed Deposit (Placeholder)"
-                    fullWidth
-                  />
-                </Grid>
+
+                {draft.flatId && selectedFlat && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.secondary' }}>
+                      Allocate Beds *
+                    </Typography>
+                    {selectedFlat.areas.map((area) => {
+                      const vacantBedsInArea = area.beds.filter((bed) => bed.status === BedStatus.VACANT);
+                      if (vacantBedsInArea.length === 0) return null;
+
+                      return (
+                        <Box key={area.id} sx={{ mb: 2 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                            {area.name} (Rent: ₹{area.defaultRent || 0}, Deposit: ₹{area.defaultDeposit || 0})
+                          </Typography>
+                          <FormGroup row>
+                            {vacantBedsInArea.map((bed) => (
+                              <FormControlLabel
+                                key={bed.id}
+                                control={
+                                  <Checkbox
+                                    checked={draft.allocatedBedIds.includes(bed.id)}
+                                    onChange={(e) => handleBedToggle(bed.id, e.target.checked)}
+                                  />
+                                }
+                                label={bed.name}
+                              />
+                            ))}
+                          </FormGroup>
+                        </Box>
+                      );
+                    })}
+                    {draft.allocatedBedIds.length === 0 && (
+                      <FormHelperText error>At least one bed must be selected</FormHelperText>
+                    )}
+                  </Grid>
+                )}
+
+                {draft.flatId && draft.allocatedBedIds.length > 0 && (
+                  <>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        required
+                        label="Agreed Rent (₹)"
+                        type="number"
+                        value={draft.agreedRent}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                          handleRentChange(isNaN(val as number) ? '' : (val as number | ''));
+                        }}
+                        onBlur={() => handlePricingBlur('agreedRent')}
+                        helperText={isRentOverridden ? 'Manual override active' : 'Automatically calculated'}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        required
+                        label="Agreed Deposit (₹)"
+                        type="number"
+                        value={draft.agreedDeposit}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                          handleDepositChange(isNaN(val as number) ? '' : (val as number | ''));
+                        }}
+                        onBlur={() => handlePricingBlur('agreedDeposit')}
+                        helperText={isDepositOverridden ? 'Manual override active' : 'Automatically calculated'}
+                        fullWidth
+                      />
+                    </Grid>
+                    {(isRentOverridden || isDepositOverridden) && (
+                      <Grid size={{ xs: 12 }}>
+                        <Button size="small" variant="text" onClick={handleResetPricing}>
+                          Reset to default pricing
+                        </Button>
+                      </Grid>
+                    )}
+                  </>
+                )}
               </Grid>
             </Box>
           )}
@@ -258,7 +467,7 @@ export default function ResidentOnboardingWizard({
                         Resident Identity
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Name:</strong> {draft.fullName}
+                        <strong>Name:</strong> {toTitleCase(draft.fullName)}
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 1 }}>
                         <strong>Mobile:</strong> {draft.mobileNumber}
@@ -279,10 +488,13 @@ export default function ResidentOnboardingWizard({
                         <strong>Joining Date:</strong> {draft.joiningDate}
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Flat:</strong> {draft.flatId}
+                        <strong>Flat:</strong> {selectedFlat ? `Flat ${selectedFlat.name}` : draft.flatId}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Beds:</strong> {draft.allocatedBedIds.join(', ')}
+                        <strong>Beds:</strong> {draft.allocatedBedIds.map((bedId) => {
+                          const match = bedId.match(/[^-]+$/);
+                          return match ? match[0] : bedId;
+                        }).join(', ')}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -325,7 +537,10 @@ export default function ResidentOnboardingWizard({
               <Button
                 variant="contained"
                 onClick={handleNext}
-                disabled={activeStep === 0 && !isStep1Valid}
+                disabled={
+                  (activeStep === 0 && !isStep1Valid) ||
+                  (activeStep === 1 && !isStep2Valid)
+                }
               >
                 Next
               </Button>
@@ -345,7 +560,7 @@ export default function ResidentOnboardingWizard({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert severity="success" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
-          Resident Onboarding Wizard UI complete! (Mock Submission Logged)
+          Resident Onboarding Wizard complete!
         </Alert>
       </Snackbar>
     </Box>

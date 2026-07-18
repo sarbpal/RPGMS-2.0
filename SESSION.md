@@ -24,7 +24,7 @@ In Progress
 
 ## Current Sprint
 
-Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
+Sprint 6.3.1 – UX Polish
 
 Status
 
@@ -32,7 +32,7 @@ Complete
 
 Objective
 
-Build the UI foundation for the Resident Onboarding Wizard.
+Resolve the remaining UX issues in the Resident Onboarding Wizard.
 
 ---
 
@@ -70,6 +70,8 @@ Last Verified
 ✔ Sprint 5 – Accommodation Pricing
 ✔ Sprint 6.1 – Resident Module Foundation
 ✔ Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
+✔ Sprint 6.3 – Accommodation Selection & Bed Allocation
+✔ Sprint 6.3.1 – UX Polish
 
 ---
 
@@ -80,13 +82,13 @@ The PG Management System has functional modules for both Accommodation and Resid
 Implemented features:
 * Flats management (creation, layout edits, deletion) fully functional with default pricing configurations.
 * Residents Registry type schema and enums established with placeholder router pages.
-* Three-step Resident Onboarding Wizard UI foundation layout, with step navigation, validation, and layout structures.
+* Onboarding Wizard supporting dynamic flat filtering by vacant beds, bed selection grouped by Area, auto-pricing summation, pricing override controls, step validation, backspace-clearing numeric inputs, and title casing resident name formatting.
 
 ---
 
 ## Next Task
 
-Sprint 6.3 – Onboarding Wizard Integration & Persistence
+Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
 
 ---
 
@@ -102,7 +104,7 @@ The build compiles cleanly, and ESLint is green.
 
 ---
 
-# Session Summary - Sprint 6.2 Complete
+# Session Summary - Sprint 6.3.1 Complete
 
 ## Milestone
 
@@ -110,7 +112,7 @@ M2 – Core Feature Development
 
 ## Sprint
 
-Sprint 6.2 – Resident Onboarding Wizard (UI Foundation)
+Sprint 6.3.1 – UX Polish
 
 ## Status
 
@@ -120,12 +122,9 @@ Status: ✅ COMPLETE
 
 ## Completed Features
 
-- Developed `ResidentOnboardingWizard` component with a three-step horizontal Stepper layout.
-- Integrated `ResidentDraft` state tracking as the single source of truth across steps.
-- Programmed input fields for step 1 (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation and error boundaries.
-- Rendered form layout structures for step 2 (Joining Date, Flat Selection, Allocate Beds, Rent, and Deposit) with placeholders.
-- Built a three-column confirmation grid summarizing Resident identity, Accommodation allocation, and Commercial terms for step 3.
-- Integrated the onboarding wizard directly on `ResidentsPage` to enable interactive testing and visual check-in review.
+- Created a reusable `toTitleCase` text formatting utility inside `src/features/residents/utils/formatters.ts`.
+- Integrated `toTitleCase` in the onboarding wizard's name input on blur and confirmation card render.
+- Refactored Rent and Deposit override fields to accept `number | ''` inputs in the local `WizardDraft` state, resolving leading-zero entry issues and allowing operators to backspace-clear numeric fields natively.
 
 ---
 

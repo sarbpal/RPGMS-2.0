@@ -554,6 +554,34 @@ Restructured into chronological milestone and sprint history.
 - Lint passes.
 - Responsive layout maintained.
 
+## [Sprint 6.3] - Accommodation Selection & Bed Allocation
+
+### Added
+- Implemented Flat Selection selector populating only flats containing vacant beds along with vacant bed counters in `ResidentOnboardingWizard.tsx`.
+- Developed dynamic Bed Allocation grouping beds by their respective Areas inside the selected Flat.
+- Programmed automatic pricing calculation that aggregates default Rent and Deposit values across all selected beds upon checkbox toggling.
+- Setup manual override locks for Rent and Deposit inputs, preventing auto-calculations from overwriting manual operator inputs.
+- Implemented reset pricing function reverting overridden pricing back to defaults when changing flats or clicking "Reset to default pricing".
+- Completed Step 3 Confirmation panel to summarize final allocated flat name, parsed short bed codes, rent, and deposit commercial terms.
+- Enforced navigation validation checking for valid joining date, selected flat, and at least one allocated bed before advancing to confirmation.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
+## [Sprint 6.3.1] - UX Polish
+
+### Added
+- Created a reusable `toTitleCase` text formatting utility inside `src/features/residents/utils/formatters.ts`.
+- Integrated `toTitleCase` in the onboarding wizard's name input on blur and confirmation card render.
+- Refactored Rent and Deposit override fields to accept `number | ''` inputs in the local `WizardDraft` state, resolving leading-zero entry issues and allowing operators to backspace-clear numeric fields natively.
+
+### Quality
+- Build passes.
+- Lint passes.
+- Responsive layout maintained.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

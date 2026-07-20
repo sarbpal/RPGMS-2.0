@@ -82,6 +82,12 @@ Sprint 8 – Resident Profile Expansion
 - Vehicle
 - Contract section (display only)
 
+### Parking Lot
+
+- Design Organization / Corporate Accounts domain.
+- Design configurable Financial Responsibility model.
+- Support corporate bookings without changing Resident architecture.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

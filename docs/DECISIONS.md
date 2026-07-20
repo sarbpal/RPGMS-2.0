@@ -340,3 +340,19 @@ without delaying check-in.
 
 Status:
 Accepted
+
+## DEC-00XX — Accommodation Domain Locked
+
+**Status:** Accepted
+
+**Date:** 2026-07-20
+
+### Decision
+
+The Accommodation domain architecture and MVP implementation are considered complete and locked.
+
+Future Finance implementation will consume Accommodation as a stable domain and will not introduce architectural changes to it unless required by new business requirements.
+
+### Rationale
+
+Locking the Accommodation domain allows Finance implementation to proceed against a stable operational model, reducing coupling and preventing architectural drift.

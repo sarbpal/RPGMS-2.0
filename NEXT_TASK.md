@@ -1,93 +1,116 @@
-# NEXT_TASK.md
+# NEXT TASK
 
-------------------------------------------------------------------------------
-Document Information
-------------------------------------------------------------------------------
+**Last Updated:** July 2026
 
-Document ID     : DOC-007
-Version         : 2.6
-Status          : Active
-Owner           : Development Team
-Created         : 2026-07-16
-Last Updated    : 2026-07-18
+---
 
-------------------------------------------------------------------------------
-Current Task
-------------------------------------------------------------------------------
+# Current Status
 
-Task ID
+The foundational architecture of RPGMS 2.0 has been established.
 
-SPR-6.4-001
+Completed:
 
-Title
+- ✅ Business Architecture
+- ✅ Business Rules
+- ✅ Data Model
+- ✅ Resident Specification
+- ✅ Accommodation Specification
+- ✅ Stay Specification
+- ✅ Architecture Documentation Review
+- ✅ Governance Document Review
 
-Sprint 6.4 – Resident Ledger & Security Deposit Scaffolding
+The project is now ready to begin designing the financial domains.
 
-------------------------------------------------------------------------------
-Objective
-------------------------------------------------------------------------------
+---
 
-Introduce financial ledger entries, rent rules, and security deposit attributes to the Resident domain model and setup read-only summaries on the Resident Profile page.
+# Immediate Tasks
 
-------------------------------------------------------------------------------
-Scope
-------------------------------------------------------------------------------
+1. Review all documentation for consistency.
+2. Resolve any remaining cross-document references.
+3. Begin the Finance domain specification.
 
-Included
+---
 
-- Add monthly rent and security deposit fields to `Resident` models.
-- Display outstanding balance summaries on the Resident Profile page.
-- Scaffold basic transactional ledger histories.
+# Next Milestone
 
-Excluded
+## Finance Domain
 
-- Online payment gateway integration.
-- Supabase persistence layer.
+The next major phase of the project is the design and implementation of the Finance domain.
 
-------------------------------------------------------------------------------
-Acceptance Criteria
-------------------------------------------------------------------------------
+Deliverables:
 
-Sprint 6.4 is complete when:
+- Finance Specification
+- Billing Specification
+- Compliance Specification
+- Finance Data Model Review
+- Finance Business Rules Review
 
-- Profile page shows rent and outstanding dues.
-- Build succeeds.
-- Lint succeeds.
+The Finance domain will establish the accounting foundation for all future financial functionality within RPGMS.
 
-------------------------------------------------------------------------------
-Dependencies
-------------------------------------------------------------------------------
+---
 
-Required Documents
+# Future Roadmap
 
-- PROJECT_RULES.md
-- docs/ARCHITECTURE.md
+Following completion of the Finance domain, development will continue in the following order:
 
-------------------------------------------------------------------------------
-Status
-------------------------------------------------------------------------------
+1. Finance
+2. Billing
+3. Compliance
+4. Door ID Management
+5. Complaints
+6. Reporting
+7. Notifications
+8. Resident Portal
+9. Administration Enhancements
 
-Ready
+The roadmap may evolve as business requirements change while maintaining the established business architecture.
 
-Next Session
+---
 
-Sprint 8 – Resident Profile Expansion
+# Notes for the Next Session
 
-- Identity
-- Contact
-- Address
-- Emergency Contact
-- References
-- Security
-- Vehicle
-- Contract section (display only)
+When beginning the next development session:
 
-### Parking Lot
+- Review this document.
+- Verify that project documentation remains synchronized.
+- Confirm that no architectural decisions require updating.
+- Begin with the Finance Specification before implementing any Finance-related code.
 
-- Design Organization / Corporate Accounts domain.
-- Design configurable Financial Responsibility model.
-- Support corporate bookings without changing Resident architecture.
+All new implementation should continue to follow the established project principles:
 
-------------------------------------------------------------------------------
-End of Document
-------------------------------------------------------------------------------
+- Business architecture before implementation.
+- Business rules before code.
+- Specifications before development.
+- Ledger remains the single source of truth.
+- Documentation is updated before a sprint is closed.
+
+---
+
+# Project Readiness
+
+| Area | Status |
+|------|--------|
+| Business Architecture | ✅ Complete |
+| Core Specifications | ✅ Complete |
+| Business Rules | ✅ Complete |
+| Data Model | ✅ Complete |
+| Governance Documents | ✅ Complete |
+| Technical Foundation | ✅ Stable |
+| Ready for Finance Domain | ✅ Yes |
+
+---
+
+# Long-Term Objective
+
+Build RPGMS into a maintainable, scalable, and business-driven property management platform where every feature is supported by a well-defined business architecture, clear specifications, and comprehensive documentation.
+
+---
+
+# Change Log
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 2.0 | July 2026 | Rewritten to reflect the current project architecture and roadmap. |
+
+---
+

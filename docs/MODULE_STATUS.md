@@ -1,169 +1,508 @@
 # MODULE STATUS
 
-> Last Updated: 19 July 2026
-
-This document provides the current implementation status of every major
-module in RPGMS. It is a snapshot of the project, not a changelog.
+**Version:** 3.0  
+**Status:** Active
 
 ---
 
-# Legend
+## Purpose
 
-🟢 Stable
-🟡 In Progress
-🔵 Planned
-⚪ Not Started
-🔴 Needs Review
+This document provides the current implementation status of every major business and technical domain within RPGMS.
+
+It serves as a high-level project dashboard, showing the maturity of each domain, current focus, and upcoming milestones.
+
+This document is a project status snapshot and should not be used as a changelog.
 
 ---
 
-# Application Shell
+## Status Legend
 
-Status: 🟢 Stable
+| Status | Meaning |
+|---------|---------|
+| 🟢 Stable | Implemented and considered stable. |
+| 🟡 In Progress | Active development is underway. |
+| 🔵 Planned | Design completed, implementation planned. |
+| ⚪ Not Started | Not yet started. |
+| 🔴 Needs Review | Requires architectural or implementation review. |
 
-Description:
-Provides the overall application layout and navigation.
+---
 
-Completed:
+## Foundation
+
+### Application Shell
+
+**Status:** 🟢 Stable
+
+**Purpose**
+
+Provides the common application framework, navigation, routing, authentication boundaries, and responsive layout used by all business domains.
+
+**Completed**
+
+- Application shell
 - Header
 - Sidebar
+- Responsive layout
 - Routing
-- Main Layout
-- Responsive Layout
+- Main layout
+- Theme integration
 
-Pending:
-- None
+**Pending**
 
-Next Planned Work:
 - None
 
 ---
 
-# Dashboard
+### Dashboard
 
-Status: 🟡 In Progress
+**Status:** 🟡 In Progress
 
-Description:
-Operational dashboard for daily hostel management.
+**Purpose**
 
-Completed:
-- Layout
-- Summary Cards
-- Quick Actions
+Provides operational visibility into the current state of RPGMS through real-time metrics, alerts, and actionable information.
+
+**Completed**
+
+- Dashboard layout
+- Summary cards
+- Quick actions
 - Placeholder widgets
 
-Pending:
-- Live metrics
-- Today's Tasks
+**Pending**
+
+- Live occupancy metrics
+- Financial summary
 - Operational alerts
+- Resident activity
+- Today's tasks
+- Real-time data integration
 
-Next Planned Work:
-- Connect dashboard to real data
+**Next Milestone**
+
+Connect dashboard components to live business data from the Accommodation, Resident, Stay, and Finance domains.
 
 ---
 
-# Accommodation
+## Core Business Domains
 
-Status: 🟢 Stable
+### Accommodation
 
-Description:
-Manages flats, areas and beds.
+**Status:** 🟢 Stable
 
-Completed:
-- Flat Management
-- Area Management
-- Bed Generation
+**Purpose**
+
+Manages the physical accommodation structure of RPGMS, including Flats, Areas, Beds, and occupancy capacity.
+
+**Completed**
+
+- Accommodation business architecture
+- Flat management
+- Area management
+- Automatic bed generation
+- Bed naming rules
 - Live Layout Preview
-- Bed Status
-- Occupancy Summary
+- Bed status management
+- Capacity calculation
+- Occupancy summary
 
-Pending:
-- Minor UX improvements
+**Pending**
 
-Next Planned Work:
-- None
+- Edit Flat workflow
+- Accommodation persistence
+- Advanced occupancy reporting
 
----
+**Next Milestone**
 
-# Residents
-
-Status: 🟡 In Progress
-
-Description:
-Resident onboarding and lifecycle management.
-
-Completed:
-- Resident List
-- Resident Profile
-- Onboarding Wizard
-- Multiple Bed Allocation
-- Rent Calculation
-- Deposit Calculation
-
-Pending:
-- Admissions
-- Checkout
-- Door ID Assignment
-- Resident Intelligence
-
-Next Planned Work:
-- Sprint 8
+Integrate Accommodation with the Stay domain for resident allocation and occupancy management.
 
 ---
 
-# Billing
+### Resident
 
-Status: ⚪ Not Started
+**Status:** 🔵 Planned
 
-Description:
-Billing, Ledger and Payments.
+**Purpose**
 
-Next Planned Work:
-- Billing Engine
+Manages the permanent identity and profile of every Resident independently of accommodation occupancy.
 
----
+**Completed**
 
-# Complaints
+- Resident Profile Specification
+- Resident Architecture
+- Business Rules
+- Data Model
 
-Status: ⚪ Not Started
+**Pending**
 
-Description:
-Complaint lifecycle management.
+- Resident Profile implementation
+- Resident onboarding workflow
+- Resident profile management
+- Resident search
+- Resident history
+- Resident intelligence
 
----
+**Next Milestone**
 
-# Reports
-
-Status: ⚪ Not Started
-
-Description:
-Operational and financial reporting.
-
----
-
-# Technical Debt
-
-None
+Implement the Resident domain using the approved business architecture.
 
 ---
 
-# Known Issues
+### Stay
 
-- Resident page runtime error on Vercel.
-- Dashboard still uses placeholder data.
+**Status:** 🔵 Planned
+
+**Purpose**
+
+Manages the operational relationship between Residents and Accommodation, including reservations, occupancy, transfers, notice periods, and checkout.
+
+**Completed**
+
+- Stay Specification
+- Business Rules
+- Data Model
+
+**Pending**
+
+- Stay management
+- Reservation workflow
+- Check-in
+- Bed allocation
+- Bed transfer
+- Notice management
+- Checkout workflow
+- Stay history
+
+**Next Milestone**
+
+Implement the Stay domain after completion of the Finance foundation.
 
 ---
 
-# Overall Project Health
+## Financial Domains
 
-Architecture:
-★★★★★
+### Finance
 
-Documentation:
-★★★★☆
+**Status:** 🔵 Planned
 
-Code Quality:
-★★★★★
+**Purpose**
 
-Overall Status:
-Ready for Sprint 8
+Manages the financial records of every Stay, ensuring complete, accurate, and auditable accounting of all monetary transactions.
+
+**Completed**
+
+- Finance domain identified
+- Business architecture defined
+- Data model defined
+- Ledger identified as the single source of truth
+
+**Pending**
+
+- Finance Specification
+- Ledger implementation
+- Financial transaction engine
+- Receipts
+- Refunds
+- Adjustments
+- Financial reconciliation
+
+**Next Milestone**
+
+Complete the Finance Specification and implement the Ledger foundation.
+
+---
+
+### Billing
+
+**Status:** 🔵 Planned
+
+**Purpose**
+
+Manages recurring charges, billing cycles, invoices, rent calculation, and bill generation.
+
+**Completed**
+
+- Business rules defined
+- Data model defined
+- Anniversary billing model established
+
+**Pending**
+
+- Billing Specification
+- Billing engine
+- Invoice generation
+- Recurring charge management
+- Due date management
+- Billing history
+- Billing reports
+
+**Next Milestone**
+
+Implement the Billing engine after the Finance foundation is complete.
+
+---
+
+## Operational Domains
+
+### Compliance
+
+**Status:** 🔵 Planned
+
+**Purpose**
+
+Manages all statutory, contractual, and organizational compliance requirements associated with a Stay.
+
+**Completed**
+
+- Compliance Architecture
+- Business Rules
+- Data Model
+
+**Pending**
+
+- Compliance Specification
+- Police Intimation
+- Rent Agreement Management
+- Tenant Verification
+- Document Management
+- Compliance Dashboard
+- Compliance Reporting
+
+**Next Milestone**
+
+Complete the Compliance Specification following the Finance and Billing domains.
+
+---
+
+### Door IDs
+
+**Status:** 🔵 Planned
+
+**Purpose**
+
+Manages secure access credentials assigned to Residents during an Active Stay.
+
+**Completed**
+
+- Business Rules
+- Data Model
+
+**Pending**
+
+- Door ID assignment
+- Door ID release
+- Assignment history
+- Integration with access control system
+- Door ID reporting
+
+**Next Milestone**
+
+Implement Door ID management after the Stay domain is operational.
+
+---
+
+### Complaints
+
+**Status:** ⚪ Not Started
+
+**Purpose**
+
+Manages the complete lifecycle of resident complaints from reporting through resolution.
+
+**Completed**
+
+- Business Rules
+- Data Model
+
+**Pending**
+
+- Complaint Specification
+- Complaint registration
+- Complaint assignment
+- Resolution workflow
+- Complaint history
+- Complaint reporting
+
+**Next Milestone**
+
+Design and implement the Complaint domain.
+
+---
+
+### Reporting
+
+**Status:** ⚪ Not Started
+
+**Purpose**
+
+Provides operational, financial, occupancy, and management reporting across all business domains.
+
+**Completed**
+
+- Reporting identified as a business domain
+
+**Pending**
+
+- Reporting Specification
+- Operational reports
+- Financial reports
+- Occupancy reports
+- Compliance reports
+- Management dashboards
+- Analytics
+
+**Next Milestone**
+
+Implement reporting after the core operational domains are complete.
+
+---
+
+## Technical Foundation
+
+### Architecture
+
+**Status:** 🟢 Stable
+
+**Purpose**
+
+Establishes the long-term business and technical architecture of RPGMS.
+
+**Completed**
+
+- Business Architecture
+- Resident Specification
+- Accommodation Specification
+- Stay Specification
+- Business Rules
+- Data Model
+- Domain ownership defined
+- Logical entity relationships defined
+
+**Pending**
+
+- Finance Specification
+- Billing Specification
+- Compliance Specification
+
+---
+
+### Documentation
+
+**Status:** 🟡 In Progress
+
+**Purpose**
+
+Maintains the architectural, business, and technical knowledge required for long-term project development.
+
+**Completed**
+
+- Project Rules
+- Architecture
+- Business Rules
+- Data Model
+- Resident Specification
+- Accommodation Specification
+- Stay Specification
+- Compliance Architecture
+- Development Log
+
+**Pending**
+
+- Rewrite MODULE_STATUS.md
+- Rewrite DECISIONS.md
+- Rewrite NEXT_TASK.md
+- Finance Specification
+- Billing Specification
+- Compliance Specification
+
+---
+
+### Code Quality
+
+**Status:** 🟢 Stable
+
+**Purpose**
+
+Ensures the codebase remains maintainable, consistent, and suitable for long-term development.
+
+**Completed**
+
+- Feature-first project structure
+- TypeScript
+- ESLint
+- Shared business utilities
+- Reusable component architecture
+- Consistent project organization
+
+**Pending**
+
+- Unit testing
+- Integration testing
+- End-to-end testing
+
+---
+
+### Deployment
+
+**Status:** 🟢 Stable
+
+**Purpose**
+
+Provides a reliable development and deployment pipeline.
+
+**Completed**
+
+- GitHub repository
+- Vercel deployment
+- Development workflow
+- Branch strategy
+
+**Pending**
+
+- Production deployment pipeline
+- Release workflow
+- Automated testing pipeline
+
+---
+
+## Current Focus
+
+Complete the documentation baseline by finalizing the remaining governance documents before beginning implementation of the Finance domain.
+
+---
+
+## Next Major Milestone
+
+**Finance Domain**
+
+Deliverables:
+
+- Finance Specification
+- Billing Specification
+- Compliance Specification
+- Finance implementation foundation
+
+---
+
+## Overall Project Health
+
+| Area | Status |
+|------|--------|
+| Business Architecture | 🟢 Complete |
+| Technical Foundation | 🟢 Stable |
+| Documentation | 🟡 In Progress |
+| Core Domain Specifications | 🟢 Complete |
+| Implementation | 🟡 In Progress |
+| Finance Domain | 🔵 Planned |
+| Billing Domain | 🔵 Planned |
+| Compliance Domain | 🔵 Planned |
+
+---
+
+# Change Log
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 3.0 | July 2026 | Reorganized module status around the RPGMS business architecture and project roadmap. |
+
+---
+

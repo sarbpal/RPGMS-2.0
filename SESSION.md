@@ -310,5 +310,23 @@ The codebase cleanly consumes `ResidentWithActiveStay` composite view models whi
 
 Sprint 8.1 – Finance Domain Integration & Ledger Scaffolding
 
+## Session Summary
+
+Completed Finance Sprint F1 – Domain Foundation.
+
+Completed:
+- Finance feature structure
+- Domain types
+- Storage layer
+- Service skeletons
+- Hooks
+- Utilities
+- Finance page shell
+
+The Finance architecture is now ready for implementation.
+
+Next Sprint:
+Finance Sprint F2 – Immutable Ledger Core.
+
 End of Document
 

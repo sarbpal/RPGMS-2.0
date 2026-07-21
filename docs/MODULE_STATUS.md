@@ -185,7 +185,7 @@ Finance domain integration & Stay lifecycle events.
 
 ### Finance
 
-**Status:** 🔵 Planned
+**Status:** 🟡 In Progress
 
 **Purpose**
 
@@ -193,24 +193,27 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 
 **Completed**
 
-- Finance domain identified
-- Business architecture defined
-- Data model defined
-- Ledger identified as the single source of truth
+- Finance Specification (`FINANCE_SPECIFICATION.md` Version 2.0.0, Sealed)
+- Finance Implementation Plan (`FINANCE_IMPLEMENTATION_PLAN.md` Refined Blueprint)
+- Finance Domain Folder Structure (`src/features/finance/`)
+- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `AccountType`, `LedgerReferenceType`)
+- Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
+- Service Skeletons (`ledgerService`, `balanceEngine`, `billingService`, `paymentService`, `settlementService`)
+- React Hooks Skeletons (`useStayFinance`, `useFinanceSummary`)
+- Finance Workspace Page Shell (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
 
 **Pending**
 
-- Finance Specification
-- Ledger implementation
-- Financial transaction engine
-- Receipts
-- Refunds
-- Adjustments
-- Financial reconciliation
+- Ledger Core append-only storage & validation (Sprint F2)
+- Balance Engine dynamic balance calculations (Sprint F3)
+- Billing Engine rent pro-ration & bill generation (Sprint F4)
+- Payment Processing Engine (Sprint F5)
+- Deposit & Checkout Settlement Engine (Sprint F6)
+- UI Integration & Workspaces (Sprint F8)
 
 **Next Milestone**
 
-Complete the Finance Specification and implement the Ledger foundation.
+Implement Ledger Core Append-Only Storage & Validation in Sprint F2.
 
 ---
 

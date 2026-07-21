@@ -710,6 +710,23 @@ Architectural Design Session
 - Verified atomic onboarding transaction (`Resident` -> `Stay` -> `Bed Occupancy`).
 - Successfully verified project build with zero TypeScript errors.
 
+## Finance Sprint F1 – Domain Foundation
+
+- Created Finance module foundation.
+- Added strongly typed finance domain models.
+- Added finance storage abstraction.
+- Added service skeletons:
+  - Ledger Service
+  - Balance Engine
+  - Billing Service
+  - Payment Service
+  - Settlement Service
+- Added finance hooks.
+- Added Finance page shell.
+- Added finance utilities.
+- Established public Finance APIs.
+- No business logic implemented.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -134,17 +134,18 @@ Manages the permanent identity and profile of every Resident independently of ac
 - Residents Module Audit (`RESIDENT_MODULE_AUDIT.md`)
 - Service Layer Foundation (`residentService.ts`)
 - Custom Hooks (`useResidents.ts`, `useResident.ts`)
+- Resident Profile Expansion (Sprint 7.2 - Identity, Family, Emergency Contact, Address, Occupation, Medical)
+- Section-Level Card Profile Editing UI (`ResidentProfilePage.tsx`)
 
 **Pending**
 
-- Resident Profile domain separation (Stay domain integration)
-- Extended profile specification fields (Address, Emergency Contact, Guardian, Employment)
-- Resident history timeline
+- Resident Profile domain separation (Stay domain integration in Sprint 7.3)
+- Resident history timeline & Stay event log
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement domain separation (Resident vs Stay) in Sprint 7.2.
+Implement domain separation (Resident vs Stay) and Stay domain integration.
 
 ---
 

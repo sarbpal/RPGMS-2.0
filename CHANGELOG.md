@@ -656,6 +656,20 @@ Architectural Design Session
 - Removed direct localStorage access from UI components
 - Preserved existing onboarding workflow and data model
 - No functional or UI changes
+
+## Residents Module
+
+### Sprint 7.2 – Resident Profile Completion
+
+- Expanded Resident profile to align with the core Resident Profile Specification.
+- Added support for Identity, Family, Emergency Contact, Address, Occupation, and Medical information.
+- Reorganized the Resident Profile into logical section cards.
+- Implemented independent section-level editing with save/cancel workflows.
+- Preserved the existing onboarding flow and operational resident data.
+- Maintained backward compatibility with the current Resident data model.
+- Continued using the Service and Hooks architecture introduced in Sprint 7.1.
+
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

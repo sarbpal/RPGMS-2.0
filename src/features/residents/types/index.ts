@@ -24,14 +24,44 @@ export interface Resident {
   residentCode: string;
   fullName: string;
   mobileNumber: string;
+  alternateMobile?: string;
+  email?: string;
   documentType: DocumentType;
   documentNumber: string;
+
+  // Family
+  fatherOrGuardianName?: string;
+  motherName?: string;
+
+  // Emergency Contact
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+
+  // Address
+  permanentAddress?: string;
+  correspondenceAddress?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+
+  // Occupation / Education
+  occupation?: string;
+  employerOrCollege?: string;
+
+  // Medical
+  bloodGroup?: string;
+  medicalNotes?: string;
+
+  // Operational Stay Attributes
   joiningDate: string;
   flatId: string;
   allocatedBedIds: string[];
   agreedRent: number;
   agreedDeposit: number;
   status: ResidentStatus;
+
+  // System Metadata
   createdAt: string;
   updatedAt: string;
 }

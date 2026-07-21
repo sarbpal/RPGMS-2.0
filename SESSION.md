@@ -180,4 +180,36 @@ Completed Sprint 7.1
 - Existing functionality preserved
 - Build successful
 
+## Sprint 7.2 – Resident Profile Completion
+
+### Objective
+
+Complete the Resident Profile by implementing Resident-owned information while preserving the existing onboarding workflow and operational data model.
+
+### Completed
+
+- Expanded Resident profile with core identity information.
+- Added Family, Emergency Contact, Address, Occupation, and Medical sections.
+- Redesigned the profile into logical Material UI cards.
+- Implemented section-level editing for improved usability.
+- Preserved onboarding, routing, and existing application behavior.
+- Successfully built the project with zero TypeScript or build errors.
+
+### Architecture
+
+No architectural changes were introduced during this sprint.
+
+The Resident domain remains in a transitional state where operational Stay information is temporarily retained within the Resident model for backward compatibility.
+
+The next sprint will introduce the Stay domain and migrate operational data to its proper architectural owner.
+
+### Next Sprint
+
+Sprint 7.3 – Stay Domain Introduction
+
+- Introduce the Stay entity.
+- Separate Resident identity from operational Stay information.
+- Preserve backward compatibility during migration.
+- Prepare the foundation for Finance integration.
+
 End of Document

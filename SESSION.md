@@ -212,4 +212,30 @@ Sprint 7.3 – Stay Domain Introduction
 - Preserve backward compatibility during migration.
 - Prepare the foundation for Finance integration.
 
+## Sprint 7.3.1 – Stay Domain Foundation
+
+### Objective
+
+Introduce the Stay domain model and establish the architectural foundation for separating Resident identity from operational stay information.
+
+### Completed
+
+- Added the Stay domain module.
+- Defined Stay, StayStatus, and StayEvent domain models.
+- Added the Stay service interface.
+- Preserved existing Resident model and application behavior.
+- Successfully built the project with zero TypeScript errors.
+
+### Architecture
+
+This sprint establishes the Stay domain without changing application behavior.
+
+No data migration, storage changes, onboarding updates, or UI modifications were introduced.
+
+The project is now ready for storage migration and Resident/Stay separation in Sprint 7.3.2.
+
+### Next Sprint
+
+Sprint 7.3.2 – Storage Versioning & Resident-to-Stay Migration
+
 End of Document

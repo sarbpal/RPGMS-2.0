@@ -151,7 +151,7 @@ Implement domain separation (Resident vs Stay) and Stay domain integration.
 
 ### Stay
 
-**Status:** 🔵 Planned
+**Status:** 🟡 In Progress
 
 **Purpose**
 
@@ -162,21 +162,21 @@ Manages the operational relationship between Residents and Accommodation, includ
 - Stay Specification
 - Business Rules
 - Data Model
+- Stay Migration Plan (`STAY_MIGRATION_PLAN.md`)
+- Data Ownership Matrix (`DATA_OWNERSHIP_MATRIX.md`)
+- Stay Domain Foundation Types (`Stay`, `StayStatus`, `StayEvent`) in `src/features/residents/stay/types/`
+- Stay Service Public Interface Stub (`stayService.ts`) in `src/features/residents/stay/services/`
 
 **Pending**
 
-- Stay management
-- Reservation workflow
-- Check-in
-- Bed allocation
-- Bed transfer
-- Notice management
-- Checkout workflow
-- Stay history
+- Storage migration & data adapters (Sprint 7.3.2)
+- Hook integration & atomic onboarding transactions (Sprint 7.3.3)
+- Stay event logging & timeline
+- Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement the Stay domain after completion of the Finance foundation.
+Implement Storage Migration Adapter & Service Layer in Sprint 7.3.2.
 
 ---
 

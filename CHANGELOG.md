@@ -669,6 +669,15 @@ Architectural Design Session
 - Maintained backward compatibility with the current Resident data model.
 - Continued using the Service and Hooks architecture introduced in Sprint 7.1.
 
+## Residents Module
+
+### Sprint 7.3.1 – Stay Domain Foundation
+
+- Introduced the Stay domain foundation within the Residents feature.
+- Added Stay, StayStatus, and StayEvent domain types.
+- Created the initial Stay service interface with stub methods.
+- Established the architectural foundation for Resident and Stay separation.
+- No application behavior or UI changes introduced.
 
 ------------------------------------------------------------------------------
 End of Document

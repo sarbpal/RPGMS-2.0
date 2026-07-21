@@ -4,6 +4,7 @@ export * from './utils/formatters';
 export * from './services/residentService';
 export * from './hooks/useResidents';
 export * from './hooks/useResident';
+export * from './stay';
 export { default as ResidentsPage } from './pages/ResidentsPage';
 export { default as ResidentProfilePage } from './pages/ResidentProfilePage';
 export { default as ResidentOnboardingPage } from './pages/ResidentOnboardingPage';

@@ -785,6 +785,24 @@ Architectural Design Session
 - Bill allocation follows oldest outstanding bills first.
 - No settlement or checkout workflow implemented.
 
+## Finance Sprint F6 – Deposit & Checkout Settlement Engine
+
+### Added
+- Implemented two-stage Settlement Engine.
+- Added read-only Settlement Preview generation.
+- Added Settlement Confirmation workflow.
+- Added security deposit refund processing.
+- Added advance credit adjustment during settlement.
+- Added damage recovery support.
+- Added settlement persistence with preview snapshot auditing.
+- Added automatic stay financial closure during settlement.
+
+### Notes
+- Settlement Preview is completely read-only.
+- Settlement Confirmation creates immutable double-entry ledger postings.
+- All settlement balances are derived through the Balance Engine.
+- Settlement records retain the complete preview snapshot for auditing.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

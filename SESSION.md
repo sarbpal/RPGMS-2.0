@@ -428,6 +428,48 @@ The Settlement Engine will implement a two-stage workflow:
 1. Settlement Preview (read-only)
 2. Settlement Confirmation (ledger postings and settlement persistence)
    
+## Session Summary
+
+Completed Finance Sprint F6 – Deposit & Checkout Settlement Engine.
+
+### Completed
+- Settlement Preview
+- Settlement Confirmation
+- Deposit refund processing
+- Damage recovery processing
+- Advance credit adjustment
+- Settlement persistence
+- Audit snapshot support
+- Financial stay closure
+
+### Architecture Status
+
+Finance
+- ✅ F1 – Domain Foundation
+- ✅ F2 – Immutable Ledger Core
+- ✅ F3 – Balance Engine
+- ✅ F4 – Billing Engine
+- ✅ F5 – Payment Processing Engine
+- ✅ F6 – Deposit & Checkout Settlement Engine
+- ⏳ F7 – Financial Timeline & Hooks Layer
+
+### Milestone
+
+Finance Core is now functionally complete.
+
+The Finance module now supports the complete financial lifecycle:
+
+- Billing
+- Payments
+- Balance Derivation
+- Checkout Settlement
+
+### Next Sprint
+
+Finance Sprint F7 – Financial Timeline & Hooks Layer
+
+The Timeline module will provide a unified chronological financial history for each Stay and expose reusable hooks for the UI without introducing new accounting logic.
+
 
 End of Document
 

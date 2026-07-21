@@ -20,6 +20,7 @@ export function useStayFinance(stayId: string | undefined): UseStayFinanceReturn
     receivableBalance: 0,
     securityDepositHeld: 0,
     advanceCreditBalance: 0,
+    refundPayable: 0,
     netBalance: 0,
   });
   const [bills, setBills] = useState<Bill[]>([]);

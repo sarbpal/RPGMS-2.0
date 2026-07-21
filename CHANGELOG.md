@@ -737,6 +737,21 @@ Architectural Design Session
 - Established append-only persistence for ledger entries.
 - No balance calculations or business workflows implemented.
 
+## Finance Sprint F3 – Balance Engine
+
+### Added
+- Implemented dynamic Balance Engine.
+- Added stay-level balance derivation from immutable ledger entries.
+- Added property-wide finance summary calculations.
+- Implemented account helper methods for balance and ledger totals.
+- Added support for Refund Payable calculations.
+- All balances are derived dynamically with no persisted balance values.
+
+### Notes
+- Balance Engine is strictly read-only.
+- No ledger mutations or business workflows introduced.
+- No billing, payment, or settlement logic implemented.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

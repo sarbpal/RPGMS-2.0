@@ -345,5 +345,32 @@ The Finance module now has a complete accounting foundation.
 Next Sprint:
 Finance Sprint F3 – Balance Engine.
 
+## Session Summary
+
+Completed Finance Sprint F3 – Balance Engine.
+
+### Completed
+- Dynamic balance derivation from immutable ledger.
+- Stay-level balance calculations.
+- Property-wide finance summary.
+- Account balance helper methods.
+- Read-only Balance Engine implementation.
+- Zero stored balances.
+
+### Architecture Status
+
+Finance
+- ✅ F1 – Domain Foundation
+- ✅ F2 – Immutable Ledger Core
+- ✅ F3 – Balance Engine
+- ⏳ F4 – Billing Engine
+
+### Next Sprint
+
+Finance Sprint F4 – Billing Engine
+
+The Billing Engine will generate financial events and create balanced ledger postings through the Ledger Service. It will not calculate balances directly.
+
+
 End of Document
 

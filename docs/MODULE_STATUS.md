@@ -199,12 +199,12 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `AccountType`, `LedgerReferenceType`)
 - Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
 - Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
-- React Hooks Skeletons (`useStayFinance`, `useFinanceSummary`)
+- Balance Engine (`balanceEngine.ts`: dynamic derivation of Accounts Receivable, Advance Credit, Deposit Held, Refund Payable, Net Outstanding)
+- React Hooks (`useStayFinance`, `useFinanceSummary`)
 - Finance Workspace Page Shell (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
 
 **Pending**
 
-- Balance Engine dynamic balance calculations (Sprint F3)
 - Billing Engine rent pro-ration & bill generation (Sprint F4)
 - Payment Processing Engine (Sprint F5)
 - Deposit & Checkout Settlement Engine (Sprint F6)
@@ -213,7 +213,7 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 
 **Next Milestone**
 
-Implement Balance Engine Dynamic Balance Derivations in Sprint F3.
+Implement Billing Engine Rent Pro-ration & Bill Generation in Sprint F4.
 
 ---
 

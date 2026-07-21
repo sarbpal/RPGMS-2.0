@@ -201,19 +201,19 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
 - Balance Engine (`balanceEngine.ts`: dynamic derivation of Accounts Receivable, Advance Credit, Deposit Held, Refund Payable, Net Outstanding)
 - Billing Engine (`billingService.ts`: monthly rent generation, recurring & one-time charges, duplicate prevention, automated double-entry ledger postings)
+- Payment Processing Engine (`paymentService.ts`: Cash & Bank payments, automated ledger postings, overpayment advance credit handling, bill allocations)
 - React Hooks (`useStayFinance`, `useFinanceSummary`)
 - Finance Workspace Page Shell (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
 
 **Pending**
 
-- Payment Processing Engine (Sprint F5)
 - Deposit & Checkout Settlement Engine (Sprint F6)
 - Timeline & Hooks Layer (Sprint F7)
 - UI Integration & Workspaces (Sprint F8)
 
 **Next Milestone**
 
-Implement Payment Processing Engine in Sprint F5.
+Implement Deposit & Checkout Settlement Engine in Sprint F6.
 
 ---
 

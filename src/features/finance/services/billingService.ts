@@ -1,4 +1,4 @@
-import type { Bill, BillType, BillLineItem, BillStatus } from '../types';
+import type { Bill, BillType, BillLineItem, BillStatus, PaymentAllocation } from '../types';
 import { AccountType } from '../types';
 import { financeStorage } from '../storage/financeStorage';
 import { ledgerService } from './ledgerService';
@@ -167,6 +167,58 @@ export const billingService = {
    */
   saveBills(bills: Bill[]): void {
     financeStorage.saveStoredBills(bills);
+  },
+
+  /**
+   * Allocate a payment amount against open bills for a Stay, updating paidAmount, balanceAmount, and status.
+   * Allocates from oldest unpaid bill to newest.
+   * 
+   * @param stayId Target Stay ID
+   * @param paymentAmount Amount allocated towards bills
+   * @returns Array of PaymentAllocation records
+   */
+  allocatePaymentToBills(stayId: string, paymentAmount: number): PaymentAllocation[] {
+    if (paymentAmount <= 0) return [];
+
+    const openBills = this.getBillsByStayId(stayId)
+      .filter((b) => b.status === 'UNPAID' || b.status === 'PARTIALLY_PAID')
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+    let remainingPayment = paymentAmount;
+    const allocations: PaymentAllocation[] = [];
+    const allBills = this.getAllBills();
+    let billsUpdated = false;
+
+    openBills.forEach((bill) => {
+      if (remainingPayment <= 0) return;
+
+      const currentBalance = bill.totalAmount - bill.paidAmount;
+      if (currentBalance <= 0) return;
+
+      const allocated = Math.min(remainingPayment, currentBalance);
+      remainingPayment -= allocated;
+
+      const newPaid = Math.round((bill.paidAmount + allocated) * 100) / 100;
+      const newBalance = Math.max(0, Math.round((bill.totalAmount - newPaid) * 100) / 100);
+      const newStatus = newBalance === 0 ? ('PAID' as BillStatus) : ('PARTIALLY_PAID' as BillStatus);
+
+      allocations.push({ billId: bill.id, amount: allocated });
+
+      const target = allBills.find((b) => b.id === bill.id);
+      if (target) {
+        target.paidAmount = newPaid;
+        target.balanceAmount = newBalance;
+        target.status = newStatus;
+        target.updatedAt = new Date().toISOString();
+        billsUpdated = true;
+      }
+    });
+
+    if (billsUpdated) {
+      this.saveBills(allBills);
+    }
+
+    return allocations;
   },
 
   /**

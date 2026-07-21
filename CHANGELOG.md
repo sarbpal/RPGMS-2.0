@@ -769,6 +769,22 @@ Architectural Design Session
 - No payment processing or settlement logic introduced.
 - Balance calculations remain delegated to the Balance Engine.
 
+## Finance Sprint F5 – Payment Processing Engine
+
+### Added
+- Implemented Payment Processing Engine.
+- Added payment recording for supported payment methods.
+- Added automatic double-entry ledger postings for payments.
+- Added overpayment handling using Advance Credit.
+- Added automatic payment allocation across outstanding bills.
+- Added payment persistence.
+- Added payment number generation.
+
+### Notes
+- Payment processing updates financial position exclusively through the immutable ledger.
+- Bill allocation follows oldest outstanding bills first.
+- No settlement or checkout workflow implemented.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

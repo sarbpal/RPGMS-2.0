@@ -398,5 +398,36 @@ Finance Sprint F5 – Payment Processing Engine
 
 The Payment Engine will record money received, post balanced ledger entries, and update the financial position through the immutable ledger. It will not modify balances directly.
 
+## Session Summary
+
+Completed Finance Sprint F5 – Payment Processing Engine.
+
+### Completed
+- Payment recording
+- Ledger postings for payments
+- Advance credit handling
+- Automatic bill allocation
+- Payment persistence
+- Read APIs
+
+### Architecture Status
+
+Finance
+- ✅ F1 – Domain Foundation
+- ✅ F2 – Immutable Ledger Core
+- ✅ F3 – Balance Engine
+- ✅ F4 – Billing Engine
+- ✅ F5 – Payment Processing Engine
+- ⏳ F6 – Deposit & Checkout Settlement Engine
+
+### Next Sprint
+
+Finance Sprint F6 – Deposit & Checkout Settlement Engine
+
+The Settlement Engine will implement a two-stage workflow:
+1. Settlement Preview (read-only)
+2. Settlement Confirmation (ledger postings and settlement persistence)
+   
+
 End of Document
 

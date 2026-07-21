@@ -51,17 +51,28 @@ export interface BillLineItem {
   category: 'RENT' | 'SECURITY_DEPOSIT' | 'UTILITIES' | 'MAINTENANCE' | 'OTHER';
 }
 
+export const BillType = {
+  MONTHLY_RENT: 'MONTHLY_RENT',
+  RECURRING_CHARGE: 'RECURRING_CHARGE',
+  ONE_TIME_CHARGE: 'ONE_TIME_CHARGE',
+} as const;
+
+export type BillType = typeof BillType[keyof typeof BillType];
+
 export interface Bill {
   id: string;
   stayId: string;
   billNumber: string;
+  billType: BillType;
   period: string; // e.g. "2026-07"
-  dueDate: string;
+  issueDate: string; // YYYY-MM-DD
+  dueDate: string; // YYYY-MM-DD
   lineItems: BillLineItem[];
   totalAmount: number;
   paidAmount: number;
   balanceAmount: number;
   status: BillStatus;
+  remarks?: string;
   createdAt: string;
   updatedAt: string;
 }

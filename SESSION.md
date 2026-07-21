@@ -371,6 +371,32 @@ Finance Sprint F4 – Billing Engine
 
 The Billing Engine will generate financial events and create balanced ledger postings through the Ledger Service. It will not calculate balances directly.
 
+## Session Summary
+
+Completed Finance Sprint F4 – Billing Engine.
+
+### Completed
+- Monthly rent billing
+- Recurring charge billing
+- One-time charge billing
+- Automatic ledger postings
+- Bill persistence
+- Duplicate bill prevention
+
+### Architecture Status
+
+Finance
+- ✅ F1 – Domain Foundation
+- ✅ F2 – Immutable Ledger Core
+- ✅ F3 – Balance Engine
+- ✅ F4 – Billing Engine
+- ⏳ F5 – Payment Engine
+
+### Next Sprint
+
+Finance Sprint F5 – Payment Processing Engine
+
+The Payment Engine will record money received, post balanced ledger entries, and update the financial position through the immutable ledger. It will not modify balances directly.
 
 End of Document
 

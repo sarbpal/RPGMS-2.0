@@ -752,6 +752,23 @@ Architectural Design Session
 - No ledger mutations or business workflows introduced.
 - No billing, payment, or settlement logic implemented.
 
+## Finance Sprint F4 – Billing Engine
+
+### Added
+- Implemented Billing Engine.
+- Added monthly rent bill generation.
+- Added recurring charge bill generation.
+- Added one-time charge bill generation.
+- Added automated double-entry ledger posting for all bills.
+- Added bill persistence.
+- Added bill number generation.
+- Added duplicate monthly rent prevention.
+
+### Notes
+- Billing Engine creates business documents and corresponding ledger postings.
+- No payment processing or settlement logic introduced.
+- Balance calculations remain delegated to the Balance Engine.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

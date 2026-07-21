@@ -1,16 +1,16 @@
 import { useState, useCallback, useMemo } from 'react';
-import { type Resident, ResidentStatus } from '../types';
+import { type ResidentWithActiveStay, ResidentStatus } from '../types';
 import type { Flat } from '../../accommodation/types';
 import { residentService } from '../services/residentService';
 
 export interface UseResidentsReturn {
-  residents: Resident[];
+  residents: ResidentWithActiveStay[];
   flats: Flat[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
-  filteredResidents: Resident[];
+  filteredResidents: ResidentWithActiveStay[];
   totalCount: number;
   activeCount: number;
   onNoticeCount: number;
@@ -21,13 +21,15 @@ export interface UseResidentsReturn {
 }
 
 export function useResidents(): UseResidentsReturn {
-  const [residents, setResidents] = useState<Resident[]>(() => residentService.getResidents());
+  const [residents, setResidents] = useState<ResidentWithActiveStay[]>(() =>
+    residentService.getResidentsWithActiveStay()
+  );
   const [flats, setFlats] = useState<Flat[]>(() => residentService.getFlats());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const refresh = useCallback(() => {
-    setResidents(residentService.getResidents());
+    setResidents(residentService.getResidentsWithActiveStay());
     setFlats(residentService.getFlats());
   }, []);
 

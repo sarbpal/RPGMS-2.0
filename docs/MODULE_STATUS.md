@@ -168,16 +168,18 @@ Manages the operational relationship between Residents and Accommodation, includ
 - Stay Service Public Interface & Persistence Helpers (`stayService.ts`)
 - Storage Versioning (`rpgms_storage_version`) & Stay Storage (`rpgms_stays`)
 - Idempotent Legacy Data Migration Adapter (`migrateLegacyResidentsData()`)
+- Runtime Composite View Model (`ResidentWithActiveStay`) in `types/index.ts`
+- Service & Hook Integration (`getResidentsWithActiveStay`, `saveOnboardingTransaction` atomic creation)
 
 **Pending**
 
-- Hook integration & atomic onboarding transactions (Sprint 7.3.3)
+- Verification & cleanup (Sprint 7.3.4)
 - Stay event logging & timeline
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement Hook Integration & Atomic Onboarding Transactions in Sprint 7.3.3.
+Verification and Final Migration Cleanup in Sprint 7.3.4.
 
 ---
 

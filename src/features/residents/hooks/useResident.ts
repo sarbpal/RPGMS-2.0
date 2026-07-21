@@ -1,15 +1,15 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { Resident } from '../types';
+import type { ResidentWithActiveStay } from '../types';
 import type { Flat } from '../../accommodation/types';
 import { residentService } from '../services/residentService';
 
 export interface UseResidentReturn {
-  resident: Resident | undefined;
+  resident: ResidentWithActiveStay | undefined;
   selectedFlat: Flat | undefined;
   editingSection: string | null;
   startEditingSection: (section: string) => void;
   cancelEditingSection: () => void;
-  saveSection: (updates: Partial<Resident>, sectionName?: string) => void;
+  saveSection: (updates: Partial<ResidentWithActiveStay>, sectionName?: string) => void;
   snackbarOpen: boolean;
   setSnackbarOpen: (open: boolean) => void;
   snackbarMessage: string;
@@ -18,7 +18,9 @@ export interface UseResidentReturn {
 }
 
 export function useResident(id: string | undefined): UseResidentReturn {
-  const [residents, setResidents] = useState<Resident[]>(() => residentService.getResidents());
+  const [residents, setResidents] = useState<ResidentWithActiveStay[]>(() =>
+    residentService.getResidentsWithActiveStay()
+  );
   const [flats] = useState<Flat[]>(() => residentService.getFlats());
 
   const resident = useMemo(() => residents.find((r) => r.id === id), [residents, id]);
@@ -62,12 +64,12 @@ export function useResident(id: string | undefined): UseResidentReturn {
   }, []);
 
   const saveSection = useCallback(
-    (updates: Partial<Resident>, sectionName = 'Profile section') => {
+    (updates: Partial<ResidentWithActiveStay>, sectionName = 'Profile section') => {
       if (!resident) return;
 
-      const updated = residentService.updateResident(resident.id, updates);
+      const updated = residentService.updateResidentWithActiveStay(resident.id, updates);
       if (updated) {
-        setResidents(residentService.getResidents());
+        setResidents(residentService.getResidentsWithActiveStay());
         setEditingSection(null);
         setSnackbarMessage(`${sectionName} updated successfully!`);
         setSnackbarOpen(true);

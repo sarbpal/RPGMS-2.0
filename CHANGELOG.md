@@ -689,7 +689,17 @@ Architectural Design Session
 - Preserved legacy Resident storage for backward compatibility.
 - No application behavior or UI changes introduced.
   
-  
+  ## Residents Module
+
+### Sprint 7.3.3 – Composite View Model & Service Integration
+
+- Introduced the ResidentWithActiveStay runtime composite model.
+- Updated resident services to dynamically combine Resident identity with active Stay information.
+- Updated resident hooks to expose composite models.
+- Implemented atomic onboarding that creates Resident and Stay records together.
+- Preserved backward compatibility through dual-write support.
+- No UI or workflow changes introduced.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -53,7 +53,7 @@ export interface Resident {
   bloodGroup?: string;
   medicalNotes?: string;
 
-  // Operational Stay Attributes
+  // Operational Stay Attributes (Dual-write compatibility phase)
   joiningDate: string;
   flatId: string;
   allocatedBedIds: string[];
@@ -64,6 +64,14 @@ export interface Resident {
   // System Metadata
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Runtime Composite View Model combining Resident identity with Active Stay operational details.
+ * Not persisted directly; generated dynamically by residentService.
+ */
+export interface ResidentWithActiveStay extends Resident {
+  activeStayId?: string;
 }
 
 export interface ResidentDraft {

@@ -262,6 +262,28 @@ Existing application behavior remains unchanged while the storage layer is prepa
 
 Sprint 7.3.3 – Composite View Model & Service Integration
 
+## Sprint 7.3.3 – Composite View Model & Service Integration
 
+### Objective
+
+Transition the application to use the new Resident + Stay architecture while preserving existing user workflows.
+
+### Completed
+
+- Introduced the ResidentWithActiveStay runtime composite model.
+- Updated resident services and hooks to use composite data.
+- Implemented atomic onboarding for Resident and Stay creation.
+- Preserved dual-write compatibility with legacy Resident data.
+- Successfully built the project with zero TypeScript errors.
+
+### Architecture
+
+The application now consumes Resident identity and Stay operational data through a composite view model.
+
+The UI remains unchanged while the underlying architecture now reflects the intended domain separation.
+
+### Next Sprint
+
+Sprint 7.3.4 – Stabilization, Verification & Documentation
 
 End of Document

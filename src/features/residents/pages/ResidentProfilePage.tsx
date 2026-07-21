@@ -19,53 +19,31 @@ import {
   Typography,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useState } from 'react';
 
-import { DocumentType, type Resident, ResidentStatus } from '../types';
-import type { Flat } from '../../accommodation/types';
-import { toTitleCase } from '../utils/formatters';
+import { DocumentType, ResidentStatus } from '../types';
+import { useResident } from '../hooks/useResident';
 
 export default function ResidentProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [residents, setResidents] = useState<Resident[]>(() => {
-    const saved = localStorage.getItem('rpgms_residents');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [flats] = useState<Flat[]>(() => {
-    const saved = localStorage.getItem('rpgms_flats');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const resident = residents.find((r) => r.id === id);
-
-  // Editing State
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<{
-    fullName: string;
-    mobileNumber: string;
-    documentType: DocumentType;
-    documentNumber: string;
-    agreedRent: number | '';
-    agreedDeposit: number | '';
-  }>({
-    fullName: '',
-    mobileNumber: '',
-    documentType: DocumentType.AADHAAR,
-    documentNumber: '',
-    agreedRent: 0,
-    agreedDeposit: 0,
-  });
-
-  const [touched, setTouched] = useState({
-    fullName: false,
-    mobileNumber: false,
-    documentNumber: false,
-  });
-
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const {
+    resident,
+    selectedFlat,
+    isEditing,
+    editForm,
+    setEditForm,
+    errors,
+    isValid,
+    snackbarOpen,
+    setSnackbarOpen,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSave,
+    setTouched,
+    formatJoiningDate,
+    formatDate,
+  } = useResident(id);
 
   if (!resident) {
     return (
@@ -89,22 +67,6 @@ export default function ResidentProfilePage() {
     );
   }
 
-  const selectedFlat = flats.find((f) => f.id === resident.flatId);
-
-  // Field validation checks for Edit Form
-  const errors = {
-    fullName: touched.fullName && editForm.fullName.trim() === '' ? 'Full name is required' : '',
-    mobileNumber: touched.mobileNumber && editForm.mobileNumber.trim() === '' ? 'Mobile number is required' : '',
-    documentNumber: touched.documentNumber && editForm.documentNumber.trim() === '' ? 'Document number is required' : '',
-  };
-
-  const isValid =
-    editForm.fullName.trim() !== '' &&
-    editForm.mobileNumber.trim() !== '' &&
-    editForm.documentNumber.trim() !== '' &&
-    (editForm.agreedRent === '' || editForm.agreedRent >= 0) &&
-    (editForm.agreedDeposit === '' || editForm.agreedDeposit >= 0);
-
   const getStatusColor = (status: ResidentStatus) => {
     switch (status) {
       case ResidentStatus.ACTIVE:
@@ -117,87 +79,6 @@ export default function ResidentProfilePage() {
         return 'info';
       default:
         return 'default';
-    }
-  };
-
-  const formatJoiningDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return dateStr;
-      return date.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatDate = (isoString: string) => {
-    try {
-      return new Date(isoString).toLocaleString('en-IN', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
-  const handleStartEdit = () => {
-    setEditForm({
-      fullName: resident.fullName,
-      mobileNumber: resident.mobileNumber,
-      documentType: resident.documentType,
-      documentNumber: resident.documentNumber,
-      agreedRent: resident.agreedRent,
-      agreedDeposit: resident.agreedDeposit,
-    });
-    setTouched({
-      fullName: false,
-      mobileNumber: false,
-      documentNumber: false,
-    });
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
-
-  const handleSave = () => {
-    setTouched({
-      fullName: true,
-      mobileNumber: true,
-      documentNumber: true,
-    });
-
-    if (!isValid) return;
-
-    try {
-      const updatedList = residents.map((r) => {
-        if (r.id === resident.id) {
-          return {
-            ...r,
-            fullName: toTitleCase(editForm.fullName),
-            mobileNumber: editForm.mobileNumber.trim(),
-            documentType: editForm.documentType,
-            documentNumber: editForm.documentNumber.trim(),
-            agreedRent: editForm.agreedRent === '' ? 0 : editForm.agreedRent,
-            agreedDeposit: editForm.agreedDeposit === '' ? 0 : editForm.agreedDeposit,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        return r;
-      });
-
-      localStorage.setItem('rpgms_residents', JSON.stringify(updatedList));
-      setResidents(updatedList);
-      setIsEditing(false);
-      setSnackbarOpen(true);
-    } catch (err) {
-      console.error('Failed to save resident profile edit:', err);
     }
   };
 

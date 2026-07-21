@@ -646,6 +646,16 @@ Architectural Design Session
 - Reinforced Ledger as the single financial source of truth
 - Document marked as Version 2.0 and considered architecturally complete
   
+  ## Internal Refactoring
+
+### Residents Module
+
+- Introduced Resident Service layer
+- Added useResidents hook
+- Added useResident hook
+- Removed direct localStorage access from UI components
+- Preserved existing onboarding workflow and data model
+- No functional or UI changes
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

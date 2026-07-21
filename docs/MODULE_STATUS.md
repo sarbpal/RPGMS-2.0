@@ -119,7 +119,7 @@ Integrate Accommodation with the Stay domain for resident allocation and occupan
 
 ### Resident
 
-**Status:** 🔵 Planned
+**Status:** 🟡 In Progress
 
 **Purpose**
 
@@ -131,19 +131,20 @@ Manages the permanent identity and profile of every Resident independently of ac
 - Resident Architecture
 - Business Rules
 - Data Model
+- Residents Module Audit (`RESIDENT_MODULE_AUDIT.md`)
+- Service Layer Foundation (`residentService.ts`)
+- Custom Hooks (`useResidents.ts`, `useResident.ts`)
 
 **Pending**
 
-- Resident Profile implementation
-- Resident onboarding workflow
-- Resident profile management
-- Resident search
-- Resident history
-- Resident intelligence
+- Resident Profile domain separation (Stay domain integration)
+- Extended profile specification fields (Address, Emergency Contact, Guardian, Employment)
+- Resident history timeline
+- Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement the Resident domain using the approved business architecture.
+Implement domain separation (Resident vs Stay) in Sprint 7.2.
 
 ---
 

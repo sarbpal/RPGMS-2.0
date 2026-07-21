@@ -23,31 +23,27 @@ import {
   Typography,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 
-import type { Resident } from '../types';
 import { ResidentStatus } from '../types';
-import { mockResidents } from '../data/mockResidents';
-import type { Flat } from '../../accommodation/types';
+import { useResidents } from '../hooks/useResidents';
 
 export default function ResidentsPage() {
   const navigate = useNavigate();
 
-  const [residents] = useState<Resident[]>(() => {
-    const saved = localStorage.getItem('rpgms_residents');
-    if (saved) return JSON.parse(saved);
-    // Initialize with mock data if not set
-    localStorage.setItem('rpgms_residents', JSON.stringify(mockResidents));
-    return mockResidents;
-  });
-
-  const [flats] = useState<Flat[]>(() => {
-    const saved = localStorage.getItem('rpgms_flats');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const {
+    residents,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    filteredResidents,
+    totalCount,
+    activeCount,
+    onNoticeCount,
+    checkedOutCount,
+    getFlatName,
+    getBedsString,
+  } = useResidents();
 
   const getStatusColor = (status: ResidentStatus) => {
     switch (status) {
@@ -63,43 +59,6 @@ export default function ResidentsPage() {
         return 'default';
     }
   };
-
-  const getFlatName = (flatId: string) => {
-    const flat = flats.find((f) => f.id === flatId);
-    return flat ? `Flat ${flat.name}` : flatId;
-  };
-
-  const getBedsString = (allocatedBedIds: string[]) => {
-    return allocatedBedIds
-      .map((bedId) => {
-        const match = bedId.match(/[^-]+$/);
-        return match ? match[0] : bedId;
-      })
-      .join(', ');
-  };
-
-  // Summary Metrics calculations
-  const totalCount = residents.length;
-  const activeCount = residents.filter((r) => r.status === ResidentStatus.ACTIVE).length;
-  const onNoticeCount = residents.filter((r) => r.status === ResidentStatus.ON_NOTICE).length;
-  const checkedOutCount = residents.filter((r) => r.status === ResidentStatus.CHECKED_OUT).length;
-
-  const filteredResidents = residents.filter((r) => {
-    const flatName = getFlatName(r.flatId);
-    const bedsString = getBedsString(r.allocatedBedIds);
-
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      r.fullName.toLowerCase().includes(query) ||
-      r.mobileNumber.toLowerCase().includes(query) ||
-      r.residentCode.toLowerCase().includes(query) ||
-      flatName.toLowerCase().includes(query) ||
-      bedsString.toLowerCase().includes(query);
-
-    const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>

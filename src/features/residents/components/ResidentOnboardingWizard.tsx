@@ -27,6 +27,7 @@ import { DocumentType, type Resident, ResidentStatus } from '../types';
 import type { Flat } from '../../accommodation/types';
 import { BedStatus } from '../../accommodation/types';
 import { toTitleCase } from '../utils/formatters';
+import { residentService } from '../services/residentService';
 
 const steps = ['Resident Details', 'Accommodation Details', 'Confirmation'];
 
@@ -52,10 +53,7 @@ export default function ResidentOnboardingWizard({
   onSubmitSuccess,
 }: ResidentOnboardingWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [flats, setFlats] = useState<Flat[]>(() => {
-    const saved = localStorage.getItem('rpgms_flats');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [flats, setFlats] = useState<Flat[]>(() => residentService.getFlats());
 
   const [draft, setDraft] = useState<WizardDraft>({
     fullName: '',
@@ -242,18 +240,6 @@ export default function ResidentOnboardingWizard({
     }
   };
 
-  const generateResidentCode = (existingResidents: Resident[]): string => {
-    const codes = existingResidents
-      .map((r) => r.residentCode)
-      .filter((c) => c && c.startsWith('R'));
-    if (codes.length === 0) return 'R000001';
-    
-    const maxNum = Math.max(
-      ...codes.map((c) => parseInt(c.slice(1), 10) || 0)
-    );
-    return `R${String(maxNum + 1).padStart(6, '0')}`;
-  };
-
   const handleCreateResident = () => {
     // Validation Safeguard
     if (!isStep1Valid || !isStep2Valid) {
@@ -262,12 +248,12 @@ export default function ResidentOnboardingWizard({
     }
 
     try {
-      // 1. Load existing residents
-      const savedResidents = localStorage.getItem('rpgms_residents');
-      const residentsList: Resident[] = savedResidents ? JSON.parse(savedResidents) : [];
+      // 1. Load existing residents & flats via service
+      const residentsList = residentService.getResidents();
+      const flatsList = residentService.getFlats();
 
       // 2. Generate values
-      const residentCode = generateResidentCode(residentsList);
+      const residentCode = residentService.generateResidentCode(residentsList);
       const residentId = `res_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const finalRent = draft.agreedRent === '' ? 0 : draft.agreedRent;
       const finalDeposit = draft.agreedDeposit === '' ? 0 : draft.agreedDeposit;
@@ -291,9 +277,6 @@ export default function ResidentOnboardingWizard({
       };
 
       // 3. Prepare Flats updates
-      const savedFlats = localStorage.getItem('rpgms_flats');
-      const flatsList: Flat[] = savedFlats ? JSON.parse(savedFlats) : [];
-
       const updatedFlats = flatsList.map((flat) => {
         if (flat.id !== draft.flatId) return flat;
 
@@ -314,10 +297,8 @@ export default function ResidentOnboardingWizard({
         return { ...flat, areas: updatedAreas };
       });
 
-      // 4. Persist transactionally
-      const updatedResidents = [...residentsList, newResident];
-      localStorage.setItem('rpgms_residents', JSON.stringify(updatedResidents));
-      localStorage.setItem('rpgms_flats', JSON.stringify(updatedFlats));
+      // 4. Persist via service
+      residentService.saveOnboardingTransaction(newResident, updatedFlats);
 
       // Update local state to trigger rerender/occupancy calculations
       setFlats(updatedFlats);
@@ -405,7 +386,7 @@ export default function ResidentOnboardingWizard({
                       labelId="document-type-label"
                       label="Document Type *"
                       value={draft.documentType}
-                      onChange={(e) => handleFieldChange('documentType', e.target.value)}
+                      onChange={(e) => handleFieldChange('documentType', e.target.value as DocumentType)}
                     >
                       <MenuItem value={DocumentType.AADHAAR}>Aadhaar</MenuItem>
                       <MenuItem value={DocumentType.PASSPORT}>Passport</MenuItem>

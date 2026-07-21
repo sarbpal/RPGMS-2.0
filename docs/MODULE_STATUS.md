@@ -165,18 +165,19 @@ Manages the operational relationship between Residents and Accommodation, includ
 - Stay Migration Plan (`STAY_MIGRATION_PLAN.md`)
 - Data Ownership Matrix (`DATA_OWNERSHIP_MATRIX.md`)
 - Stay Domain Foundation Types (`Stay`, `StayStatus`, `StayEvent`) in `src/features/residents/stay/types/`
-- Stay Service Public Interface Stub (`stayService.ts`) in `src/features/residents/stay/services/`
+- Stay Service Public Interface & Persistence Helpers (`stayService.ts`)
+- Storage Versioning (`rpgms_storage_version`) & Stay Storage (`rpgms_stays`)
+- Idempotent Legacy Data Migration Adapter (`migrateLegacyResidentsData()`)
 
 **Pending**
 
-- Storage migration & data adapters (Sprint 7.3.2)
 - Hook integration & atomic onboarding transactions (Sprint 7.3.3)
 - Stay event logging & timeline
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement Storage Migration Adapter & Service Layer in Sprint 7.3.2.
+Implement Hook Integration & Atomic Onboarding Transactions in Sprint 7.3.3.
 
 ---
 

@@ -679,6 +679,17 @@ Architectural Design Session
 - Established the architectural foundation for Resident and Stay separation.
 - No application behavior or UI changes introduced.
 
+## Residents Module
+
+### Sprint 7.3.2 – Storage Versioning & Migration Foundation
+
+- Added storage versioning to support future data migrations.
+- Introduced dedicated Stay persistence using a separate storage key.
+- Implemented idempotent migration of operational Resident data into Stay records.
+- Preserved legacy Resident storage for backward compatibility.
+- No application behavior or UI changes introduced.
+  
+  
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

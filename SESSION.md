@@ -284,6 +284,31 @@ The UI remains unchanged while the underlying architecture now reflects the inte
 
 ### Next Sprint
 
-Sprint 7.3.4 – Stabilization, Verification & Documentation
+Sprint 7.3.4 – Architectural Stabilization & Verification
+
+## Sprint 7.3.4 – Architectural Stabilization & Verification
+
+### Objective
+
+Verify clean domain separation between Resident identity and Stay operational data, audit service boundaries, and ensure complete stabilization.
+
+### Completed
+
+- Audited the Residents module and verified clear domain ownership boundaries (`Resident` for identity, `Stay` for operational data).
+- Verified `residentService` and `stayService` separation without circular dependencies.
+- Verified hooks (`useResidents`, `useResident`) cleanly expose composite models to UI components.
+- Verified atomic onboarding transaction (`Resident` -> `Stay` -> `Bed Occupancy`).
+- Successfully built the project with zero TypeScript or build errors (`npm run build`).
+
+### Architecture
+
+Domain separation between Resident identity and Stay operational data is complete and stable.
+
+The codebase cleanly consumes `ResidentWithActiveStay` composite view models while maintaining dual-write backward compatibility.
+
+### Next Sprint
+
+Sprint 8.1 – Finance Domain Integration & Ledger Scaffolding
 
 End of Document
+

@@ -119,7 +119,7 @@ Integrate Accommodation with the Stay domain for resident allocation and occupan
 
 ### Resident
 
-**Status:** 🟡 In Progress
+**Status:** 🟢 Completed Baseline (Identity Domain)
 
 **Purpose**
 
@@ -128,30 +128,29 @@ Manages the permanent identity and profile of every Resident independently of ac
 **Completed**
 
 - Resident Profile Specification
-- Resident Architecture
-- Business Rules
-- Data Model
+- Resident Architecture & Data Ownership Separation
+- Business Rules & Data Model
 - Residents Module Audit (`RESIDENT_MODULE_AUDIT.md`)
 - Service Layer Foundation (`residentService.ts`)
 - Custom Hooks (`useResidents.ts`, `useResident.ts`)
 - Resident Profile Expansion (Sprint 7.2 - Identity, Family, Emergency Contact, Address, Occupation, Medical)
 - Section-Level Card Profile Editing UI (`ResidentProfilePage.tsx`)
+- Resident / Stay Separation (Sprint 7.3 - Identity vs Stay separation)
 
 **Pending**
 
-- Resident Profile domain separation (Stay domain integration in Sprint 7.3)
 - Resident history timeline & Stay event log
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Implement domain separation (Resident vs Stay) and Stay domain integration.
+Finance domain integration & operational lifecycle event logging.
 
 ---
 
 ### Stay
 
-**Status:** 🟡 In Progress
+**Status:** 🟢 Completed Baseline (Stay Domain Foundation)
 
 **Purpose**
 
@@ -160,8 +159,7 @@ Manages the operational relationship between Residents and Accommodation, includ
 **Completed**
 
 - Stay Specification
-- Business Rules
-- Data Model
+- Business Rules & Data Model
 - Stay Migration Plan (`STAY_MIGRATION_PLAN.md`)
 - Data Ownership Matrix (`DATA_OWNERSHIP_MATRIX.md`)
 - Stay Domain Foundation Types (`Stay`, `StayStatus`, `StayEvent`) in `src/features/residents/stay/types/`
@@ -170,16 +168,16 @@ Manages the operational relationship between Residents and Accommodation, includ
 - Idempotent Legacy Data Migration Adapter (`migrateLegacyResidentsData()`)
 - Runtime Composite View Model (`ResidentWithActiveStay`) in `types/index.ts`
 - Service & Hook Integration (`getResidentsWithActiveStay`, `saveOnboardingTransaction` atomic creation)
+- Architectural Stabilization & Verification (Sprint 7.3.4)
 
 **Pending**
 
-- Verification & cleanup (Sprint 7.3.4)
 - Stay event logging & timeline
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
 
 **Next Milestone**
 
-Verification and Final Migration Cleanup in Sprint 7.3.4.
+Finance domain integration & Stay lifecycle events.
 
 ---
 

@@ -1,11 +1,16 @@
-# Finance Architecture
+# Finance Specification
 
 **Project:** RPGMS 2.0  
-**Document:** Finance Architecture  
-**Version:** 1.0.0  
-**Status:** FROZEN (Architecture v1.0)  
+**Document:** Finance Specification
+**Version:** 2.0.0  
+**Status:** Sealed
 **Owner:** RPGMS 2.0 Project  
-**Last Updated:** TBD
+**Last Updated:** 21 July 2026
+
+
+This document is the canonical architectural specification for the Finance domain of RPGMS 2.0.
+
+Changes to this document require an Architecture Decision Record (ADR) when they affect architectural principles, domain boundaries, or financial ownership.
 
 ---
 ## Version History
@@ -16,45 +21,62 @@
 
 # 1. Purpose
 
-This document defines the canonical Finance Architecture for RPGMS 2.0.
+This document defines the canonical Finance Specification for RPGMS 2.0.
 
-Its purpose is to establish the business model, architectural principles, domain boundaries, and financial workflows that govern all finance-related functionality within the system.
+It establishes the business concepts, financial architecture, domain boundaries, financial lifecycles, and governing principles that apply to every finance-related capability within the system.
 
-This document intentionally describes **business architecture**, not implementation.
+The Finance domain is responsible for accurately recording, managing, and reporting every financial event associated with a Stay while preserving complete historical integrity and auditability.
 
-Technology choices, database design, APIs, UI, and framework-specific details are documented separately.
+This specification intentionally focuses on business behaviour and financial architecture rather than implementation details.
 
-This document is considered the single source of truth for Finance.
+Technology choices, database schemas, APIs, UI components, and framework-specific implementations are documented separately.
 
+This document serves as the authoritative reference for all finance-related design and implementation decisions within RPGMS 2.0.
 ---
 
 # 2. Design Goals
 
-The Finance Architecture has been designed to achieve the following goals:
+The Finance domain has been designed to achieve the following goals:
 
-- Reflect real-world PG business operations.
-- Preserve complete financial history.
-- Eliminate ambiguity in financial calculations.
-- Support future business growth without architectural redesign.
-- Keep operational workflows separate from financial workflows.
-- Produce a complete audit trail.
-- Support automation while keeping operators in control.
-
+- Model real-world PG financial operations accurately.
+- Preserve complete financial history through immutable records.
+- Ensure financial calculations are deterministic and reproducible.
+- Maintain a clear separation between operational workflows and financial workflows.
+- Support auditability for every financial event.
+- Derive all financial balances from historical transactions rather than stored values.
+- Provide a stable foundation for future financial features without architectural redesign.
+- Keep business rules explicit, understandable, and implementation-independent.
+- Enable reliable operational, management, and audit reporting from a single financial source of truth.
+- 
 ---
 
 # 3. Non-Goals
 
-The Finance Architecture does not define:
+The Finance domain intentionally does **not** define or manage:
 
+- User Interface (UI) design
 - Database schema
-- REST APIs
-- React components
-- UI layouts
-- Reports implementation
-- Accounting standards compliance
+- API design
+- Framework-specific implementation
+- Reporting presentation
 - Taxation rules
+- Accounting standards compliance
+- Payment gateway integrations
+- Banking integrations
 
-Those are implementation concerns and are intentionally excluded from this document.
+The Finance domain also does **not** own:
+
+- Resident Identity
+- Stay Lifecycle
+- Accommodation Management
+- Electricity Calculation
+- Business Reporting
+
+Those responsibilities belong to their respective domains.
+
+Finance records and manages only the resulting financial events that arise from those domains.
+
+This deliberate separation of responsibilities preserves clear domain ownership, reduces coupling between modules, and ensures that Finance remains the authoritative source of financial truth.
 
 ---
 
@@ -128,20 +150,41 @@ Automation must never silently alter financial intent.
 
 ---
 
+---
+
+## 4.7 Single Source of Truth
+
+Every financial fact within the system has exactly one authoritative owner.
+
+The Finance domain owns all monetary information associated with a Stay.
+
+Other domains may trigger financial events, but they must never maintain independent financial balances or duplicate financial state.
+
+Financial information is derived exclusively from Finance, ensuring consistency across billing, payments, reporting, and auditing.
+
+This principle eliminates conflicting financial data and guarantees that every financial report is generated from the same underlying source of truth.
+
+---
+
 # 5. Core Architectural Principles
 
-The Finance Architecture is governed by the following principles.
+The Finance domain is governed by the following architectural principles:
 
 1. Finance belongs to a Stay.
-2. Ledger is append-only.
-3. Bills create obligations.
-4. Payments record money received.
-5. Settlements apply financial value.
-6. Deposits are independent of rent.
-7. Deposit collection may occur in installments.
-8. Checkout and Financial Closure are independent business events.
-9. Financial balances are derived from transactions.
-10. Financial history is permanent.
+2. The Ledger is the financial source of truth.
+3. Financial history is append-only.
+4. Historical records are immutable.
+5. Bills create financial obligations.
+6. Payments record money received.
+7. Settlements apply financial value.
+8. Financial balances are always derived.
+9. Deposits are independent of operational receivables.
+10. Operational Checkout and Financial Closure are independent business events.
+11. Financial reports derive information exclusively from Finance.
+12. Every financial event must be fully auditable.
+13. Clear domain ownership must be preserved.
+    
+
                         Finance Domain
 
                     +--------------------+
@@ -168,40 +211,57 @@ The Finance Architecture is governed by the following principles.
 
 ## Overview
 
-The Finance domain is responsible for managing every financial aspect of a Resident's Stay.
+The Finance domain is responsible for managing every financial aspect of a Stay.
 
-It records financial obligations, money received, financial settlements, deposits, advances, adjustments, refunds, and financial history.
+It records financial obligations, payments, deposits, advances, adjustments, refunds, settlements, and the complete financial history associated with the Stay.
 
-The Finance domain is intentionally independent from operational modules such as Accommodation and Resident Management. Operational actions may trigger financial events, but Finance remains the authoritative source of financial truth.
+The Finance domain is independent of operational domains such as Resident, Stay, and Accommodation.
+
+Operational events may trigger financial events, but Finance alone owns the resulting financial records, balances, and financial state.
 
 The Finance domain is designed around immutable business events rather than mutable balances.
 
+All financial information presented elsewhere in the system is derived from the Finance domain.
+
 ---
+
+## Responsibilities
 
 ## Responsibilities
 
 The Finance domain is responsible for:
 
 - Billing
-- Payments
+- Payment Processing
 - Security Deposits
 - Advance Payments
 - Financial Adjustments
-- Refunds
+- Refund Processing
 - Settlement Processing
-- Ledger
+- Ledger Management
 - Financial Timeline
+- Financial Lifecycle
+- Outstanding Calculation
 - Financial Reporting
 
 ---
-
 ## Domain Boundary
 
-Finance begins when a Stay creates or affects a financial obligation.
+The Finance domain begins when a business event creates, modifies, or resolves a financial obligation associated with a Stay.
 
-Finance ends only after the Stay has been financially closed.
+Examples include:
 
-Operational completion (Checkout) does not necessarily imply financial completion.
+- Bill Generation
+- Payment Receipt
+- Deposit Collection
+- Refund Processing
+- Financial Adjustment
+- Settlement
+- Financial Closure
+
+The Finance domain ends only when the Stay reaches Financial Closure.
+
+Operational completion (Checkout) and Financial completion are intentionally independent business events.
 
 ---
 
@@ -313,6 +373,10 @@ Each account maintains complete historical integrity.
 
 Accounts never overwrite history.
 
+Financial Accounts are logical business constructs rather than physical storage locations.
+
+They represent independent financial responsibilities within the Finance domain and exist to preserve clear business semantics, historical integrity, and auditable financial movement.
+
 ---
 
 ## Types of Financial Accounts
@@ -397,7 +461,7 @@ Once all obligations have been settled, the account balance becomes zero and the
 
 ---
 
-### 5. Adjustment Account
+### 5. Administrative Adjustment Account
 
 Purpose
 
@@ -435,6 +499,11 @@ All Financial Accounts follow the same principles.
 
 • Accounts never directly modify one another.
 
+• One Financial Account must never directly modify the balance of another Financial Account.
+
+Value moves between accounts only through explicit Settlement transactions recorded in the Ledger.
+
+
 Deposit Account
         │
         ▼
@@ -457,11 +526,20 @@ Checkout
 
 ## Purpose
 
-The Billing Engine is responsible for creating financial obligations for a Stay.
+The Billing Engine is responsible for creating, managing, and maintaining financial obligations for a Stay.
 
-It determines **what the Resident owes**, **when it becomes due**, and **why the obligation exists**.
+It determines:
 
-The Billing Engine does **not** collect payments, allocate payments, or maintain balances. Those responsibilities belong to other Finance components.
+- What is being charged.
+- Why the charge exists.
+- When the obligation becomes due.
+- Which Stay owns the obligation.
+
+The Billing Engine creates financial obligations only.
+
+It does not collect money, allocate payments, perform settlements, calculate balances, or modify financial history.
+
+Those responsibilities belong to other Finance components.
 
 ---
 
@@ -471,11 +549,12 @@ The Billing Engine is responsible for:
 
 - Monthly Bill Generation
 - Transition Bill Generation
-- Manual Bill Creation
+- Manual Bill Generation
 - Checkout Bill Generation
-- Bill Reversals
-- Bill Adjustments
+- Bill Reversal
+- Bill Adjustment
 - Bill Line Management
+- Billing Period Management
 
 ---
 
@@ -522,6 +601,16 @@ A bill creates a financial obligation.
 It does not represent payment.
 
 It does not represent settlement.
+
+---
+
+### Bills are Independent Financial Documents
+
+Each Bill represents a financial obligation for a specific billing period.
+
+Bills remain independent even when subsequent bills, reversals, or adjustments are created.
+
+Historical Bills are never merged, overwritten, or recalculated.
 
 ---
 
@@ -615,7 +704,6 @@ Separating Bills from Payments allows obligations and money movement to evolve i
 This keeps billing predictable while allowing flexible settlement strategies.
 
 # 9. Settlement Engine
-# 9. Settlement Engine
 
 The Finance Architecture separates business operations from financial processing.
 
@@ -674,6 +762,24 @@ It only applies existing financial value.
 
 ---
 
+### Guiding Principle
+
+The Settlement Engine is the only component responsible for applying financial value to financial obligations.
+
+It never creates obligations, records payments, or modifies financial history.
+
+Its sole responsibility is to determine how existing financial value is allocated while preserving complete auditability.
+
+Every Ledger Entry must:
+
+- Represent exactly one financial business event.
+- Be independently understandable.
+- Be permanently identifiable.
+- Be chronologically ordered.
+- Be reproducible during auditing.
+
+---
+
 ## Responsibilities
 
 - Apply Payments
@@ -690,9 +796,13 @@ It only applies existing financial value.
 
 Bills create obligations.
 
-Payments record money received.
+Payments record financial value entering the system.
 
-Settlements connect the two.
+Settlements apply that value to one or more financial obligations.
+
+The Ledger permanently records the resulting financial events.
+
+This separation allows Billing, Payments, Settlement, and Ledger to evolve independently while maintaining complete financial integrity.
 
 ---
 
@@ -757,6 +867,14 @@ A settlement always contains:
 - Operator
 - Reason
 
+Every Settlement must:
+
+- Preserve financial history.
+- Be fully traceable.
+- Be reversible through explicit reversal transactions.
+- Never modify historical Ledger entries.
+- Never create or destroy financial value.
+  
 ---
 
 ## Settlement Reversal
@@ -767,6 +885,18 @@ Settlement history remains permanent.
 
 ---
 
+## Architectural Guarantees
+
+The Settlement Engine guarantees that:
+
+- Every allocation is auditable.
+- Every allocation is reproducible.
+- Every allocation can be explained.
+- Every allocation preserves historical integrity.
+- Financial value always flows through explicit business events.
+  
+---
+
 ## Why This Design?
 
 Separating Settlements from Payments provides flexibility for future financial workflows without changing the Billing Engine.
@@ -775,12 +905,36 @@ Separating Settlements from Payments provides flexibility for future financial w
 
 ## Purpose
 
-The Ledger Engine provides the permanent financial history for every Stay.
+The Ledger Engine is the permanent financial record of every financial event that occurs within the Finance domain.
 
-Every financial movement is recorded in the Ledger.
+It records financial history but never interprets business intent.
 
-The Ledger is the financial source of truth.
+Every bill, payment, settlement, refund, adjustment, reversal, and correction is permanently recorded in the Ledger.
 
+The Ledger never calculates business rules.
+
+It records the outcome of business decisions made by other Finance components.
+
+---
+
+### Guiding Principle
+
+The Ledger is the immutable financial history of the system.
+
+Nothing edits the Ledger.
+
+Nothing deletes the Ledger.
+
+Corrections are represented by new Ledger entries rather than modification of historical entries.
+
+Every Ledger Entry must:
+
+- Represent exactly one financial business event.
+- Be independently understandable.
+- Be permanently identifiable.
+- Be chronologically ordered.
+- Be reproducible during auditing.
+- 
 ---
 
 ## Responsibilities
@@ -851,6 +1005,18 @@ How much?
 
 ---
 
+## Architectural Guarantees
+
+The Ledger guarantees:
+
+- Complete financial history.
+- Immutable audit records.
+- Deterministic balance reconstruction.
+- Full transaction traceability.
+- Historical reproducibility.
+  
+---
+
 ## Why This Design?
 
 The Ledger provides complete traceability while keeping operational modules independent from financial calculations.
@@ -859,11 +1025,21 @@ The Ledger provides complete traceability while keeping operational modules inde
 
 ## Purpose
 
-The Financial Timeline provides a complete chronological history of every financial event associated with a Stay.
+The Financial Timeline provides a chronological business view of the financial lifecycle of a Stay.
 
-It allows operators to understand not only the current financial position, but also how that position evolved over time.
+While the Ledger records immutable financial events, the Financial Timeline presents those events in a form that is meaningful to operators, administrators, and auditors.
 
-The timeline is append-only and forms part of the permanent audit history of the Stay.
+It serves as the primary mechanism for understanding how the financial state of a Stay evolved over time.
+
+---
+
+### Guiding Principle
+
+The Financial Timeline never owns financial data.
+
+It derives its information entirely from the Finance domain and presents financial events in chronological business context.
+
+The Timeline is a projection of financial history, not a separate source of truth.
 
 ---
 
@@ -876,6 +1052,19 @@ Every significant financial event contributes to the Financial Timeline.
 Events are never removed or reordered.
 
 Corrections are recorded as new events.
+
+---
+## Timeline Characteristics
+
+The Financial Timeline is:
+
+- Chronological
+- Read-only
+- Derived
+- Auditable
+- Reproducible
+- Human-readable
+- Independent of presentation technology
 
 ---
 
@@ -1022,6 +1211,17 @@ Financial Closure
 
 ---
 
+## Architectural Guarantees
+
+The Financial Timeline guarantees that:
+
+- Every displayed event originates from the Finance domain.
+- Historical ordering is preserved.
+- No event is hidden or rewritten.
+- Timeline entries remain explainable through underlying financial records.
+
+---
+
 ## Why This Design?
 
 Separating operational history from financial history keeps both timelines focused while allowing operators to understand the complete lifecycle of a Stay.
@@ -1030,13 +1230,55 @@ Separating operational history from financial history keeps both timelines focus
 
 ## Purpose
 
-The Financial Lifecycle describes the progression of a Stay through its financial journey, from admission until financial closure.
+The Financial Lifecycle defines the progression of a Stay through its financial states.
 
-At any point in time, a Stay is in one Financial State within this lifecycle
+It describes how financial obligations are created, fulfilled, adjusted, settled, and ultimately brought to Financial Closure.
 
-They are independent of operational states such as Admission, On Notice, or Checkout.
+The lifecycle provides a business model for financial progression and is independent of implementation, user interface, and database design.
 
-A Resident may have completed operational checkout while financial activities continue.
+---
+
+### Guiding Principle
+
+A Stay has exactly one Financial Lifecycle.
+
+The lifecycle is driven exclusively by financial business events recorded within the Finance domain.
+
+Operational events may trigger lifecycle transitions, but they do not determine financial state.
+
+---
+
+## Lifecycle Stages
+
+1. Financial Initialization
+   - Stay created
+   - Financial accounts initialized
+
+2. Obligation Creation
+   - Bills generated
+   - Charges added
+   - Financial obligations established
+
+3. Value Collection
+   - Payments received
+   - Deposits collected
+   - Advances recorded
+
+4. Settlement
+   - Payments allocated
+   - Obligations partially or fully settled
+
+5. Financial Adjustment
+   - Corrections
+   - Refunds
+   - Reversals
+   - Administrative adjustments
+
+6. Financial Closure
+   - Outstanding obligations resolved
+   - Deposits refunded or forfeited
+   - Final balances settled
+   - Financial state permanently closed
 
 ---
 
@@ -1103,6 +1345,17 @@ Operational completion does not imply financial completion.
 Financial Closure is an independent business event.
 
 Only financially closed Stays are considered complete from the Finance perspective.
+
+---
+
+## Architectural Guarantees
+
+The Financial Lifecycle guarantees that:
+
+- Every financial state is explainable through recorded business events.
+- Lifecycle progression preserves historical integrity.
+- Financial Closure permanently completes the lifecycle.
+- Closed financial lifecycles remain available for auditing and reporting.
 
 ---
 
@@ -1202,14 +1455,21 @@ This separation preserves loose coupling between domains and allows each domain 
 
 ## Purpose
 
-Operational Checkout and Financial Closure are two independent business events.
+The Reporting component provides derived financial information for operational decision-making, auditing, reconciliation, and business analysis.
 
-A Resident may vacate accommodation before all financial obligations have been resolved.
+Reports never own financial data.
 
-The Finance Architecture intentionally separates these events to accurately model real-world business operations.
+Every reported value is derived from the Finance domain and can be reproduced from the underlying financial records.
 
 ---
 
+### Guiding Principle
+
+Reports are read-only projections of financial information.
+
+Generating, refreshing, or viewing reports must never modify financial data, balances, or historical records.
+
+---
 ## Design Philosophy
 
 Checking out ends occupancy.
@@ -1219,6 +1479,20 @@ Financial Closure ends the financial relationship.
 These events may occur on different dates.
 
 Separating them allows post-checkout financial activities to be managed without compromising historical integrity.
+
+---
+
+## Report Characteristics
+
+All financial reports are:
+
+- Derived
+- Read-only
+- Reproducible
+- Auditable
+- Consistent
+- Deterministic
+- Independent of presentation format
 
 ---
 
@@ -1385,6 +1659,17 @@ Once Financial Closure is complete, no further financial activity is expected fo
 
 ---
 
+## Architectural Guarantees
+
+Financial Reporting guarantees that:
+
+- Reports never become a source of truth.
+- Every reported value can be traced back to Finance.
+- Reports remain reproducible from historical records.
+- Historical reports remain explainable even as new financial events occur.
+
+---
+
 ## Why This Design?
 
 Separating Checkout from Financial Closure allows the Finance domain to accurately model real-world business operations where certain financial obligations become known only after a Resident has left the accommodation.
@@ -1413,11 +1698,45 @@ Only after all checks pass may the Financial State transition to Financially Clo
 
 ## Purpose
 
-The Reporting Domain presents financial information to operators, management, and future analytical systems.
+The Extension Guidelines define how new financial features must integrate with the Finance domain.
 
-Reports provide insight into the financial state of the business but do not perform business logic or maintain financial data.
+They ensure that future enhancements preserve architectural consistency, financial integrity, auditability, and the separation of responsibilities established by this specification.
 
-The Finance domain remains the sole source of financial truth.
+---
+
+### Guiding Principle
+
+New financial features must extend the existing architecture rather than bypass it.
+
+No extension may introduce an alternative financial source of truth, duplicate financial ownership, or violate the immutable nature of financial history.
+
+---
+## Extension Rules
+
+Every new financial feature must:
+
+- Belong to a Stay.
+- Record financial events through the Ledger.
+- Preserve immutable financial history.
+- Respect Financial Accounts.
+- Use Settlements to move financial value.
+- Produce derived balances rather than stored balances.
+- Maintain complete auditability.
+- Integrate with the Financial Timeline where applicable.
+- Preserve Financial Lifecycle consistency.
+
+---
+## Prohibited Practices
+
+Extensions must never:
+
+- Modify historical Ledger entries.
+- Overwrite financial history.
+- Maintain independent financial balances.
+- Create duplicate sources of truth.
+- Bypass the Settlement Engine.
+- Mix operational state with financial state.
+- Hide financial events from audit history.
 
 ---
 
@@ -1509,6 +1828,18 @@ Reports answer questions.
 They do not perform business decisions.
 
 Business decisions belong to the Finance domain.
+
+---
+
+## Architectural Guarantees
+
+Following these guidelines ensures that:
+
+- The Finance architecture remains consistent.
+- New features integrate predictably.
+- Historical integrity is preserved.
+- Financial reporting remains reliable.
+- Future expansion does not require architectural redesign.
 
 ---
 

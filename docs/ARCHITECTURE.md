@@ -1,100 +1,243 @@
 # RPGMS 2.0 – Architecture
 
-**Version:** 1.1  
+**Version:** 2.0  
 **Status:** Active  
-**Last Updated:** 17 July 2026
+**Last Updated:** 21 July 2026
 
 ---
 
-# 1. Purpose
+# Purpose
 
 This document defines the software architecture of RPGMS 2.0.
 
-Its purpose is to ensure the application remains simple, consistent, maintainable, and scalable throughout its lifetime.
+Its purpose is to ensure that the application remains simple, consistent, maintainable, scalable, and aligned with the business architecture throughout its lifetime.
 
-This document describes **how the application is organized**. It does **not** describe business rules, implementation details, or future roadmap items.
+This document describes **how the system is organized** and **how its major components relate to one another**.
+
+It intentionally does **not** define:
+
+- Business rules
+- Business workflows
+- Domain specifications
+- Implementation details
+- Product roadmap
+
+Those responsibilities belong to their respective governance documents.
 
 ---
 
-# 2. Architecture Principles
+# Architectural Principles
 
-The following principles guide every architectural decision.
+The following principles guide every architectural decision made within RPGMS.
 
-## 2.1 Business First
+## 1. Business First
 
 The application is organized around business capabilities rather than technical layers.
 
-Examples:
+Examples include:
 
 - Dashboard
-- Residents
 - Accommodation
+- Residents
+- Stay
 - Finance
-- Electricity
+- Billing
+- Compliance
+- Reporting
 - Settings
 
-Business modules own their own implementation and encapsulate their business logic.
+Each business capability owns its own implementation.
 
 ---
 
-## 2.2 Keep It Simple
+## 2. Keep It Simple
 
 Architecture should remain as simple as possible.
 
 Avoid unnecessary abstractions.
 
-Avoid creating folders or services "just in case."
+Avoid introducing complexity for hypothetical future requirements.
 
-Introduce complexity only when there is a demonstrated need.
+New architectural patterns should only be introduced when they solve a demonstrated business problem.
 
 ---
 
-## 2.3 Feature First
+## 3. Feature First
 
 Business functionality belongs inside Feature modules.
 
 Reusable functionality belongs inside Shared modules.
 
----
-
-## 2.4 Single Responsibility
-
-Every folder should have one clearly defined purpose.
-
-If the responsibility cannot be described in one sentence, the folder structure should be reconsidered.
+Features should remain cohesive and self-contained.
 
 ---
 
-## 2.5 Shared Before Duplicate
+## 4. Single Responsibility
 
-If functionality is reused by multiple business modules, move it into a shared location.
+Every folder, module, and document should have one clearly defined responsibility.
 
-Do not duplicate code across features.
+If a responsibility cannot be described in a single sentence, it should be reconsidered.
 
 ---
 
-## 2.6 Derive Before Store
+## 5. Derive Before Store
 
-Whenever information can be calculated from existing data, it should be derived instead of stored.
+Whenever information can be calculated from existing data, it should be derived rather than stored.
 
-Examples:
+Examples include:
 
 - Flat Capacity
 - Bed IDs
-- Outstanding Balance
+- Outstanding Balances
 - Running Totals
+- Occupancy Counts
 
-Derived data reduces inconsistency and simplifies maintenance.
+Derived data reduces duplication and improves consistency.
 
 ---
 
-# 3. Repository Structure
+## 6. Explicit Domain Ownership
+
+Every business entity has exactly one owning domain.
+
+Other domains may reference that entity but must not duplicate its business logic or ownership.
+
+---
+
+## 7. Single Source of Truth
+
+Every business fact has exactly one authoritative source.
+
+Examples include:
+
+- Resident identity belongs to the Resident domain.
+- Operational residency belongs to the Stay domain.
+- Accommodation hierarchy belongs to the Accommodation domain.
+- Financial history belongs to the Finance domain.
+- Ledger entries are the single source of truth for all financial reporting.
+
+Information may be derived or referenced by other domains but must never be duplicated as an independent source of truth.
+
+# Business Architecture
+
+The business architecture defines the fundamental structure of RPGMS.
+
+Business architecture changes very rarely and provides the foundation upon which every feature is built.
+
+---
+
+## Business Domains
+
+The application is organised into independent business domains.
+
+Current domains include:
+
+- Dashboard
+- Accommodation
+- Resident
+- Stay
+- Finance
+- Billing
+- Compliance
+- Door IDs
+- Complaints
+- Reporting
+- Settings
+
+Each domain owns its own business rules, data model, services, components, and user interface.
+
+---
+
+## Domain Ownership
+
+Each business entity has one and only one owning domain.
+
+| Business Entity | Owning Domain |
+|-----------------|---------------|
+| Resident | Resident |
+| Stay | Stay |
+| Flat | Accommodation |
+| Area | Accommodation |
+| Bed | Accommodation |
+| Ledger | Finance |
+| Payment | Finance |
+| Billing Cycle | Billing |
+| Door ID | Door IDs |
+| Complaint | Complaints |
+
+Business entities may be referenced by other domains, but ownership always remains with the originating domain.
+
+---
+
+## Resident and Stay Architecture
+
+Resident and Stay represent two distinct business concepts.
+
+A **Resident** represents a person.
+
+A **Stay** represents one continuous period of accommodation.
+
+A Resident may have multiple Stays throughout their lifetime.
+
+Each Stay owns its own:
+
+- Accommodation
+- Commercial Terms
+- Contract
+- Billing
+- Ledger
+- Compliance
+- Door ID
+- Lifecycle
+
+Resident identity remains permanent regardless of the number of Stays.
+
+---
+
+## Accommodation Architecture
+
+Accommodation follows the physical hierarchy of the property.
+
+```text
+Property
+    ↓
+Flat
+    ↓
+Area
+    ↓
+Bed
+```
+
+Areas describe the internal layout of a Flat.
+
+Beds belong to an Area.
+
+Capacity is always derived from the generated beds.
+
+Accommodation is the foundation for occupancy management throughout RPGMS.
+
+---
+
+# Software Architecture
+
+The software architecture defines how the application is organised internally while supporting the business architecture.
+
+Business architecture determines **what** the system does.
+
+Software architecture determines **how** the system is organised to deliver those capabilities.
+
+---
+
+## Repository Structure
+
+The repository contains a single React application.
 
 ```text
 RPGMS-2.0/
 
 src/
 public/
+docs/
 prompts/
 
 README.md
@@ -103,17 +246,17 @@ AI_CONTEXT.md
 AI_INSTRUCTIONS.md
 ROADMAP.md
 CHANGELOG.md
-
-docs/
+SESSION.md
+NEXT_TASK.md
 ```
-
-The repository contains a single React application.
 
 There is only one project root.
 
+Documentation, prompts, and application source are maintained separately.
+
 ---
 
-# 4. Source Structure
+## Source Structure
 
 ```text
 src/
@@ -131,132 +274,59 @@ utils/
 main.tsx
 ```
 
-The source structure should remain small and understandable.
+The top-level structure is intentionally small and stable.
 
-New top-level folders should only be introduced when they solve a real architectural problem.
-
----
-
-# 5. Folder Responsibilities
-
-## app
-
-Application bootstrap.
-
-Examples:
-
-- App
-- Router
-- Providers
+New top-level folders should only be introduced when they solve a genuine architectural problem.
 
 ---
 
-## assets
+## Layer Responsibilities
 
-Static assets.
+| Layer | Responsibility |
+|--------|----------------|
+| app | Application bootstrap, routing, providers |
+| assets | Images, fonts, icons, and other static assets |
+| components | Shared reusable UI components |
+| constants | Application-wide constants |
+| features | Business domains and feature modules |
+| services | Shared infrastructure services |
+| theme | Material UI theme and design tokens |
+| types | Shared application types |
+| utils | Pure reusable utility functions |
 
-- Images
-- Icons
-- Fonts
-
----
-
-## components
-
-Reusable UI components shared across multiple business features.
-
-Components should not contain business logic.
-
----
-
-## constants
-
-Application-wide constants.
-
-No business data.
+Business-specific components, types, services, hooks, and utilities belong within their owning feature.
 
 ---
 
-## features
+## Feature Module Structure
 
-Business modules.
+Each feature module owns its complete implementation.
 
-Each feature owns its own implementation.
-
-Example:
+A typical feature may contain:
 
 ```text
-features/
+feature/
 
-dashboard/
-accommodation/
-residents/
-finance/
-electricity/
+components/
+hooks/
+pages/
+services/
+types/
+utils/
+validation/
 ```
 
-As features grow, they may contain:
+Not every feature requires every folder.
 
-- components
-- hooks
-- services
-- types
-- utils
-- validation
-
-Everything related to a business capability should remain together.
+Only introduce folders when they provide clear organisational value.
 
 ---
 
-## services
+# Dependency Rules
 
-Application-wide services.
+Dependencies should always flow inward toward the business domains.
 
-Examples:
-
-- Supabase client
-- Authentication
-- Storage
-
-Business-specific services belong inside their respective feature.
-
----
-
-## theme
-
-Material UI theme configuration.
-
-Global styling.
-
-Design tokens.
-
----
-
-## types
-
-Shared application types.
-
-Business-specific types belong inside their feature.
-
----
-
-## utils
-
-Pure helper functions.
-
-Utilities should:
-
-- be deterministic
-- have no side effects
-- remain framework independent
-
-Business-specific utilities belong inside their owning feature.
-
----
-
-# 6. Dependency Rules
-
-Dependencies should always flow inward.
+Business modules must remain independent of one another wherever practical.
 
 ```text
 main.tsx
@@ -265,314 +335,294 @@ app
     ↓
 features
     ↓
-components
+shared components / shared services
     ↓
-utils
+shared utilities
 ```
 
-Rules:
+Lower layers must never depend on higher layers.
 
-- Lower layers must never depend on higher layers.
-- Features should not depend on implementation details of other features.
-- Shared modules must never depend on business modules.
+Shared infrastructure must never depend upon business features.
 
----
-
-# 7. Naming Conventions
-
-## Folders
-
-- lowercase
-
-## Files
-
-- PascalCase → React Components
-- camelCase → utilities
-- camelCase → hooks
-- camelCase → services
-
-Examples:
-
-```text
-ResidentCard.tsx
-MainLayout.tsx
-
-generateBeds.ts
-currency.ts
-
-supabase.ts
-
-useResidents.ts
-```
+Business features should communicate through well-defined interfaces rather than implementation details.
 
 ---
 
-# 8. Architectural Decisions
+## Dependency Principles
 
-Major architectural decisions must be documented in:
+The following rules govern all dependencies within the application.
 
-`docs/DECISIONS.md`
+### Features are Independent
 
-Architecture should never evolve without recording **why** the change was made.
+Business features should not directly depend on implementation details belonging to another feature.
+
+Cross-feature communication should occur only through shared models, public interfaces, or shared services.
 
 ---
 
-# 9. Documentation Hierarchy
+### Shared Modules are Generic
+
+Shared modules must remain business agnostic.
+
+They may be used by any feature but must never contain feature-specific logic.
+
+Examples include:
+
+- Generic UI components
+- Formatting utilities
+- Validation helpers
+- Common TypeScript types
+- Infrastructure services
+
+---
+
+### Business Logic Stays with the Domain
+
+Business logic always belongs to the feature that owns the business capability.
+
+For example:
+
+- Accommodation calculations belong to Accommodation.
+- Billing calculations belong to Billing.
+- Financial posting belongs to Finance.
+- Resident validation belongs to Resident.
+- Stay lifecycle management belongs to Stay.
+
+Business logic must never be duplicated across features.
+
+---
+
+### UI Never Owns Business Logic
+
+User interface components are responsible only for:
+
+- Presentation
+- User interaction
+- Validation
+- Orchestration
+- Invoking business services
+
+UI components must never contain duplicated business calculations.
+
+Business rules should always execute within reusable utilities or domain services.
+
+---
+
+# Architectural Boundaries
+
+Architectural boundaries protect the separation of responsibilities across the application.
+
+The following boundaries are considered mandatory.
+
+## Resident Boundary
+
+The Resident domain owns permanent identity information.
+
+Examples include:
+
+- Resident Code
+- Personal Details
+- Contact Information
+- Identity Documents
+
+Resident data persists throughout the lifetime of the person.
+
+---
+
+## Stay Boundary
+
+The Stay domain owns operational residency.
+
+Each Stay owns:
+
+- Accommodation
+- Contract
+- Commercial Terms
+- Billing
+- Ledger Association
+- Notice
+- Checkout
+- Lifecycle
+
+Readmission creates a new Stay.
+
+Existing Stay records are never rewritten.
+
+---
+
+## Finance Boundary
+
+The Finance domain owns all financial transactions.
+
+Finance is responsible for:
+
+- Ledger Entries
+- Payments
+- Deposits
+- Refunds
+- Outstanding Balances
+
+Balances are always derived from ledger entries.
+
+---
+
+## Accommodation Boundary
+
+Accommodation owns the physical layout of the property.
+
+It is responsible for:
+
+- Flats
+- Areas
+- Beds
+- Occupancy
+
+Accommodation does not own residents, contracts, or finance.
+
+---
+
+# Documentation Architecture
+
+Project documentation is organised so that every document has a single, clearly defined responsibility.
+
+Together, the documentation provides complete governance for the application without unnecessary duplication.
+
+---
+
+## Documentation Hierarchy
 
 | Document | Responsibility |
-|-----------|----------------|
-| README.md | Project overview |
-| PROJECT_RULES.md | Engineering rules |
-| AI_CONTEXT.md | Project context |
-| AI_INSTRUCTIONS.md | AI implementation guidance |
-| ARCHITECTURE.md | Software architecture |
-| DECISIONS.md | Architectural decisions |
+|----------|----------------|
+| README.md | Project overview and setup |
+| PROJECT_RULES.md | Engineering and project rules |
+| AI_CONTEXT.md | Project context for AI assistants |
+| AI_INSTRUCTIONS.md | AI implementation guidelines |
+| ARCHITECTURE.md | Overall software architecture |
+| BUSINESS_RULES.md | Business policies and operational rules |
+| DATA_MODEL.md | Logical business data model |
+| DECISIONS.md | Architecture Decision Records (ADRs) |
+| MODULE_STATUS.md | Module implementation status |
 | ROADMAP.md | Product roadmap |
-| BACKLOG.md | Deferred work |
+| BACKLOG.md | Deferred features |
 | CHANGELOG.md | Project history |
-| SESSION.md | Current sprint |
-| NEXT_TASK.md | Immediate implementation task |
+| SESSION.md | Current development session |
+| NEXT_TASK.md | Immediate implementation plan |
 
-Each document has a single responsibility.
+Each document owns its subject area.
 
----
-
-# 10. Guiding Principle
-
-The objective of this architecture is **clarity over cleverness**.
-
-The best architecture is the one that allows future development to remain predictable, maintainable, and understandable.
-
-No new top-level folders may be added to `src` without an Architecture Decision.
-
-The top-level `src` structure is considered stable.
-
-Feature modules may evolve internally without affecting the overall architecture.
+Responsibilities should never overlap unnecessarily.
 
 ---
 
-# 11. Architecture Stability
+## Specification Documents
 
-The following require architectural review:
+Major business domains are documented independently.
 
-- Top-level folders
+Examples include:
+
+- Accommodation Specification
+- Resident Specification
+- Stay Specification
+- Finance Specification
+- Billing Specification
+- Electricity Specification
+
+These specifications describe business workflows and implementation details for their respective domains.
+
+Architecture documentation should reference these specifications rather than duplicate them.
+
+---
+
+## Architecture Decision Records
+
+Major architectural decisions must be recorded in:
+
+```text
+docs/DECISIONS.md
+```
+
+Every Architecture Decision Record (ADR) must capture:
+
+- The problem being solved
+- The available options
+- The selected approach
+- The rationale
+- The consequences
+
+Architectural changes must always be accompanied by a corresponding ADR.
+
+---
+
+# Architectural Governance
+
+The architecture exists to maintain long-term consistency across the project.
+
+Architectural decisions should prioritise:
+
+- Simplicity
+- Maintainability
+- Predictability
+- Business alignment
+- Ease of onboarding
+- Low operational complexity
+
+---
+
+## Stability Rules
+
+The following elements are considered architecturally stable and should not change without an approved ADR.
+
+- Repository structure
+- Top-level `src` folders
+- Domain ownership
 - Dependency direction
-- Feature organisation
-- Shared infrastructure
+- Business architecture
+- Resident–Stay separation
+- Accommodation hierarchy
+- Ledger architecture
 
-Any approved change must be documented in:
-
-`docs/DECISIONS.md`
-
----
-
-# 12. Development Assets
-
-The `prompts/` folder contains reusable AI implementation prompts, sprint specifications, and development templates.
-
-It is part of the development workflow but is **not** part of the application runtime.
+Changes affecting these areas require explicit architectural review.
 
 ---
 
-# 13. Accommodation Module Architecture (Sprint 4.3)
+## Evolution Rules
 
-## Domain Model
+Business features are expected to evolve over time.
 
-```text
-Flat
-│
-├── Flat Details
-│
-├── Areas
-│     ├── Area Name
-│     ├── Bed Prefix
-│     ├── Bed Count
-│     ├── Default Rent
-│     └── Default Deposit
-│
-└── Generated Beds
-      ├── Bed Code / Name
-      ├── Status
-      ├── Resident Name
-      ├── Default Rent
-      └── Default Deposit
-```
+Individual feature modules may:
+
+- Add new components
+- Introduce additional services
+- Create new utilities
+- Expand validation
+- Improve user experience
+
+These internal improvements must not violate the architectural principles defined in this document.
 
 ---
 
-## Business Flow
+# Guiding Principle
 
-```text
-Flat
-    ↓
-Areas
-    ↓
-generateBeds()
-    ↓
-Generated Beds
-    ↓
-Capacity
-```
+The primary objective of the architecture is clarity over cleverness.
 
-Capacity is always derived from generated beds.
+Every architectural decision should make the system easier to understand, easier to maintain, and easier to extend.
 
----
+When multiple solutions are possible, prefer the one that is:
 
-## Design Principles
+- Simpler
+- More explicit
+- Easier to maintain
+- Better aligned with the business domain
 
-- A Flat is composed of one or more Areas.
-- Areas define the accommodation layout.
-- Beds are generated by the system.
-- Bed IDs are never manually entered.
-- Capacity is calculated automatically.
-- Business logic remains independent of the UI.
+Architecture should enable rapid development without compromising long-term quality.
 
 ---
 
-## Single Source of Truth
+# Important
 
-`generateBeds()` is the authoritative business utility responsible for:
+Every developer and every AI assistant working on RPGMS 2.0 must read this document before making architectural or structural changes.
 
-- Bed generation
-- Bed numbering
-- Capacity calculation
+Implementation should always follow the established business architecture.
 
-It is consumed by:
+If an implementation requires changes to the architecture, the change must first be documented in `DECISIONS.md` before development proceeds.
 
-- Live Layout Preview
-- Flat Draft generation
-- Future Edit Flat workflow
-- Future persistence layer
-
-Any future feature requiring bed generation must reuse this utility.
-
----
-
-## UI Responsibilities
-
-The Add Flat dialog is responsible only for:
-
-- Collecting user input
-- Performing validation
-- Normalizing display values
-- Invoking `generateBeds()`
-- Assembling the Flat Draft object
-
-Business calculations remain outside the UI.
-
----
-
-## Architectural Outcome
-
-Sprint 4.3 established the canonical Accommodation architecture:
-
-```text
-Flat
-    ↓
-Areas
-    ↓
-Generated Beds
-```
-
-Future Accommodation features—including Edit Flat, Occupancy Management, and Resident Allocation—will build upon this model without changing the core hierarchy.
-
----
-
-# 14. Resident Module Architecture (Sprint 6.1 - 6.5)
-
-## Domain Model
-
-```text
-Resident
-├── id (string)
-├── residentCode (string)
-├── fullName (string)
-├── mobileNumber (string)
-├── documentType (DocumentType)
-├── documentNumber (string)
-├── joiningDate (string)
-├── flatId (string)
-├── allocatedBedIds (string[])
-├── agreedRent (number)
-├── agreedDeposit (number)
-├── status (ResidentStatus)
-├── createdAt (string)
-└── updatedAt (string)
-```
-
-## System Managed Fields
-
-The system manages the following fields internally:
-* `residentCode`: Automatically generated code.
-* `status`: Set automatically to `ACTIVE` upon creation.
-* `createdAt` / `updatedAt`: Timestamps of creation/modification.
-
-## Resident Draft Model
-
-The onboarding flow uses a subset of the fields represented as `ResidentDraft`:
-* `fullName`, `mobileNumber`, `documentType`, `documentNumber`, `joiningDate`, `flatId`, `allocatedBedIds`, `agreedRent`, `agreedDeposit`.
-
----
-
-## Resident Onboarding Wizard (Sprint 6.2 - 6.4)
-
-A three-step horizontal Stepper workflow is introduced to handle resident onboarding:
-1. **Resident Details**: Collects user identification (Full Name, Mobile Number, Document Type, and Document Number) with required-field validation.
-2. **Accommodation Details**: Handles flat selection (filtering for vacant beds), bed allocation (grouped by Area), joining date inputs, and pricing rules.
-3. **Confirmation Summary**: Displays a clean three-column summary dividing Resident Identity, Accommodation allocation, and Commercial terms before final submission.
-
-All wizard state is driven by React local state tracking a `ResidentDraft` instance as the single source of truth, ensuring input values are preserved during backward/forward navigation.
-
-### Pricing Summation and Override Rules (Sprint 6.3)
-
-* **Auto-pricing**: Rent and Deposit sums are calculated automatically by accumulating the default Rent and Deposit properties of all selected beds.
-* **Manual Overrides**: Operators can override either Rent or Deposit with custom values. These overrides are locked to prevent recalculation from overwriting them.
-* **Recalculation Resets**: Recalculation triggers resume if the Flat selection changes, or if the operator explicitly clicks the "Reset to default pricing" action.
-
-### Onboarding Persistence and Bed Status Synchronization (Sprint 6.4)
-
-* **Transactional Consistency**: Saving the onboarded resident and updating the allocated beds' occupancy status are executed as a single atomic transaction using `localStorage` updates.
-* **Bed Synchronization**: Selected beds are marked as `OCCUPIED`, and the resident's title-case name is associated with the bed records. Unrelated beds are left untouched.
-* **Commercial Separability**: Resident `agreedRent` and `agreedDeposit` are persisted directly to the resident object, preventing them from overwriting default bed configurations.
-* **Code Generation**: A sequence code generator yields keys (in `Rxxxxxx` format) by finding the highest integer of the active sequence and incrementing it.
-
----
-
-## Navigation and Routing Architecture (Sprint 6.5 - 7)
-
-The Residents module follows a standard master-detail navigation workflow:
-* `/residents`: Default registry table view supporting inline search query filters, status selectors, and a layout action button routing to `/residents/new`. In Sprint 7, it displays operational summary cards (Total, Active, On Notice, Checked Out) and allows search queries to match allocated beds.
-* `/residents/new`: Hosts the onboarding wizard. Upon successful creation, the wizard triggers a post-submit navigation callback redirecting the operator back to the landing table.
-* `/residents/:residentId`: Hosts the editable resident profile details workspace.
-
-### Profile Workspace and Read/Edit Modes (Sprint 7)
-
-* **Redesigned Workspace Header**: Aggregates the resident's name, unique resident code, active status badge, current flat allocation, bed allocations, and joining date (e.g. `Joined 17 Jul 2026`).
-* **Editable Inputs Mapping**: Restricts editing access strictly to Identity (Full Name, Mobile Number, Document Type, Document Number) and Commercial Agreements (Agreed Rent, Agreed Deposit) using local state edit forms.
-* **Locked Field Boundaries**: Prevents editing of structural parameters (Resident Code, ID, Status, Joining Date, Flat, Bed Allocations, and Creation timestamps).
-* **Validation Hardening**: Enforces input validation (non-empty fields, correct number entry bounds, and title casing normalization on save) while updating local database records in `localStorage`.
-
-Add a new section (or ADR if you're maintaining architecture decisions) covering:
-
-Resident Person vs Admission (Stay) model.
-A resident can have multiple admissions over their lifetime.
-Resident Code and Resident ID remain permanent.
-Each admission has its own:
-Accommodation
-Commercial terms
-Contract terms
-Billing
-Ledger
-Lifecycle
-Readmission creates a new Admission, not a new Resident.
-
-Also document the locked business rules:
-
-Joining Date is immutable.
-Billing Day is independent of Joining Date.
-Default Lock-in Period = 3 months (configurable).
-Default Notice Period = 30 days (configurable).
-Deposit recommendation is based on contract rules.
-Operator overrides require a reason.
-Cancelling a notice creates a new Admission/Contract with a fresh lock-in period.
-Only one active notice is permitted at any time.

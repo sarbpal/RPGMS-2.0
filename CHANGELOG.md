@@ -635,6 +635,17 @@ Architectural Design Session
 - Defined readmission workflow using new Admissions.
 - Finalized roadmap adjustments for Lifecycle and Billing.
 
+## Documentation
+
+### Finance Domain
+
+- Completed comprehensive review of `FINANCE_SPECIFICATION.md`
+- Refined architectural principles and domain boundaries
+- Clarified responsibilities for Billing, Settlement, Ledger, Timeline, Lifecycle, Reporting, and Extension Guidelines
+- Standardized terminology around Stay ownership and derived financial views
+- Reinforced Ledger as the single financial source of truth
+- Document marked as Version 2.0 and considered architecturally complete
+  
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

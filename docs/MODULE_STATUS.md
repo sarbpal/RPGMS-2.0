@@ -504,5 +504,13 @@ Deliverables:
 |---------|------|-------------|
 | 3.0 | July 2026 | Reorganized module status around the RPGMS business architecture and project roadmap. |
 
+## Finance
+
+Status: COMPLETE
+Specification: COMPLETE
+Architecture: STABLE
+Version: 2.0
+State: SEALED
+
 ---
 

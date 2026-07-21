@@ -727,6 +727,16 @@ Architectural Design Session
 - Established public Finance APIs.
 - No business logic implemented.
 
+## Finance Sprint F2 – Immutable Ledger Core
+
+- Implemented immutable append-only ledger architecture.
+- Added balanced double-entry validation.
+- Introduced batch posting via `postEntries()`.
+- Added ledger query APIs.
+- Added reversal entry support.
+- Established append-only persistence for ledger entries.
+- No balance calculations or business workflows implemented.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

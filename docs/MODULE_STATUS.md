@@ -198,22 +198,22 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Finance Domain Folder Structure (`src/features/finance/`)
 - Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `AccountType`, `LedgerReferenceType`)
 - Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
-- Service Skeletons (`ledgerService`, `balanceEngine`, `billingService`, `paymentService`, `settlementService`)
+- Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
 - React Hooks Skeletons (`useStayFinance`, `useFinanceSummary`)
 - Finance Workspace Page Shell (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
 
 **Pending**
 
-- Ledger Core append-only storage & validation (Sprint F2)
 - Balance Engine dynamic balance calculations (Sprint F3)
 - Billing Engine rent pro-ration & bill generation (Sprint F4)
 - Payment Processing Engine (Sprint F5)
 - Deposit & Checkout Settlement Engine (Sprint F6)
+- Timeline & Hooks Layer (Sprint F7)
 - UI Integration & Workspaces (Sprint F8)
 
 **Next Milestone**
 
-Implement Ledger Core Append-Only Storage & Validation in Sprint F2.
+Implement Balance Engine Dynamic Balance Derivations in Sprint F3.
 
 ---
 

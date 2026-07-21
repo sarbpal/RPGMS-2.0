@@ -470,6 +470,50 @@ Finance Sprint F7 – Financial Timeline & Hooks Layer
 
 The Timeline module will provide a unified chronological financial history for each Stay and expose reusable hooks for the UI without introducing new accounting logic.
 
+## Session Summary
+
+Completed Finance Sprint F7 – Financial Timeline & Hooks Layer.
+
+### Completed
+
+- Implemented Timeline Service.
+- Added unified Finance Timeline event model.
+- Implemented timeline summary generation.
+- Added reusable React hooks.
+- Integrated timeline and recent activity into the Finance page.
+- Preserved strict separation between presentation and business logic.
+
+### Architecture Status
+
+Finance
+- ✅ F1 – Domain Foundation
+- ✅ F2 – Immutable Ledger Core
+- ✅ F3 – Balance Engine
+- ✅ F4 – Billing Engine
+- ✅ F5 – Payment Processing Engine
+- ✅ F6 – Deposit & Checkout Settlement Engine
+- ✅ F7 – Financial Timeline & Hooks Layer
+- ⏳ F8 – Reports & Analytics
+
+### Current Architecture
+
+The Finance module now follows a layered architecture:
+
+Ledger
+→ Balance Engine
+→ Billing / Payments / Settlement
+→ Timeline Service
+→ React Hooks
+→ Finance UI
+
+Business rules remain isolated within the Finance services while the Timeline layer provides a unified read-only view for the user interface.
+
+### Next Sprint
+
+Finance Sprint F8 – Reports & Analytics
+
+The final Finance sprint will focus on dashboards, reports, analytics, resident financial summaries, and reporting views built entirely on the existing Finance services without introducing new accounting logic.
+
 
 End of Document
 

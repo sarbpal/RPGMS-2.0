@@ -196,25 +196,25 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Finance Specification (`FINANCE_SPECIFICATION.md` Version 2.0.0, Sealed)
 - Finance Implementation Plan (`FINANCE_IMPLEMENTATION_PLAN.md` Refined Blueprint)
 - Finance Domain Folder Structure (`src/features/finance/`)
-- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `AccountType`, `LedgerReferenceType`)
+- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `FinanceTimelineEvent`, `TimelineSummary`)
 - Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
 - Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
 - Balance Engine (`balanceEngine.ts`: dynamic derivation of Accounts Receivable, Advance Credit, Deposit Held, Refund Payable, Net Outstanding)
 - Billing Engine (`billingService.ts`: monthly rent generation, recurring & one-time charges, duplicate prevention, automated double-entry ledger postings)
 - Payment Processing Engine (`paymentService.ts`: Cash & Bank payments, automated ledger postings, overpayment advance credit handling, bill allocations)
 - Deposit & Checkout Settlement Engine (`settlementService.ts`: two-stage workflow - read-only `generateSettlementPreview` & transaction `confirmSettlement` with audit snapshot)
-- React Hooks (`useStayFinance`, `useFinanceSummary`)
-- Finance Workspace Page Shell (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
+- Financial Timeline Service (`timelineService.ts`: read-only aggregation of Stay timelines and property-wide activity streams)
+- React Hooks (`useStayFinanceTimeline`, `useFinanceActivity`, `useFinanceSummary`, `useStayFinance`)
+- Finance Workspace Page Shell with Activity Stream (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
 
 **Pending**
 
-- Timeline & Hooks Layer (Sprint F7)
 - UI Integration & Workspaces (Sprint F8)
 - Reports & Stabilization (Sprint F9)
 
 **Next Milestone**
 
-Implement Timeline & Hooks Layer in Sprint F7.
+Implement UI Integration & Workspaces in Sprint F8.
 
 ---
 

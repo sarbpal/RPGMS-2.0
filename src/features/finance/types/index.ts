@@ -167,3 +167,24 @@ export interface FinanceSummary {
   totalDepositHeld: number;
   totalAdvanceCredit: number;
 }
+
+export interface FinanceTimelineEvent {
+  id: string;
+  stayId: string;
+  date: Date;
+  type: 'BILL' | 'PAYMENT' | 'LEDGER' | 'SETTLEMENT';
+  title: string;
+  description: string;
+  amount: number;
+  referenceId: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface TimelineSummary {
+  totalBillsCount: number;
+  totalPaymentsCount: number;
+  outstandingBalance: number;
+  advanceCredit: number;
+  securityDepositHeld: number;
+  settlementStatus: 'NONE' | 'SETTLED';
+}

@@ -803,6 +803,22 @@ Architectural Design Session
 - All settlement balances are derived through the Balance Engine.
 - Settlement records retain the complete preview snapshot for auditing.
 
+## Finance Sprint F7 – Financial Timeline & Hooks Layer
+
+### Added
+- Implemented Timeline Service to aggregate financial events across Bills, Payments, Ledger, and Settlements.
+- Added unified `FinanceTimelineEvent` model.
+- Added timeline summary generation using the Balance Engine.
+- Added reusable React hooks for finance timeline and recent activity.
+- Integrated timeline and activity stream into the Finance page.
+- Added recent finance activity support for dashboard widgets.
+
+### Notes
+- Timeline Service is strictly read-only.
+- No business logic or financial calculations were duplicated.
+- All balances continue to be derived exclusively through the Balance Engine.
+- Existing Finance domain services remained unchanged.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

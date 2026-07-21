@@ -185,7 +185,7 @@ Finance domain integration & Stay lifecycle events.
 
 ### Finance
 
-**Status:** 🟡 In Progress
+**Status:** 🟢 Complete
 
 **Purpose**
 
@@ -196,7 +196,7 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Finance Specification (`FINANCE_SPECIFICATION.md` Version 2.0.0, Sealed)
 - Finance Implementation Plan (`FINANCE_IMPLEMENTATION_PLAN.md` Refined Blueprint)
 - Finance Domain Folder Structure (`src/features/finance/`)
-- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `FinanceTimelineEvent`, `TimelineSummary`)
+- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `FinanceTimelineEvent`, `TimelineSummary`, `FinanceDashboardMetrics`, `ResidentFinancialSummaryReport`, `MonthlyCollectionsReport`, `OutstandingResidentReportItem`, `SettlementReportItem`)
 - Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
 - Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
 - Balance Engine (`balanceEngine.ts`: dynamic derivation of Accounts Receivable, Advance Credit, Deposit Held, Refund Payable, Net Outstanding)
@@ -204,17 +204,17 @@ Manages the financial records of every Stay, ensuring complete, accurate, and au
 - Payment Processing Engine (`paymentService.ts`: Cash & Bank payments, automated ledger postings, overpayment advance credit handling, bill allocations)
 - Deposit & Checkout Settlement Engine (`settlementService.ts`: two-stage workflow - read-only `generateSettlementPreview` & transaction `confirmSettlement` with audit snapshot)
 - Financial Timeline Service (`timelineService.ts`: read-only aggregation of Stay timelines and property-wide activity streams)
+- Reports & Analytics Service (`reportingService.ts`: read-only dashboard metrics, resident summaries, monthly collection reports, outstanding resident reports, settlement audit logs)
 - React Hooks (`useStayFinanceTimeline`, `useFinanceActivity`, `useFinanceSummary`, `useStayFinance`)
-- Finance Workspace Page Shell with Activity Stream (`FinancePage.tsx` & `FinancialSummaryCard.tsx`)
+- Finance Workspace Dashboard (`FinancePage.tsx`, `FinancialSummaryCard.tsx`, activity stream, outstanding dues table, settlements audit table)
 
 **Pending**
 
-- UI Integration & Workspaces (Sprint F8)
-- Reports & Stabilization (Sprint F9)
+- None (Finance Module Core Complete)
 
 **Next Milestone**
 
-Implement UI Integration & Workspaces in Sprint F8.
+System Stabilization & End-to-End Audits.
 
 ---
 

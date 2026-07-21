@@ -819,6 +819,22 @@ Architectural Design Session
 - All balances continue to be derived exclusively through the Balance Engine.
 - Existing Finance domain services remained unchanged.
 
+## Finance Sprint F8 – Reports & Analytics
+
+### Added
+- Implemented Reporting Service for Finance dashboard and operational reports.
+- Added Finance dashboard summary aggregation.
+- Added resident financial summary reporting.
+- Added monthly collections reporting.
+- Added outstanding residents report.
+- Added settlement audit report.
+- Updated Finance page with dashboard cards, recent activity, outstanding dues, and settlement audit views.
+
+### Notes
+- Reporting layer is strictly read-only.
+- All balances and financial values are derived from existing Finance services.
+- No accounting logic or ledger operations were introduced.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

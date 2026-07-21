@@ -6,6 +6,7 @@ export * from './services/billingService';
 export * from './services/paymentService';
 export * from './services/settlementService';
 export * from './services/timelineService';
+export * from './services/reportingService';
 export * from './hooks/useStayFinance';
 export * from './hooks/useFinanceSummary';
 export * from './hooks/useStayFinanceTimeline';

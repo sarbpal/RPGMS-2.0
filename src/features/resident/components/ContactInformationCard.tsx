@@ -1,6 +1,11 @@
 import { Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
+import type { ContactInformationViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
-export function ContactInformationCard() {
+interface ContactInformationCardProps {
+  data: ContactInformationViewModel;
+}
+
+export function ContactInformationCard({ data }: ContactInformationCardProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
@@ -15,7 +20,7 @@ export function ContactInformationCard() {
                 Primary Mobile
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                +91 98765 43210
+                {data.primaryMobile}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -23,7 +28,7 @@ export function ContactInformationCard() {
                 Alternate Mobile
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                +91 98765 43211
+                {data.alternateMobile}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -31,7 +36,7 @@ export function ContactInformationCard() {
                 City & State
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Bangalore, Karnataka
+                {data.city}, {data.state}
               </Typography>
             </Grid>
           </Grid>
@@ -44,7 +49,7 @@ export function ContactInformationCard() {
                 Permanent Address
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                #42, 2nd Main, Indiranagar, Bangalore - 560038
+                {data.permanentAddress}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -52,7 +57,7 @@ export function ContactInformationCard() {
                 Correspondence Address
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Same as Permanent Address
+                {data.correspondenceAddress}
               </Typography>
             </Grid>
           </Grid>

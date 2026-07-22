@@ -1,6 +1,11 @@
 import { Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
+import type { EmergencyContactViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
-export function EmergencyContactCard() {
+interface EmergencyContactCardProps {
+  data: EmergencyContactViewModel;
+}
+
+export function EmergencyContactCard({ data }: EmergencyContactCardProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
@@ -15,7 +20,7 @@ export function EmergencyContactCard() {
                 Contact Name
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Ramesh Kumar
+                {data.contactName}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -23,7 +28,7 @@ export function EmergencyContactCard() {
                 Relationship
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Father
+                {data.relationship}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -31,7 +36,7 @@ export function EmergencyContactCard() {
                 Emergency Phone
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                +91 98765 43210
+                {data.emergencyPhone}
               </Typography>
             </Grid>
           </Grid>
@@ -44,7 +49,7 @@ export function EmergencyContactCard() {
                 Father / Guardian Name
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Ramesh Kumar
+                {data.fatherOrGuardianName}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -52,7 +57,7 @@ export function EmergencyContactCard() {
                 Mother Name
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Sunita Kumar
+                {data.motherName}
               </Typography>
             </Grid>
           </Grid>

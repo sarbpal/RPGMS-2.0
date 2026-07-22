@@ -938,6 +938,23 @@ This is another meaningful architectural milestone.
 - Established the Presentation Layer for the Resident module.
 - Continued the modular workspace architecture established by the Stay module.
 
+
+## Sprint 10.2 – Resident Application Layer Foundation
+
+### Added
+
+- Introduced Resident Application Layer.
+- Added ResidentWorkspaceCoordinator.
+- Added ResidentWorkspaceViewModel.
+- Refactored Resident Workspace to consume ViewModels.
+- Implemented ADR-014 Coordinator + ViewModel pattern for the Resident module.
+
+### Architecture
+
+- Established the Application Layer for the Resident module.
+- Maintained strict separation between Presentation and future Domain/Infrastructure layers.
+
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

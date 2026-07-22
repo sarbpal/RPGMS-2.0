@@ -1,13 +1,12 @@
 import { Person } from '@mui/icons-material';
 import { Avatar, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
+import type { ResidentHeaderViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
 interface ResidentHeaderProps {
-  residentId?: string;
+  data: ResidentHeaderViewModel;
 }
 
-export function ResidentHeader({ residentId }: ResidentHeaderProps) {
-  const displayId = residentId || 'RES-00124';
-
+export function ResidentHeader({ data }: ResidentHeaderProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
@@ -23,12 +22,12 @@ export function ResidentHeader({ residentId }: ResidentHeaderProps) {
             <Box>
               <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1.5}>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  Rajesh Kumar
+                  {data.fullName}
                 </Typography>
-                <Chip label="Active Resident" color="success" size="small" sx={{ fontWeight: 600 }} />
+                <Chip label={data.status} color="success" size="small" sx={{ fontWeight: 600 }} />
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Resident Code: R000124 &bull; ID: {displayId}
+                Resident Code: {data.residentCode}{data.residentId ? ` \u2022 ID: ${data.residentId}` : ''}
               </Typography>
             </Box>
           </Stack>
@@ -39,7 +38,7 @@ export function ResidentHeader({ residentId }: ResidentHeaderProps) {
                 Primary Mobile
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                +91 98765 43210
+                {data.primaryMobile}
               </Typography>
             </Box>
             <Box>
@@ -47,7 +46,7 @@ export function ResidentHeader({ residentId }: ResidentHeaderProps) {
                 Email Address
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                rajesh.kumar@example.com
+                {data.email}
               </Typography>
             </Box>
           </Stack>

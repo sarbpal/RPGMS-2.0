@@ -1,3 +1,4 @@
+export * from './application';
 export * from './components/ResidentHeader';
 export * from './components/ResidentQuickActions';
 export * from './components/ResidentSummaryCard';

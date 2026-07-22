@@ -1,6 +1,11 @@
 import { Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
+import type { ResidentSummaryViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
-export function ResidentSummaryCard() {
+interface ResidentSummaryCardProps {
+  data: ResidentSummaryViewModel;
+}
+
+export function ResidentSummaryCard({ data }: ResidentSummaryCardProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
@@ -15,7 +20,7 @@ export function ResidentSummaryCard() {
                 Resident Code
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                R000124
+                {data.residentCode}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -23,7 +28,7 @@ export function ResidentSummaryCard() {
                 Joining Date
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                12-Mar-2026
+                {data.joiningDate}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -31,7 +36,7 @@ export function ResidentSummaryCard() {
                 Occupation
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Working Professional
+                {data.occupation}
               </Typography>
             </Grid>
           </Grid>
@@ -44,7 +49,7 @@ export function ResidentSummaryCard() {
                 Employer / College
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Tech Solutions Ltd.
+                {data.employerOrCollege}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -52,7 +57,7 @@ export function ResidentSummaryCard() {
                 Blood Group
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                O+ Positive
+                {data.bloodGroup}
               </Typography>
             </Grid>
           </Grid>

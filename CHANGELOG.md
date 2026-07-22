@@ -850,6 +850,48 @@ StayWorkspaceViewModel created
 Presentation components refactored to consume ViewModels
 ADR-014 implemented
 
+## Sprint 9.3 – Stay Domain Foundation
+
+### Added
+
+- Introduced the Stay Domain layer as the technology-independent business core of the Stay module.
+- Added `Stay` domain entity representing a resident's operational stay.
+- Added `StayStatus` value object to provide strongly typed operational stay states.
+- Added `StayType` value object for business classification of stays.
+- Added `StayRepository` interface defining the persistence contract without implementation.
+- Added domain barrel exports for consistent module organization.
+
+### Changed
+
+- Refactored `StayWorkspaceCoordinator` to consume domain entities and value objects instead of scattered string literals.
+- Strengthened separation between the Application and Domain layers in accordance with ADR-014.
+
+### Architecture
+
+- Completed the initial Domain Layer for the Stay module.
+- Reinforced the layered architecture:
+
+  ```text
+  Presentation
+        │
+        ▼
+  Application
+        │
+        ▼
+  Domain
+        │
+        ▼
+  Infrastructure (future)
+  ```
+
+- Confirmed that the Domain layer remains independent of React, Material UI, Supabase, SQL, and other infrastructure concerns.
+
+### Notes
+
+- No repository implementation was introduced in this sprint.
+- No persistence or business services were implemented.
+- The sprint focused exclusively on establishing the business vocabulary and domain model for future development.
+- 
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

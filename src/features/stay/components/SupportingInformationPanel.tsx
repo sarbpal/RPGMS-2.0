@@ -1,6 +1,11 @@
 import { Box, Card, CardContent, Chip, Grid, Stack, Typography } from '@mui/material';
+import type { SupportingInformationViewModel } from '../application/models/StayWorkspaceViewModel';
 
-export function SupportingInformationPanel() {
+interface SupportingInformationPanelProps {
+  data: SupportingInformationViewModel;
+}
+
+export function SupportingInformationPanel({ data }: SupportingInformationPanelProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
@@ -18,18 +23,14 @@ export function SupportingInformationPanel() {
                 Verification Documents
               </Typography>
               <Stack spacing={1}>
-                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Aadhaar Card
-                  </Typography>
-                  <Chip label="Verified" color="success" size="small" variant="outlined" />
-                </Stack>
-                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Rental Agreement
-                  </Typography>
-                  <Chip label="Signed" color="primary" size="small" variant="outlined" />
-                </Stack>
+                {data.documents.map((doc) => (
+                  <Stack key={doc.name} direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {doc.name}
+                    </Typography>
+                    <Chip label={doc.status} color={doc.statusColor} size="small" variant="outlined" />
+                  </Stack>
+                ))}
               </Stack>
             </Box>
           </Grid>
@@ -40,10 +41,10 @@ export function SupportingInformationPanel() {
                 Emergency Contact
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Ramesh Kumar (Father)
+                {data.emergencyContact.name} ({data.emergencyContact.relationship})
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Phone: +91 98765 43210
+                Phone: {data.emergencyContact.phone}
               </Typography>
             </Box>
           </Grid>
@@ -54,7 +55,7 @@ export function SupportingInformationPanel() {
                 Stay Notes
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Requested top bunk bed near window. Shifted flat on 15-May-2026.
+                {data.notes}
               </Typography>
             </Box>
           </Grid>

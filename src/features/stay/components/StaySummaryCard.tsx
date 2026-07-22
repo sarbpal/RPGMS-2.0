@@ -1,6 +1,11 @@
 import { Card, CardContent, Chip, Divider, Grid, Stack, Typography } from '@mui/material';
+import type { StaySummaryViewModel } from '../application/models/StayWorkspaceViewModel';
 
-export function StaySummaryCard() {
+interface StaySummaryCardProps {
+  data: StaySummaryViewModel;
+}
+
+export function StaySummaryCard({ data }: StaySummaryCardProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
@@ -14,21 +19,21 @@ export function StaySummaryCard() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Stay Status
               </Typography>
-              <Chip label="Active" color="success" size="small" sx={{ fontWeight: 600, mt: 0.5 }} />
+              <Chip label={data.status} color="success" size="small" sx={{ fontWeight: 600, mt: 0.5 }} />
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Occupancy Duration
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                4 months 12 days
+                {data.occupancyDuration}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Notice Status
               </Typography>
-              <Chip label="Not on Notice" variant="outlined" size="small" sx={{ mt: 0.5 }} />
+              <Chip label={data.noticeStatus} variant="outlined" size="small" sx={{ mt: 0.5 }} />
             </Grid>
           </Grid>
 
@@ -40,7 +45,7 @@ export function StaySummaryCard() {
                 Rent Plan
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹8,500 / month
+                {data.rentPlan}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -48,7 +53,7 @@ export function StaySummaryCard() {
                 Security Deposit
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹15,000
+                {data.securityDeposit}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -56,7 +61,7 @@ export function StaySummaryCard() {
                 Bed Allocation
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                Flat 103 / Bed H2
+                {data.bedAllocation}
               </Typography>
             </Grid>
           </Grid>

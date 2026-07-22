@@ -842,6 +842,14 @@ Route /stay/:stayId added
 ADR-014 adopted (Application Layer Pattern)
 Architecture documentation updated
 
+## Sprint 9.2 – Application Layer Foundation
+Sprint 9.2 completed
+Application Layer implemented
+StayWorkspaceCoordinator created
+StayWorkspaceViewModel created
+Presentation components refactored to consume ViewModels
+ADR-014 implemented
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

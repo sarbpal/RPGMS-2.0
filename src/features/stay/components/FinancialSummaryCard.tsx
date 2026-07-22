@@ -1,6 +1,13 @@
 import { Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
+import type { FinancialSummaryViewModel } from '../application/models/StayWorkspaceViewModel';
 
-export function FinancialSummaryCard() {
+interface FinancialSummaryCardProps {
+  data: FinancialSummaryViewModel;
+}
+
+export function FinancialSummaryCard({ data }: FinancialSummaryCardProps) {
+  const formatCurrency = (val: number) => `₹${val.toLocaleString('en-IN')}`;
+
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
@@ -14,8 +21,8 @@ export function FinancialSummaryCard() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Outstanding Balance
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main', mt: 0.5 }}>
-                ₹0
+              <Typography variant="body2" sx={{ fontWeight: 700, color: data.outstandingBalance > 0 ? 'error.main' : 'success.main', mt: 0.5 }}>
+                {formatCurrency(data.outstandingBalance)}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -23,7 +30,7 @@ export function FinancialSummaryCard() {
                 Current Month Rent
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹8,500
+                {formatCurrency(data.currentMonthRent)}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -31,7 +38,7 @@ export function FinancialSummaryCard() {
                 Security Deposit Held
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹15,000
+                {formatCurrency(data.securityDepositHeld)}
               </Typography>
             </Grid>
           </Grid>
@@ -44,7 +51,7 @@ export function FinancialSummaryCard() {
                 Pending Electricity
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹450
+                {formatCurrency(data.pendingElectricity)}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -52,7 +59,7 @@ export function FinancialSummaryCard() {
                 Last Payment Received
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                ₹8,500 (01-Jul-2026)
+                {data.lastPaymentReceived}
               </Typography>
             </Grid>
             <Grid size={{ xs: 6, sm: 4 }}>
@@ -60,7 +67,7 @@ export function FinancialSummaryCard() {
                 Next Billing Date
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                01-Aug-2026
+                {data.nextBillingDate}
               </Typography>
             </Grid>
           </Grid>

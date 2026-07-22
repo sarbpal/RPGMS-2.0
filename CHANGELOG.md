@@ -899,6 +899,26 @@ Repository contract validated
 Coordinator refactored for dependency injection
 
 This is another meaningful architectural milestone.
+
+## Sprint 9.5 – Stay Workspace Data Integration
+
+### Changed
+
+- Integrated the Stay Workspace with the Stay domain and repository.
+- Replaced placeholder workspace data with values sourced from the Stay entity where available.
+- Refactored `StayWorkspaceCoordinator` to translate `Stay` domain entities into `StayWorkspaceViewModel`.
+- Established the first complete end-to-end flow from Infrastructure → Domain → Application → Presentation.
+
+### Architecture
+
+- Validated the layered architecture in production code.
+- Confirmed that the Presentation layer remains independent of the Domain and Infrastructure.
+- Continued to reserve Resident, Finance, Timeline, and Documents for future domain integration.
+
+### Notes
+
+- Remaining placeholder sections are intentionally deferred until their respective domains are implemented.
+  
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

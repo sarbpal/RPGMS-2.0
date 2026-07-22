@@ -159,5 +159,13 @@ Planned goals:
 - Replace developer preview with persistence workflow.
 - Refresh Accommodation list after creation.
 - Prepare for Supabase integration.
-- 
+
+Milestone 10 – Resident Foundation
+
+Sprint 10.1 – Resident Presentation
+Sprint 10.2 – Resident Application
+Sprint 10.3 – Resident Domain
+Sprint 10.4 – Resident Infrastructure
+Sprint 10.5 – Resident Workspace Integration
+
 End of Document

@@ -1,7 +1,5 @@
 import type { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
-import { StayStatus } from '../../domain/valueObjects/StayStatus';
-import { StayType } from '../../domain/valueObjects/StayType';
 import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { StayWorkspaceViewModel } from '../models/StayWorkspaceViewModel';
 
@@ -15,62 +13,81 @@ export class StayWorkspaceCoordinator {
   public createViewModel(stayId: string): StayWorkspaceViewModel {
     const activeStayId = stayId || '';
 
-    // Retrieve Stay entity using the StayRepository interface
+    // Retrieve Stay entity using the StayRepository interface contract
     let stay: Stay | null = null;
     if (
       'findByIdSync' in this.stayRepository &&
       typeof (this.stayRepository as { findByIdSync?: (id: string) => Stay | null }).findByIdSync === 'function'
     ) {
-      stay =
-        (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync(activeStayId) ||
-        (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync('STAY-2026-00041');
+      stay = (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync(activeStayId);
+      if (!stay && !activeStayId) {
+        stay = (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync('STAY-2026-00041');
+      }
     }
 
-    const currentStay: Stay = stay || {
-      id: activeStayId || 'STAY-2026-00041',
-      residentId: 'RES-00124',
-      stayType: StayType.REGULAR,
-      status: StayStatus.ACTIVE,
-      checkInDate: '12-Mar-2026',
-      flatId: 'FLAT-103',
-      allocatedBedIds: ['BED-H2'],
-      agreedRent: 8500,
-      agreedDeposit: 15000,
-      createdAt: '2026-03-12T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z',
-    };
+    if (!stay) {
+      return this.mapStayToViewModel({
+        id: activeStayId || 'NOT_FOUND',
+        residentId: 'UNKNOWN',
+        stayType: 'REGULAR',
+        status: 'ACTIVE',
+        checkInDate: 'N/A',
+        flatId: 'Unassigned',
+        allocatedBedIds: [],
+        agreedRent: 0,
+        agreedDeposit: 0,
+        notes: 'Stay record not found in repository.',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    return this.mapStayToViewModel(stay);
+  }
+
+  private mapStayToViewModel(stay: Stay): StayWorkspaceViewModel {
+    const formattedFlat = stay.flatId.startsWith('FLAT-')
+      ? `Flat ${stay.flatId.replace('FLAT-', '')}`
+      : stay.flatId;
+
+    const formattedBeds =
+      stay.allocatedBedIds.length > 0
+        ? stay.allocatedBedIds.map((b) => b.replace('BED-', '')).join(', ')
+        : 'None';
+
+    const allocationLabel = `${formattedFlat} / Bed ${formattedBeds}`;
 
     return {
       header: {
-        residentName: 'Rajesh Kumar',
-        residentId: currentStay.residentId,
-        stayId: currentStay.id,
-        status: currentStay.status,
-        checkInDate: currentStay.checkInDate,
-        allocation: 'Flat 103 / Bed H2',
+        residentName: stay.residentId === 'RES-00125' ? 'Amit Sharma' : 'Rajesh Kumar',
+        residentId: stay.residentId,
+        stayId: stay.id,
+        status: stay.status,
+        checkInDate: stay.checkInDate,
+        allocation: allocationLabel,
       },
       summary: {
-        status: currentStay.status,
-        occupancyDuration: '4 months 12 days',
-        noticeStatus: 'Not on Notice',
-        rentPlan: `₹${currentStay.agreedRent.toLocaleString('en-IN')} / month`,
-        securityDeposit: `₹${currentStay.agreedDeposit.toLocaleString('en-IN')}`,
-        bedAllocation: 'Flat 103 / Bed H2',
+        status: stay.status,
+        occupancyDuration: stay.checkInDate !== 'N/A' ? '4 months 12 days' : 'N/A',
+        noticeStatus: stay.status === 'ON_NOTICE' ? 'On Notice' : 'Not on Notice',
+        rentPlan: `₹${stay.agreedRent.toLocaleString('en-IN')} / month`,
+        securityDeposit: `₹${stay.agreedDeposit.toLocaleString('en-IN')}`,
+        bedAllocation: allocationLabel,
       },
       financialSummary: {
         outstandingBalance: 0,
-        currentMonthRent: currentStay.agreedRent,
-        pendingElectricity: 450,
+        currentMonthRent: stay.agreedRent,
+        pendingElectricity: stay.agreedRent > 0 ? 450 : 0,
         pendingLaundry: 0,
-        securityDepositHeld: currentStay.agreedDeposit,
-        lastPaymentReceived: '₹8,500 (01-Jul-2026)',
+        securityDepositHeld: stay.agreedDeposit,
+        lastPaymentReceived: stay.agreedRent > 0 ? `₹${stay.agreedRent.toLocaleString('en-IN')} (01-Jul-2026)` : 'N/A',
         nextBillingDate: '01-Aug-2026',
       },
       timeline: [
         {
           id: 'evt-1',
           title: 'Payment Received',
-          description: '₹8,500 collected via UPI for July 2026 rent',
+          description: `₹${stay.agreedRent.toLocaleString('en-IN')} collected via UPI for July 2026 rent`,
           date: '01-Jul-2026',
           type: 'PAYMENT',
           color: 'success',
@@ -78,7 +95,7 @@ export class StayWorkspaceCoordinator {
         {
           id: 'evt-2',
           title: 'Monthly Rent Bill Generated',
-          description: 'Rent invoice generated for July 2026 (₹8,500)',
+          description: `Rent invoice generated for July 2026 (₹${stay.agreedRent.toLocaleString('en-IN')})`,
           date: '01-Jul-2026',
           type: 'BILL',
           color: 'error',
@@ -86,7 +103,7 @@ export class StayWorkspaceCoordinator {
         {
           id: 'evt-3',
           title: 'Electricity Charge Posted',
-          description: 'Flat 103 electricity split share added (₹450)',
+          description: `${formattedFlat} electricity split share added (₹450)`,
           date: '15-Jun-2026',
           type: 'CHARGE',
           color: 'warning',
@@ -94,8 +111,8 @@ export class StayWorkspaceCoordinator {
         {
           id: 'evt-4',
           title: 'Stay Started (Check-in)',
-          description: 'Resident checked in and allocated to Flat 103 / Bed H2',
-          date: currentStay.checkInDate,
+          description: `Resident checked in and allocated to ${allocationLabel}`,
+          date: stay.checkInDate,
           type: 'CHECK_IN',
           color: 'info',
         },
@@ -110,7 +127,7 @@ export class StayWorkspaceCoordinator {
           relationship: 'Father',
           phone: '+91 98765 43210',
         },
-        notes: currentStay.notes || 'Requested top bunk bed near window. Shifted flat on 15-May-2026.',
+        notes: stay.notes || 'No operational notes recorded.',
       },
     };
   }

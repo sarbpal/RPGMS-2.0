@@ -968,6 +968,20 @@ This is another meaningful architectural milestone.
 - Established the Domain Layer for the Resident module.
 - Preserved strict separation between Domain, Application, and Presentation layers.
 
+## Sprint 10.4 – Resident Infrastructure Foundation
+
+### Added
+
+- Introduced Resident Infrastructure Layer.
+- Added InMemoryResidentRepository.
+- Added residentSeedData.
+- Connected ResidentWorkspaceCoordinator to the repository abstraction using dependency injection.
+
+### Architecture
+
+- Validated the Repository abstraction for the Resident module.
+- Preserved dependency inversion between Application and Infrastructure layers.
+
 
 ------------------------------------------------------------------------------
 End of Document

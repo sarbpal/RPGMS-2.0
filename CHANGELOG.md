@@ -982,6 +982,20 @@ This is another meaningful architectural milestone.
 - Validated the Repository abstraction for the Resident module.
 - Preserved dependency inversion between Application and Infrastructure layers.
 
+## Sprint 10.5 – Resident Workspace Data Integration
+
+### Changed
+
+- Integrated Resident Workspace with the Resident domain and repository.
+- Replaced placeholder workspace data with values sourced from the Resident entity.
+- Refactored ResidentWorkspaceCoordinator to translate Resident entities into ResidentWorkspaceViewModel.
+- Validated the complete end-to-end layered architecture.
+
+### Architecture
+
+- Established the first complete Repository → Domain → Application → Presentation flow for the Resident module.
+- Reserved Stay and Billing summaries for future cross-domain orchestration.
+
 
 ------------------------------------------------------------------------------
 End of Document

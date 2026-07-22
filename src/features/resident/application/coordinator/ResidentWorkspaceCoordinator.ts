@@ -1,7 +1,7 @@
 import type { Resident } from '../../domain/entities/Resident';
 import type { ResidentRepository } from '../../domain/interfaces/ResidentRepository';
 import { InMemoryResidentRepository } from '../../infrastructure/repositories/InMemoryResidentRepository';
-import type { ResidentWorkspaceViewModel } from '../models/ResidentWorkspaceViewModel';
+import type { DocumentItemViewModel, ResidentWorkspaceViewModel } from '../models/ResidentWorkspaceViewModel';
 
 export class ResidentWorkspaceCoordinator {
   private repository: ResidentRepository;
@@ -50,6 +50,19 @@ export class ResidentWorkspaceCoordinator {
         ? 'Checked Out'
         : 'Alumni';
 
+    const formattedJoiningDate = this.formatDate(resident.createdAt);
+
+    const documentsViewModel: DocumentItemViewModel[] =
+      resident.documents && resident.documents.length > 0
+        ? resident.documents.map((doc, idx) => ({
+            id: `doc-${idx + 1}`,
+            type: this.formatDocumentType(doc.type),
+            number: doc.documentNumber,
+            status: doc.verificationStatus,
+            color: doc.verificationStatus === 'Verified' ? 'success' : 'primary',
+          }))
+        : [];
+
     return {
       header: {
         fullName: resident.fullName,
@@ -61,7 +74,7 @@ export class ResidentWorkspaceCoordinator {
       },
       summary: {
         residentCode: resident.residentCode,
-        joiningDate: '12-Mar-2026',
+        joiningDate: formattedJoiningDate,
         occupation: resident.occupation || 'N/A',
         employerOrCollege: resident.organizationName || 'N/A',
         bloodGroup: resident.bloodGroup || 'N/A',
@@ -76,25 +89,47 @@ export class ResidentWorkspaceCoordinator {
         permanentAddress: resident.permanentAddress || 'N/A',
         correspondenceAddress: resident.correspondenceAddress || 'N/A',
       },
-      documents: resident.documents && resident.documents.length > 0
-        ? resident.documents.map((doc, idx) => ({
-            id: `doc-${idx + 1}`,
-            type: doc.type === 'AADHAAR' ? 'Aadhaar Card' : doc.type === 'PAN' ? 'PAN Card' : doc.type,
-            number: doc.documentNumber,
-            status: doc.verificationStatus,
-            color: doc.verificationStatus === 'Verified' ? 'success' : 'primary',
-          }))
-        : [
-            { id: 'doc-1', type: 'Aadhaar Card', number: 'XXXX-XXXX-1234', status: 'Verified', color: 'success' },
-            { id: 'doc-2', type: 'PAN Card', number: 'ABCDE1234F', status: 'Verified', color: 'success' },
-          ],
+      documents: documentsViewModel,
       emergencyContact: {
-        contactName: resident.emergencyContact?.name || 'Ramesh Kumar',
-        relationship: resident.emergencyContact?.relationship || 'Father',
-        emergencyPhone: resident.emergencyContact?.phone || '+91 98765 43210',
-        fatherOrGuardianName: resident.fatherOrGuardianName || 'Ramesh Kumar',
-        motherName: resident.motherName || 'Sunita Kumar',
+        contactName: resident.emergencyContact?.name || 'N/A',
+        relationship: resident.emergencyContact?.relationship || 'N/A',
+        emergencyPhone: resident.emergencyContact?.phone || 'N/A',
+        fatherOrGuardianName: resident.fatherOrGuardianName || 'N/A',
+        motherName: resident.motherName || 'N/A',
       },
     };
+  }
+
+  private formatDocumentType(type: string): string {
+    switch (type) {
+      case 'AADHAAR':
+        return 'Aadhaar Card';
+      case 'PAN':
+        return 'PAN Card';
+      case 'PASSPORT':
+        return 'Passport';
+      case 'DRIVING_LICENCE':
+        return 'Driving Licence';
+      case 'VOTER_ID':
+        return 'Voter ID';
+      case 'GOVERNMENT_ID':
+        return 'Government ID';
+      default:
+        return type;
+    }
+  }
+
+  private formatDate(isoDateString: string): string {
+    try {
+      const d = new Date(isoDateString);
+      if (isNaN(d.getTime())) return isoDateString;
+      return d.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return isoDateString;
+    }
   }
 }

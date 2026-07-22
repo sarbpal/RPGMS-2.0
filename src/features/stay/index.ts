@@ -1,5 +1,6 @@
 export * from './domain';
 export * from './application';
+export * from './infrastructure';
 export * from './components/StayHeader';
 export * from './components/QuickActions';
 export * from './components/StaySummaryCard';

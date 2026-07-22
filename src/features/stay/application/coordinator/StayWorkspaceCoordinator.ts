@@ -1,15 +1,33 @@
 import type { Stay } from '../../domain/entities/Stay';
+import type { StayRepository } from '../../domain/interfaces/StayRepository';
 import { StayStatus } from '../../domain/valueObjects/StayStatus';
 import { StayType } from '../../domain/valueObjects/StayType';
+import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { StayWorkspaceViewModel } from '../models/StayWorkspaceViewModel';
 
 export class StayWorkspaceCoordinator {
+  private stayRepository: StayRepository;
+
+  constructor(stayRepository: StayRepository = new InMemoryStayRepository()) {
+    this.stayRepository = stayRepository;
+  }
+
   public createViewModel(stayId: string): StayWorkspaceViewModel {
     const activeStayId = stayId || '';
 
-    // Placeholder domain entity representation
-    const dummyStay: Stay = {
-      id: activeStayId,
+    // Retrieve Stay entity using the StayRepository interface
+    let stay: Stay | null = null;
+    if (
+      'findByIdSync' in this.stayRepository &&
+      typeof (this.stayRepository as { findByIdSync?: (id: string) => Stay | null }).findByIdSync === 'function'
+    ) {
+      stay =
+        (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync(activeStayId) ||
+        (this.stayRepository as { findByIdSync: (id: string) => Stay | null }).findByIdSync('STAY-2026-00041');
+    }
+
+    const currentStay: Stay = stay || {
+      id: activeStayId || 'STAY-2026-00041',
       residentId: 'RES-00124',
       stayType: StayType.REGULAR,
       status: StayStatus.ACTIVE,
@@ -25,26 +43,26 @@ export class StayWorkspaceCoordinator {
     return {
       header: {
         residentName: 'Rajesh Kumar',
-        residentId: dummyStay.residentId,
-        stayId: dummyStay.id,
-        status: dummyStay.status,
-        checkInDate: dummyStay.checkInDate,
+        residentId: currentStay.residentId,
+        stayId: currentStay.id,
+        status: currentStay.status,
+        checkInDate: currentStay.checkInDate,
         allocation: 'Flat 103 / Bed H2',
       },
       summary: {
-        status: dummyStay.status,
+        status: currentStay.status,
         occupancyDuration: '4 months 12 days',
         noticeStatus: 'Not on Notice',
-        rentPlan: `₹${dummyStay.agreedRent.toLocaleString('en-IN')} / month`,
-        securityDeposit: `₹${dummyStay.agreedDeposit.toLocaleString('en-IN')}`,
+        rentPlan: `₹${currentStay.agreedRent.toLocaleString('en-IN')} / month`,
+        securityDeposit: `₹${currentStay.agreedDeposit.toLocaleString('en-IN')}`,
         bedAllocation: 'Flat 103 / Bed H2',
       },
       financialSummary: {
         outstandingBalance: 0,
-        currentMonthRent: dummyStay.agreedRent,
+        currentMonthRent: currentStay.agreedRent,
         pendingElectricity: 450,
         pendingLaundry: 0,
-        securityDepositHeld: dummyStay.agreedDeposit,
+        securityDepositHeld: currentStay.agreedDeposit,
         lastPaymentReceived: '₹8,500 (01-Jul-2026)',
         nextBillingDate: '01-Aug-2026',
       },
@@ -77,7 +95,7 @@ export class StayWorkspaceCoordinator {
           id: 'evt-4',
           title: 'Stay Started (Check-in)',
           description: 'Resident checked in and allocated to Flat 103 / Bed H2',
-          date: dummyStay.checkInDate,
+          date: currentStay.checkInDate,
           type: 'CHECK_IN',
           color: 'info',
         },
@@ -92,7 +110,7 @@ export class StayWorkspaceCoordinator {
           relationship: 'Father',
           phone: '+91 98765 43210',
         },
-        notes: 'Requested top bunk bed near window. Shifted flat on 15-May-2026.',
+        notes: currentStay.notes || 'Requested top bunk bed near window. Shifted flat on 15-May-2026.',
       },
     };
   }

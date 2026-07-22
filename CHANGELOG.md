@@ -891,7 +891,14 @@ ADR-014 implemented
 - No repository implementation was introduced in this sprint.
 - No persistence or business services were implemented.
 - The sprint focused exclusively on establishing the business vocabulary and domain model for future development.
-- 
+
+## Sprint 9.4 – Stay Infrastructure Foundation
+nfrastructure layer introduced
+In-memory repository implemented
+Repository contract validated
+Coordinator refactored for dependency injection
+
+This is another meaningful architectural milestone.
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

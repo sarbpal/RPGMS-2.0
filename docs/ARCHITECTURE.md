@@ -14,6 +14,10 @@ Its purpose is to ensure that the application remains simple, consistent, mainta
 
 This document describes **how the system is organized** and **how its major components relate to one another**.
 
+Major architectural decisions are formally recorded in `DECISIONS.md`.
+
+This document describes the current architecture, while `DECISIONS.md` records the rationale behind significant architectural changes over time.
+
 It intentionally does **not** define:
 
 - Business rules
@@ -134,7 +138,7 @@ Current domains include:
 
 - Dashboard
 - Accommodation
-- Resident
+- Residents
 - Stay
 - Finance
 - Billing
@@ -144,9 +148,109 @@ Current domains include:
 - Reporting
 - Settings
 
+The Stay Workspace does not own business entities. It orchestrates interactions between the owning domains.
+
 Each domain owns its own business rules, data model, services, components, and user interface.
 
 ---
+## Operational Architecture
+
+The operational workflows of RPGMS 2.0 are documented separately in:
+
+- docs/STAY_WORKSPACE.md
+
+This document defines the Current Stay as the operational unit of the system and describes how Accommodation, Residents, Finance and the Stay Workspace interact to support day-to-day hostel operations.
+
+## Application Layer
+
+RPGMS 2.0 separates Presentation from Domain logic through an Application Layer.
+
+The Application Layer is responsible for coordinating multiple business domains required to fulfill a user workflow. It contains orchestration logic but does not own business rules.
+
+Responsibilities include:
+
+- Coordinating multiple domain services.
+- Loading data required by a workspace.
+- Preparing ViewModels for presentation components.
+- Invoking domain operations.
+- Managing workflow state for a page.
+
+The Application Layer does NOT:
+
+- Implement business rules.
+- Perform financial calculations.
+- Manage persistence.
+- Replace domain services.
+
+Presentation components communicate only with the Application Layer and never directly with domain services or repositories.
+
+### Coordinator Responsibilities
+
+Each workspace may define a **Coordinator** as part of its Application Layer.
+
+The Coordinator is responsible for orchestrating the workflow of a single workspace. It coordinates interactions between multiple business domains and prepares data for presentation, while remaining independent of UI implementation details.
+
+#### Responsibilities
+
+A Coordinator is responsible for:
+
+- Coordinating interactions between multiple domain services.
+- Loading and aggregating data required by the workspace.
+- Preparing a ViewModel for presentation components.
+- Invoking domain operations in response to user actions.
+- Managing page-level workflow and state.
+- Handling loading, success, and error states for the workspace.
+
+#### Non-Responsibilities
+
+A Coordinator must **not**:
+
+- Contain business rules.
+- Perform financial or billing calculations.
+- Duplicate logic owned by domain services.
+- Access the database or Supabase directly.
+- Know about Material UI, page layout, or presentation details.
+- Render UI components.
+- Replace domain services or repositories.
+
+The Coordinator serves as an orchestration layer between the Presentation Layer and the Domain Layer, ensuring that presentation components remain simple, reusable, and focused solely on rendering data.
+
+Presentation Layer
+        │
+        ▼
+Application Layer
+(Coordinator + ViewModel)
+        │
+        ▼
+Domain Layer
+        │
+        ▼
+Infrastructure Layer
+
+StayWorkspacePage
+        │
+        ▼
+StayWorkspaceCoordinator
+        │
+        ├── Load Stay
+        ├── Load Resident
+        ├── Load Accommodation
+        ├── Load Financial Summary
+        ├── Load Timeline
+        └── Prepare ViewModel
+        │
+        ▼
+StayWorkspaceViewModel
+        │
+        ▼
+StayHeader
+QuickActions
+StaySummaryCard
+FinancialSummaryCard
+TimelinePanel
+SupportingInformationPanel
+
+Note: The Coordinator orchestrates workflows across multiple business domains but does not own business rules. Business rules remain within their respective domain services.
 
 ## Domain Ownership
 
@@ -617,6 +721,13 @@ When multiple solutions are possible, prefer the one that is:
 Architecture should enable rapid development without compromising long-term quality.
 
 ---
+## Architectural Mindset
+
+Architecture exists to make future development easier, not harder.
+
+When implementing new features, developers should prefer extending the existing architecture over introducing new architectural patterns.
+
+Consistency is generally more valuable than novelty.
 
 # Important
 

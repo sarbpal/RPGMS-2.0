@@ -444,6 +444,49 @@ If a decision changes:
 - Long-term maintainability of the project.
 
 ---
+## ADR-014 - Application Layer Pattern
+
+### Context
+
+Each major workspace shall contain an Application Layer responsible for coordinating domain services and preparing a ViewModel for presentation.
+
+The Application Layer consists of:
+
+- Workspace Coordinator
+- Workspace ViewModel
+
+Presentation components receive data only through the ViewModel.
+
+Presentation components must never directly access repositories, Supabase, or domain services.
+
+### Consequences
+
+Advantages
+
+- Clear separation of concerns.
+- Reusable presentation components.
+- Centralized orchestration.
+- Easier testing.
+- Consistent architecture across workspaces.
+- Simpler future expansion.
+
+Trade-offs
+
+- Additional layer of abstraction.
+- More files per feature module.
+- Slightly higher initial implementation effort.
+
+This pattern shall be used for all major orchestration workspaces within RPGMS 2.0 unless an Architecture Decision Record explicitly defines an alternative.
+
+Examples include:
+
+- Stay Workspace
+- Resident Workspace
+- Finance Workspace
+- Maintenance Workspace
+- Inventory Workspace
+
+This ensures a consistent Application Layer architecture throughout the system.
 
 # Change Log
 

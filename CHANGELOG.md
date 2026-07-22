@@ -835,6 +835,13 @@ Architectural Design Session
 - All balances and financial values are derived from existing Finance services.
 - No accounting logic or ledger operations were introduced.
 
+## Post Review Refinements
+Sprint 9.1 completed
+Stay Workspace Foundation created
+Route /stay/:stayId added
+ADR-014 adopted (Application Layer Pattern)
+Architecture documentation updated
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

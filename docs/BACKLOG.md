@@ -142,5 +142,9 @@ Future compliance records may include:
 - Visa / FRRO Registration
 - Organization Approval
 - Other statutory documents
+
+Accommodation Enhancement: Bed Details Drawer
+
+Clicking a bed card opens a contextual side panel showing resident details, financial summary, stay status, and context-specific actions (occupied vs vacant), without leaving the Accommodation page.
 - 
 **Status:** Deferred until post-MVP.

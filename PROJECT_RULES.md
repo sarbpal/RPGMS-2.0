@@ -431,3 +431,22 @@ Admissions are historical records and are never rewritten.
 Billing and Ledger always belong to an Admission.
 Checkout never deletes history.
 Deposit decisions are recommendations based on contract evaluation, not automatic irreversible actions.
+
+## Module Consistency Rule
+
+Every business module should follow the standard RPGMS layered architecture unless there is a documented architectural decision (ADR) approving a deviation.
+
+Expected module structure:
+
+Presentation
+↓
+Application
+↓
+Domain
+↓
+Repository Interface
+↑
+Infrastructure
+
+Modules should maintain consistent naming conventions, folder organization, dependency direction, and responsibility boundaries.
+

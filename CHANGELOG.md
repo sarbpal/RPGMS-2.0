@@ -919,6 +919,25 @@ This is another meaningful architectural milestone.
 
 - Remaining placeholder sections are intentionally deferred until their respective domains are implemented.
   
+
+  ## Sprint 10.1 – Resident Presentation Foundation
+
+### Added
+
+- Introduced Resident Workspace presentation layer.
+- Added ResidentHeader.
+- Added ResidentSummaryCard.
+- Added ContactInformationCard.
+- Added DocumentsCard.
+- Added EmergencyContactCard.
+- Added ResidentQuickActions.
+- Added Resident workspace route.
+
+### Architecture
+
+- Established the Presentation Layer for the Resident module.
+- Continued the modular workspace architecture established by the Stay module.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

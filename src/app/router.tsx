@@ -8,6 +8,7 @@ import { FinancePage } from '../features/finance';
 import { MaintenancePage } from '../features/maintenance';
 import { ReportsPage } from '../features/reports';
 import { ResidentOnboardingPage, ResidentProfilePage, ResidentsPage } from '../features/residents';
+import { ResidentWorkspacePage } from '../features/resident';
 import { SettingsPage } from '../features/settings';
 import { StayWorkspacePage } from '../features/stay';
 
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
       { path: 'residents', element: <ResidentsPage /> },
       { path: 'residents/new', element: <ResidentOnboardingPage /> },
       { path: 'residents/:id', element: <ResidentProfilePage /> },
+      { path: 'resident/:residentId', element: <ResidentWorkspacePage /> },
       { path: 'stay/:stayId', element: <StayWorkspacePage /> },
       { path: 'accommodation', element: <AccommodationPage /> },
       { path: 'finance', element: <FinancePage /> },

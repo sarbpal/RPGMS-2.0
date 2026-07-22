@@ -954,6 +954,20 @@ This is another meaningful architectural milestone.
 - Established the Application Layer for the Resident module.
 - Maintained strict separation between Presentation and future Domain/Infrastructure layers.
 
+## Sprint 10.3 – Resident Domain Foundation
+
+### Added
+
+- Introduced Resident domain entity.
+- Added ResidentStatus, Gender, and IdentityDocumentType value objects.
+- Added ResidentRepository contract.
+- Refactored ResidentWorkspaceCoordinator to consume domain abstractions.
+
+### Architecture
+
+- Established the Domain Layer for the Resident module.
+- Preserved strict separation between Domain, Application, and Presentation layers.
+
 
 ------------------------------------------------------------------------------
 End of Document

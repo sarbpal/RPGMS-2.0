@@ -1,3 +1,4 @@
+export * from './domain';
 export * from './application';
 export * from './components/ResidentHeader';
 export * from './components/ResidentQuickActions';

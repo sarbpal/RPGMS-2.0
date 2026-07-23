@@ -837,3 +837,21 @@ Infrastructure
 
 The Domain must never depend on the Application, Infrastructure, UI, or storage technologies.
 
+## Resident Financial Workspace
+
+The **Resident Financial Workspace** is the primary operational interface for all resident-specific financial activities.
+
+It provides a single resident-centric workspace from which all financial workflows originate, including:
+
+* Generate Monthly Rent
+* Add Laundry Charges
+* Add Electricity Charges
+* Receive Payments
+* View Resident Ledger
+* Checkout & Settlement
+
+The workspace contains no business logic.
+
+All financial data, balances, and calculations are delegated to the Finance Application Layer through the existing `useStayFinance` hook, preserving the separation between Presentation, Application, Domain, and Infrastructure layers.
+
+This architecture ensures that future workflow implementations can be added without changing the overall application structure, while maintaining the Resident Financial Workspace as the single source of interaction for resident financial operations.

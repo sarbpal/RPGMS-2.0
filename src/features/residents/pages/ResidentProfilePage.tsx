@@ -34,8 +34,10 @@ import { useEffect, useState } from 'react';
 import { DocumentType, ResidentStatus } from '../types';
 import { useResident } from '../hooks/useResident';
 import { toTitleCase } from '../utils/formatters';
+import { ResidentFinancialProfile } from '../../finance/components/ResidentFinancialProfile';
 
 export default function ResidentProfilePage() {
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -247,7 +249,13 @@ export default function ResidentProfilePage() {
         </Paper>
       </Box>
 
+      {/* Resident Financial Profile & Action Panel */}
+      <Box sx={{ mb: 4 }}>
+        <ResidentFinancialProfile resident={resident} selectedFlat={selectedFlat} />
+      </Box>
+
       <Grid container spacing={3}>
+
         {/* Left Column: Editable Section Cards */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>

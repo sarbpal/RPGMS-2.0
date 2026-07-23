@@ -1208,6 +1208,48 @@ Successfully passed:
 - npm run lint
 - npm run build
 
+
+## Sprint 12.5 – Resident Financial Workspace
+
+### Added
+
+* Introduced the **Resident Financial Workspace** as the primary entry point for resident-level financial operations.
+* Added a reusable `ResidentFinancialProfile` component integrated into the Resident Profile page.
+* Added Financial Snapshot cards displaying:
+
+  * Outstanding Balance
+  * Current Month Charges
+  * Payments Received
+  * Security Deposit Held
+* Added Resident Financial Summary displaying:
+
+  * Resident Status
+  * Allocated Bed
+  * Security Deposit
+  * Outstanding Balance
+  * Advance Balance
+  * Last Bill Date
+  * Last Payment Date
+* Added six finance workflow entry points:
+
+  * Generate Rent
+  * Add Laundry
+  * Add Electricity
+  * Receive Payment
+  * View Ledger
+  * Checkout
+
+### Changed
+
+* Adopted a **resident-centric finance workflow**, making the Resident Financial Workspace the single operational context for resident financial activities.
+* Standardized all finance actions to use consistent placeholder dialogs in preparation for future workflow implementation.
+
+### Architecture
+
+* Preserved clean architecture boundaries.
+* UI delegates all financial calculations to the existing Application Layer through `useStayFinance`.
+* No changes to Domain Entities, Domain Rules, Application Services, or Repository abstractions.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

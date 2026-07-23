@@ -557,3 +557,27 @@ State: SEALED
 - Checkout Workflow Integration
 - Financial Reporting Enhancements
 
+## Finance Module
+
+### Completed
+
+* ✅ Finance Domain Layer
+* ✅ Finance Application Layer
+* ✅ Repository Abstraction
+* ✅ In-Memory Repository
+* ✅ Resident Financial Workspace
+* ✅ Financial Snapshot
+* ✅ Resident Financial Profile
+* ✅ Finance Action Panel
+
+### Pending
+
+* ⏳ Generate Monthly Rent
+* ⏳ Receive Payment
+* ⏳ Laundry Billing
+* ⏳ Electricity Billing
+* ⏳ Resident Ledger
+* ⏳ Checkout & Settlement
+* ⏳ Supabase Database Schema
+* ⏳ Supabase Repository
+* ⏳ Integration Testing

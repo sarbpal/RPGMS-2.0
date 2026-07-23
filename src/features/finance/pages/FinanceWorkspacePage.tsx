@@ -17,16 +17,18 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
-import { reportingService } from '../services/reportingService';
+import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
 import { useFinanceActivity } from '../hooks/useFinanceActivity';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { formatCurrency } from '../utils/currencyFormatters';
 
 export default function FinanceWorkspacePage() {
-  const metrics = useMemo(() => reportingService.getFinanceDashboard(), []);
-  const outstandingResidents = useMemo(() => reportingService.getOutstandingResidents(), []);
-  const settlementsReport = useMemo(() => reportingService.getSettlementReport(), []);
+  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
+  const viewModel = useMemo(() => coordinator.createViewModel(8), [coordinator]);
   const { activity } = useFinanceActivity(8);
+
+  const { metrics, outstandingResidents, settlementsReport } = viewModel;
+
 
   const getEventChipColor = (type: string) => {
     switch (type) {

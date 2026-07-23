@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { FinanceSummary } from '../types';
-import { balanceEngine } from '../services/balanceEngine';
+import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
 
 export interface UseFinanceSummaryReturn {
   summary: FinanceSummary;
@@ -9,27 +9,22 @@ export interface UseFinanceSummaryReturn {
 }
 
 export function useFinanceSummary(): UseFinanceSummaryReturn {
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<FinanceSummary>({
-    totalCollected: 0,
-    totalOutstanding: 0,
-    totalDepositHeld: 0,
-    totalAdvanceCredit: 0,
-  });
+  const [refreshCount, setRefreshCount] = useState(0);
+  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
+
+  const summary = useMemo(() => {
+    void refreshCount;
+    return coordinator.getPropertyFinanceSummary().summary;
+  }, [coordinator, refreshCount]);
+
 
   const refresh = useCallback(() => {
-    setLoading(true);
-    setSummary(balanceEngine.calculateFinanceSummary());
-    setLoading(false);
+    setRefreshCount((prev) => prev + 1);
   }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   return {
     summary,
-    loading,
+    loading: false,
     refresh,
   };
 }

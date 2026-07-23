@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { FinanceTimelineEvent } from '../types';
-import { timelineService } from '../services/timelineService';
+import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
 
 export interface UseFinanceActivityReturn {
   activity: FinanceTimelineEvent[];
@@ -9,22 +9,22 @@ export interface UseFinanceActivityReturn {
 }
 
 export function useFinanceActivity(limit = 10): UseFinanceActivityReturn {
-  const [loading, setLoading] = useState(false);
-  const [activity, setActivity] = useState<FinanceTimelineEvent[]>([]);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
+
+  const activity = useMemo(() => {
+    void refreshCount;
+    return coordinator.getRecentActivity(limit);
+  }, [coordinator, limit, refreshCount]);
+
 
   const refresh = useCallback(() => {
-    setLoading(true);
-    setActivity(timelineService.getRecentFinanceActivity(limit));
-    setLoading(false);
-  }, [limit]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    setRefreshCount((prev) => prev + 1);
+  }, []);
 
   return {
     activity,
-    loading,
+    loading: false,
     refresh,
   };
 }

@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Bill, Payment, Settlement, StayBalance } from '../types';
-import { balanceEngine } from '../services/balanceEngine';
+import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
 import { billingService } from '../services/billingService';
 import { paymentService } from '../services/paymentService';
 import { settlementService } from '../services/settlementService';
@@ -15,38 +15,45 @@ export interface UseStayFinanceReturn {
 }
 
 export function useStayFinance(stayId: string | undefined): UseStayFinanceReturn {
-  const [loading, setLoading] = useState(false);
-  const [balances, setBalances] = useState<StayBalance>({
-    receivableBalance: 0,
-    securityDepositHeld: 0,
-    advanceCreditBalance: 0,
-    refundPayable: 0,
-    netBalance: 0,
-  });
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [settlement, setSettlement] = useState<Settlement | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
+
+  const data = useMemo(() => {
+    void refreshCount;
+    if (!stayId) {
+
+      return {
+        balances: {
+          receivableBalance: 0,
+          securityDepositHeld: 0,
+          advanceCreditBalance: 0,
+          refundPayable: 0,
+          netBalance: 0,
+        },
+        bills: [],
+        payments: [],
+        settlement: null,
+      };
+    }
+    const vm = coordinator.getStayFinanceViewModel(stayId);
+    return {
+      balances: vm.balances,
+      bills: billingService.getBillsByStayId(stayId),
+      payments: paymentService.getPaymentsByStayId(stayId),
+      settlement: settlementService.getSettlementByStayId(stayId),
+    };
+  }, [stayId, coordinator, refreshCount]);
 
   const refresh = useCallback(() => {
-    if (!stayId) return;
-    setLoading(true);
-    setBalances(balanceEngine.calculateStayBalances(stayId));
-    setBills(billingService.getBillsByStayId(stayId));
-    setPayments(paymentService.getPaymentsByStayId(stayId));
-    setSettlement(settlementService.getSettlementByStayId(stayId));
-    setLoading(false);
-  }, [stayId]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    setRefreshCount((prev) => prev + 1);
+  }, []);
 
   return {
-    balances,
-    bills,
-    payments,
-    settlement,
-    loading,
+    balances: data.balances,
+    bills: data.bills,
+    payments: data.payments,
+    settlement: data.settlement,
+    loading: false,
     refresh,
   };
 }

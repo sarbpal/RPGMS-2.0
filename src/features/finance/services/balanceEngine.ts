@@ -43,7 +43,7 @@ export const balanceEngine = {
   getAccountBalance(stayId: string, account: AccountType): number {
     const totals = this.getAccountTotals(stayId, account);
 
-    let net = 0;
+    let net: number;
     if (
       account === AccountType.ACCOUNTS_RECEIVABLE ||
       account === AccountType.CASH ||
@@ -53,6 +53,7 @@ export const balanceEngine = {
     } else {
       net = totals.credit - totals.debit;
     }
+
 
     return Math.max(0, Math.round(net * 100) / 100);
   },

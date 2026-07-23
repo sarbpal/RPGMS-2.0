@@ -102,40 +102,43 @@ export default function ResidentProfilePage() {
   // Sync form states when entering edit mode or when resident changes
   useEffect(() => {
     if (resident) {
-      setIdentityForm({
-        fullName: resident.fullName || '',
-        mobileNumber: resident.mobileNumber || '',
-        alternateMobile: resident.alternateMobile || '',
-        email: resident.email || '',
-        documentType: resident.documentType || DocumentType.AADHAAR,
-        documentNumber: resident.documentNumber || '',
-      });
-      setFamilyForm({
-        fatherOrGuardianName: resident.fatherOrGuardianName || '',
-        motherName: resident.motherName || '',
-      });
-      setEmergencyForm({
-        emergencyContactName: resident.emergencyContactName || '',
-        emergencyContactRelation: resident.emergencyContactRelation || '',
-        emergencyContactPhone: resident.emergencyContactPhone || '',
-      });
-      setAddressForm({
-        permanentAddress: resident.permanentAddress || '',
-        correspondenceAddress: resident.correspondenceAddress || '',
-        city: resident.city || '',
-        state: resident.state || '',
-        pinCode: resident.pinCode || '',
-      });
-      setOccupationForm({
-        occupation: resident.occupation || '',
-        employerOrCollege: resident.employerOrCollege || '',
-      });
-      setMedicalForm({
-        bloodGroup: resident.bloodGroup || '',
-        medicalNotes: resident.medicalNotes || '',
+      queueMicrotask(() => {
+        setIdentityForm({
+          fullName: resident.fullName || '',
+          mobileNumber: resident.mobileNumber || '',
+          alternateMobile: resident.alternateMobile || '',
+          email: resident.email || '',
+          documentType: resident.documentType || DocumentType.AADHAAR,
+          documentNumber: resident.documentNumber || '',
+        });
+        setFamilyForm({
+          fatherOrGuardianName: resident.fatherOrGuardianName || '',
+          motherName: resident.motherName || '',
+        });
+        setEmergencyForm({
+          emergencyContactName: resident.emergencyContactName || '',
+          emergencyContactRelation: resident.emergencyContactRelation || '',
+          emergencyContactPhone: resident.emergencyContactPhone || '',
+        });
+        setAddressForm({
+          permanentAddress: resident.permanentAddress || '',
+          correspondenceAddress: resident.correspondenceAddress || '',
+          city: resident.city || '',
+          state: resident.state || '',
+          pinCode: resident.pinCode || '',
+        });
+        setOccupationForm({
+          occupation: resident.occupation || '',
+          employerOrCollege: resident.employerOrCollege || '',
+        });
+        setMedicalForm({
+          bloodGroup: resident.bloodGroup || '',
+          medicalNotes: resident.medicalNotes || '',
+        });
       });
     }
   }, [resident, editingSection]);
+
 
   if (!resident) {
     return (

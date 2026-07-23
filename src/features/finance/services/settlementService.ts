@@ -98,10 +98,9 @@ export const settlementService = {
     const totalDues = Math.round((outstandingReceivable + roundedDamage) * 100) / 100;
     const totalAvailableCredits = Math.round((securityDepositHeld + advanceCreditBalance) * 100) / 100;
 
-    let outcome: typeof SettlementOutcome[keyof typeof SettlementOutcome] =
-      SettlementOutcome.BALANCED_NO_ACTION;
+    let outcome: typeof SettlementOutcome[keyof typeof SettlementOutcome];
+    let netSettlementAmount: number;
 
-    let netSettlementAmount = 0;
 
     if (totalAvailableCredits > totalDues) {
       outcome = SettlementOutcome.HOSTEL_REFUNDS_RESIDENT;

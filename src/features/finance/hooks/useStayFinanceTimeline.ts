@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { FinanceTimelineEvent, TimelineSummary } from '../types';
-import { timelineService } from '../services/timelineService';
+import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
 
 export interface UseStayFinanceTimelineReturn {
   timeline: FinanceTimelineEvent[];
@@ -10,36 +10,40 @@ export interface UseStayFinanceTimelineReturn {
 }
 
 export function useStayFinanceTimeline(stayId: string | undefined): UseStayFinanceTimelineReturn {
-  const [loading, setLoading] = useState(false);
-  const [timeline, setTimeline] = useState<FinanceTimelineEvent[]>([]);
-  const [summary, setSummary] = useState<TimelineSummary>({
-    totalBillsCount: 0,
-    totalPaymentsCount: 0,
-    outstandingBalance: 0,
-    advanceCredit: 0,
-    securityDepositHeld: 0,
-    settlementStatus: 'NONE',
-  });
+  const [refreshCount, setRefreshCount] = useState(0);
+  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
+
+  const data = useMemo(() => {
+    void refreshCount;
+    if (!stayId) {
+
+      return {
+        timeline: [],
+        summary: {
+          totalBillsCount: 0,
+          totalPaymentsCount: 0,
+          outstandingBalance: 0,
+          advanceCredit: 0,
+          securityDepositHeld: 0,
+          settlementStatus: 'NONE' as const,
+        },
+      };
+    }
+    const vm = coordinator.getStayFinanceViewModel(stayId);
+    return {
+      timeline: vm.timeline,
+      summary: vm.summary,
+    };
+  }, [stayId, coordinator, refreshCount]);
 
   const refresh = useCallback(() => {
-    if (!stayId) {
-      setTimeline([]);
-      return;
-    }
-    setLoading(true);
-    setTimeline(timelineService.getTimelineForStay(stayId));
-    setSummary(timelineService.getTimelineSummary(stayId));
-    setLoading(false);
-  }, [stayId]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    setRefreshCount((prev) => prev + 1);
+  }, []);
 
   return {
-    timeline,
-    summary,
-    loading,
+    timeline: data.timeline,
+    summary: data.summary,
+    loading: false,
     refresh,
   };
 }

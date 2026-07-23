@@ -1066,7 +1066,50 @@ This is another meaningful architectural milestone.
 - No persistence changes.
 - Build passes successfully.
 
- 
+## Sprint 12.2 – Finance Application Layer
+
+### Added
+
+- Introduced the Application layer for the Finance module under `src/features/finance/application`.
+- Created `FinanceWorkspaceViewModel` interface defining presentation data contracts (`metrics`, `outstandingResidents`, `settlementsReport`, `activity`).
+- Implemented `FinanceWorkspaceCoordinator` to orchestrate Finance workflows and map domain/reporting data into view models.
+- Exported application layer from `src/features/finance/index.ts`.
+
+### Changed
+
+- Refactored `FinanceWorkspacePage` to consume `FinanceWorkspaceCoordinator` for workspace view model creation.
+- Updated Finance hooks (`useFinanceActivity`, `useFinanceSummary`, `useStayFinanceTimeline`) to delegate data workflows through `FinanceWorkspaceCoordinator`.
+
+### Notes
+
+- Business rules remain strictly inside Domain services (`balanceEngine`, `billingService`, `paymentService`, `settlementService`, `timelineService`, `reportingService`).
+- Financial calculations, balance derivations, and persistence logic remain unchanged.
+- All public APIs and UI behaviors preserved 100%.
+- TypeScript check (`npx tsc --noEmit`), Vite build (`npm run build`), and ESLint (`npm run lint`) pass cleanly.
+
+## Sprint 12.2 – Finance Application Layer
+
+### Added
+
+- Introduced the Finance Application layer.
+- Added `FinanceWorkspaceCoordinator` to orchestrate Finance workspace workflows.
+- Added `FinanceWorkspaceViewModel` and related presentation models.
+- Added application barrel exports.
+
+### Changed
+
+- Refactored `FinanceWorkspacePage` to consume the `FinanceWorkspaceCoordinator`.
+- Updated Finance hooks to delegate workflow orchestration through the Application layer.
+- Simplified the presentation layer by removing direct orchestration of multiple Finance services.
+
+### Notes
+
+- No business rules or financial calculations were modified.
+- No persistence or storage changes were made.
+- UI behaviour remains unchanged.
+- TypeScript, ESLint, and production build all pass successfully.
+
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

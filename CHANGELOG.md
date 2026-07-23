@@ -1046,7 +1046,27 @@ This is another meaningful architectural milestone.
 - Accommodation now implements the complete RPGMS layered architecture:
   Presentation → Application → Domain → Repository Interface → Infrastructure.
 
-  
+ ## Sprint 12.1 – Finance Presentation Foundation
+
+### Added
+
+- Standardized Finance presentation structure.
+- Introduced `FinanceWorkspacePage` as the primary workspace page.
+- Updated router and barrel exports to align with workspace conventions.
+
+### Changed
+
+- Removed obsolete root-level `FinancePage`.
+- Retained compatibility export alias for existing imports.
+- Verified presentation responsibilities remain limited to UI composition.
+
+### Notes
+
+- No business logic changed.
+- No persistence changes.
+- Build passes successfully.
+
+ 
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

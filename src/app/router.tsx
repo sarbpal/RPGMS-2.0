@@ -4,7 +4,7 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { AccommodationWorkspacePage } from '../features/accommodation';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ElectricityPage } from '../features/electricity';
-import { FinancePage } from '../features/finance';
+import { FinanceWorkspacePage } from '../features/finance';
 import { MaintenancePage } from '../features/maintenance';
 import { ReportsPage } from '../features/reports';
 import { ResidentOnboardingPage, ResidentProfilePage, ResidentsPage } from '../features/residents';
@@ -28,7 +28,7 @@ export const router = createBrowserRouter([
       { path: 'resident/:residentId', element: <ResidentWorkspacePage /> },
       { path: 'stay/:stayId', element: <StayWorkspacePage /> },
       { path: 'accommodation', element: <AccommodationWorkspacePage /> },
-      { path: 'finance', element: <FinancePage /> },
+      { path: 'finance', element: <FinanceWorkspacePage /> },
       { path: 'electricity', element: <ElectricityPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },
       { path: 'reports', element: <ReportsPage /> },

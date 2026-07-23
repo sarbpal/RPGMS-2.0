@@ -450,3 +450,11 @@ Infrastructure
 
 Modules should maintain consistent naming conventions, folder organization, dependency direction, and responsibility boundaries.
 
+## Domain Layer
+
+The Domain layer may include a `rules/` folder when business rules span multiple entities or value objects.
+
+Business rules should not remain in the Application layer when they represent domain invariants or cross-entity behavior.
+
+The `rules/` folder is optional and should only be introduced when justified by the business domain.
+

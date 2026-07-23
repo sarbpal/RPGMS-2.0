@@ -22,7 +22,7 @@ import { useFinanceActivity } from '../hooks/useFinanceActivity';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { formatCurrency } from '../utils/currencyFormatters';
 
-export default function FinancePage() {
+export default function FinanceWorkspacePage() {
   const metrics = useMemo(() => reportingService.getFinanceDashboard(), []);
   const outstandingResidents = useMemo(() => reportingService.getOutstandingResidents(), []);
   const settlementsReport = useMemo(() => reportingService.getSettlementReport(), []);

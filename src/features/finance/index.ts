@@ -13,4 +13,4 @@ export * from './hooks/useStayFinanceTimeline';
 export * from './hooks/useFinanceActivity';
 export * from './utils/currencyFormatters';
 export * from './components/FinancialSummaryCard';
-export { default as FinancePage } from './pages/FinancePage';
+export { default as FinanceWorkspacePage, default as FinancePage } from './pages/FinanceWorkspacePage';

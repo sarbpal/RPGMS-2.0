@@ -1110,6 +1110,104 @@ This is another meaningful architectural milestone.
 - TypeScript, ESLint, and production build all pass successfully.
 
 
+## Sprint 12.3 – Finance Domain Layer
+
+### Added
+
+- Introduced the Domain layer for the Finance module under `src/features/finance/domain`.
+- Added domain core entities (`LedgerEntry`, `Bill`, `Payment`, `Settlement`).
+- Added domain value objects (`AccountType`, `LedgerReferenceType`, `BillStatus`, `BillType`, `BillLineItem`, `PaymentMethod`, `PaymentAllocation`, `SettlementType`, `SettlementOutcome`, `SettlementPreview`, `StayBalance`, `FinanceSummary`).
+- Added `FinanceRepository` interface defining persistence contracts for the Finance domain.
+- Extracted domain business rules into `src/features/finance/domain/rules/`:
+  - `DoubleEntryValidation` (batch double-entry balancing invariant)
+  - `DuplicateRentPrevention` (duplicate monthly rent bill check invariant)
+  - `PaymentAllocationRule` (open bill payment allocation invariant)
+  - `OutstandingBalanceRule` (derived stay & property balance calculations)
+  - `SettlementValidation` (checkout preview derivation)
+
+### Changed
+
+- Updated Finance services (`ledgerService`, `balanceEngine`, `billingService`, `paymentService`, `settlementService`) to delegate business invariants to `domain/rules/`.
+- Re-exported domain entities, value objects, interfaces, and rules from `src/features/finance/domain/index.ts` and `src/features/finance/index.ts`.
+
+### Notes
+
+- Financial calculations, balance derivations, and persistence logic remain unchanged.
+- Reporting and timeline logic remain outside the domain in application/reporting modules.
+- All public APIs and UI behaviors preserved 100%.
+- TypeScript check (`npx tsc --noEmit`), Vite build (`npm run build`), and ESLint (`npm run lint`) pass cleanly.
+
+
+---
+
+# Sprint 12.4 – Finance Application Layer
+
+## Summary
+
+Completed the Application Layer refactoring for the Finance module.
+
+The Finance services now function as thin Application Services (Use Case Coordinators), delegating all business rules to the Domain layer and persistence to the FinanceRepository abstraction.
+
+## Architectural Improvements
+
+### Repository Pattern
+
+Introduced an Infrastructure implementation:
+
+- InMemoryFinanceRepository
+
+which implements the FinanceRepository interface.
+
+This removes all direct storage dependencies from the Application Layer and prepares the Finance module for a future Supabase repository implementation.
+
+### Application Services
+
+Refactored the following services into orchestration-only Application Services:
+
+- ledgerService.ts
+- balanceEngine.ts
+- billingService.ts
+- paymentService.ts
+- settlementService.ts
+
+Responsibilities now include:
+
+- coordinating workflows
+- invoking Domain Rules
+- interacting with the FinanceRepository
+- coordinating Timeline and Reporting where appropriate
+
+No accounting rules remain inside the services.
+
+### Domain Separation
+
+Business rules remain exclusively within:
+
+src/features/finance/domain/rules/
+
+including:
+
+- Double Entry Validation
+- Duplicate Rent Prevention
+- Payment Allocation
+- Outstanding Balance Calculation
+- Settlement Validation
+
+### Behaviour Preservation
+
+- No UI changes
+- No public API changes
+- No workflow changes
+- 100% backward compatible
+
+## Verification
+
+Successfully passed:
+
+- npx tsc --noEmit
+- npm run lint
+- npm run build
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

@@ -1,6 +1,14 @@
-import type { Bill, BillType, BillLineItem, BillStatus, PaymentAllocation } from '../types';
-import { AccountType } from '../types';
-import { financeStorage } from '../storage/financeStorage';
+import type {
+  Bill,
+  BillType,
+  BillLineItem,
+  BillStatus,
+  PaymentAllocation,
+  FinanceRepository,
+  LedgerReferenceType,
+} from '../domain';
+import { AccountType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
+import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { stayService } from '../../residents/stay';
 
@@ -10,56 +18,56 @@ export interface CreateBillResult {
   errors: string[];
 }
 
-export const billingService = {
+export class BillingApplicationService {
+  private repository: FinanceRepository;
+
+  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+    this.repository = repository;
+  }
+
   /**
    * Helper: Validate billing period string format (YYYY-MM).
    */
-  validatePeriod(period: string): boolean {
+  public validatePeriod(period: string): boolean {
     return /^\d{4}-(0[1-9]|1[0-2])$/.test(period);
-  },
+  }
 
   /**
-   * Fetch all bills stored in the system.
+   * Application Use Case: Fetch all bills stored in the system.
    */
-  getAllBills(): Bill[] {
-    return financeStorage.getStoredBills();
-  },
+  public getAllBills(): Bill[] {
+    return this.repository.getBills();
+  }
 
   /**
-   * Fetch all bills associated with a specific Stay ID.
-   * 
-   * @param stayId The Stay ID to retrieve bills for
-   * @returns Array of matching Bill objects
+   * Application Use Case: Fetch all bills associated with a specific Stay ID.
    */
-  getBillsByStayId(stayId: string): Bill[] {
-    const bills = this.getAllBills();
-    return bills.filter((b) => b.stayId === stayId);
-  },
+  public getBillsByStayId(stayId: string): Bill[] {
+    return this.repository.getBillsByStayId(stayId);
+  }
 
   /**
-   * Fetch a single bill by its ID.
+   * Application Use Case: Fetch a single bill by its ID.
    */
-  getBillById(id: string): Bill | null {
+  public getBillById(id: string): Bill | null {
     const bills = this.getAllBills();
     return bills.find((b) => b.id === id) || null;
-  },
+  }
 
   /**
-   * Check if a Monthly Rent bill already exists for a Stay in a specific billing period.
-   * Prevents duplicate rent generation.
+   * Application Use Case: Check if a Monthly Rent bill already exists for a Stay in a specific billing period.
+   * Delegates duplicate invariant check to domain rule hasDuplicateRentBill.
    */
-  checkDuplicateMonthlyRentBill(stayId: string, billingPeriod: string): boolean {
-    const bills = this.getBillsByStayId(stayId);
-    return bills.some(
-      (b) => b.billType === 'MONTHLY_RENT' && b.period === billingPeriod && b.status !== 'CANCELLED'
-    );
-  },
+  public checkDuplicateMonthlyRentBill(stayId: string, billingPeriod: string): boolean {
+    const bills = this.getAllBills();
+    return hasDuplicateRentBill(bills, stayId, billingPeriod);
+  }
 
   /**
-   * Create, persist, and post balanced ledger entries for a new Bill.
-   * Single entry point for all bill creations.
+   * Application Use Case: Create, persist, and post balanced ledger entries for a new Bill.
+   * Coordinates bill creation workflow.
    */
-  createBill(
+  public createBill(
     billPayload: Omit<Bill, 'id' | 'billNumber' | 'paidAmount' | 'balanceAmount' | 'createdAt' | 'updatedAt'>
   ): CreateBillResult {
     const errors: string[] = [];
@@ -85,152 +93,99 @@ export const billingService = {
     }
 
     const now = new Date().toISOString();
-    const todayStr = now.split('T')[0];
+    const periodTag = billPayload.period.replace('-', '');
     const existingBills = this.getAllBills();
     const sequenceNum = String(existingBills.length + 1).padStart(4, '0');
-    const periodTag = billPayload.period.replace('-', '');
-    const billNumber = `BIL-${periodTag}-${sequenceNum}`;
+    const billNumber = `INV-${periodTag}-${sequenceNum}`;
+    const billId = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    const newBill: Bill = {
-      id: `bil_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      stayId: billPayload.stayId,
-      billNumber,
-      billType: billPayload.billType,
-      period: billPayload.period,
-      issueDate: billPayload.issueDate || todayStr,
-      dueDate: billPayload.dueDate || todayStr,
-      lineItems: billPayload.lineItems,
-      totalAmount: billPayload.totalAmount,
-      paidAmount: 0,
-      balanceAmount: billPayload.totalAmount,
-      status: billPayload.status || ('UNPAID' as BillStatus),
-      remarks: billPayload.remarks,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // 1. Determine Revenue target account (Damage Recovery vs Rent Revenue)
-    const revenueAccount =
-      billPayload.billType === 'ONE_TIME_CHARGE' &&
-      billPayload.lineItems.some((item) => item.description.toLowerCase().includes('damage'))
-        ? AccountType.DAMAGE_RECOVERY
-        : AccountType.RENT_REVENUE;
-
-    // 2. Post balanced double-entry ledger records
-    const postingResult = ledgerService.postEntries([
+    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE
+    const ledgerResult = ledgerService.postEntries([
       {
-        stayId: newBill.stayId,
-        postingDate: todayStr,
-        effectiveDate: newBill.issueDate,
-        referenceType: 'BILL',
-        referenceId: newBill.id,
+        stayId: billPayload.stayId,
+        postingDate: now.split('T')[0],
+        effectiveDate: billPayload.issueDate,
+        referenceType: 'BILL' as LedgerReferenceType,
+        referenceId: billId,
         account: AccountType.ACCOUNTS_RECEIVABLE,
-        debit: newBill.totalAmount,
+        debit: billPayload.totalAmount,
         credit: 0,
-        remarks: `Bill #${newBill.billNumber}: ${newBill.remarks || newBill.billType}`,
+        remarks: `Invoice #${billNumber} - ${billPayload.billType} (${billPayload.period})`,
         createdBy: 'BILLING_ENGINE',
       },
       {
-        stayId: newBill.stayId,
-        postingDate: todayStr,
-        effectiveDate: newBill.issueDate,
-        referenceType: 'BILL',
-        referenceId: newBill.id,
-        account: revenueAccount,
+        stayId: billPayload.stayId,
+        postingDate: now.split('T')[0],
+        effectiveDate: billPayload.issueDate,
+        referenceType: 'BILL' as LedgerReferenceType,
+        referenceId: billId,
+        account: AccountType.RENT_REVENUE,
         debit: 0,
-        credit: newBill.totalAmount,
-        remarks: `Revenue recognition for Bill #${newBill.billNumber}`,
+        credit: billPayload.totalAmount,
+        remarks: `Revenue recognition for Invoice #${billNumber}`,
         createdBy: 'BILLING_ENGINE',
       },
     ]);
 
-    if (!postingResult.success) {
+    if (!ledgerResult.success) {
       return {
         success: false,
         bill: null,
-        errors: [`Failed to post ledger entries: ${postingResult.errors.join(', ')}`],
+        errors: [`Failed to post bill ledger entries: ${ledgerResult.errors.join(', ')}`],
       };
     }
 
-    // 3. Persist bill to storage
-    this.saveBills([...existingBills, newBill]);
+    const newBill: Bill = {
+      ...billPayload,
+      id: billId,
+      billNumber,
+      paidAmount: 0,
+      balanceAmount: billPayload.totalAmount,
+      status: billPayload.status || 'UNPAID',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.repository.saveBill(newBill);
 
     return {
       success: true,
       bill: newBill,
       errors: [],
     };
-  },
+  }
 
   /**
-   * Helper: Save full array of bills to storage.
+   * Application Use Case: Allocate a payment amount across open bills for a Stay.
+   * Delegates payment allocation logic to domain rule calculatePaymentAllocations.
    */
-  saveBills(bills: Bill[]): void {
-    financeStorage.saveStoredBills(bills);
-  },
-
-  /**
-   * Allocate a payment amount against open bills for a Stay, updating paidAmount, balanceAmount, and status.
-   * Allocates from oldest unpaid bill to newest.
-   * 
-   * @param stayId Target Stay ID
-   * @param paymentAmount Amount allocated towards bills
-   * @returns Array of PaymentAllocation records
-   */
-  allocatePaymentToBills(stayId: string, paymentAmount: number): PaymentAllocation[] {
+  public allocatePaymentToBills(stayId: string, paymentAmount: number): PaymentAllocation[] {
     if (paymentAmount <= 0) return [];
 
-    const openBills = this.getBillsByStayId(stayId)
-      .filter((b) => b.status === 'UNPAID' || b.status === 'PARTIALLY_PAID')
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const openBills = this.getBillsByStayId(stayId).filter(
+      (b) => b.status === 'UNPAID' || b.status === 'PARTIALLY_PAID'
+    );
 
-    let remainingPayment = paymentAmount;
-    const allocations: PaymentAllocation[] = [];
-    const allBills = this.getAllBills();
-    let billsUpdated = false;
+    const { updatedBills, allocations } = calculatePaymentAllocations(openBills, paymentAmount);
 
-    openBills.forEach((bill) => {
-      if (remainingPayment <= 0) return;
-
-      const currentBalance = bill.totalAmount - bill.paidAmount;
-      if (currentBalance <= 0) return;
-
-      const allocated = Math.min(remainingPayment, currentBalance);
-      remainingPayment -= allocated;
-
-      const newPaid = Math.round((bill.paidAmount + allocated) * 100) / 100;
-      const newBalance = Math.max(0, Math.round((bill.totalAmount - newPaid) * 100) / 100);
-      const newStatus = newBalance === 0 ? ('PAID' as BillStatus) : ('PARTIALLY_PAID' as BillStatus);
-
-      allocations.push({ billId: bill.id, amount: allocated });
-
-      const target = allBills.find((b) => b.id === bill.id);
-      if (target) {
-        target.paidAmount = newPaid;
-        target.balanceAmount = newBalance;
-        target.status = newStatus;
-        target.updatedAt = new Date().toISOString();
-        billsUpdated = true;
-      }
-    });
-
-    if (billsUpdated) {
-      this.saveBills(allBills);
+    if (updatedBills.length > 0) {
+      const allBills = this.getAllBills();
+      updatedBills.forEach((ub) => {
+        const idx = allBills.findIndex((b) => b.id === ub.id);
+        if (idx >= 0) {
+          allBills[idx] = ub;
+        }
+      });
+      this.repository.saveBills(allBills);
     }
 
     return allocations;
-  },
+  }
 
   /**
-   * Generate a monthly recurring rent bill for a Stay.
-   * Validates stay, billing period, rent amount, and prevents duplicate monthly rent bill generation.
-   * Posts corresponding balanced DEBIT entry to the ledger.
-   * 
-   * @param stayId Target Stay ID
-   * @param billingPeriod Target billing period (YYYY-MM)
-   * @returns CreateBillResult object
+   * Application Use Case: Generate a monthly recurring rent bill for a Stay.
    */
-  generateMonthlyRentBill(stayId: string, billingPeriod: string): CreateBillResult {
+  public generateMonthlyRentBill(stayId: string, billingPeriod: string): CreateBillResult {
     if (!stayId || stayId.trim() === '') {
       return { success: false, bill: null, errors: ['Missing or invalid stayId.'] };
     }
@@ -243,7 +198,6 @@ export const billingService = {
       };
     }
 
-    // Check duplicate
     if (this.checkDuplicateMonthlyRentBill(stayId, billingPeriod)) {
       return {
         success: false,
@@ -252,7 +206,6 @@ export const billingService = {
       };
     }
 
-    // Retrieve Stay to get agreedRent
     const stay = stayService.getStay(stayId);
     const rentAmount = stay ? stay.agreedRent : 0;
 
@@ -287,20 +240,12 @@ export const billingService = {
       status: 'UNPAID' as BillStatus,
       remarks: `Monthly Rent for ${billingPeriod}`,
     });
-  },
+  }
 
   /**
-   * Generate a recurring service charge bill for a Stay (e.g. Wi-Fi, Parking, Laundry).
-   * Posts balanced double-entry ledger entries.
-   * 
-   * @param stayId Target Stay ID
-   * @param billingPeriod Target billing period (YYYY-MM)
-   * @param chargeType Type/name of recurring charge
-   * @param description Description of service
-   * @param amount Non-negative charge amount
-   * @returns CreateBillResult object
+   * Application Use Case: Generate a recurring service charge bill for a Stay.
    */
-  generateRecurringChargeBill(
+  public generateRecurringChargeBill(
     stayId: string,
     billingPeriod: string,
     chargeType: string,
@@ -332,20 +277,12 @@ export const billingService = {
       status: 'UNPAID' as BillStatus,
       remarks: `Recurring ${chargeType} Charge (${billingPeriod})`,
     });
-  },
+  }
 
   /**
-   * Generate a one-time charge bill for a Stay (e.g. Damage Recovery, Cleaning, Penalty).
-   * Posts balanced double-entry ledger entries.
-   * 
-   * @param stayId Target Stay ID
-   * @param chargeType Type of charge
-   * @param description Detailed description of charge
-   * @param amount Non-negative charge amount
-   * @param category Line item category (default: 'OTHER')
-   * @returns CreateBillResult object
+   * Application Use Case: Generate a one-time charge bill for a Stay.
    */
-  generateOneTimeChargeBill(
+  public generateOneTimeChargeBill(
     stayId: string,
     chargeType: string,
     description: string,
@@ -379,5 +316,7 @@ export const billingService = {
       status: 'UNPAID' as BillStatus,
       remarks: `One-Time ${chargeType} Charge`,
     });
-  },
-};
+  }
+}
+
+export const billingService = new BillingApplicationService();

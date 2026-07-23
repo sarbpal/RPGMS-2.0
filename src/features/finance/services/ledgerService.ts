@@ -1,6 +1,6 @@
-import type { LedgerEntry, LedgerReferenceType } from '../types';
-import { AccountType } from '../types';
-import { financeStorage } from '../storage/financeStorage';
+import type { LedgerEntry, LedgerReferenceType, FinanceRepository } from '../domain';
+import { AccountType, validateDoubleEntry } from '../domain';
+import { defaultFinanceRepository } from '../infrastructure';
 
 export interface PostEntriesResult {
   success: boolean;
@@ -8,24 +8,24 @@ export interface PostEntriesResult {
   errors: string[];
 }
 
-export const ledgerService = {
+export class LedgerApplicationService {
+  private repository: FinanceRepository;
+
+  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+    this.repository = repository;
+  }
+
   /**
-   * Validate a batch of ledger entries before posting.
-   * Enforces double-entry balance (sum(debits) === sum(credits)), non-empty fields, valid accounts, and non-negative values.
-   * 
-   * @param entriesData Array of entry payloads to validate
-   * @returns Array of validation error messages (empty array if valid)
+   * Application Use Case: Validate a batch of ledger entries before posting.
+   * Delegates accounting invariants and double-entry rules to Domain.
    */
-  validatePosting(entriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[]): string[] {
+  public validatePosting(entriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[]): string[] {
     const errors: string[] = [];
 
     if (!entriesData || entriesData.length === 0) {
       errors.push('Posting batch cannot be empty.');
       return errors;
     }
-
-    let totalDebits = 0;
-    let totalCredits = 0;
 
     const validAccountValues = new Set<string>(Object.values(AccountType));
 
@@ -63,35 +63,25 @@ export const ledgerService = {
       if (!entry.effectiveDate) {
         errors.push(`${prefix} Missing effectiveDate.`);
       }
-
-      totalDebits += entry.debit || 0;
-      totalCredits += entry.credit || 0;
     });
 
-    // Enforce double-entry balance using rounded integers to avoid JS floating point precision issues
-    const roundedDebits = Math.round(totalDebits * 100);
-    const roundedCredits = Math.round(totalCredits * 100);
-
-    if (roundedDebits !== roundedCredits) {
-      errors.push(
-        `Double-entry imbalance: Total debits (${totalDebits}) must equal total credits (${totalCredits}).`
-      );
+    try {
+      validateDoubleEntry(entriesData);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        errors.push(err.message);
+      }
     }
 
     return errors;
-  },
+  }
 
   /**
-   * Post a balanced collection of double-entry ledger records.
+   * Application Use Case: Post a balanced collection of double-entry ledger records.
    * Single entry point for all financial transaction writes.
-   * Immutably appends new entries to storage after validation.
-   * 
-   * @param entriesData Array of entry objects to post (without id/createdAt)
-   * @returns PostEntriesResult containing success status, created entries, and error messages
+   * Coordinates validation and immutable appending via repository abstraction.
    */
-  postEntries(
-    entriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[]
-  ): PostEntriesResult {
+  public postEntries(entriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[]): PostEntriesResult {
     const validationErrors = this.validatePosting(entriesData);
     if (validationErrors.length > 0) {
       return {
@@ -101,7 +91,7 @@ export const ledgerService = {
       };
     }
 
-    const currentEntries = financeStorage.getStoredLedgerEntries();
+    const currentEntries = this.repository.getLedgerEntries();
     const now = new Date().toISOString();
 
     const newEntries: LedgerEntry[] = entriesData.map((data, index) => ({
@@ -111,54 +101,41 @@ export const ledgerService = {
     }));
 
     const updatedLedger = [...currentEntries, ...newEntries];
-    financeStorage.saveStoredLedgerEntries(updatedLedger);
+    this.repository.saveLedgerEntries(updatedLedger);
 
     return {
       success: true,
       entries: newEntries,
       errors: [],
     };
-  },
+  }
 
   /**
-   * Fetch all ledger entries associated with a specific Stay ID.
-   * 
-   * @param stayId Target Stay ID
-   * @returns Array of matching LedgerEntry objects
+   * Application Use Case: Fetch all ledger entries associated with a specific Stay ID.
    */
-  getEntriesForStay(stayId: string): LedgerEntry[] {
-    const entries = financeStorage.getStoredLedgerEntries();
-    return entries.filter((e) => e.stayId === stayId);
-  },
+  public getEntriesForStay(stayId: string): LedgerEntry[] {
+    return this.repository.getLedgerEntriesByStayId(stayId);
+  }
 
   /**
-   * Fetch all ledger entries stored in the system.
-   * 
-   * @returns Array of all LedgerEntry objects
+   * Application Use Case: Fetch all ledger entries stored in the system.
    */
-  getEntries(): LedgerEntry[] {
-    return financeStorage.getStoredLedgerEntries();
-  },
+  public getEntries(): LedgerEntry[] {
+    return this.repository.getLedgerEntries();
+  }
 
   /**
-   * Fetch a single ledger entry by its unique ID.
-   * 
-   * @param id Target entry ID
-   * @returns LedgerEntry or null
+   * Application Use Case: Fetch a single ledger entry by its unique ID.
    */
-  getEntryById(id: string): LedgerEntry | null {
+  public getEntryById(id: string): LedgerEntry | null {
     const entries = this.getEntries();
     return entries.find((e) => e.id === id) || null;
-  },
+  }
 
   /**
-   * Fetch ledger entries matching a specific reference type and ID (e.g. BILL, PAYMENT, SETTLEMENT).
-   * 
-   * @param referenceType Source document reference type
-   * @param referenceId Source document ID
-   * @returns Array of matching LedgerEntry objects
+   * Application Use Case: Fetch ledger entries matching a specific reference type and ID.
    */
-  getEntriesByReference(
+  public getEntriesByReference(
     referenceType: LedgerReferenceType,
     referenceId: string
   ): LedgerEntry[] {
@@ -166,20 +143,13 @@ export const ledgerService = {
     return entries.filter(
       (e) => e.referenceType === referenceType && e.referenceId === referenceId
     );
-  },
+  }
 
   /**
-   * Perform an accounting reversal for all entries matching a source document reference.
-   * Creates new inverse ledger entries (swapping debits and credits).
-   * Original entries are NEVER modified or deleted.
-   * 
-   * @param referenceType Type of reference to reverse
-   * @param referenceId ID of reference to reverse
-   * @param reversalRemarks Reason for reversal
-   * @param createdBy User/system identifier creating the reversal
-   * @returns PostEntriesResult containing the reversal entries
+   * Application Use Case: Perform an accounting reversal for all entries matching a source document.
+   * Constructs inverse ledger entries without modifying historical records.
    */
-  reverseEntries(
+  public reverseEntries(
     referenceType: LedgerReferenceType,
     referenceId: string,
     reversalRemarks: string,
@@ -196,22 +166,23 @@ export const ledgerService = {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Build inverse entries: swap debit & credit
     const reversalData: Omit<LedgerEntry, 'id' | 'createdAt'>[] = originalEntries.map(
       (orig) => ({
         stayId: orig.stayId,
         postingDate: todayStr,
         effectiveDate: orig.effectiveDate,
         referenceType: 'REVERSAL' as LedgerReferenceType,
-        referenceId: orig.id, // Links directly to original entry ID
+        referenceId: orig.id,
         account: orig.account,
-        debit: orig.credit, // Swap credit to debit
-        credit: orig.debit, // Swap debit to credit
+        debit: orig.credit,
+        credit: orig.debit,
         remarks: `Reversal of entry ${orig.id}: ${reversalRemarks}`,
         createdBy,
       })
     );
 
     return this.postEntries(reversalData);
-  },
-};
+  }
+}
+
+export const ledgerService = new LedgerApplicationService();

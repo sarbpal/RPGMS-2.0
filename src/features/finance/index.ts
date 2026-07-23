@@ -1,5 +1,9 @@
 export * from './application';
+export * from './domain';
+export * from './infrastructure';
 export * from './types';
+
+
 export * from './storage/financeStorage';
 export * from './services/ledgerService';
 export * from './services/balanceEngine';

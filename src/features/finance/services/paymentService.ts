@@ -1,6 +1,13 @@
-import type { Payment, PaymentMethod, PaymentAllocation, LedgerEntry } from '../types';
-import { AccountType } from '../types';
-import { financeStorage } from '../storage/financeStorage';
+import type {
+  Payment,
+  PaymentMethod,
+  PaymentAllocation,
+  LedgerEntry,
+  FinanceRepository,
+  LedgerReferenceType,
+} from '../domain';
+import { AccountType } from '../domain';
+import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
 import { billingService } from './billingService';
@@ -11,41 +18,40 @@ export interface RecordPaymentResult {
   errors: string[];
 }
 
-export const paymentService = {
-  /**
-   * Fetch all payments stored in the system.
-   */
-  getAllPayments(): Payment[] {
-    return financeStorage.getStoredPayments();
-  },
+export class PaymentApplicationService {
+  private repository: FinanceRepository;
+
+  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+    this.repository = repository;
+  }
 
   /**
-   * Fetch all payments associated with a specific Stay ID.
-   * 
-   * @param stayId Target Stay ID
-   * @returns Array of matching Payment objects
+   * Application Use Case: Fetch all payments stored in the system.
    */
-  getPaymentsByStayId(stayId: string): Payment[] {
-    const payments = this.getAllPayments();
-    return payments.filter((p) => p.stayId === stayId);
-  },
+  public getAllPayments(): Payment[] {
+    return this.repository.getPayments();
+  }
 
   /**
-   * Fetch a single payment by its unique ID.
+   * Application Use Case: Fetch all payments associated with a specific Stay ID.
    */
-  getPaymentById(id: string): Payment | null {
+  public getPaymentsByStayId(stayId: string): Payment[] {
+    return this.repository.getPaymentsByStayId(stayId);
+  }
+
+  /**
+   * Application Use Case: Fetch a single payment by its unique ID.
+   */
+  public getPaymentById(id: string): Payment | null {
     const payments = this.getAllPayments();
     return payments.find((p) => p.id === id) || null;
-  },
+  }
 
   /**
-   * Record a payment received for a Stay, post balanced double-entry ledger transactions,
+   * Application Use Case: Record a payment received for a Stay, post balanced double-entry ledger transactions,
    * handle overpayments via Advance Credit, allocate payment across open bills, and persist payment.
-   * 
-   * @param paymentPayload Data required to construct a Payment
-   * @returns RecordPaymentResult object containing success status, Payment object, and error list
    */
-  recordPayment(
+  public recordPayment(
     paymentPayload: Omit<Payment, 'id' | 'paymentNumber' | 'allocations' | 'createdAt'>
   ): RecordPaymentResult {
     const errors: string[] = [];
@@ -83,7 +89,7 @@ export const paymentService = {
     const debitAccount =
       paymentPayload.paymentMethod === 'CASH' ? AccountType.CASH : AccountType.BANK;
 
-    // 2. Calculate Receivable vs Advance Credit portions
+    // 2. Calculate Receivable vs Advance Credit portions via balanceEngine
     const outstandingReceivable = balanceEngine.getAccountBalance(
       paymentPayload.stayId,
       AccountType.ACCOUNTS_RECEIVABLE
@@ -98,7 +104,7 @@ export const paymentService = {
         stayId: paymentPayload.stayId,
         postingDate: todayStr,
         effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT',
+        referenceType: 'PAYMENT' as LedgerReferenceType,
         referenceId: paymentId,
         account: debitAccount,
         debit: paymentPayload.amount,
@@ -113,7 +119,7 @@ export const paymentService = {
         stayId: paymentPayload.stayId,
         postingDate: todayStr,
         effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT' as const,
+        referenceType: 'PAYMENT' as LedgerReferenceType,
         referenceId: paymentId,
         account: AccountType.ACCOUNTS_RECEIVABLE,
         debit: 0,
@@ -128,7 +134,7 @@ export const paymentService = {
         stayId: paymentPayload.stayId,
         postingDate: todayStr,
         effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT' as const,
+        referenceType: 'PAYMENT' as LedgerReferenceType,
         referenceId: paymentId,
         account: AccountType.ADVANCE_CREDIT,
         debit: 0,
@@ -138,7 +144,7 @@ export const paymentService = {
       });
     }
 
-    // 4. Post balanced ledger entries
+    // 4. Post balanced ledger entries via ledgerService
     const postingResult = ledgerService.postEntries(ledgerEntriesData);
     if (!postingResult.success) {
       return {
@@ -148,7 +154,7 @@ export const paymentService = {
       };
     }
 
-    // 5. Allocate receivable portion across open bills
+    // 5. Allocate receivable portion across open bills via billingService
     let allocations: PaymentAllocation[] = [];
     if (receivablePortion > 0) {
       allocations = billingService.allocatePaymentToBills(
@@ -157,7 +163,7 @@ export const paymentService = {
       );
     }
 
-    // 6. Create and persist Payment record
+    // 6. Create and persist Payment record via repository
     const newPayment: Payment = {
       id: paymentId,
       stayId: paymentPayload.stayId,
@@ -171,12 +177,14 @@ export const paymentService = {
       createdAt: now,
     };
 
-    financeStorage.saveStoredPayments([...existingPayments, newPayment]);
+    this.repository.savePayment(newPayment);
 
     return {
       success: true,
       payment: newPayment,
       errors: [],
     };
-  },
-};
+  }
+}
+
+export const paymentService = new PaymentApplicationService();

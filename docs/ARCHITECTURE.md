@@ -737,3 +737,103 @@ Implementation should always follow the established business architecture.
 
 If an implementation requires changes to the architecture, the change must first be documented in `DECISIONS.md` before development proceeds.
 
+---
+
+# Finance Module Architecture
+
+The Finance module follows a layered architecture based on Domain-Driven Design (DDD) principles.
+
+```
+UI
+ │
+ ▼
+Application Services
+ │
+ ▼
+Domain
+ │
+ ▼
+Repository Interface
+ ▲
+ │
+Infrastructure
+```
+
+## Domain Layer
+
+Location:
+
+```
+src/features/finance/domain/
+```
+
+Contains:
+
+- Entities
+- Value Objects
+- Domain Rules
+- Repository Interfaces
+
+The Domain contains all business knowledge and is completely independent of:
+
+- React
+- UI
+- localStorage
+- Supabase
+- Infrastructure
+- Application Services
+
+## Application Layer
+
+Location:
+
+```
+src/features/finance/services/
+```
+
+Application Services coordinate use cases.
+
+Responsibilities include:
+
+- validating requests
+- orchestrating workflows
+- invoking Domain Rules
+- interacting with the FinanceRepository
+- coordinating Timeline and Reporting
+
+Application Services must not implement accounting rules or business calculations.
+
+## Infrastructure Layer
+
+Location:
+
+```
+src/features/finance/infrastructure/
+```
+
+Current implementation:
+
+- InMemoryFinanceRepository
+
+The Infrastructure layer implements the FinanceRepository interface and encapsulates persistence details.
+
+This design allows future migration to Supabase by replacing the repository implementation without affecting the Domain or Application layers.
+
+## Dependency Direction
+
+Dependencies always flow inward.
+
+```
+UI
+    ↓
+Application
+    ↓
+Domain
+    ↑
+Repository Interface
+    ↑
+Infrastructure
+```
+
+The Domain must never depend on the Application, Infrastructure, UI, or storage technologies.
+

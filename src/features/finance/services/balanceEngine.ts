@@ -1,19 +1,25 @@
-import type { StayBalance, FinanceSummary } from '../types';
-import { AccountType } from '../types';
-import { ledgerService } from './ledgerService';
+import type { StayBalance, FinanceSummary, FinanceRepository, AccountType } from '../domain';
+import {
+  calculateAccountBalance,
+  calculateStayBalancesFromLedger,
+  calculateFinanceSummaryFromLedger,
+} from '../domain';
+import { defaultFinanceRepository } from '../infrastructure';
 
-export const balanceEngine = {
+export class BalanceApplicationService {
+  private repository: FinanceRepository;
+
+  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+    this.repository = repository;
+  }
+
   /**
-   * Helper: Calculate total debits and credits for a specific account for a given stay (or all stays).
-   * 
-   * @param stayId Target Stay ID (or undefined for all stays)
-   * @param account Target AccountType
-   * @returns Object containing total debit and total credit amounts
+   * Application Use Case: Calculate total debits and credits for a specific account for a given stay.
    */
-  getAccountTotals(stayId?: string, account?: AccountType): { debit: number; credit: number } {
+  public getAccountTotals(stayId?: string, account?: AccountType): { debit: number; credit: number } {
     const entries = stayId
-      ? ledgerService.getEntriesForStay(stayId)
-      : ledgerService.getEntries();
+      ? this.repository.getLedgerEntriesByStayId(stayId)
+      : this.repository.getLedgerEntries();
 
     let debit = 0;
     let credit = 0;
@@ -29,43 +35,22 @@ export const balanceEngine = {
       debit: Math.round(debit * 100) / 100,
       credit: Math.round(credit * 100) / 100,
     };
-  },
+  }
 
   /**
-   * Helper: Calculate the net balance for a specific account for a given stay.
-   * - Asset accounts (ACCOUNTS_RECEIVABLE, CASH, BANK): balance = sum(debit) - sum(credit)
-   * - Liability & Revenue accounts (SECURITY_DEPOSIT_LIABILITY, ADVANCE_CREDIT, REFUND_PAYABLE, RENT_REVENUE, DAMAGE_RECOVERY): balance = sum(credit) - sum(debit)
-   * 
-   * @param stayId Target Stay ID
-   * @param account Target AccountType
-   * @returns Net account balance
+   * Application Use Case: Calculate the net balance for a specific account for a given stay.
+   * Delegates calculation logic to domain rule calculateAccountBalance.
    */
-  getAccountBalance(stayId: string, account: AccountType): number {
-    const totals = this.getAccountTotals(stayId, account);
-
-    let net: number;
-    if (
-      account === AccountType.ACCOUNTS_RECEIVABLE ||
-      account === AccountType.CASH ||
-      account === AccountType.BANK
-    ) {
-      net = totals.debit - totals.credit;
-    } else {
-      net = totals.credit - totals.debit;
-    }
-
-
-    return Math.max(0, Math.round(net * 100) / 100);
-  },
+  public getAccountBalance(stayId: string, account: AccountType): number {
+    const entries = this.repository.getLedgerEntries();
+    return calculateAccountBalance(entries, stayId, account);
+  }
 
   /**
-   * Derive all dynamic financial balances for a specific Stay ID directly from its ledger entries.
-   * Computes Accounts Receivable, Advance Credit, Security Deposit Held, Refund Payable, and Net Outstanding.
-   * 
-   * @param stayId Target Stay ID
-   * @returns StayBalance object containing derived financial balances
+   * Application Use Case: Derive all dynamic financial balances for a specific Stay ID.
+   * Delegates stay balance derivation to domain rule calculateStayBalancesFromLedger.
    */
-  calculateStayBalances(stayId: string): StayBalance {
+  public calculateStayBalances(stayId: string): StayBalance {
     if (!stayId || stayId.trim() === '') {
       return {
         receivableBalance: 0,
@@ -75,69 +60,18 @@ export const balanceEngine = {
         netBalance: 0,
       };
     }
-
-    const receivableBalance = this.getAccountBalance(stayId, AccountType.ACCOUNTS_RECEIVABLE);
-    const securityDepositHeld = this.getAccountBalance(
-      stayId,
-      AccountType.SECURITY_DEPOSIT_LIABILITY
-    );
-    const advanceCreditBalance = this.getAccountBalance(stayId, AccountType.ADVANCE_CREDIT);
-    const refundPayable = this.getAccountBalance(stayId, AccountType.REFUND_PAYABLE);
-
-    // Net balance = Receivable Balance - Advance Credit Balance
-    const netBalance = Math.round((receivableBalance - advanceCreditBalance) * 100) / 100;
-
-    return {
-      receivableBalance,
-      securityDepositHeld,
-      advanceCreditBalance,
-      refundPayable,
-      netBalance,
-    };
-  },
+    const entries = this.repository.getLedgerEntriesByStayId(stayId);
+    return calculateStayBalancesFromLedger(entries, stayId);
+  }
 
   /**
-   * Derive property-wide aggregated financial summary metrics directly from all ledger entries.
-   * Computes Total Collections (Cash + Bank), Total Outstanding Receivables, Total Deposits Held, and Total Advance Credits.
-   * 
-   * @returns FinanceSummary object containing property-wide metrics
+   * Application Use Case: Derive property-wide aggregated financial summary metrics.
+   * Delegates property summary derivation to domain rule calculateFinanceSummaryFromLedger.
    */
-  calculateFinanceSummary(): FinanceSummary {
-    const cashTotals = this.getAccountTotals(undefined, AccountType.CASH);
-    const bankTotals = this.getAccountTotals(undefined, AccountType.BANK);
-    const arTotals = this.getAccountTotals(undefined, AccountType.ACCOUNTS_RECEIVABLE);
-    const depositTotals = this.getAccountTotals(undefined, AccountType.SECURITY_DEPOSIT_LIABILITY);
-    const advanceTotals = this.getAccountTotals(undefined, AccountType.ADVANCE_CREDIT);
+  public calculateFinanceSummary(): FinanceSummary {
+    const entries = this.repository.getLedgerEntries();
+    return calculateFinanceSummaryFromLedger(entries);
+  }
+}
 
-    // Total collected = Cash debits + Bank debits
-    const totalCollected = Math.max(
-      0,
-      Math.round((cashTotals.debit + bankTotals.debit) * 100) / 100
-    );
-
-    // Total outstanding receivables = AR debits - AR credits
-    const totalOutstanding = Math.max(
-      0,
-      Math.round((arTotals.debit - arTotals.credit) * 100) / 100
-    );
-
-    // Total deposits held = Deposit credits - Deposit debits
-    const totalDepositHeld = Math.max(
-      0,
-      Math.round((depositTotals.credit - depositTotals.debit) * 100) / 100
-    );
-
-    // Total advance credit = Advance credits - Advance debits
-    const totalAdvanceCredit = Math.max(
-      0,
-      Math.round((advanceTotals.credit - advanceTotals.debit) * 100) / 100
-    );
-
-    return {
-      totalCollected,
-      totalOutstanding,
-      totalDepositHeld,
-      totalAdvanceCredit,
-    };
-  },
-};
+export const balanceEngine = new BalanceApplicationService();

@@ -1,5 +1,5 @@
 import type { AccommodationStats } from '../../components/AccommodationSummary';
-import { BedStatus, type Flat } from '../../types';
+import { BedStatus, type Flat, synchronizeBedOccupancy } from '../../domain';
 import type { Resident } from '../../../residents/types';
 import { ResidentStatus } from '../../../residents';
 import type { AccommodationWorkspaceViewModel } from '../models/AccommodationWorkspaceViewModel';
@@ -32,40 +32,17 @@ export class AccommodationWorkspaceCoordinator {
 
         const updatedBeds = area.beds.map((bed) => {
           const resident = residentBedMap.get(bed.id);
-          let expectedStatus: BedStatus;
-          let expectedResidentName: string | undefined;
-          const expectedBedRent = bed.defaultRent !== undefined ? bed.defaultRent : expectedAreaRent;
-          const expectedBedDeposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : expectedAreaDeposit;
+          const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
+            bed,
+            resident ? { fullName: resident.fullName, status: resident.status } : undefined,
+            expectedAreaRent,
+            expectedAreaDeposit
+          );
 
-          if (resident) {
-            expectedStatus = resident.status === ResidentStatus.ON_NOTICE ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
-            expectedResidentName = resident.fullName;
-          } else {
-            expectedResidentName = undefined;
-            // Keep status if not occupied or on notice (e.g. maintenance, blocked, reserved)
-            if (bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE) {
-              expectedStatus = BedStatus.VACANT;
-            } else {
-              expectedStatus = bed.status;
-            }
-          }
-
-          if (
-            bed.status !== expectedStatus ||
-            bed.residentName !== expectedResidentName ||
-            bed.defaultRent !== expectedBedRent ||
-            bed.defaultDeposit !== expectedBedDeposit
-          ) {
+          if (isChanged) {
             hasUpdates = true;
-            return {
-              ...bed,
-              status: expectedStatus,
-              residentName: expectedResidentName,
-              defaultRent: expectedBedRent,
-              defaultDeposit: expectedBedDeposit,
-            };
           }
-          return bed;
+          return synchronizedBed;
         });
 
         if (

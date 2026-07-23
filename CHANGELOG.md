@@ -996,6 +996,33 @@ This is another meaningful architectural milestone.
 - Established the first complete Repository → Domain → Application → Presentation flow for the Resident module.
 - Reserved Stay and Billing summaries for future cross-domain orchestration.
 
+## Sprint 11.3 – Accommodation Domain Layer
+
+### Added
+
+- Introduced the Accommodation Domain layer following the RPGMS layered architecture.
+- Added domain entities:
+  - `Flat`
+  - `Area`
+  - `Bed`
+- Added `BedStatus` value object representing standard bed lifecycle states.
+- Added `AccommodationRepository` interface defining technology-independent persistence contracts.
+- Introduced `domain/rules` to encapsulate cross-entity business rules.
+
+### Changed
+
+- Extracted bed occupancy synchronization logic from the Application layer into the Domain layer.
+- Refactored `AccommodationWorkspaceCoordinator` to orchestrate domain objects instead of implementing business rules directly.
+- Improved separation of responsibilities between Presentation, Application, and Domain layers while preserving existing functionality.
+
+### Notes
+
+- No UI changes.
+- No routing changes.
+- No persistence implementation changes.
+- No behavioral changes.
+- Accommodation architecture now includes Presentation, Application, and Domain layers, with Infrastructure scheduled for Sprint 11.4.
+
 
 ------------------------------------------------------------------------------
 End of Document

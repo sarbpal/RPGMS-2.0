@@ -10,27 +10,17 @@ import { AccommodationSummary } from '../components/AccommodationSummary';
 import { AccommodationToolbar } from '../components/AccommodationToolbar';
 import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
 import { FlatCard } from '../components/FlatCard';
-import { BedStatus } from '../types';
-import type { Flat } from '../types';
+import { BedStatus } from '../domain';
+import type { Flat } from '../domain';
 import type { Resident } from '../../residents/types';
 
 export default function AccommodationWorkspacePage() {
   const coordinator = useMemo(() => new AccommodationWorkspaceCoordinator(), []);
 
   const [flats, setFlats] = useState<Flat[]>(() => {
-    const savedFlats = localStorage.getItem('rpgms_flats');
     const savedResidents = localStorage.getItem('rpgms_residents');
-    
-    const initialFlats: Flat[] = savedFlats ? JSON.parse(savedFlats) : [];
     const residents: Resident[] = savedResidents ? JSON.parse(savedResidents) : [];
-    
-    const { synchronizedFlats, hasUpdates } = coordinator.synchronizeFlats(initialFlats, residents);
-
-    if (hasUpdates) {
-      localStorage.setItem('rpgms_flats', JSON.stringify(synchronizedFlats));
-    }
-
-    return synchronizedFlats;
+    return coordinator.loadAndSynchronizeFlats(residents);
   });
 
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
@@ -53,14 +43,6 @@ export default function AccommodationWorkspacePage() {
     () => coordinator.createViewModel(flats, searchQuery, statusFilter),
     [coordinator, flats, searchQuery, statusFilter]
   );
-
-  const addFlat = (flat: Flat) => {
-    setFlats((prev) => {
-      const next = [...prev, flat];
-      localStorage.setItem('rpgms_flats', JSON.stringify(next));
-      return next;
-    });
-  };
 
   const handleSaveFlat = (draft: FlatDraft) => {
     // Transform FlatDraft to Flat
@@ -102,19 +84,17 @@ export default function AccommodationWorkspacePage() {
       })),
     };
 
+    coordinator.saveFlat(newFlat);
+
     if (flatToEdit) {
-      setFlats((prev) => {
-        const next = prev.map((f) => (f.id === flatToEdit.id ? newFlat : f));
-        localStorage.setItem('rpgms_flats', JSON.stringify(next));
-        return next;
-      });
+      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? newFlat : f)));
       setSnackbar({
         open: true,
         message: `Flat ${draft.flatNumber} updated successfully.`,
         severity: 'success',
       });
     } else {
-      addFlat(newFlat);
+      setFlats((prev) => [...prev, newFlat]);
       setSnackbar({
         open: true,
         message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
@@ -180,11 +160,9 @@ export default function AccommodationWorkspacePage() {
         return;
       }
 
-      setFlats((prev) => {
-        const next = prev.filter((f) => f.id !== flatToDelete.id);
-        localStorage.setItem('rpgms_flats', JSON.stringify(next));
-        return next;
-      });
+      coordinator.deleteFlat(flatToDelete.id);
+      setFlats((prev) => prev.filter((f) => f.id !== flatToDelete.id));
+
       setSnackbar({
         open: true,
         message: `Flat ${flatToDelete.name} deleted successfully.`,

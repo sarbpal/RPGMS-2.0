@@ -1023,7 +1023,30 @@ This is another meaningful architectural milestone.
 - No behavioral changes.
 - Accommodation architecture now includes Presentation, Application, and Domain layers, with Infrastructure scheduled for Sprint 11.4.
 
+## Sprint 11.4 – Accommodation Infrastructure Layer
 
+### Added
+
+- Introduced the Accommodation Infrastructure layer.
+- Added `InMemoryAccommodationRepository` implementing the `AccommodationRepository` interface.
+- Added `accommodationSeedData` containing initial accommodation structure.
+
+### Changed
+
+- Moved browser localStorage access into the Infrastructure layer.
+- Introduced constructor-based dependency injection for `AccommodationWorkspaceCoordinator`.
+- Refactored the coordinator to use the `AccommodationRepository` interface exclusively.
+- Removed direct persistence access from `AccommodationWorkspacePage`.
+
+### Notes
+
+- No UI changes.
+- No routing changes.
+- No business behavior changes.
+- Accommodation now implements the complete RPGMS layered architecture:
+  Presentation → Application → Domain → Repository Interface → Infrastructure.
+
+  
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

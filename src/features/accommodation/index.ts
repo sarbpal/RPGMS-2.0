@@ -1,5 +1,6 @@
 export * from './domain';
 export * from './application';
+export * from './infrastructure';
 export * from './types';
 export * from './components/AccommodationSummary';
 export * from './components/AccommodationToolbar';

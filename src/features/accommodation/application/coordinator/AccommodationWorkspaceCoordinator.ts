@@ -1,10 +1,66 @@
 import type { AccommodationStats } from '../../components/AccommodationSummary';
 import { BedStatus, type Flat, synchronizeBedOccupancy } from '../../domain';
+import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
+import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
 import type { Resident } from '../../../residents/types';
 import { ResidentStatus } from '../../../residents';
 import type { AccommodationWorkspaceViewModel } from '../models/AccommodationWorkspaceViewModel';
 
 export class AccommodationWorkspaceCoordinator {
+  private repository: AccommodationRepository;
+
+  constructor(repository: AccommodationRepository = new InMemoryAccommodationRepository()) {
+    this.repository = repository;
+  }
+
+  /**
+   * Load flats from repository and perform self-healing synchronization against active/on-notice residents.
+   */
+  public loadAndSynchronizeFlats(residents: Resident[]): Flat[] {
+    const initialFlats: Flat[] =
+      'getAllSync' in this.repository && typeof (this.repository as { getAllSync?: () => Flat[] }).getAllSync === 'function'
+        ? (this.repository as { getAllSync: () => Flat[] }).getAllSync()
+        : [];
+
+    const { synchronizedFlats, hasUpdates } = this.synchronizeFlats(initialFlats, residents);
+
+    if (hasUpdates) {
+      if (
+        'saveAllSync' in this.repository &&
+        typeof (this.repository as { saveAllSync?: (flats: Flat[]) => Flat[] }).saveAllSync === 'function'
+      ) {
+        (this.repository as { saveAllSync: (flats: Flat[]) => Flat[] }).saveAllSync(synchronizedFlats);
+      }
+    }
+
+    return synchronizedFlats;
+  }
+
+  /**
+   * Save flat entity via repository abstraction.
+   */
+  public saveFlat(flat: Flat): Flat {
+    if (
+      'saveSync' in this.repository &&
+      typeof (this.repository as { saveSync?: (f: Flat) => Flat }).saveSync === 'function'
+    ) {
+      return (this.repository as { saveSync: (f: Flat) => Flat }).saveSync(flat);
+    }
+    return flat;
+  }
+
+  /**
+   * Delete flat entity by ID via repository abstraction.
+   */
+  public deleteFlat(id: string): void {
+    if (
+      'deleteSync' in this.repository &&
+      typeof (this.repository as { deleteSync?: (id: string) => void }).deleteSync === 'function'
+    ) {
+      (this.repository as { deleteSync: (id: string) => void }).deleteSync(id);
+    }
+  }
+
   /**
    * Synchronize flats status against active/on-notice residents (self-healing synchronization).
    */

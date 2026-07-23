@@ -3,18 +3,18 @@ import { useState } from 'react';
 import { Add, Apartment } from '@mui/icons-material';
 import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
 
-import { EmptyState } from '../../components/EmptyState';
-import { PageHeader } from '../../components/PageHeader';
-import { AccommodationSummary } from './components/AccommodationSummary';
-import { AccommodationToolbar } from './components/AccommodationToolbar';
-import { AddFlatDialog, type FlatDraft } from './components/AddFlatDialog';
-import { FlatCard } from './components/FlatCard';
-import { BedStatus } from './types';
-import type { Flat } from './types';
-import type { Resident } from '../residents/types';
-import { ResidentStatus } from '../residents';
+import { EmptyState } from '../../../components/EmptyState';
+import { PageHeader } from '../../../components/PageHeader';
+import { AccommodationSummary } from '../components/AccommodationSummary';
+import { AccommodationToolbar } from '../components/AccommodationToolbar';
+import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
+import { FlatCard } from '../components/FlatCard';
+import { BedStatus } from '../types';
+import type { Flat } from '../types';
+import type { Resident } from '../../residents/types';
+import { ResidentStatus } from '../../residents';
 
-export default function AccommodationPage() {
+export default function AccommodationWorkspacePage() {
   const [flats, setFlats] = useState<Flat[]>(() => {
     const savedFlats = localStorage.getItem('rpgms_flats');
     const savedResidents = localStorage.getItem('rpgms_residents');

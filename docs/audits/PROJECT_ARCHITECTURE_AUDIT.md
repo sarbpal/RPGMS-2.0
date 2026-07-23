@@ -401,3 +401,354 @@ The recommended next milestone is:
 **Accommodation Module Migration and Modernization**
 
 This will reduce legacy dependencies while expanding the Clean Architecture foundation across the project.
+
+# Phase D – Accommodation Architecture Assessment
+
+## Executive Summary
+
+The Accommodation module is currently a functional implementation that predates the project's layered architecture.
+
+Unlike the Stay and Resident modules, Accommodation has not yet been modernized into the standard RPGMS architecture.
+
+The module should therefore be treated as an **existing feature undergoing architectural migration**, not as a new feature.
+
+Migration complexity is assessed as **Medium**.
+
+---
+
+# Current Structure
+
+Current feature structure:
+
+```
+src/features/accommodation/
+
+    AccommodationPage.tsx
+
+    components/
+        AccommodationSummary.tsx
+        AccommodationToolbar.tsx
+        AddFlatDialog.tsx
+        AreaSection.tsx
+        BedCard.tsx
+        FlatCard.tsx
+
+    hooks/
+
+    services/
+
+    types/
+
+    utils/
+
+    index.ts
+```
+
+---
+
+# Current Functional Scope
+
+The Accommodation module currently supports:
+
+- Flat management
+- Bed generation
+- Bed status
+- Occupancy visualization
+- Summary cards
+- Toolbar actions
+- Flat creation
+- Bed rendering
+
+The overall UI foundation is already mature.
+
+---
+
+# Architectural Assessment
+
+## Presentation Layer
+
+Status:
+
+✅ Present
+
+The module already contains reusable presentation components.
+
+Examples include:
+
+- FlatCard
+- BedCard
+- AreaSection
+- AccommodationSummary
+- AccommodationToolbar
+
+---
+
+## Application Layer
+
+Status:
+
+❌ Missing
+
+There is currently no:
+
+- AccommodationCoordinator
+- AccommodationWorkspaceViewModel
+- Application orchestration layer
+
+Business preparation is currently performed inside the page component.
+
+---
+
+## Domain Layer
+
+Status:
+
+❌ Missing
+
+Business concepts currently exist primarily as TypeScript types.
+
+No technology-independent domain model exists.
+
+Likely future entities include:
+
+- Accommodation
+- Flat
+- Room
+- Bed
+
+Likely value objects include:
+
+- BedStatus
+- BedType
+- Floor
+- AreaType
+
+---
+
+## Repository Layer
+
+Status:
+
+❌ Missing
+
+No repository abstraction currently exists.
+
+The module accesses persistence directly.
+
+---
+
+## Infrastructure Layer
+
+Status:
+
+❌ Missing
+
+Persistence is currently embedded directly into the feature.
+
+---
+
+# Dependency Review
+
+The Accommodation module currently imports Resident concepts from the legacy module.
+
+Evidence includes imports from:
+
+```
+features/residents
+```
+
+The module also directly accesses browser storage for operational data.
+
+Examples include:
+
+- localStorage
+- resident persistence
+- flat persistence
+
+This creates coupling between Presentation and persistence.
+
+---
+
+# Layering Assessment
+
+Current architecture is approximately:
+
+```
+Presentation
+
+↓
+
+Business Logic
+
+↓
+
+localStorage
+```
+
+Target architecture should become:
+
+```
+Presentation
+
+↓
+
+Application
+
+↓
+
+Domain
+
+↓
+
+Repository Interface
+
+↑
+
+Infrastructure
+```
+
+This matches the proven architecture already implemented in:
+
+- Stay
+- Resident
+
+---
+
+# Strengths
+
+The module already contains:
+
+- Mature UI
+- Well-separated presentation components
+- Functional business workflow
+- Existing operational capability
+
+This significantly reduces migration effort.
+
+---
+
+# Architectural Gaps
+
+The following layers are currently missing:
+
+- Application
+- Domain
+- Repository abstraction
+- Infrastructure
+
+Business logic and persistence responsibilities are currently concentrated inside the page component.
+
+---
+
+# Migration Complexity
+
+Assessment:
+
+🟡 Medium
+
+Reasons:
+
+- Existing UI is reusable.
+- Existing functionality is stable.
+- Business concepts are already well understood.
+- Main effort involves separating responsibilities rather than rewriting functionality.
+
+---
+
+# Recommended Migration Strategy
+
+Follow the same proven lifecycle used by Stay and Resident.
+
+## Sprint 11.1
+
+Presentation Foundation
+
+Refactor existing UI into a Workspace pattern while preserving functionality.
+
+---
+
+## Sprint 11.2
+
+Application Layer
+
+Introduce:
+
+- AccommodationCoordinator
+- AccommodationWorkspaceViewModel
+
+---
+
+## Sprint 11.3
+
+Domain Layer
+
+Introduce:
+
+- Accommodation
+- Flat
+- Room
+- Bed
+
+Value Objects:
+
+- BedStatus
+- BedType
+- AreaType
+
+Repository Interface:
+
+- AccommodationRepository
+
+---
+
+## Sprint 11.4
+
+Infrastructure Layer
+
+Implement:
+
+- InMemoryAccommodationRepository
+
+Introduce:
+
+- accommodationSeedData
+
+Remove direct localStorage access from Presentation.
+
+---
+
+## Sprint 11.5
+
+Workspace Integration
+
+Validate the complete flow:
+
+Repository
+
+↓
+
+Domain
+
+↓
+
+Coordinator
+
+↓
+
+ViewModel
+
+↓
+
+Presentation
+
+---
+
+# Conclusion
+
+The Accommodation module is functionally mature but architecturally legacy.
+
+Unlike Stay and Resident, its responsibilities are not yet separated into Presentation, Application, Domain, and Infrastructure.
+
+Because the user interface is already well developed, modernization can focus primarily on architectural restructuring while preserving existing functionality.
+
+Accommodation is therefore the ideal next candidate for migration to the RPGMS reference architecture.

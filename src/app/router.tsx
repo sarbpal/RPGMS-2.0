@@ -1,7 +1,7 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 import { MainLayout } from '../components/layout/MainLayout';
-import { AccommodationPage } from '../features/accommodation';
+import { AccommodationWorkspacePage } from '../features/accommodation';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ElectricityPage } from '../features/electricity';
 import { FinancePage } from '../features/finance';
@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
       { path: 'residents/:id', element: <ResidentProfilePage /> },
       { path: 'resident/:residentId', element: <ResidentWorkspacePage /> },
       { path: 'stay/:stayId', element: <StayWorkspacePage /> },
-      { path: 'accommodation', element: <AccommodationPage /> },
+      { path: 'accommodation', element: <AccommodationWorkspacePage /> },
       { path: 'finance', element: <FinancePage /> },
       { path: 'electricity', element: <ElectricityPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },

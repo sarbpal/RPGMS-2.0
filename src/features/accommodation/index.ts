@@ -1,4 +1,4 @@
-export { default as AccommodationPage } from './AccommodationPage';
+export { default as AccommodationWorkspacePage } from './pages/AccommodationWorkspacePage';
 export * from './types';
 export * from './components/AccommodationSummary';
 export * from './components/AccommodationToolbar';

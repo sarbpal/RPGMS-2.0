@@ -1,4 +1,4 @@
-export { default as AccommodationWorkspacePage } from './pages/AccommodationWorkspacePage';
+export * from './application';
 export * from './types';
 export * from './components/AccommodationSummary';
 export * from './components/AccommodationToolbar';
@@ -7,3 +7,4 @@ export * from './components/AreaSection';
 export * from './components/BedCard';
 export * from './components/AddFlatDialog';
 export * from './utils/generateBeds';
+export { default as AccommodationWorkspacePage } from './pages/AccommodationWorkspacePage';

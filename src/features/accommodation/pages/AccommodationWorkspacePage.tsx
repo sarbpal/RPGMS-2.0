@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Add, Apartment } from '@mui/icons-material';
 import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
 
 import { EmptyState } from '../../../components/EmptyState';
 import { PageHeader } from '../../../components/PageHeader';
+import { AccommodationWorkspaceCoordinator } from '../application/coordinator/AccommodationWorkspaceCoordinator';
 import { AccommodationSummary } from '../components/AccommodationSummary';
 import { AccommodationToolbar } from '../components/AccommodationToolbar';
 import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
@@ -12,101 +13,26 @@ import { FlatCard } from '../components/FlatCard';
 import { BedStatus } from '../types';
 import type { Flat } from '../types';
 import type { Resident } from '../../residents/types';
-import { ResidentStatus } from '../../residents';
 
 export default function AccommodationWorkspacePage() {
+  const coordinator = useMemo(() => new AccommodationWorkspaceCoordinator(), []);
+
   const [flats, setFlats] = useState<Flat[]>(() => {
     const savedFlats = localStorage.getItem('rpgms_flats');
     const savedResidents = localStorage.getItem('rpgms_residents');
     
     const initialFlats: Flat[] = savedFlats ? JSON.parse(savedFlats) : [];
-    const residents = savedResidents ? JSON.parse(savedResidents) : [];
+    const residents: Resident[] = savedResidents ? JSON.parse(savedResidents) : [];
     
-    if (initialFlats.length === 0) return [];
-    
-    // Create a map of bedId -> Resident for self-healing status synchronization
-    const residentBedMap = new Map();
-    residents.forEach((res: Resident) => {
-      const isOccupying = res.status === ResidentStatus.ACTIVE || res.status === ResidentStatus.ON_NOTICE;
-      if (isOccupying && res.allocatedBedIds) {
-        res.allocatedBedIds.forEach((bedId: string) => {
-          residentBedMap.set(bedId, res);
-        });
-      }
-    });
-
-    let hasUpdates = false;
-
-    const synchronizedFlats = initialFlats.map((flat) => {
-      const updatedAreas = flat.areas.map((area) => {
-        const expectedAreaRent = area.defaultRent || 0;
-        const expectedAreaDeposit = area.defaultDeposit || 0;
-
-        const updatedBeds = area.beds.map((bed) => {
-          const resident = residentBedMap.get(bed.id);
-          let expectedStatus: BedStatus;
-          let expectedResidentName: string | undefined;
-          const expectedBedRent = bed.defaultRent !== undefined ? bed.defaultRent : expectedAreaRent;
-          const expectedBedDeposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : expectedAreaDeposit;
-
-          if (resident) {
-            expectedStatus = resident.status === ResidentStatus.ON_NOTICE ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
-            expectedResidentName = resident.fullName;
-          } else {
-            expectedResidentName = undefined;
-            // Keep status if not occupied or on notice (e.g. maintenance, blocked, reserved)
-            if (bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE) {
-              expectedStatus = BedStatus.VACANT;
-            } else {
-              expectedStatus = bed.status;
-            }
-          }
-
-          if (
-            bed.status !== expectedStatus ||
-            bed.residentName !== expectedResidentName ||
-            bed.defaultRent !== expectedBedRent ||
-            bed.defaultDeposit !== expectedBedDeposit
-          ) {
-            hasUpdates = true;
-            return {
-              ...bed,
-              status: expectedStatus,
-              residentName: expectedResidentName,
-              defaultRent: expectedBedRent,
-              defaultDeposit: expectedBedDeposit,
-            };
-          }
-          return bed;
-        });
-
-        if (
-          area.defaultRent !== expectedAreaRent ||
-          area.defaultDeposit !== expectedAreaDeposit ||
-          updatedBeds !== area.beds
-        ) {
-          hasUpdates = true;
-          return {
-            ...area,
-            defaultRent: expectedAreaRent,
-            defaultDeposit: expectedAreaDeposit,
-            beds: updatedBeds,
-          };
-        }
-
-        return area;
-      });
-
-      return { ...flat, areas: updatedAreas };
-    });
+    const { synchronizedFlats, hasUpdates } = coordinator.synchronizeFlats(initialFlats, residents);
 
     if (hasUpdates) {
       localStorage.setItem('rpgms_flats', JSON.stringify(synchronizedFlats));
-      return synchronizedFlats;
     }
 
-    return initialFlats;
+    return synchronizedFlats;
   });
+
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
   const [flatToDelete, setFlatToDelete] = useState<Flat | undefined>(undefined);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
@@ -122,6 +48,11 @@ export default function AccommodationWorkspacePage() {
     message: '',
     severity: 'success',
   });
+
+  const viewModel = useMemo(
+    () => coordinator.createViewModel(flats, searchQuery, statusFilter),
+    [coordinator, flats, searchQuery, statusFilter]
+  );
 
   const addFlat = (flat: Flat) => {
     setFlats((prev) => {
@@ -194,36 +125,6 @@ export default function AccommodationWorkspacePage() {
     setFlatToEdit(undefined);
   };
 
-  // Derive summary metrics dynamically from state
-  const totalFlats = flats.length;
-  let totalBeds = 0;
-  let vacantBeds = 0;
-  let occupiedBeds = 0;
-  let onNoticeBeds = 0;
-
-  flats.forEach((flat) => {
-    flat.areas.forEach((area) => {
-      area.beds.forEach((bed) => {
-        totalBeds++;
-        if (bed.status === BedStatus.VACANT) {
-          vacantBeds++;
-        } else if (bed.status === BedStatus.OCCUPIED) {
-          occupiedBeds++;
-        } else if (bed.status === BedStatus.ON_NOTICE) {
-          onNoticeBeds++;
-        }
-      });
-    });
-  });
-
-  const stats = {
-    totalFlats,
-    totalBeds,
-    vacantBeds,
-    occupiedBeds,
-    onNoticeBeds,
-  };
-
   const handleAddFlatClick = () => {
     setFlatToEdit(undefined);
     setIsAddDialogOpen(true);
@@ -294,38 +195,6 @@ export default function AccommodationWorkspacePage() {
     setFlatToDelete(undefined);
   };
 
-  // Filter flats dynamically
-  const filteredFlats = flats.filter((flat) => {
-    // 1. Status Filter: A flat matches if it has at least one bed matching the filter,
-    // or if the filter is 'ALL'.
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      flat.areas.some((area) =>
-        area.beds.some((bed) => {
-          if (statusFilter === BedStatus.OCCUPIED) {
-            return bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE;
-          }
-          return bed.status === statusFilter;
-        })
-      );
-
-    // 2. Search Query Filter: matches flat number/name, bed ID/name, or resident name.
-    const matchesSearch =
-      searchQuery.trim() === '' ||
-      flat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      flat.areas.some((area) =>
-        area.beds.some(
-          (bed) =>
-            bed.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            bed.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (bed.residentName &&
-              bed.residentName.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      );
-
-    return matchesStatus && matchesSearch;
-  });
-
   return (
     <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
       <PageHeader
@@ -343,7 +212,7 @@ export default function AccommodationWorkspacePage() {
       />
 
       <AccommodationSummary
-        stats={stats}
+        stats={viewModel.stats}
         onCardClick={(key) => {
           if (key === 'VACANT' || key === 'OCCUPIED' || key === 'ON_NOTICE') {
             setStatusFilter(key);
@@ -360,7 +229,7 @@ export default function AccommodationWorkspacePage() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      {flats.length === 0 ? (
+      {viewModel.flats.length === 0 ? (
         <EmptyState
           action={
             <Button
@@ -377,7 +246,7 @@ export default function AccommodationWorkspacePage() {
         />
       ) : (
         <Stack spacing={4}>
-          {filteredFlats.map((flat) => (
+          {viewModel.filteredFlats.map((flat) => (
             <FlatCard
               key={flat.id}
               flat={flat}
@@ -385,7 +254,7 @@ export default function AccommodationWorkspacePage() {
               onDelete={() => handleDeleteFlatClick(flat)}
             />
           ))}
-          {filteredFlats.length === 0 && (
+          {viewModel.filteredFlats.length === 0 && (
             <EmptyState
               title="No Matching Flats Found"
               description="Try adjusting your search query or bed status filter."

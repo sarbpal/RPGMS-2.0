@@ -25,6 +25,13 @@ Business rules belong in AI_CONTEXT.md.
 
 AI behaviour belongs in AI_GOVERNANCE.md.
 
+Before proposing changes to entities, aggregate boundaries, ownership, or business processes, review:
+
+BUSINESS_BLUEPRINT.md
+BUSINESS_RULES.md
+DOMAIN_MODEL.md
+ARCHITECTURE.md
+
 ------------------------------------------------------------------------------
 Documentation Reading Order
 ------------------------------------------------------------------------------

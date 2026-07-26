@@ -18,7 +18,7 @@
 
 # Purpose
 
-This document defines the software architecture of RPGMS.
+This document describes the software architecture of RPGMS 2.0. Business concepts, entities and aggregate boundaries are defined in DOMAIN_MODEL.md.
 
 Its purpose is to describe how the software is organised to implement the business architecture defined by RPGMS while remaining maintainable, scalable and consistent throughout the lifetime of the product.
 

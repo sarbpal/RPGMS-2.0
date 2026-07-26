@@ -31,6 +31,13 @@ Those are documented separately in:
 - AI_GOVERNANCE.md
 - AI_INSTRUCTIONS.md
 
+Before proposing changes to entities, aggregate boundaries, ownership, or business processes, review:
+
+BUSINESS_BLUEPRINT.md
+BUSINESS_RULES.md
+DOMAIN_MODEL.md
+ARCHITECTURE.md
+
 ------------------------------------------------------------------------------
 Project Overview
 ------------------------------------------------------------------------------

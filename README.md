@@ -1,51 +1,84 @@
 # RPGMS 2.0
 
-**RPGMS (Ritu PG Management System)** is a modern web application for managing a single Paying Guest (PG) accommodation.
+**RPGMS (Ritu PG Management System)** is a modern web application for managing a single-property Paying Guest (PG) accommodation.
 
-The application replaces the existing Google Sheets + Apps Script solution with a modern React application powered by Supabase.
+The application replaces the existing Google Sheets and Google Apps Script solution with a modern React application powered by Supabase.
 
 ---
 
 ## Current Status
 
-🚧 Under Active Development
+🚧 **Under Active Development**
 
-Current Version: MVP
+**Current Phase:** MVP Implementation
+
+**Architecture Foundation:** Completed
 
 ---
 
+## Project Vision
+
+RPGMS 2.0 is designed as a modern hostel management system that emphasises:
+
+- Clear business modelling
+- Strong financial integrity
+- AI-assisted development
+- Maintainable architecture
+- Incremental MVP delivery
+
+The architecture is designed to support future expansion while remaining simple and pragmatic for the current business.
+
 ---
 
-## AI Documentation
+## Project Documentation
 
-RPGMS 2.0 is designed for AI-assisted development. Before contributing to the project, both developers and AI coding assistants should review the following documents.
+### Constitutional Documents
+
+These documents define the permanent business and architectural foundation of RPGMS 2.0.
 
 | Document | Purpose |
 |----------|---------|
-| AI_ONBOARDING.md | Primary onboarding guide for any AI assistant. |
-| AI_HANDOFF.md | Quick project summary to resume development efficiently. |
-| AI_CONTEXT.md | High-level project context and business overview. |
-| AI_INSTRUCTIONS.md | AI coding instructions and implementation guidelines. |
-| PROJECT_RULES.md | Mandatory engineering and project rules. |
-| SESSION.md | Current development session and next tasks. |
-| ROADMAP.md | Milestones, sprints, and implementation roadmap. |
-| CHANGELOG.md | History of project changes. |
+| BUSINESS_BLUEPRINT.md | Business vision, objectives and scope |
+| BUSINESS_RULES.md | Operational business rules |
+| DOMAIN_MODEL.md | Business domains, entities and relationships |
+| ARCHITECTURE.md | Software architecture and implementation principles |
 
-> **Note:** AI assistants should read these documents before generating or modifying code.
+### Project & AI Documentation
+
+These documents support implementation and day-to-day development.
+
+| Document | Purpose |
+|----------|---------|
+| DOCUMENTATION_INDEX.md | Documentation entry point |
+| AI_GOVERNANCE.md | AI operating rules |
+| AI_CONTEXT.md | Project context and business overview |
+| AI_INSTRUCTIONS.md | AI coding instructions and implementation guidelines |
+| PROJECT_RULES.md | Mandatory engineering and project rules |
+| ROADMAP.md | Milestones and implementation roadmap |
+| CHANGELOG.md | Development history |
+| SESSION.md | Current development session |
+| NEXT_TASK.md | Immediate implementation task |
+
+> **Recommendation:** All developers and AI coding assistants should begin with `DOCUMENTATION_INDEX.md`.
+
+---
 
 ## Technology Stack
 
 ### Frontend
+
 - React
 - TypeScript
 - Vite
 - Material UI
 
 ### Backend
+
 - Supabase
 - PostgreSQL
 
 ### Deployment
+
 - GitHub
 - Vercel
 
@@ -55,28 +88,45 @@ RPGMS 2.0 is designed for AI-assisted development. Before contributing to the pr
 
 - Dashboard
 - Accommodation
+- Reservations
 - Residents
 - Finance
 - Electricity
+- Maintenance
+- Reports
 - Settings
 
 ---
 
 ## Architecture
 
-The application follows the engineering and architectural principles defined in:
+RPGMS 2.0 follows a layered documentation and architecture model.
+
+### Constitutional Foundation
+
+- BUSINESS_BLUEPRINT.md
+- BUSINESS_RULES.md
+- DOMAIN_MODEL.md
+- ARCHITECTURE.md
+
+### Engineering Standards
 
 - PROJECT_RULES.md
-- docs/ARCHITECTURE.md
-- docs/DECISIONS.md
-- docs/BUSINESS_RULES.md
+- DECISIONS.md
+
+Implementation should always remain consistent with these documents.
+
+---
 
 ## Development Philosophy
 
+- Business First
 - MVP First
 - No Over Engineering
-- Ledger is the only source of truth
-- Deploy after every sprint
+- Ledger is the financial source of truth
+- Preserve historical business data
+- Documentation evolves with business and architecture
+- Deploy after every completed sprint
 
 ---
 

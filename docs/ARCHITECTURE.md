@@ -1,857 +1,2637 @@
-# RPGMS 2.0 – Architecture
+# RPGMS 2.0 – Software Architecture
 
-**Version:** 2.0  
-**Status:** Active  
-**Last Updated:** 21 July 2026
+---
+
+## Document Information
+
+**Document ID:** ARCHITECTURE.md
+
+**Version:** 3.0
+
+**Status:** Approved Software Architecture
+
+**Owner:** RPGMS Architecture
+
+**Last Updated:** 26 July 2026
 
 ---
 
 # Purpose
 
-This document defines the software architecture of RPGMS 2.0.
+This document defines the software architecture of RPGMS.
 
-Its purpose is to ensure that the application remains simple, consistent, maintainable, scalable, and aligned with the business architecture throughout its lifetime.
+Its purpose is to describe how the software is organised to implement the business architecture defined by RPGMS while remaining maintainable, scalable and consistent throughout the lifetime of the product.
 
-This document describes **how the system is organized** and **how its major components relate to one another**.
+This document establishes the architectural principles, responsibilities and structural boundaries that guide software development across every module of the application.
 
-Major architectural decisions are formally recorded in `DECISIONS.md`.
+---
 
-This document describes the current architecture, while `DECISIONS.md` records the rationale behind significant architectural changes over time.
+# Scope
 
-It intentionally does **not** define:
+This document defines:
 
+- Software architecture
+- Architectural principles
+- Architectural layers
+- Domain architecture
+- Cross-cutting architectural services
+- Data architecture
+- Event architecture
+- Security architecture
+- User interface architecture
+- Architectural governance
+
+This document intentionally does **not** define:
+
+- Business concepts
+- Business policies
 - Business rules
-- Business workflows
-- Domain specifications
-- Implementation details
+- Operational workflows
+- Database schema
+- API contracts
+- User interface implementation
 - Product roadmap
 
-Those responsibilities belong to their respective governance documents.
+These responsibilities belong to their respective governance documents.
+
+---
+
+# Relationship to Other Documents
+
+RPGMS documentation follows a layered governance model.
+
+Each document has a single, clearly defined responsibility.
+
+### BUSINESS_BLUEPRINT.md
+
+Defines:
+
+> **What the business is.**
+
+It describes the business concepts, business relationships and business lifecycles that exist independently of software implementation.
+
+---
+
+### BUSINESS_RULES.md
+
+Defines:
+
+> **What the business must do.**
+
+It specifies the mandatory business rules governing every operational and financial activity within RPGMS.
+
+---
+
+### ARCHITECTURE.md
+
+Defines:
+
+> **How the software realises the business.**
+
+It explains how the software is organised to implement the Business Blueprint and enforce the Business Rules.
+
+---
+
+Together these documents establish a complete architectural foundation for RPGMS.
+
+---
+
+# Architectural Objectives
+
+The architecture of RPGMS is designed to achieve the following objectives:
+
+- Alignment with the Business Blueprint
+- Enforcement of Business Rules
+- Clear separation of responsibilities
+- High maintainability
+- Long-term scalability
+- Predictable evolution
+- Consistent implementation
+- Simplicity over unnecessary complexity
+
+Every architectural decision should support one or more of these objectives.
+
+---
+
+# Architectural Philosophy
+
+The software architecture exists to serve the business.
+
+Business architecture determines **what** the software must represent.
+
+Business rules determine **what** the software must enforce.
+
+Software architecture determines **how** those responsibilities are organised into a maintainable and scalable system.
+
+Technology choices may evolve over time.
+
+The architectural principles defined in this document are intended to remain stable throughout the lifetime of RPGMS.
 
 ---
 
 # Architectural Principles
 
-The following principles guide every architectural decision made within RPGMS.
+The following principles govern every architectural decision made within RPGMS.
 
-## 1. Business First
-
-The application is organized around business capabilities rather than technical layers.
-
-Examples include:
-
-- Dashboard
-- Accommodation
-- Residents
-- Stay
-- Finance
-- Billing
-- Compliance
-- Reporting
-- Settings
-
-Each business capability owns its own implementation.
+These principles are intended to remain stable regardless of programming language, framework or infrastructure.
 
 ---
 
-## 2. Keep It Simple
+## AP-001 Business Before Technology
 
-Architecture should remain as simple as possible.
+### Principle
 
-Avoid unnecessary abstractions.
+Software architecture shall always serve the business architecture.
 
-Avoid introducing complexity for hypothetical future requirements.
+Technology choices shall support business objectives rather than define them.
 
-New architectural patterns should only be introduced when they solve a demonstrated business problem.
+### Rationale
 
----
+Business requirements evolve more slowly than technology.
 
-## 3. Feature First
-
-Business functionality belongs inside Feature modules.
-
-Reusable functionality belongs inside Shared modules.
-
-Features should remain cohesive and self-contained.
+By placing business architecture first, RPGMS remains resilient to changes in implementation technology.
 
 ---
 
-## 4. Single Responsibility
+## AP-002 Clear Separation of Responsibilities
 
-Every folder, module, and document should have one clearly defined responsibility.
+### Principle
 
-If a responsibility cannot be described in a single sentence, it should be reconsidered.
+Every architectural layer, domain, service and component shall have one clearly defined responsibility.
 
----
+Responsibilities shall not overlap unnecessarily.
 
-## 5. Derive Before Store
+### Rationale
 
-Whenever information can be calculated from existing data, it should be derived rather than stored.
-
-Examples include:
-
-- Flat Capacity
-- Bed IDs
-- Outstanding Balances
-- Running Totals
-- Occupancy Counts
-
-Derived data reduces duplication and improves consistency.
+Clear responsibility simplifies development, testing, maintenance and future evolution.
 
 ---
 
-## 6. Explicit Domain Ownership
+## AP-003 Domain Ownership
 
-Every business entity has exactly one owning domain.
+### Principle
 
-Other domains may reference that entity but must not duplicate its business logic or ownership.
+Every business capability shall have exactly one owning software domain.
 
----
+The owning domain is responsible for implementing:
 
-## 7. Single Source of Truth
+- Business behaviour
+- Business validation
+- Business state
+- Domain services
 
-Every business fact has exactly one authoritative source.
+Other domains may reference owned information but shall not duplicate ownership.
 
-Examples include:
+### Rationale
 
-- Resident identity belongs to the Resident domain.
-- Operational residency belongs to the Stay domain.
-- Accommodation hierarchy belongs to the Accommodation domain.
-- Financial history belongs to the Finance domain.
-- Ledger entries are the single source of truth for all financial reporting.
-
-Information may be derived or referenced by other domains but must never be duplicated as an independent source of truth.
-
-# Business Architecture
-
-The business architecture defines the fundamental structure of RPGMS.
-
-Business architecture changes very rarely and provides the foundation upon which every feature is built.
+Single ownership prevents inconsistent implementations and conflicting business logic.
 
 ---
 
-## Business Domains
+## AP-004 Single Source of Truth
 
-The application is organised into independent business domains.
+### Principle
 
-Current domains include:
+Every business fact shall have one authoritative software representation.
 
-- Dashboard
-- Accommodation
-- Residents
-- Stay
-- Finance
-- Billing
-- Compliance
-- Door IDs
-- Complaints
-- Reporting
-- Settings
+Derived information shall originate from its authoritative source rather than independent duplication.
 
-The Stay Workspace does not own business entities. It orchestrates interactions between the owning domains.
+### Rationale
 
-Each domain owns its own business rules, data model, services, components, and user interface.
+A single source of truth improves consistency and reduces maintenance complexity.
 
 ---
-## Operational Architecture
 
-The operational workflows of RPGMS 2.0 are documented separately in:
+## AP-005 Layered Responsibilities
 
-- docs/STAY_WORKSPACE.md
+### Principle
 
-This document defines the Current Stay as the operational unit of the system and describes how Accommodation, Residents, Finance and the Stay Workspace interact to support day-to-day hostel operations.
+Software responsibilities shall be organised into clearly defined architectural layers.
 
-## Application Layer
+Each layer shall depend only upon responsibilities beneath it.
 
-RPGMS 2.0 separates Presentation from Domain logic through an Application Layer.
+Higher layers coordinate behaviour.
 
-The Application Layer is responsible for coordinating multiple business domains required to fulfill a user workflow. It contains orchestration logic but does not own business rules.
+Lower layers implement specialised responsibilities.
 
-Responsibilities include:
+### Rationale
 
-- Coordinating multiple domain services.
-- Loading data required by a workspace.
-- Preparing ViewModels for presentation components.
-- Invoking domain operations.
-- Managing workflow state for a page.
+Layered architecture improves maintainability and reduces coupling.
 
-The Application Layer does NOT:
+---
 
-- Implement business rules.
-- Perform financial calculations.
-- Manage persistence.
-- Replace domain services.
+## AP-006 Business Logic Belongs to the Domain
 
-Presentation components communicate only with the Application Layer and never directly with domain services or repositories.
+### Principle
 
-### Coordinator Responsibilities
+Business rules and business calculations shall be implemented within the domain responsible for that business capability.
 
-Each workspace may define a **Coordinator** as part of its Application Layer.
+Presentation, orchestration and infrastructure layers shall not duplicate business logic.
 
-The Coordinator is responsible for orchestrating the workflow of a single workspace. It coordinates interactions between multiple business domains and prepares data for presentation, while remaining independent of UI implementation details.
+### Rationale
 
-#### Responsibilities
+Business behaviour should exist in exactly one location.
 
-A Coordinator is responsible for:
+---
 
-- Coordinating interactions between multiple domain services.
-- Loading and aggregating data required by the workspace.
-- Preparing a ViewModel for presentation components.
-- Invoking domain operations in response to user actions.
-- Managing page-level workflow and state.
-- Handling loading, success, and error states for the workspace.
+## AP-007 Feature Cohesion
 
-#### Non-Responsibilities
+### Principle
 
-A Coordinator must **not**:
+Each feature module shall own the complete implementation of its business capability.
 
-- Contain business rules.
-- Perform financial or billing calculations.
-- Duplicate logic owned by domain services.
-- Access the database or Supabase directly.
-- Know about Material UI, page layout, or presentation details.
-- Render UI components.
-- Replace domain services or repositories.
+Implementation details belonging to one feature shall remain encapsulated within that feature wherever practical.
 
-The Coordinator serves as an orchestration layer between the Presentation Layer and the Domain Layer, ensuring that presentation components remain simple, reusable, and focused solely on rendering data.
+### Rationale
 
+Feature cohesion improves maintainability and enables independent evolution.
+
+---
+
+## AP-008 Simplicity Over Complexity
+
+### Principle
+
+Architectural solutions shall remain as simple as possible while satisfying demonstrated business requirements.
+
+Additional complexity shall only be introduced when justified by clear architectural benefit.
+
+### Rationale
+
+Simple architectures are easier to understand, maintain and extend.
+
+---
+
+## AP-009 Explicit Dependencies
+
+### Principle
+
+Dependencies between architectural components shall remain explicit and directional.
+
+Circular dependencies shall be avoided.
+
+Implementation details shall never become architectural dependencies.
+
+### Rationale
+
+Explicit dependency management preserves architectural integrity.
+
+---
+
+## AP-010 Event-Driven Accountability
+
+### Principle
+
+Significant business operations shall be represented as Business Events.
+
+Architectural services such as Audit, Notifications and Reporting shall derive behaviour from those events rather than directly from user interface actions.
+
+### Rationale
+
+An event-driven approach improves traceability, extensibility and consistency across the application.
+
+---
+
+## AP-011 Historical Integrity
+
+### Principle
+
+The architecture shall preserve historical business truth.
+
+Architectural decisions shall support immutable business history rather than permitting historical modification.
+
+### Rationale
+
+Historical integrity is essential for operational trust, financial accuracy and auditability.
+
+---
+
+## AP-012 Evolution Without Disruption
+
+### Principle
+
+The architecture shall support future expansion without requiring fundamental redesign of existing business domains.
+
+New capabilities shall extend the architecture rather than replace established responsibilities.
+
+### Rationale
+
+Long-term stability enables predictable growth while protecting existing functionality.
+
+---
+
+# Architectural Principles Summary
+
+The architecture of RPGMS is guided by a small set of stable principles:
+
+- Business before technology
+- Clear ownership
+- Single responsibility
+- Single source of truth
+- Layered organisation
+- Feature cohesion
+- Event-driven accountability
+- Historical integrity
+- Evolution through extension
+
+These principles provide the foundation for every architectural decision made within the project.
+
+---
+
+# Layered Architecture
+
+RPGMS adopts a layered software architecture to achieve clear separation of responsibilities.
+
+Each layer has a well-defined purpose and communicates only with the layers immediately adjacent to it.
+
+This separation improves maintainability, testability and long-term scalability.
+
+---
+
+## Architectural Layers
+
+The software is organised into five primary layers.
+
+```text
 Presentation Layer
         │
         ▼
 Application Layer
-(Coordinator + ViewModel)
         │
         ▼
 Domain Layer
         │
         ▼
 Infrastructure Layer
-
-StayWorkspacePage
         │
         ▼
-StayWorkspaceCoordinator
-        │
-        ├── Load Stay
-        ├── Load Resident
-        ├── Load Accommodation
-        ├── Load Financial Summary
-        ├── Load Timeline
-        └── Prepare ViewModel
-        │
-        ▼
-StayWorkspaceViewModel
-        │
-        ▼
-StayHeader
-QuickActions
-StaySummaryCard
-FinancialSummaryCard
-TimelinePanel
-SupportingInformationPanel
-
-Note: The Coordinator orchestrates workflows across multiple business domains but does not own business rules. Business rules remain within their respective domain services.
-
-## Domain Ownership
-
-Each business entity has one and only one owning domain.
-
-| Business Entity | Owning Domain |
-|-----------------|---------------|
-| Resident | Resident |
-| Stay | Stay |
-| Flat | Accommodation |
-| Area | Accommodation |
-| Bed | Accommodation |
-| Ledger | Finance |
-| Payment | Finance |
-| Billing Cycle | Billing |
-| Door ID | Door IDs |
-| Complaint | Complaints |
-
-Business entities may be referenced by other domains, but ownership always remains with the originating domain.
-
----
-
-## Resident and Stay Architecture
-
-Resident and Stay represent two distinct business concepts.
-
-A **Resident** represents a person.
-
-A **Stay** represents one continuous period of accommodation.
-
-A Resident may have multiple Stays throughout their lifetime.
-
-Each Stay owns its own:
-
-- Accommodation
-- Commercial Terms
-- Contract
-- Billing
-- Ledger
-- Compliance
-- Door ID
-- Lifecycle
-
-Resident identity remains permanent regardless of the number of Stays.
-
----
-
-## Accommodation Architecture
-
-Accommodation follows the physical hierarchy of the property.
-
-```text
-Property
-    ↓
-Flat
-    ↓
-Area
-    ↓
-Bed
+Persistence Layer
 ```
 
-Areas describe the internal layout of a Flat.
-
-Beds belong to an Area.
-
-Capacity is always derived from the generated beds.
-
-Accommodation is the foundation for occupancy management throughout RPGMS.
+Each layer performs a distinct architectural responsibility.
 
 ---
 
-# Software Architecture
+## Presentation Layer
 
-The software architecture defines how the application is organised internally while supporting the business architecture.
+### Responsibility
 
-Business architecture determines **what** the system does.
-
-Software architecture determines **how** the system is organised to deliver those capabilities.
-
----
-
-## Repository Structure
-
-The repository contains a single React application.
-
-```text
-RPGMS-2.0/
-
-src/
-public/
-docs/
-prompts/
-
-README.md
-PROJECT_RULES.md
-AI_CONTEXT.md
-AI_INSTRUCTIONS.md
-ROADMAP.md
-CHANGELOG.md
-SESSION.md
-NEXT_TASK.md
-```
-
-There is only one project root.
-
-Documentation, prompts, and application source are maintained separately.
-
----
-
-## Source Structure
-
-```text
-src/
-
-app/
-assets/
-components/
-constants/
-features/
-services/
-theme/
-types/
-utils/
-
-main.tsx
-```
-
-The top-level structure is intentionally small and stable.
-
-New top-level folders should only be introduced when they solve a genuine architectural problem.
-
----
-
-## Layer Responsibilities
-
-| Layer | Responsibility |
-|--------|----------------|
-| app | Application bootstrap, routing, providers |
-| assets | Images, fonts, icons, and other static assets |
-| components | Shared reusable UI components |
-| constants | Application-wide constants |
-| features | Business domains and feature modules |
-| services | Shared infrastructure services |
-| theme | Material UI theme and design tokens |
-| types | Shared application types |
-| utils | Pure reusable utility functions |
-
-Business-specific components, types, services, hooks, and utilities belong within their owning feature.
-
----
-
-## Feature Module Structure
-
-Each feature module owns its complete implementation.
-
-A typical feature may contain:
-
-```text
-feature/
-
-components/
-hooks/
-pages/
-services/
-types/
-utils/
-validation/
-```
-
-Not every feature requires every folder.
-
-Only introduce folders when they provide clear organisational value.
-
----
-
-# Dependency Rules
-
-Dependencies should always flow inward toward the business domains.
-
-Business modules must remain independent of one another wherever practical.
-
-```text
-main.tsx
-    ↓
-app
-    ↓
-features
-    ↓
-shared components / shared services
-    ↓
-shared utilities
-```
-
-Lower layers must never depend on higher layers.
-
-Shared infrastructure must never depend upon business features.
-
-Business features should communicate through well-defined interfaces rather than implementation details.
-
----
-
-## Dependency Principles
-
-The following rules govern all dependencies within the application.
-
-### Features are Independent
-
-Business features should not directly depend on implementation details belonging to another feature.
-
-Cross-feature communication should occur only through shared models, public interfaces, or shared services.
-
----
-
-### Shared Modules are Generic
-
-Shared modules must remain business agnostic.
-
-They may be used by any feature but must never contain feature-specific logic.
-
-Examples include:
-
-- Generic UI components
-- Formatting utilities
-- Validation helpers
-- Common TypeScript types
-- Infrastructure services
-
----
-
-### Business Logic Stays with the Domain
-
-Business logic always belongs to the feature that owns the business capability.
-
-For example:
-
-- Accommodation calculations belong to Accommodation.
-- Billing calculations belong to Billing.
-- Financial posting belongs to Finance.
-- Resident validation belongs to Resident.
-- Stay lifecycle management belongs to Stay.
-
-Business logic must never be duplicated across features.
-
----
-
-### UI Never Owns Business Logic
-
-User interface components are responsible only for:
-
-- Presentation
-- User interaction
-- Validation
-- Orchestration
-- Invoking business services
-
-UI components must never contain duplicated business calculations.
-
-Business rules should always execute within reusable utilities or domain services.
-
----
-
-# Architectural Boundaries
-
-Architectural boundaries protect the separation of responsibilities across the application.
-
-The following boundaries are considered mandatory.
-
-## Resident Boundary
-
-The Resident domain owns permanent identity information.
-
-Examples include:
-
-- Resident Code
-- Personal Details
-- Contact Information
-- Identity Documents
-
-Resident data persists throughout the lifetime of the person.
-
----
-
-## Stay Boundary
-
-The Stay domain owns operational residency.
-
-Each Stay owns:
-
-- Accommodation
-- Contract
-- Commercial Terms
-- Billing
-- Ledger Association
-- Notice
-- Checkout
-- Lifecycle
-
-Readmission creates a new Stay.
-
-Existing Stay records are never rewritten.
-
----
-
-## Finance Boundary
-
-The Finance domain owns all financial transactions.
-
-Finance is responsible for:
-
-- Ledger Entries
-- Payments
-- Deposits
-- Refunds
-- Outstanding Balances
-
-Balances are always derived from ledger entries.
-
----
-
-## Accommodation Boundary
-
-Accommodation owns the physical layout of the property.
+The Presentation Layer provides the user interface through which users interact with RPGMS.
 
 It is responsible for:
 
+- Rendering user interface components
+- Collecting user input
+- Displaying business information
+- Presenting workflow state
+- Initiating user actions
+
+### The Presentation Layer shall not:
+
+- Implement business rules
+- Perform business calculations
+- Access persistence directly
+- Coordinate multiple business domains
+
+---
+
+## Application Layer
+
+### Responsibility
+
+The Application Layer coordinates business workflows.
+
+It acts as the bridge between the Presentation Layer and the Domain Layer.
+
+Typical responsibilities include:
+
+- Coordinating multiple business domains
+- Executing application use cases
+- Preparing View Models
+- Managing workflow state
+- Handling user requests
+- Coordinating transactions
+
+The Application Layer orchestrates business operations but does not own business behaviour.
+
+---
+
+## Coordinators
+
+Where a workflow spans multiple business domains, the Application Layer may define a Coordinator.
+
+Examples include:
+
+- Stay Workspace Coordinator
+- Admission Coordinator
+- Checkout Coordinator
+- Reservation Coordinator
+
+A Coordinator is responsible for orchestrating a single business workflow.
+
+A Coordinator shall not:
+
+- Contain business rules
+- Perform business calculations
+- Access infrastructure directly
+- Render user interface components
+
+---
+
+## Domain Layer
+
+### Responsibility
+
+The Domain Layer implements the business architecture.
+
+Every software domain corresponds to an owning business domain defined in the Business Blueprint.
+
+The Domain Layer owns:
+
+- Business entities
+- Business services
+- Domain validation
+- Business calculations
+- Domain events
+- Aggregate consistency
+
+Business behaviour shall exist only within the Domain Layer.
+
+---
+
+## Infrastructure Layer
+
+### Responsibility
+
+The Infrastructure Layer provides technical capabilities required by the application.
+
+Examples include:
+
+- Database access
+- External services
+- Authentication providers
+- Notification providers
+- File storage
+- Logging
+- Repository implementations
+
+Infrastructure implements technical concerns while remaining independent of business behaviour.
+
+---
+
+## Persistence Layer
+
+### Responsibility
+
+The Persistence Layer provides durable storage for business information.
+
+Persistence technologies may evolve without requiring changes to business architecture.
+
+The Persistence Layer shall not contain business rules.
+
+---
+
+# Dependency Direction
+
+Dependencies always flow downward through the architecture.
+
+```text
+Presentation
+        │
+        ▼
+Application
+        │
+        ▼
+Domain
+        │
+        ▼
+Infrastructure
+        │
+        ▼
+Persistence
+```
+
+Lower layers shall never depend upon higher layers.
+
+---
+
+# Layer Communication Rules
+
+## Presentation → Application
+
+Presentation components invoke application workflows.
+
+Presentation never bypasses the Application Layer.
+
+---
+
+## Application → Domain
+
+Application coordinates domain behaviour.
+
+Application never duplicates business rules.
+
+---
+
+## Domain → Infrastructure
+
+The Domain Layer communicates through defined abstractions.
+
+The Domain Layer remains independent of implementation technologies.
+
+---
+
+## Infrastructure → Persistence
+
+Infrastructure manages storage and integration concerns.
+
+Persistence details remain encapsulated within Infrastructure.
+
+---
+
+# Layer Responsibilities Summary
+
+| Layer | Primary Responsibility |
+|--------|------------------------|
+| Presentation | User interaction |
+| Application | Workflow orchestration |
+| Domain | Business behaviour |
+| Infrastructure | Technical services |
+| Persistence | Durable storage |
+
+Together these layers provide a stable architectural framework that separates business concerns from technical implementation while preserving alignment with the Business Blueprint and Business Rules.
+
+---
+
+# Domain Architecture
+
+The Domain Architecture defines how the software implements the business domains described in the Business Blueprint.
+
+Each Software Domain is responsible for implementing one Business Domain.
+
+Software Domains own business behaviour.
+
+Cross-domain workflows are coordinated by the Application Layer.
+
+Software Domains communicate through well-defined interfaces and Business Events rather than implementation details.
+
+---
+
+# Domain Responsibilities
+
+Every Software Domain shall:
+
+- Implement one Business Domain
+- Own its business behaviour
+- Enforce Business Rules
+- Maintain domain consistency
+- Publish Business Events
+- Expose well-defined public services
+
+Software Domains shall not duplicate responsibilities owned by another domain.
+
+---
+
+# Core Software Domains
+
+The following domains form the core architecture of RPGMS.
+
+---
+
+## Dashboard Domain
+
+### Purpose
+
+Provides operational visibility across the application.
+
+### Responsibilities
+
+- Operational summaries
+- Key performance indicators
+- Alerts
+- Business insights
+
+### Owns
+
+- Dashboard Views
+- Dashboard Services
+
+Dashboard does not own business data.
+
+---
+
+## Accommodation Domain
+
+### Purpose
+
+Implements the physical accommodation model.
+
+### Responsibilities
+
+- Property
 - Flats
 - Areas
 - Beds
-- Occupancy
+- Occupancy availability
 
-Accommodation does not own residents, contracts, or finance.
+### Owns
+
+- Property
+- Flat
+- Area
+- Bed
+
+Produces Business Events including:
+
+- Bed Created
+- Bed Status Changed
+- Bed Blocked
+- Bed Released
+
+---
+
+## Resident Domain
+
+### Purpose
+
+Implements permanent resident identity.
+
+### Responsibilities
+
+- Resident profile
+- Personal information
+- Contact information
+- Identity documents
+
+### Owns
+
+- Resident
+
+Produces Business Events including:
+
+- Resident Created
+- Resident Updated
+- Resident Archived
+
+---
+
+## Stay Domain
+
+### Purpose
+
+Implements operational residency.
+
+### Responsibilities
+
+- Admission
+- Stay lifecycle
+- Bed allocation
+- Operational resources
+- Checkout
+
+### Owns
+
+- Stay
+
+Produces Business Events including:
+
+- Stay Created
+- Bed Allocated
+- Stay Checked Out
+- Stay Closed
+
+---
+
+## Reservation Domain
+
+### Purpose
+
+Implements reservation management.
+
+### Responsibilities
+
+- Reservation lifecycle
+- Reservation validity
+- Reservation conversion
+- Reservation cancellation
+
+### Owns
+
+- Reservation
+
+Produces Business Events including:
+
+- Reservation Created
+- Reservation Confirmed
+- Reservation Cancelled
+- Reservation Converted
+
+---
+
+## Finance Domain
+
+### Purpose
+
+Implements financial accounting.
+
+### Responsibilities
+
+- Charges
+- Payments
+- Ledger
+- Deposits
+- Settlement
+
+### Owns
+
+- Charge
+- Payment
+- Ledger
+- Deposit
+
+Produces Business Events including:
+
+- Charge Raised
+- Payment Received
+- Deposit Collected
+- Settlement Completed
+
+---
+
+## Maintenance Domain
+
+### Purpose
+
+Implements maintenance management.
+
+### Responsibilities
+
+- Maintenance requests
+- Work orders
+- Resolution tracking
+
+Produces Business Events including:
+
+- Maintenance Reported
+- Work Assigned
+- Work Completed
+
+---
+
+## Complaints Domain
+
+### Purpose
+
+Implements complaint management.
+
+### Responsibilities
+
+- Complaint registration
+- Investigation
+- Resolution
+
+Produces Business Events including:
+
+- Complaint Logged
+- Complaint Escalated
+- Complaint Closed
+
+---
+
+## Reporting Domain
+
+### Purpose
+
+Provides business reporting.
+
+### Responsibilities
+
+- Report generation
+- Business analytics
+- Operational summaries
+
+Reporting derives information from other domains.
+
+Reporting owns no business entities.
+
+---
+
+## Notification Domain
+
+### Purpose
+
+Implements business communication.
+
+### Responsibilities
+
+- Notification generation
+- Delivery coordination
+- Communication history
+
+Notifications derive from Business Events.
+
+Notifications do not modify business data.
+
+---
+
+## Configuration Domain
+
+### Purpose
+
+Implements business configuration.
+
+### Responsibilities
+
+- Business defaults
+- Operational policies
+- Configurable behaviour
+
+Configuration influences future operations but does not modify historical business records.
+
+---
+
+# Domain Independence
+
+Software Domains remain independently maintainable.
+
+Domains communicate through:
+
+- Public services
+- Business Events
+- Shared contracts
+
+Domains shall never depend upon another domain's internal implementation.
+
+---
+
+# Cross-Domain Workflows
+
+Business workflows frequently involve multiple domains.
+
+Examples include:
+
+Admission
+
+```text
+Reservation
+        │
+        ▼
+Resident
+        │
+        ▼
+Stay
+        │
+        ▼
+Accommodation
+        │
+        ▼
+Finance
+```
+
+Checkout
+
+```text
+Stay
+        │
+        ▼
+Finance
+        │
+        ▼
+Settlement
+        │
+        ▼
+Notification
+```
+
+The Application Layer coordinates these workflows.
+
+Individual domains remain responsible only for their own business behaviour.
+
+---
+
+# Domain Architecture Summary
+
+Software Domains provide the primary organisational structure of RPGMS.
+
+Each domain owns one business capability.
+
+Each domain enforces its own Business Rules.
+
+Cross-domain workflows are coordinated rather than shared.
+
+This architecture enables independent evolution while preserving business consistency across the application.
+
+---
+
+# Cross-Cutting Architectural Services
+
+Cross-Cutting Architectural Services provide shared technical and application capabilities that support multiple Software Domains.
+
+Unlike Software Domains, Architectural Services do not own business concepts or business behaviour.
+
+Their purpose is to provide reusable capabilities while preserving the independence of each Software Domain.
+
+---
+
+# Architectural Service Principles
+
+Every Architectural Service shall:
+
+- Support multiple Software Domains
+- Remain independent of business ownership
+- Expose well-defined interfaces
+- Avoid storing duplicated business information
+- Derive behaviour from Business Events where appropriate
+
+Architectural Services shall never become owners of business concepts.
+
+---
+
+# Authentication Service
+
+## Purpose
+
+Authenticates users accessing RPGMS.
+
+## Responsibilities
+
+- User authentication
+- Session establishment
+- Identity verification
+- Authentication providers
+
+Authentication determines identity only.
+
+It does not determine authorisation.
+
+---
+
+# Authorisation Service
+
+## Purpose
+
+Determines whether an authenticated user is permitted to perform a requested business operation.
+
+## Responsibilities
+
+- Role evaluation
+- Permission evaluation
+- Access decisions
+- Administrative authority
+
+Business Domains rely upon Authorisation rather than implementing permission logic independently.
+
+---
+
+# Audit Service
+
+## Purpose
+
+Provides permanent accountability for significant business activity.
+
+## Responsibilities
+
+- Audit recording
+- Audit retrieval
+- Timeline generation
+- Historical traceability
+
+The Audit Service derives information from Business Events.
+
+It does not create business behaviour.
+
+---
+
+# Notification Service
+
+## Purpose
+
+Coordinates business communication.
+
+## Responsibilities
+
+- Notification generation
+- Delivery scheduling
+- Channel selection
+- Delivery history
+
+Notifications are generated from completed Business Events.
+
+Notifications never modify business state.
+
+---
+
+# Search Service
+
+## Purpose
+
+Provides unified discovery of business information.
+
+## Responsibilities
+
+- Search indexing
+- Query execution
+- Result aggregation
+- Permission-aware filtering
+
+Search does not own business information.
+
+Search provides discovery only.
+
+---
+
+# Reporting Service
+
+## Purpose
+
+Provides operational and analytical reporting across RPGMS.
+
+## Responsibilities
+
+- Report generation
+- Business analytics
+- Trend analysis
+- Operational summaries
+
+Reporting derives information from authoritative business domains.
+
+Reporting never becomes an independent source of business truth.
+
+---
+
+# Billing Engine
+
+## Purpose
+
+Coordinates recurring billing operations.
+
+## Responsibilities
+
+- Billing execution
+- Billing schedules
+- Charge generation
+- Billing orchestration
+
+Business pricing rules remain within the owning domains.
+
+The Billing Engine coordinates execution.
+
+---
+
+# Ledger Engine
+
+## Purpose
+
+Maintains the authoritative financial history of RPGMS.
+
+## Responsibilities
+
+- Ledger posting
+- Balance calculation
+- Financial reconciliation
+- Financial history
+
+The Ledger Engine provides financial consistency across the application.
+
+---
+
+# Configuration Service
+
+## Purpose
+
+Provides configurable operational behaviour.
+
+## Responsibilities
+
+- Business defaults
+- Operational configuration
+- Feature configuration
+- Organisational settings
+
+Configuration influences future operations.
+
+Configuration never rewrites historical business information.
+
+---
+
+# File Storage Service
+
+## Purpose
+
+Manages business documents and other stored files.
+
+## Responsibilities
+
+- Document storage
+- Retrieval
+- Version management
+- Secure access
+
+Business ownership of documents remains with the owning Software Domain.
+
+---
+
+# Integration Service
+
+## Purpose
+
+Coordinates communication with external systems.
+
+## Responsibilities
+
+- Payment providers
+- Email providers
+- SMS providers
+- Government services
+- Future third-party integrations
+
+External integrations remain isolated from core business behaviour.
+
+---
+
+# Service Independence
+
+Architectural Services remain independent of one another wherever practical.
+
+Services communicate through:
+
+- Public interfaces
+- Business Events
+- Shared contracts
+
+Services shall not become tightly coupled.
+
+---
+
+# Service Architecture Summary
+
+Architectural Services provide reusable capabilities shared across multiple Software Domains.
+
+They support the business without owning business behaviour.
+
+Business knowledge remains within Software Domains.
+
+Shared technical capabilities remain within Architectural Services.
+
+This separation preserves modularity, maintainability and long-term scalability.
+
+---
+
+# Data Architecture
+
+The Data Architecture defines how business information is represented, owned and managed within RPGMS.
+
+It provides the architectural principles governing business entities, relationships, identity and consistency.
+
+This chapter defines software architecture rather than database implementation.
+
+Database technologies may evolve without changing these principles.
+
+---
+
+# Data Architecture Principles
+
+Business information shall be organised according to the following principles:
+
+- Clear ownership
+- Single source of truth
+- Stable identity
+- Historical integrity
+- Derived information where practical
+- Explicit relationships
+- Consistent lifecycle management
+
+These principles apply across every Software Domain.
+
+---
+
+# Business Entity Ownership
+
+Every Business Entity shall belong to exactly one Software Domain.
+
+The owning domain is responsible for:
+
+- Creating the entity
+- Validating the entity
+- Maintaining the entity
+- Preserving historical integrity
+- Publishing Business Events affecting the entity
+
+Other domains may reference the entity but shall not assume ownership.
+
+---
+
+# Aggregate Boundaries
+
+Business Entities shall be organised into Aggregates.
+
+An Aggregate represents a consistency boundary within a Software Domain.
+
+Each Aggregate shall have one Aggregate Root responsible for maintaining the integrity of the Aggregate.
+
+Examples include:
+
+- Resident
+- Stay
+- Reservation
+- Commercial Agreement
+
+Aggregates communicate through public interfaces rather than direct internal access.
+
+---
+
+# Entity Identity
+
+Every Business Entity shall possess a stable and permanent identity.
+
+Identity shall remain unchanged throughout the lifecycle of the entity.
+
+Identity shall never depend upon mutable business information.
+
+Business identity supports:
+
+- Operational references
+- Reporting
+- Audit
+- Historical traceability
+
+---
+
+# Value Objects
+
+Value Objects represent descriptive business information without independent identity.
+
+Examples include:
+
+- Address
+- Contact Information
+- Monetary Amount
+- Date Range
+
+Value Objects exist only as part of an owning Business Entity.
+
+They shall not possess independent lifecycle or ownership.
+
+---
+
+# Business Relationships
+
+Relationships between Business Entities shall remain explicit.
+
+Relationships shall preserve:
+
+- Referential integrity
+- Historical integrity
+- Business ownership
+
+Business relationships shall remain understandable independently of implementation technology.
+
+---
+
+# Derived Information
+
+Information that can be reliably calculated from authoritative business data should normally be derived rather than stored.
+
+Examples include:
+
+- Outstanding Balance
+- Occupancy Percentage
+- Available Beds
+- Monthly Totals
+- Dashboard Metrics
+
+Derived information shall never become an independent source of business truth.
+
+---
+
+# Historical Preservation
+
+Historical business information shall remain permanently understandable.
+
+Changes to current business data shall not invalidate historical records.
+
+Historical relationships shall remain intact even after operational activities have concluded.
+
+Examples include:
+
+- Completed Stays
+- Settled Charges
+- Archived Reservations
+- Historical Payments
+
+---
+
+# Data Consistency
+
+Consistency shall be maintained within each Aggregate.
+
+Cross-domain consistency shall be achieved through coordinated business workflows and Business Events.
+
+Architectural consistency shall take precedence over implementation convenience.
+
+---
+
+# Data Validation
+
+Validation responsibilities shall remain close to business ownership.
+
+Business Domains validate business information.
+
+Application workflows coordinate validation across multiple domains.
+
+Presentation validates only user interaction.
+
+Infrastructure validates only technical requirements.
+
+---
+
+# Data Evolution
+
+The architecture shall support future expansion of the business model without requiring redesign of existing Business Entities.
+
+New entities, relationships and attributes shall extend the model while preserving existing identity and historical integrity.
+
+---
+
+# Data Architecture Summary
+
+The Data Architecture provides a stable representation of business information across RPGMS.
+
+Business Entities own business knowledge.
+
+Aggregates preserve consistency.
+
+Value Objects describe business information.
+
+Relationships remain explicit.
+
+Historical truth remains permanent.
+
+Together these principles ensure that business information remains accurate, maintainable and aligned with the Business Blueprint throughout the lifetime of the application.
+
+---
+
+# Event Architecture
+
+The Event Architecture defines how significant business activity is communicated throughout RPGMS.
+
+Business Events provide the primary mechanism for communicating completed business operations between Software Domains and Architectural Services.
+
+The Event Architecture promotes loose coupling, historical traceability and architectural extensibility.
+
+---
+
+# Event Principles
+
+Business Events shall:
+
+- Represent completed business operations
+- Be owned by the originating Software Domain
+- Be immutable
+- Become part of the permanent business history
+- Be available to authorised Architectural Services
+
+Business Events shall describe what has occurred rather than what should occur.
+
+---
+
+# Business Events
+
+A Business Event represents a completed business operation.
+
+Examples include:
+
+- Resident Created
+- Reservation Confirmed
+- Stay Created
+- Bed Allocated
+- Charge Raised
+- Payment Received
+- Checkout Completed
+- Settlement Completed
+
+Business Events represent facts.
+
+Business Events shall never represent user intentions or incomplete activities.
+
+---
+
+# Event Ownership
+
+Every Business Event shall originate from exactly one Software Domain.
+
+Examples include:
+
+| Business Event | Originating Domain |
+|----------------|-------------------|
+| Resident Created | Resident Domain |
+| Stay Created | Stay Domain |
+| Bed Allocated | Accommodation Domain |
+| Charge Raised | Finance Domain |
+| Complaint Logged | Complaints Domain |
+
+Originating domains remain responsible for the correctness of published Business Events.
+
+---
+
+# Event Publication
+
+Business Events are published after successful completion of the corresponding business operation.
+
+Events shall represent completed business state.
+
+Events shall never be published for operations that have failed or been rolled back.
+
+---
+
+# Event Consumers
+
+Multiple Architectural Services may consume the same Business Event.
+
+Examples include:
+
+- Audit Service
+- Notification Service
+- Reporting Service
+- Search Service
+
+Each consuming service remains independent.
+
+Consumers shall not depend upon one another.
+
+---
+
+# Event Flow
+
+A completed business operation typically follows the architectural flow below.
+
+```text
+Business Operation
+        │
+        ▼
+Business Domain
+        │
+        ▼
+Business Event
+        │
+        ├────────────► Audit Service
+        │
+        ├────────────► Notification Service
+        │
+        ├────────────► Reporting Service
+        │
+        └────────────► Search Service
+```
+
+The originating Business Domain remains unaware of how individual Architectural Services use the published event.
+
+---
+
+# Audit Integration
+
+The Audit Service records significant Business Events.
+
+Audit information includes:
+
+- Business Event
+- Responsible User
+- Date and Time
+- Business Object
+- Authority
+
+Audit does not create business behaviour.
+
+Audit records completed business behaviour.
+
+---
+
+# Notification Integration
+
+Notifications derive from Business Events.
+
+Examples include:
+
+- Admission Confirmation
+- Payment Receipt
+- Checkout Confirmation
+- Complaint Status Update
+
+Notification delivery shall not influence the success or failure of the originating business operation.
+
+---
+
+# Reporting Integration
+
+Reporting derives operational and analytical information from Business Events and authoritative business data.
+
+Reporting shall never become an independent owner of business information.
+
+---
+
+# Search Integration
+
+Search indexes business information based on completed Business Events.
+
+Search remains a discovery mechanism rather than a source of business truth.
+
+---
+
+# Event Evolution
+
+New Business Events may be introduced as the business architecture evolves.
+
+Existing Business Events should remain stable wherever practical.
+
+Architectural evolution shall preserve compatibility with existing consuming services.
+
+---
+
+# Event Architecture Summary
+
+The Event Architecture provides the communication backbone of RPGMS.
+
+Business Domains publish Business Events.
+
+Architectural Services consume Business Events.
+
+Audit records accountability.
+
+Notifications communicate completed activity.
+
+Reporting derives business insight.
+
+Search enables discovery.
+
+This event-driven approach enables Software Domains to remain independent while supporting rich cross-domain functionality.
+
+---
+
+# Security Architecture
+
+The Security Architecture defines how RPGMS protects business information, enforces authorised access and maintains accountability across the application.
+
+Security is implemented as a cross-cutting architectural concern.
+
+Every Software Domain relies upon the Security Architecture rather than implementing independent security mechanisms.
+
+---
+
+# Security Principles
+
+The Security Architecture is governed by the following principles:
+
+- Authenticate every user
+- Authorise every business operation
+- Apply least privilege
+- Preserve accountability
+- Protect business information
+- Maintain complete auditability
+
+Security shall remain consistent across every Software Domain.
+
+---
+
+# Authentication
+
+## Purpose
+
+Authentication establishes the identity of a user interacting with RPGMS.
+
+Authentication answers the question:
+
+> "Who is the user?"
+
+### Responsibilities
+
+The Authentication Service is responsible for:
+
+- Identity verification
+- Session establishment
+- Session termination
+- Authentication providers
+- Session validation
+
+Authentication establishes identity only.
+
+It does not determine permissions.
+
+---
+
+# Authorisation
+
+## Purpose
+
+Authorisation determines whether an authenticated user may perform a requested business operation.
+
+Authorisation answers the question:
+
+> "Is this user permitted to perform this action?"
+
+### Responsibilities
+
+The Authorisation Service is responsible for:
+
+- Role evaluation
+- Permission evaluation
+- Access decisions
+- Business operation authorisation
+- Administrative authority
+
+Business Domains rely upon Authorisation rather than implementing permission logic independently.
+
+---
+
+# Role-Based Access Control
+
+RPGMS implements security using Role-Based Access Control (RBAC).
+
+Users are assigned one or more Roles.
+
+Roles define the business responsibilities a user may perform.
+
+Permissions are granted through Roles rather than directly to individual users wherever practical.
+
+This approach simplifies administration and promotes consistent access control.
+
+---
+
+# Permission Evaluation
+
+Every protected business operation shall undergo permission evaluation before execution.
+
+Permission evaluation occurs before Business Rules are applied.
+
+Where permission is denied:
+
+- The business operation shall not proceed.
+- No Business Event shall be published.
+- No Audit Record of business activity shall be created.
+
+Security-related audit information may still be recorded according to organisational policy.
+
+---
+
+# Administrative Overrides
+
+Certain exceptional business operations may require Administrative Override.
+
+Administrative Overrides shall:
+
+- Require appropriate authority
+- Be explicitly authorised
+- Generate Business Events
+- Generate Audit Records
+- Preserve historical traceability
+
+Administrative Override does not bypass accountability.
+
+---
+
+# Security Boundaries
+
+Every Software Domain shall expose only its authorised public interfaces.
+
+Internal implementation details remain inaccessible outside the owning domain.
+
+Security boundaries shall protect:
+
+- Business data
+- Business services
+- Administrative operations
+- Configuration
+- Audit information
+
+---
+
+# Principle of Least Privilege
+
+Users shall receive only the permissions required to perform their assigned business responsibilities.
+
+Additional permissions shall be granted only where justified by organisational policy.
+
+Least Privilege reduces operational risk while supporting efficient business operations.
+
+---
+
+# Sensitive Information
+
+Sensitive business information shall be protected according to organisational policy.
+
+Examples include:
+
+- Personal identity information
+- Contact information
+- Financial information
+- Authentication credentials
+- Audit records
+- Administrative configuration
+
+Access to sensitive information shall always require appropriate authority.
+
+---
+
+# Audit and Security
+
+Security-related business operations shall remain fully auditable.
+
+Examples include:
+
+- User authentication
+- Administrative Override
+- Permission changes
+- Role assignments
+- Configuration changes
+
+Audit records shall preserve:
+
+- Responsible User
+- Date and Time
+- Business Operation
+- Authority
+- Outcome
+
+---
+
+# Security Evolution
+
+The Security Architecture shall support future enhancement without requiring redesign of existing Software Domains.
+
+Future enhancements may include:
+
+- Multi-factor authentication
+- Single Sign-On
+- External identity providers
+- Advanced permission models
+- Federated authentication
+
+Security evolution shall preserve compatibility with the Business Architecture.
+
+---
+
+# Security Architecture Summary
+
+The Security Architecture provides consistent protection across RPGMS.
+
+Authentication establishes identity.
+
+Authorisation evaluates business authority.
+
+Roles define responsibilities.
+
+Permissions govern operations.
+
+Administrative Overrides remain accountable.
+
+Audit preserves security history.
+
+Together these principles provide a secure, maintainable and scalable security model aligned with the Business Blueprint and Business Rules.
+
+---
+
+# User Interface Architecture
+
+The User Interface Architecture defines how users interact with RPGMS.
+
+It establishes a consistent approach for organising screens, navigation, user workflows and presentation components.
+
+The User Interface presents business information without containing business logic.
+
+Business behaviour remains within the Domain Layer.
+
+---
+
+# User Interface Principles
+
+The User Interface shall:
+
+- Present business information clearly
+- Support efficient business workflows
+- Remain consistent across all modules
+- Delegate business operations to the Application Layer
+- Avoid implementing business rules
+- Remain responsive and accessible
+
+The User Interface is responsible for presentation, not business decision-making.
+
+---
+
+# Application Layout
+
+RPGMS provides a consistent application shell.
+
+The application layout consists of:
+
+- Application Header
+- Navigation Sidebar
+- Main Workspace
+- Contextual Actions
+- Notifications
+- Dialogs
+
+Every module shall operate within the same application layout.
+
+---
+
+# Navigation Architecture
+
+Navigation provides access to the major Software Domains.
+
+Primary navigation includes:
+
+- Dashboard
+- Accommodation
+- Residents
+- Reservations
+- Finance
+- Maintenance
+- Complaints
+- Reports
+- Settings
+
+Navigation reflects business capabilities rather than technical implementation.
+
+---
+
+# Page Architecture
+
+Every major feature is represented by a dedicated page.
+
+A page is responsible for:
+
+- Loading business information
+- Coordinating user interactions
+- Displaying appropriate workspaces
+- Delegating business operations
+
+Pages do not implement business rules.
+
+---
+
+# Workspace Architecture
+
+Complex business activities are implemented using Workspaces.
+
+Examples include:
+
+- Admission Workspace
+- Stay Workspace
+- Checkout Workspace
+- Reservation Workspace
+
+A Workspace may combine information from multiple Software Domains while presenting a unified business workflow.
+
+Business coordination occurs through the Application Layer.
+
+---
+
+# Component Architecture
+
+User Interface components shall be organised according to responsibility.
+
+Component categories include:
+
+- Layout Components
+- Navigation Components
+- Presentation Components
+- Form Components
+- Dialog Components
+- Shared Components
+
+Components remain reusable wherever practical.
+
+---
+
+# View Models
+
+The User Interface presents business information through View Models.
+
+View Models adapt domain information into forms suitable for presentation.
+
+View Models:
+
+- Simplify rendering
+- Combine related information
+- Avoid exposing internal domain structures
+
+View Models do not own business behaviour.
+
+---
+
+# State Management
+
+User Interface state shall remain local wherever practical.
+
+Examples include:
+
+- Selected tabs
+- Dialog visibility
+- Form progress
+- User preferences
+- Temporary filters
+
+Business state remains within the Application and Domain Layers.
+
+The User Interface shall not become the authoritative source of business information.
+
+---
+
+# Forms
+
+Forms provide controlled interaction with business information.
+
+Forms are responsible for:
+
+- Data entry
+- Input validation
+- User guidance
+- Error presentation
+
+Business validation remains the responsibility of the Domain Layer.
+
+---
+
+# Shared Design System
+
+All User Interface elements shall follow the shared Design System.
+
+The Design System provides consistency for:
+
+- Typography
+- Colours
+- Icons
+- Spacing
+- Layout
+- Buttons
+- Forms
+- Tables
+- Cards
+- Dialogs
+
+Shared design standards promote usability and maintainability.
+
+---
+
+# Responsive Design
+
+The User Interface shall adapt appropriately to supported screen sizes.
+
+Responsive behaviour shall preserve:
+
+- Business workflow
+- Readability
+- Accessibility
+- Operational efficiency
+
+Responsive design shall not change business behaviour.
+
+---
+
+# Accessibility
+
+The User Interface shall support accessible interaction wherever practical.
+
+Accessibility considerations include:
+
+- Keyboard navigation
+- Screen reader compatibility
+- Colour contrast
+- Focus management
+- Consistent navigation
+- Clear visual hierarchy
+
+Accessibility supports efficient operation for all authorised users.
+
+---
+
+# Error Presentation
+
+Errors shall be communicated clearly and consistently.
+
+The User Interface shall distinguish between:
+
+- Validation errors
+- Business rule violations
+- Permission failures
+- System failures
+
+Users shall receive sufficient information to understand the outcome without exposing internal implementation details.
+
+---
+
+# User Interface Evolution
+
+The User Interface shall support future enhancement without requiring redesign of the underlying Software Domains.
+
+Future improvements may include:
+
+- Additional workflows
+- Alternative layouts
+- Mobile optimisation
+- Advanced dashboards
+- Personalised workspaces
+
+Presentation may evolve independently while preserving business consistency.
+
+---
+
+# User Interface Architecture Summary
+
+The User Interface provides a consistent presentation layer for RPGMS.
+
+Pages organise business capabilities.
+
+Workspaces support complex workflows.
+
+Components remain reusable.
+
+View Models adapt business information for presentation.
+
+Business logic remains outside the User Interface.
+
+This architecture promotes clarity, consistency and long-term maintainability while supporting efficient day-to-day hostel operations.
+
+---
+
+# Future Evolution
+
+The architecture of RPGMS is designed to support continuous business and technical evolution while preserving architectural consistency.
+
+Future enhancements shall extend the existing architecture rather than replace it.
+
+Architectural evolution shall remain guided by the Business Blueprint and Business Rules.
+
+---
+
+# Evolution Principles
+
+Future development shall adhere to the following principles:
+
+- Preserve business architecture
+- Extend rather than replace
+- Maintain backward compatibility where practical
+- Protect historical integrity
+- Minimise architectural disruption
+- Encourage modular growth
+
+Business requirements drive architectural evolution.
+
+Technology choices support architectural objectives.
+
+---
+
+# Business Expansion
+
+The architecture supports the addition of new business capabilities through new Software Domains.
+
+Examples include:
+
+- Visitor Management
+- Inventory Management
+- Housekeeping
+- Vendor Management
+- Staff Management
+- Asset Management
+- Coworking Management
+- Multi-Property Management
+
+Each new capability shall follow the established Domain Architecture.
+
+---
+
+# Workflow Expansion
+
+Business workflows may become more sophisticated over time.
+
+Future workflows may include:
+
+- Digital admissions
+- Online reservations
+- Automated renewals
+- Digital agreements
+- Self-service checkout
+- Maintenance scheduling
+- Approval workflows
+
+Workflow expansion shall preserve existing domain responsibilities.
+
+---
+
+# Technology Independence
+
+The architecture is intentionally independent of specific implementation technologies.
+
+Examples of replaceable technologies include:
+
+- Front-end framework
+- Database platform
+- Authentication provider
+- Notification provider
+- Storage provider
+- Reporting tools
+
+Technology may evolve without requiring changes to the Business Blueprint or Business Rules.
+
+---
+
+# Integration Readiness
+
+RPGMS shall support integration with external systems through well-defined interfaces.
+
+Potential integrations include:
+
+- Payment gateways
+- Government identity services
+- Messaging platforms
+- Accounting software
+- Access control systems
+- IoT devices
+- Business intelligence platforms
+
+Integrations shall remain isolated from core business logic.
+
+---
+
+# Scalability
+
+The architecture supports growth in:
+
+- Number of residents
+- Number of properties
+- Number of users
+- Business transactions
+- Reporting requirements
+- Operational complexity
+
+Scalability shall be achieved through modular architecture rather than architectural redesign.
+
+---
+
+# Multi-Property Readiness
+
+The architecture supports future expansion from a single property to multiple properties.
+
+Examples include:
+
+- Shared resident management
+- Property-specific accommodation
+- Centralised reporting
+- Property-level configuration
+- Cross-property administration
+
+Business ownership shall remain clearly defined regardless of organisational scale.
+
+---
+
+# Automation Readiness
+
+The architecture supports increasing levels of business automation.
+
+Examples include:
+
+- Scheduled billing
+- Automated reminders
+- Recurring maintenance
+- Occupancy monitoring
+- Financial reconciliation
+- Business notifications
+
+Automation coordinates business operations but does not replace Business Rules.
+
+---
+
+# Artificial Intelligence Readiness
+
+The architecture is designed to support responsible use of Artificial Intelligence.
+
+Potential AI capabilities include:
+
+- Operational insights
+- Predictive occupancy analysis
+- Revenue forecasting
+- Complaint categorisation
+- Maintenance prioritisation
+- Document assistance
+- Administrative recommendations
+
+AI shall assist business operations.
+
+AI shall not become the authoritative source of business decisions or business data.
+
+All AI-generated outputs remain subject to human review where business judgement is required.
+
+---
+
+# Documentation Evolution
+
+Architectural documentation shall evolve together with the software.
+
+Changes to the Business Blueprint or Business Rules shall be reflected in the corresponding architectural documentation.
+
+Documentation shall remain synchronised with implementation throughout the lifetime of the project.
+
+---
+
+# Future Evolution Summary
+
+The architecture of RPGMS is designed for long-term sustainability.
+
+Business growth, technological change and organisational expansion are expected.
+
+The architecture provides stable foundations while enabling controlled evolution.
+
+Business principles remain constant.
+
+Technology remains adaptable.
+
+This approach ensures that RPGMS can continue to evolve without compromising architectural integrity.
 
 ---
 
 # Documentation Architecture
 
-Project documentation is organised so that every document has a single, clearly defined responsibility.
+The Documentation Architecture defines how architectural knowledge is organised, maintained and governed within RPGMS.
 
-Together, the documentation provides complete governance for the application without unnecessary duplication.
+Documentation is treated as a first-class architectural asset.
+
+Every significant architectural and business decision shall be represented within the appropriate project documentation.
 
 ---
 
-## Documentation Hierarchy
+# Documentation Principles
 
-| Document | Responsibility |
-|----------|----------------|
-| README.md | Project overview and setup |
-| PROJECT_RULES.md | Engineering and project rules |
-| AI_CONTEXT.md | Project context for AI assistants |
-| AI_INSTRUCTIONS.md | AI implementation guidelines |
-| ARCHITECTURE.md | Overall software architecture |
-| BUSINESS_RULES.md | Business policies and operational rules |
-| DATA_MODEL.md | Logical business data model |
-| DECISIONS.md | Architecture Decision Records (ADRs) |
-| MODULE_STATUS.md | Module implementation status |
-| ROADMAP.md | Product roadmap |
-| BACKLOG.md | Deferred features |
-| CHANGELOG.md | Project history |
-| SESSION.md | Current development session |
-| NEXT_TASK.md | Immediate implementation plan |
+Project documentation shall:
+
+- Be authoritative
+- Be consistent
+- Be traceable
+- Be maintainable
+- Evolve with the software
+- Avoid duplication
+
+Documentation shall describe architecture rather than duplicate implementation.
+
+---
+
+# Documentation Hierarchy
+
+Project documentation follows a hierarchical structure.
+
+```text
+Business Blueprint
+        │
+        ▼
+Business Rules
+        │
+        ▼
+Software Architecture
+        │
+        ▼
+Domain Documentation
+        │
+        ▼
+Implementation Documentation
+        │
+        ▼
+Source Code
+```
+
+Each layer derives guidance from the layer above.
+
+Lower layers shall not contradict higher layers.
+
+---
+
+# Documentation Responsibilities
+
+Each document has a clearly defined responsibility.
+
+| Document | Primary Responsibility |
+|----------|------------------------|
+| BUSINESS_BLUEPRINT.md | Business concepts, terminology and organisational model |
+| BUSINESS_RULES.md | Business policies, constraints and operational rules |
+| ARCHITECTURE.md | Software architecture and architectural principles |
+| DOMAIN_MODEL.md *(planned)* | Business entities and relationships |
+| UI_GUIDELINES.md | User interface standards and design principles |
+| ROADMAP.md | Planned business and technical evolution |
+| CHANGELOG.md | Historical record of significant changes |
+| PROJECT_RULES.md | Project governance and engineering standards |
+| AI_* documents | AI governance, workflow and collaboration guidance |
 
 Each document owns its subject area.
 
-Responsibilities should never overlap unnecessarily.
+Responsibilities shall not overlap unnecessarily.
 
 ---
 
-## Specification Documents
+# Traceability
 
-Major business domains are documented independently.
+Architectural decisions shall be traceable through the documentation hierarchy.
+
+For example:
+
+```text
+Business Blueprint
+        │
+Defines:
+Resident
+
+        ▼
+
+Business Rules
+        │
+Defines:
+Resident lifecycle
+
+        ▼
+
+Architecture
+        │
+Defines:
+Resident Domain
+
+        ▼
+
+Implementation
+        │
+Implements:
+Resident Module
+
+        ▼
+
+Source Code
+```
+
+Every implementation decision should be traceable to an architectural decision.
+
+Every architectural decision should be traceable to a business decision.
+
+---
+
+# Documentation Consistency
+
+When significant business or architectural changes occur:
+
+- The relevant documentation shall be updated.
+- Related documents shall be reviewed for consistency.
+- Contradictory information shall be resolved before implementation is considered complete.
+
+Documentation and implementation shall evolve together.
+
+---
+
+# Domain Documentation
+
+As the application grows, individual Software Domains may maintain their own supporting documentation.
 
 Examples include:
 
-- Accommodation Specification
-- Resident Specification
-- Stay Specification
-- Finance Specification
-- Billing Specification
-- Electricity Specification
+- Resident Domain
+- Stay Domain
+- Finance Domain
+- Reservation Domain
 
-These specifications describe business workflows and implementation details for their respective domains.
-
-Architecture documentation should reference these specifications rather than duplicate them.
+Domain documentation shall remain subordinate to this Architecture document.
 
 ---
 
-## Architecture Decision Records
+# Decision Records
 
-Major architectural decisions must be recorded in:
+Significant architectural decisions shall be recorded in a permanent decision log.
 
-```text
-docs/DECISIONS.md
-```
+Decision records should include:
 
-Every Architecture Decision Record (ADR) must capture:
+- Context
+- Decision
+- Rationale
+- Consequences
 
-- The problem being solved
-- The available options
-- The selected approach
-- The rationale
-- The consequences
+Decision records preserve architectural history and support future maintenance.
 
-Architectural changes must always be accompanied by a corresponding ADR.
+---
+
+# Documentation Ownership
+
+Business documentation is owned by the business architecture.
+
+Architectural documentation is owned by the software architecture.
+
+Implementation documentation is owned by the engineering process.
+
+Ownership ensures accountability for maintaining each document.
+
+---
+
+# Documentation Review
+
+Documentation shall be reviewed whenever:
+
+- New Software Domains are introduced
+- Business Rules change
+- Architectural principles evolve
+- Significant workflows are redesigned
+- Major implementation milestones are completed
+
+Documentation review is an integral part of architectural governance.
+
+---
+
+# Documentation Evolution
+
+Documentation shall evolve incrementally.
+
+Existing documentation should be extended wherever practical rather than replaced.
+
+Historical versions provide an important record of architectural evolution.
+
+---
+
+# Documentation Architecture Summary
+
+Documentation forms the architectural memory of RPGMS.
+
+Each document has a defined purpose.
+
+Each document supports the layer above and below it.
+
+Traceability connects business concepts, architectural decisions and implementation.
+
+This structured approach ensures that knowledge remains organised, consistent and maintainable throughout the lifetime of the project.
 
 ---
 
 # Architectural Governance
 
-The architecture exists to maintain long-term consistency across the project.
+Architectural Governance defines how the software architecture of RPGMS is maintained, evolved and protected throughout the lifetime of the project.
 
-Architectural decisions should prioritise:
+The purpose of governance is not to restrict development, but to ensure that architectural consistency is preserved as the application grows.
 
-- Simplicity
-- Maintainability
-- Predictability
-- Business alignment
-- Ease of onboarding
-- Low operational complexity
+Every significant architectural decision shall remain aligned with the Business Blueprint and Business Rules.
 
 ---
 
-## Stability Rules
+# Governance Principles
 
-The following elements are considered architecturally stable and should not change without an approved ADR.
+Architectural governance is guided by the following principles:
 
-- Repository structure
-- Top-level `src` folders
-- Domain ownership
-- Dependency direction
-- Business architecture
-- Resident–Stay separation
-- Accommodation hierarchy
-- Ledger architecture
+- Business before implementation
+- Consistency over convenience
+- Simplicity over unnecessary complexity
+- Evolution rather than replacement
+- Clear ownership
+- Long-term maintainability
 
-Changes affecting these areas require explicit architectural review.
+Architectural decisions shall support sustainable software development.
 
 ---
 
-## Evolution Rules
+# Architectural Compliance
 
-Business features are expected to evolve over time.
+All implementation shall comply with the architectural principles defined in this document.
 
-Individual feature modules may:
+Compliance includes:
 
-- Add new components
-- Introduce additional services
-- Create new utilities
-- Expand validation
-- Improve user experience
+- Respecting Software Domain boundaries
+- Preserving Layered Architecture
+- Maintaining clear ownership
+- Following documented Business Rules
+- Supporting historical integrity
+- Using Architectural Services appropriately
 
-These internal improvements must not violate the architectural principles defined in this document.
-
----
-
-# Guiding Principle
-
-The primary objective of the architecture is clarity over cleverness.
-
-Every architectural decision should make the system easier to understand, easier to maintain, and easier to extend.
-
-When multiple solutions are possible, prefer the one that is:
-
-- Simpler
-- More explicit
-- Easier to maintain
-- Better aligned with the business domain
-
-Architecture should enable rapid development without compromising long-term quality.
-
----
-## Architectural Mindset
-
-Architecture exists to make future development easier, not harder.
-
-When implementing new features, developers should prefer extending the existing architecture over introducing new architectural patterns.
-
-Consistency is generally more valuable than novelty.
-
-# Important
-
-Every developer and every AI assistant working on RPGMS 2.0 must read this document before making architectural or structural changes.
-
-Implementation should always follow the established business architecture.
-
-If an implementation requires changes to the architecture, the change must first be documented in `DECISIONS.md` before development proceeds.
+Architectural compliance is considered part of the Definition of Done for significant development work.
 
 ---
 
-# Finance Module Architecture
+# Architectural Decision-Making
 
-The Finance module follows a layered architecture based on Domain-Driven Design (DDD) principles.
+Significant architectural decisions shall be evaluated against the following questions:
 
-```
-UI
- │
- ▼
-Application Services
- │
- ▼
-Domain
- │
- ▼
-Repository Interface
- ▲
- │
-Infrastructure
-```
+1. Does the change support the Business Blueprint?
 
-## Domain Layer
+2. Does the change comply with Business Rules?
 
-Location:
+3. Does the change preserve Domain ownership?
 
-```
-src/features/finance/domain/
-```
+4. Does the change maintain Layered Architecture?
 
-Contains:
+5. Does the change simplify or unnecessarily complicate the architecture?
 
-- Entities
-- Value Objects
-- Domain Rules
-- Repository Interfaces
+6. Does the change preserve future extensibility?
 
-The Domain contains all business knowledge and is completely independent of:
+Only decisions that satisfy these principles should become part of the permanent architecture.
 
-- React
-- UI
-- localStorage
-- Supabase
-- Infrastructure
-- Application Services
+---
 
-## Application Layer
+# Architectural Exceptions
 
-Location:
+Occasionally, implementation constraints may require deviations from the preferred architecture.
 
-```
-src/features/finance/services/
-```
+Architectural exceptions shall:
 
-Application Services coordinate use cases.
+- Be explicitly documented
+- Include a clear justification
+- Identify associated risks
+- Describe any temporary measures
+- Include a plan for future resolution where appropriate
 
-Responsibilities include:
+Architectural exceptions shall remain rare.
 
-- validating requests
-- orchestrating workflows
-- invoking Domain Rules
-- interacting with the FinanceRepository
-- coordinating Timeline and Reporting
+Temporary implementation shortcuts shall not become permanent architecture without formal review.
 
-Application Services must not implement accounting rules or business calculations.
+---
 
-## Infrastructure Layer
+# Change Management
 
-Location:
+Architecture evolves through controlled change.
 
-```
-src/features/finance/infrastructure/
-```
+When significant architectural changes are introduced:
 
-Current implementation:
+- The relevant documentation shall be updated.
+- Related documentation shall be reviewed.
+- Business impact shall be evaluated.
+- Existing implementations shall remain consistent wherever practical.
 
-- InMemoryFinanceRepository
+Architectural change shall be deliberate rather than incidental.
 
-The Infrastructure layer implements the FinanceRepository interface and encapsulates persistence details.
+---
 
-This design allows future migration to Supabase by replacing the repository implementation without affecting the Domain or Application layers.
+# Architectural Reviews
 
-## Dependency Direction
+Major development milestones should include an architectural review.
 
-Dependencies always flow inward.
+Reviews should confirm:
 
-```
-UI
-    ↓
-Application
-    ↓
-Domain
-    ↑
-Repository Interface
-    ↑
-Infrastructure
-```
+- Continued compliance with Business Blueprint
+- Continued compliance with Business Rules
+- Correct Domain ownership
+- Appropriate use of Architectural Services
+- Documentation consistency
+- Long-term maintainability
 
-The Domain must never depend on the Application, Infrastructure, UI, or storage technologies.
+Architectural review supports continuous improvement rather than fault-finding.
 
-## Resident Financial Workspace
+---
 
-The **Resident Financial Workspace** is the primary operational interface for all resident-specific financial activities.
+# Documentation Authority
 
-It provides a single resident-centric workspace from which all financial workflows originate, including:
+The documentation hierarchy defines the authoritative source for architectural decisions.
 
-* Generate Monthly Rent
-* Add Laundry Charges
-* Add Electricity Charges
-* Receive Payments
-* View Resident Ledger
-* Checkout & Settlement
+The order of authority is:
 
-The workspace contains no business logic.
+1. BUSINESS_BLUEPRINT.md
+2. BUSINESS_RULES.md
+3. ARCHITECTURE.md
+4. Domain Documentation
+5. Implementation Documentation
+6. Source Code
 
-All financial data, balances, and calculations are delegated to the Finance Application Layer through the existing `useStayFinance` hook, preserving the separation between Presentation, Application, Domain, and Infrastructure layers.
+Where inconsistencies exist, the higher-level document takes precedence.
 
-This architecture ensures that future workflow implementations can be added without changing the overall application structure, while maintaining the Resident Financial Workspace as the single source of interaction for resident financial operations.
+Implementation shall be corrected to align with the governing documentation.
+
+---
+
+# Continuous Improvement
+
+Architecture is expected to evolve throughout the lifetime of RPGMS.
+
+Continuous improvement shall:
+
+- Preserve architectural consistency
+- Improve maintainability
+- Simplify implementation where possible
+- Support future business growth
+
+Architectural evolution is encouraged when guided by documented principles.
+
+---
+
+# Architectural Vision
+
+The long-term vision of RPGMS is to provide a software platform that faithfully represents the business it serves.
+
+The software architecture exists to support business operations rather than dictate them.
+
+Business concepts remain stable.
+
+Technology remains adaptable.
+
+Architecture provides the bridge between the two.
+
+---
+
+# Conclusion
+
+The architecture of RPGMS is founded upon three complementary layers of governance:
+
+Business Blueprint defines the business.
+
+Business Rules define business behaviour.
+
+Software Architecture defines how the software implements the business.
+
+Together they establish a coherent, maintainable and extensible foundation for the continued evolution of RPGMS.
+
+This document serves as the governing architectural reference for the software implementation of RPGMS and shall guide future development, architectural decisions and long-term maintenance.
+
+---
+

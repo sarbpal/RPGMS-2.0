@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
+
   Button,
   Card,
   CardContent,
@@ -12,9 +14,18 @@ import {
   Divider,
   Grid,
   Paper,
+  Snackbar,
   Stack,
   Typography,
 } from '@mui/material';
+import { GenerateRentModal } from './GenerateRentModal';
+import { ReceivePaymentModal } from './ReceivePaymentModal';
+import { AddLaundryModal } from './AddLaundryModal';
+import { ResidentLedgerModal } from './ResidentLedgerModal';
+
+
+
+
 import {
   AccountBalanceWallet,
   ExitToApp,
@@ -55,6 +66,8 @@ export function ResidentFinancialProfile({
   selectedFlat,
 }: ResidentFinancialProfileProps) {
   const [activeAction, setActiveAction] = useState<ActionType>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
 
 
   // Fetch active stay for resident
@@ -65,7 +78,28 @@ export function ResidentFinancialProfile({
   const stayId = activeStay?.id;
 
   // Retrieve stay financial metrics via application hook
-  const { balances, bills, payments } = useStayFinance(stayId);
+  const { balances, bills, payments, refresh } = useStayFinance(stayId);
+
+  const handleRentGeneratedSuccess = (message: string) => {
+    refresh();
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
+  const handlePaymentReceivedSuccess = (message: string) => {
+    refresh();
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
+  const handleLaundryChargeSuccess = (message: string) => {
+    refresh();
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
+
+
 
   // Financial Snapshot Metrics
   const currentMonthStr = useMemo(() => {
@@ -600,16 +634,79 @@ export function ResidentFinancialProfile({
         </Grid>
       </Paper>
 
-      {/* Action Placeholder Dialog */}
+      {/* Generate Monthly Rent Modal */}
+      {activeAction === 'GENERATE_RENT' && (
+        <GenerateRentModal
+          open={activeAction === 'GENERATE_RENT'}
+          onClose={() => setActiveAction(null)}
+          resident={resident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          onSuccess={handleRentGeneratedSuccess}
+        />
+      )}
+
+      {/* Receive Payment Modal */}
+      {activeAction === 'RECEIVE_PAYMENT' && (
+        <ReceivePaymentModal
+          open={activeAction === 'RECEIVE_PAYMENT'}
+          onClose={() => setActiveAction(null)}
+          resident={resident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          balances={balances}
+          currentMonthCharges={currentMonthCharges}
+          lastPaymentDateText={
+            lastPayment
+              ? `${formatDate(lastPayment.paymentDate || lastPayment.createdAt)} (${formatCurrency(lastPayment.amount)} via ${lastPayment.paymentMethod})`
+              : 'No payments recorded yet'
+          }
+          onSuccess={handlePaymentReceivedSuccess}
+        />
+      )}
+
+      {/* Add Laundry Charge Modal */}
+      {activeAction === 'ADD_LAUNDRY' && (
+        <AddLaundryModal
+          open={activeAction === 'ADD_LAUNDRY'}
+          onClose={() => setActiveAction(null)}
+          resident={resident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          balances={balances}
+          onSuccess={handleLaundryChargeSuccess}
+        />
+      )}
+
+      {/* View Resident Ledger Modal */}
+      {activeAction === 'VIEW_LEDGER' && (
+        <ResidentLedgerModal
+          open={activeAction === 'VIEW_LEDGER'}
+          onClose={() => setActiveAction(null)}
+          resident={resident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+        />
+      )}
+
+      {/* Action Placeholder Dialog for Other Ancillary Workflows */}
       <Dialog
-        open={Boolean(activeAction)}
+        open={Boolean(
+          activeAction &&
+            activeAction !== 'GENERATE_RENT' &&
+            activeAction !== 'RECEIVE_PAYMENT' &&
+            activeAction !== 'ADD_LAUNDRY' &&
+            activeAction !== 'VIEW_LEDGER'
+        )}
+
+
+
         onClose={() => setActiveAction(null)}
         maxWidth="sm"
         fullWidth
         slotProps={{
           paper: { sx: { borderRadius: 3, p: 1 } },
         }}
-
       >
         {dialogDetails && (
           <>
@@ -721,10 +818,26 @@ export function ResidentFinancialProfile({
                 Close
               </Button>
             </DialogActions>
-
           </>
         )}
       </Dialog>
+
+      {/* Success Notification Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setSnackbarOpen(false)}
+          sx={{ width: '100%', borderRadius: 2, boxShadow: 3 }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Stack>
+
   );
 }

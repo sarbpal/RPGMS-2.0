@@ -185,7 +185,12 @@ export class BillingApplicationService {
   /**
    * Application Use Case: Generate a monthly recurring rent bill for a Stay.
    */
-  public generateMonthlyRentBill(stayId: string, billingPeriod: string): CreateBillResult {
+  public generateMonthlyRentBill(
+    stayId: string,
+    billingPeriod: string,
+    customRemarks?: string,
+    customDueDate?: string
+  ): CreateBillResult {
     if (!stayId || stayId.trim() === '') {
       return { success: false, bill: null, errors: ['Missing or invalid stayId.'] };
     }
@@ -218,7 +223,7 @@ export class BillingApplicationService {
     }
 
     const issueDate = `${billingPeriod}-01`;
-    const dueDate = `${billingPeriod}-07`;
+    const dueDate = customDueDate || `${billingPeriod}-07`;
 
     const lineItems: BillLineItem[] = [
       {
@@ -238,9 +243,10 @@ export class BillingApplicationService {
       lineItems,
       totalAmount: rentAmount,
       status: 'UNPAID' as BillStatus,
-      remarks: `Monthly Rent for ${billingPeriod}`,
+      remarks: customRemarks || `Monthly Rent for ${billingPeriod}`,
     });
   }
+
 
   /**
    * Application Use Case: Generate a recurring service charge bill for a Stay.
@@ -317,6 +323,52 @@ export class BillingApplicationService {
       remarks: `One-Time ${chargeType} Charge`,
     });
   }
+
+  /**
+   * Application Use Case: Generate an ancillary Laundry Charge bill for a Stay.
+   * Posts double-entry ledger entries (Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE) via ledgerService,
+   * updates resident outstanding balance, and persists the Bill entity.
+   */
+  public generateLaundryChargeBill(
+    stayId: string,
+    amount: number,
+    chargeDate?: string,
+    description?: string,
+    remarks?: string
+  ): CreateBillResult {
+    if (!stayId || stayId.trim() === '') {
+      return { success: false, bill: null, errors: ['Missing or invalid stayId.'] };
+    }
+
+    if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      return { success: false, bill: null, errors: ['Laundry charge amount must be a positive number greater than zero.'] };
+    }
+
+    const effectiveDate = chargeDate || new Date().toISOString().split('T')[0];
+    const periodStr = effectiveDate.slice(0, 7);
+
+    const lineItems: BillLineItem[] = [
+      {
+        id: `li_${Date.now()}_1`,
+        description: description || 'Laundry Service Charge',
+        amount,
+        category: 'OTHER',
+      },
+    ];
+
+    return this.createBill({
+      stayId,
+      billType: 'ONE_TIME_CHARGE' as BillType,
+      period: periodStr,
+      issueDate: effectiveDate,
+      dueDate: effectiveDate,
+      lineItems,
+      totalAmount: amount,
+      status: 'UNPAID' as BillStatus,
+      remarks: remarks || description || `Laundry Charge (${effectiveDate})`,
+    });
+  }
 }
 
 export const billingService = new BillingApplicationService();
+

@@ -18,8 +18,12 @@ export class InMemoryResidentRepository implements ResidentRepository {
     return this.getByIdSync(id);
   }
 
-  public async getAll(): Promise<Resident[]> {
+  public getAllSync(): Resident[] {
     return this.residents.map((r) => ({ ...r }));
+  }
+
+  public async getAll(): Promise<Resident[]> {
+    return this.getAllSync();
   }
 
   public async search(query: string): Promise<Resident[]> {

@@ -2,27 +2,46 @@ import type { AccommodationStats } from '../../components/AccommodationSummary';
 import { BedStatus, type Flat, synchronizeBedOccupancy } from '../../domain';
 import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
 import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
-import type { Resident } from '../../../residents/types';
-import { ResidentStatus } from '../../../residents';
+import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
+import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
+import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import type { Stay } from '../../../stay/domain/entities/Stay';
+import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
+import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { AccommodationWorkspaceViewModel } from '../models/AccommodationWorkspaceViewModel';
+
+export interface BedOccupantInput {
+  fullName: string;
+  status: string;
+  allocatedBedIds?: string[];
+}
 
 export class AccommodationWorkspaceCoordinator {
   private repository: AccommodationRepository;
+  private stayRepository: StayRepository;
+  private residentRepository: ResidentRepository;
 
-  constructor(repository: AccommodationRepository = new InMemoryAccommodationRepository()) {
+  constructor(
+    repository: AccommodationRepository = new InMemoryAccommodationRepository(),
+    stayRepository: StayRepository = new InMemoryStayRepository(),
+    residentRepository: ResidentRepository = new InMemoryResidentRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
+    this.residentRepository = residentRepository;
   }
 
   /**
-   * Load flats from repository and perform self-healing synchronization against active/on-notice residents.
+   * Load flats from repository and perform self-healing synchronization against active/on-notice stays.
    */
-  public loadAndSynchronizeFlats(residents: Resident[]): Flat[] {
+  public loadAndSynchronizeFlats(occupants?: BedOccupantInput[]): Flat[] {
     const initialFlats: Flat[] =
       'getAllSync' in this.repository && typeof (this.repository as { getAllSync?: () => Flat[] }).getAllSync === 'function'
         ? (this.repository as { getAllSync: () => Flat[] }).getAllSync()
         : [];
 
-    const { synchronizedFlats, hasUpdates } = this.synchronizeFlats(initialFlats, residents);
+    const { synchronizedFlats, hasUpdates } = this.synchronizeFlats(initialFlats, occupants);
 
     if (hasUpdates) {
       if (
@@ -62,22 +81,56 @@ export class AccommodationWorkspaceCoordinator {
   }
 
   /**
-   * Synchronize flats status against active/on-notice residents (self-healing synchronization).
+   * Synchronize flats status against active/on-notice stays (self-healing synchronization).
    */
-  public synchronizeFlats(initialFlats: Flat[], residents: Resident[]): { synchronizedFlats: Flat[]; hasUpdates: boolean } {
+  public synchronizeFlats(
+    initialFlats: Flat[],
+    occupants?: BedOccupantInput[]
+  ): { synchronizedFlats: Flat[]; hasUpdates: boolean } {
     if (initialFlats.length === 0) {
       return { synchronizedFlats: [], hasUpdates: false };
     }
 
-    const residentBedMap = new Map<string, Resident>();
-    residents.forEach((res: Resident) => {
-      const isOccupying = res.status === ResidentStatus.ACTIVE || res.status === ResidentStatus.ON_NOTICE;
-      if (isOccupying && res.allocatedBedIds) {
-        res.allocatedBedIds.forEach((bedId: string) => {
-          residentBedMap.set(bedId, res);
-        });
-      }
-    });
+    const occupantMap = new Map<string, { fullName: string; status: string }>();
+
+    if (occupants && occupants.length > 0) {
+      occupants.forEach((occ) => {
+        const isOccupying =
+          occ.status === StayStatus.ACTIVE || occ.status === StayStatus.ON_NOTICE || occ.status === 'ACTIVE' || occ.status === 'ON_NOTICE';
+        if (isOccupying && occ.allocatedBedIds) {
+          occ.allocatedBedIds.forEach((bedId) => {
+            occupantMap.set(bedId, { fullName: occ.fullName, status: occ.status });
+          });
+        }
+      });
+    } else {
+      // Derive occupants from StayRepository & ResidentRepository
+      const stays: Stay[] =
+        'getAllSync' in this.stayRepository &&
+        typeof (this.stayRepository as { getAllSync?: () => Stay[] }).getAllSync === 'function'
+          ? (this.stayRepository as { getAllSync: () => Stay[] }).getAllSync()
+          : [];
+
+      const residents: Resident[] =
+        'getAllSync' in this.residentRepository &&
+        typeof (this.residentRepository as { getAllSync?: () => Resident[] }).getAllSync === 'function'
+          ? (this.residentRepository as { getAllSync: () => Resident[] }).getAllSync()
+          : [];
+
+      const residentLookup = new Map<string, Resident>();
+      residents.forEach((r) => residentLookup.set(r.id, r));
+
+      stays.forEach((stay) => {
+        const isOccupying = stay.status === StayStatus.ACTIVE || stay.status === StayStatus.ON_NOTICE;
+        if (isOccupying && stay.allocatedBedIds) {
+          const res = residentLookup.get(stay.residentId);
+          const fullName = res ? res.fullName : 'Occupied Bed';
+          stay.allocatedBedIds.forEach((bedId) => {
+            occupantMap.set(bedId, { fullName, status: stay.status });
+          });
+        }
+      });
+    }
 
     let hasUpdates = false;
 
@@ -87,10 +140,10 @@ export class AccommodationWorkspaceCoordinator {
         const expectedAreaDeposit = area.defaultDeposit || 0;
 
         const updatedBeds = area.beds.map((bed) => {
-          const resident = residentBedMap.get(bed.id);
+          const occupant = occupantMap.get(bed.id);
           const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
             bed,
-            resident ? { fullName: resident.fullName, status: resident.status } : undefined,
+            occupant,
             expectedAreaRent,
             expectedAreaDeposit
           );

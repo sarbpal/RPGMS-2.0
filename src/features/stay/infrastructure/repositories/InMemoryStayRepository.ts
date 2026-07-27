@@ -19,6 +19,10 @@ export class InMemoryStayRepository implements StayRepository {
     return this.findByIdSync(id);
   }
 
+  public getAllSync(): Stay[] {
+    return this.stays.map((s) => ({ ...s }));
+  }
+
   public async findByResidentId(residentId: string): Promise<Stay[]> {
     return this.stays
       .filter((s) => s.residentId === residentId)

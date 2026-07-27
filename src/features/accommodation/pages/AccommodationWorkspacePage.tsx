@@ -12,15 +12,12 @@ import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
 import { FlatCard } from '../components/FlatCard';
 import { BedStatus } from '../domain';
 import type { Flat } from '../domain';
-import type { Resident } from '../../residents/types';
 
 export default function AccommodationWorkspacePage() {
   const coordinator = useMemo(() => new AccommodationWorkspaceCoordinator(), []);
 
   const [flats, setFlats] = useState<Flat[]>(() => {
-    const savedResidents = localStorage.getItem('rpgms_residents');
-    const residents: Resident[] = savedResidents ? JSON.parse(savedResidents) : [];
-    return coordinator.loadAndSynchronizeFlats(residents);
+    return coordinator.loadAndSynchronizeFlats();
   });
 
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);

@@ -458,3 +458,6 @@ Business rules should not remain in the Application layer when they represent do
 
 The `rules/` folder is optional and should only be introduced when justified by the business domain.
 
+# Reference Module Rule
+
+The resident and stay feature modules are the project's reference implementations for Clean Architecture. New business modules should follow their folder structure, layering, naming conventions, and dependency direction unless a documented Architectural Decision Record (ADR) approves an exception.

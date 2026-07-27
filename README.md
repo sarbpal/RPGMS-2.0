@@ -58,6 +58,7 @@ These documents support implementation and day-to-day development.
 | CHANGELOG.md | Development history |
 | SESSION.md | Current development session |
 | NEXT_TASK.md | Immediate implementation task |
+| ENGINEERING_BASELINE.md | Engineering principles and implementation standards
 
 > **Recommendation:** All developers and AI coding assistants should begin with `DOCUMENTATION_INDEX.md`.
 

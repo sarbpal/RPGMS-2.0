@@ -264,6 +264,17 @@ Roadmap
 Project History
     → CHANGELOG.md
 
+    ## Constitutional Documents
+
+These documents define the long-term principles of RPGMS 2.0 and should be read before making significant architectural or business changes.
+
+1. BUSINESS_BLUEPRINT.md
+2. BUSINESS_RULES.md
+3. DOMAIN_MODEL.md
+4. ARCHITECTURE.md
+5. ENGINEERING_BASELINE.md
+6. PROJECT_RULES.md
+
 ------------------------------------------------------------------------------
 Version History
 ------------------------------------------------------------------------------

@@ -1256,6 +1256,35 @@ Successfully passed:
 - Established the conceptual business model for RPGMS 2.0
 - Defined business domains, aggregate boundaries and ownership relationships
 - Completed the constitutional documentation set
+
+## Unreleased
+
+### ACC-001 – Accommodation Legacy Decoupling
+
+#### Refactored
+
+- Removed all remaining legacy dependencies on the former `features/residents` module.
+- Replaced legacy coupling with integration through the Resident and Stay reference modules.
+- Removed direct `localStorage` access from the Accommodation presentation layer.
+- Moved occupancy synchronisation to use repository-based coordination.
+- Preserved all existing user-facing behaviour.
+
+---
+
+### ACC-002 – Centralised Accommodation Business Rules
+
+#### Refactored
+
+- Moved `FlatDraft` → `Flat` transformation into the Application layer.
+- Introduced centralised occupancy predicates:
+  - `isBedOccupied`
+  - `hasOccupiedBeds`
+  - `canDeleteArea`
+  - `canDeleteFlat`
+- Eliminated duplicated occupancy validation logic from React components.
+- Further reduced presentation-layer responsibilities, keeping React focused on rendering and user interaction.
+- Preserved all existing functionality while improving architectural consistency.
+
   
 ------------------------------------------------------------------------------
 End of Document

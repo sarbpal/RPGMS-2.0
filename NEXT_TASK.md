@@ -4,85 +4,130 @@
 
 ---
 
-# Current Status
+# Project Status
 
-The foundational architecture of RPGMS 2.0 has been established.
+RPGMS 2.0 has successfully completed its architecture and engineering foundation phase.
 
-Completed:
+The project now follows a stable Business-First Clean Architecture and is transitioning into business capability development.
 
-- ✅ Business Architecture
+Core reference modules have been established and should serve as implementation standards for future development.
+
+---
+
+# Completed Milestones
+
+## Business Foundation
+
+- ✅ Business Blueprint
 - ✅ Business Rules
-- ✅ Data Model
+- ✅ Domain Model
 - ✅ Resident Specification
-- ✅ Accommodation Specification
 - ✅ Stay Specification
-- ✅ Architecture Documentation Review
-- ✅ Governance Document Review
+- ✅ Accommodation Specification
+- ✅ Architecture Documentation
+- ✅ Engineering Baseline
+- ✅ Governance Documentation
 
-The project is now ready to begin designing the financial domains.
+## Engineering Foundation
 
----
+- ✅ Repository Health Audit
+- ✅ Resident Reference Module
+- ✅ Stay Reference Module
+- ✅ Finance Reference Module
+- ✅ Accommodation Reference Module
 
-# Immediate Tasks
+## Accommodation Engineering
 
-1. Review all documentation for consistency.
-2. Resolve any remaining cross-document references.
-3. Begin the Finance domain specification.
-
----
-
-# Next Milestone
-
-## Finance Domain
-
-The next major phase of the project is the design and implementation of the Finance domain.
-
-Deliverables:
-
-- Finance Specification
-- Billing Specification
-- Compliance Specification
-- Finance Data Model Review
-- Finance Business Rules Review
-
-The Finance domain will establish the accounting foundation for all future financial functionality within RPGMS.
+- ✅ ACC-001 – Remove Legacy Coupling
+- ✅ ACC-002 – Centralise Accommodation Business Rules
 
 ---
 
-# Future Roadmap
+# Current Project Phase
 
-Following completion of the Finance domain, development will continue in the following order:
+**Business Capability Development**
 
-1. Finance
-2. Billing
-3. Compliance
-4. Door ID Management
-5. Complaints
-6. Reporting
-7. Notifications
-8. Resident Portal
-9. Administration Enhancements
+The architectural foundation is considered stable.
 
-The roadmap may evolve as business requirements change while maintaining the established business architecture.
+Future work should focus on delivering business capabilities while preserving the established architecture.
+
+Architectural refactoring should only occur when justified by new business requirements or significant engineering improvements.
 
 ---
 
-# Notes for the Next Session
+# Immediate Next Task
 
-When beginning the next development session:
+## Status
 
-- Review this document.
-- Verify that project documentation remains synchronized.
-- Confirm that no architectural decisions require updating.
-- Begin with the Finance Specification before implementing any Finance-related code.
+Discovery Required
 
-All new implementation should continue to follow the established project principles:
+The next engineering task has not yet been selected.
 
-- Business architecture before implementation.
-- Business rules before code.
-- Specifications before development.
-- Ledger remains the single source of truth.
-- Documentation is updated before a sprint is closed.
+Before implementing additional code:
+
+1. Review the repository.
+2. Identify the highest-value engineering or business capability.
+3. Prioritise based on business impact and architectural consistency.
+4. Define the next engineering task (e.g. ELE-001, REP-001, MNT-001, etc.).
+5. Implement one engineering task at a time.
+
+---
+
+# Candidate Areas
+
+Potential next areas include:
+
+- Electricity
+- Reports
+- Maintenance
+- Settings
+- Cross-module integration
+- Additional business capabilities
+- Performance and scalability improvements
+
+The next task should be selected based on repository analysis rather than following a fixed sequence.
+
+---
+
+# Engineering Workflow
+
+Every engineering task should follow the same workflow:
+
+1. Review project documentation.
+2. Understand the existing implementation.
+3. Produce an implementation plan.
+4. Implement one focused engineering task.
+5. Verify:
+   - TypeScript compilation
+   - Production build
+   - Linting
+   - Manual testing
+6. Review the implementation.
+7. Update documentation.
+8. Commit as a single engineering task.
+9. Push to GitHub.
+
+---
+
+# Documentation Update Policy
+
+After completing each engineering task:
+
+Always review:
+
+- CHANGELOG.md
+- NEXT_TASK.md
+- ROADMAP.md
+
+Update constitutional documents only when required:
+
+- BUSINESS_RULES.md
+- DOMAIN_MODEL.md
+- ARCHITECTURE.md
+- ENGINEERING_BASELINE.md
+- PROJECT_RULES.md
+
+Documentation should be updated only when the implementation changes business behaviour, architecture, or project status.
 
 ---
 
@@ -91,18 +136,59 @@ All new implementation should continue to follow the established project princip
 | Area | Status |
 |------|--------|
 | Business Architecture | ✅ Complete |
-| Core Specifications | ✅ Complete |
+| Domain Model | ✅ Complete |
 | Business Rules | ✅ Complete |
-| Data Model | ✅ Complete |
-| Governance Documents | ✅ Complete |
+| Engineering Baseline | ✅ Complete |
+| Governance | ✅ Complete |
+| Resident Module | ✅ Reference Module |
+| Stay Module | ✅ Reference Module |
+| Accommodation Module | ✅ Reference Module |
+| Finance Module | ✅ Reference Module |
 | Technical Foundation | ✅ Stable |
-| Ready for Finance Domain | ✅ Yes |
+| Ready for Business Capability Development | ✅ Yes |
 
 ---
 
 # Long-Term Objective
 
-Build RPGMS into a maintainable, scalable, and business-driven property management platform where every feature is supported by a well-defined business architecture, clear specifications, and comprehensive documentation.
+Build RPGMS 2.0 into a maintainable, scalable, business-driven property management platform where:
+
+- business requirements drive implementation,
+- business rules remain the single source of truth,
+- architecture remains clean and modular,
+- documentation stays synchronised with development,
+- and every engineering task leaves the repository in a better state than it was found.
+
+---
+
+# Session Handover
+
+Before beginning the next session:
+
+- Review this document.
+- Review CHANGELOG.md.
+- Review ROADMAP.md.
+- Confirm whether any architectural documentation requires updating.
+- Identify the next highest-value engineering task.
+- Avoid unnecessary architectural refactoring.
+- Prioritise business capability development.
+
+---
+
+# Engineering Principles
+
+Continue to follow the established project principles:
+
+- Business before implementation.
+- Specifications before development.
+- Thin Presentation Layer.
+- Application Layer coordinates workflows.
+- Domain Layer owns business rules.
+- Repository Pattern for persistence.
+- Ledger remains the single source of truth.
+- One engineering task.
+- One review.
+- One commit.
 
 ---
 
@@ -110,7 +196,5 @@ Build RPGMS into a maintainable, scalable, and business-driven property manageme
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 2.0 | July 2026 | Rewritten to reflect the current project architecture and roadmap. |
-
----
-
+| 3.0 | July 2026 | Rewritten following completion of the architecture and engineering foundation phases, including ACC-001 and ACC-002. Transitioned the project to Business Capability Development. |
+| 2.0 | July 2026 | Rewritten to reflect the project architecture and roadmap. |

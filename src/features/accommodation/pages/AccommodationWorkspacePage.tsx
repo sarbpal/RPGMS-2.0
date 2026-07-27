@@ -10,7 +10,6 @@ import { AccommodationSummary } from '../components/AccommodationSummary';
 import { AccommodationToolbar } from '../components/AccommodationToolbar';
 import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
 import { FlatCard } from '../components/FlatCard';
-import { BedStatus } from '../domain';
 import type { Flat } from '../domain';
 
 export default function AccommodationWorkspacePage() {
@@ -42,56 +41,17 @@ export default function AccommodationWorkspacePage() {
   );
 
   const handleSaveFlat = (draft: FlatDraft) => {
-    // Transform FlatDraft to Flat
-    const newFlat: Flat = {
-      id: draft.flatNumber,
-      name: draft.flatNumber,
-      floor: draft.floor,
-      description: draft.description,
-      areas: draft.areas.map((area) => ({
-        id: `${draft.flatNumber}-${area.name.toLowerCase().replace(/\s+/g, '-')}`,
-        name: area.name,
-        bedPrefix: area.bedPrefix,
-        defaultRent: area.defaultRent,
-        defaultDeposit: area.defaultDeposit,
-        beds: area.beds.map((bedId) => {
-          const fullBedId = `${draft.flatNumber}-${bedId}`;
-          let existingBedStatus: BedStatus = BedStatus.VACANT;
-          let existingResidentName: string | undefined = undefined;
-
-          if (flatToEdit) {
-            const foundBed = flatToEdit.areas
-              .flatMap((a) => a.beds)
-              .find((b) => b.id === fullBedId);
-            if (foundBed) {
-              existingBedStatus = foundBed.status;
-              existingResidentName = foundBed.residentName;
-            }
-          }
-
-          return {
-            id: fullBedId,
-            name: bedId,
-            status: existingBedStatus,
-            residentName: existingResidentName,
-            defaultRent: area.defaultRent,
-            defaultDeposit: area.defaultDeposit,
-          };
-        }),
-      })),
-    };
-
-    coordinator.saveFlat(newFlat);
+    const savedFlat = coordinator.saveFlatDraft(draft, flatToEdit);
 
     if (flatToEdit) {
-      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? newFlat : f)));
+      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? savedFlat : f)));
       setSnackbar({
         open: true,
         message: `Flat ${draft.flatNumber} updated successfully.`,
         severity: 'success',
       });
     } else {
-      setFlats((prev) => [...prev, newFlat]);
+      setFlats((prev) => [...prev, savedFlat]);
       setSnackbar({
         open: true,
         message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
@@ -113,16 +73,9 @@ export default function AccommodationWorkspacePage() {
   };
 
   const handleDeleteFlatClick = (flat: Flat) => {
-    const hasOccupiedBeds = flat.areas.some((area) =>
-      area.beds.some(
-        (bed) =>
-          bed.status === BedStatus.OCCUPIED ||
-          bed.status === BedStatus.ON_NOTICE ||
-          !!bed.residentName
-      )
-    );
+    const { canDelete } = coordinator.canDeleteFlat(flat);
 
-    if (hasOccupiedBeds) {
+    if (!canDelete) {
       setSnackbar({
         open: true,
         message: `Cannot delete Flat ${flat.name} because it contains occupied beds. Please check out or reassign residents first.`,
@@ -137,16 +90,9 @@ export default function AccommodationWorkspacePage() {
 
   const handleConfirmDelete = () => {
     if (flatToDelete) {
-      const hasOccupiedBeds = flatToDelete.areas.some((area) =>
-        area.beds.some(
-          (bed) =>
-            bed.status === BedStatus.OCCUPIED ||
-            bed.status === BedStatus.ON_NOTICE ||
-            !!bed.residentName
-        )
-      );
+      const { canDelete } = coordinator.canDeleteFlat(flatToDelete);
 
-      if (hasOccupiedBeds) {
+      if (!canDelete) {
         setSnackbar({
           open: true,
           message: `Cannot delete Flat ${flatToDelete.name} because it contains occupied beds.`,

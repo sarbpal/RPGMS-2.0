@@ -27,24 +27,11 @@ import {
 } from '@mui/material';
 
 import { generateBeds } from '../utils/generateBeds';
-import { BedStatus } from '../types';
-import type { Flat } from '../types';
+import { canDeleteArea, hasOccupiedBeds, isBedOccupied } from '../domain';
+import type { Flat } from '../domain';
+import type { FlatDraft, FlatDraftArea } from '../application/models/FlatDraft';
 
-export interface FlatDraftArea {
-  name: string;
-  bedPrefix: string;
-  beds: string[];
-  defaultRent: number;
-  defaultDeposit: number;
-}
-
-export interface FlatDraft {
-  flatNumber: string;
-  floor: string;
-  description: string;
-  capacity: number;
-  areas: FlatDraftArea[];
-}
+export type { FlatDraft, FlatDraftArea };
 
 interface AddFlatDialogProps {
   open: boolean;
@@ -301,13 +288,8 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     if (flatToEdit) {
       const originalArea = flatToEdit.areas.find((a) => a.id === id);
       if (originalArea) {
-        const occupiedBeds = originalArea.beds.filter(
-          (b) =>
-            b.status === BedStatus.OCCUPIED ||
-            b.status === BedStatus.ON_NOTICE ||
-            !!b.residentName
-        );
-        if (occupiedBeds.length > 0) {
+        const { canDelete, occupiedBeds } = canDeleteArea(originalArea);
+        if (!canDelete) {
           const bedNames = occupiedBeds.map((b) => b.name).join(', ');
           setDialogError(
             `Cannot delete Area "${originalArea.name}" because it contains occupied beds (${bedNames}). Please check out or reassign residents first.`
@@ -371,12 +353,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
     if (flatToEdit) {
       const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
       if (originalArea) {
-        const occupiedBeds = originalArea.beds.filter(
-          (b) =>
-            b.status === BedStatus.OCCUPIED ||
-            b.status === BedStatus.ON_NOTICE ||
-            !!b.residentName
-        );
+        const occupiedBeds = originalArea.beds.filter(isBedOccupied);
         if (occupiedBeds.length > 0) {
           if (
             area.bedPrefix.trim().toUpperCase() !==
@@ -601,14 +578,8 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                   if (flatToEdit) {
                     const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
                     if (originalArea) {
-                      const hasOccupiedBeds = originalArea.beds.some(
-                        (b) =>
-                          b.status === BedStatus.OCCUPIED ||
-                          b.status === BedStatus.ON_NOTICE ||
-                          !!b.residentName
-                      );
                       if (
-                        hasOccupiedBeds &&
+                        hasOccupiedBeds(originalArea) &&
                         area.bedPrefix.trim().toUpperCase() !==
                           originalArea.bedPrefix?.trim().toUpperCase()
                       ) {
@@ -627,12 +598,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                     if (flatToEdit) {
                       const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
                       if (originalArea) {
-                        const occupiedBeds = originalArea.beds.filter(
-                          (b) =>
-                            b.status === BedStatus.OCCUPIED ||
-                            b.status === BedStatus.ON_NOTICE ||
-                            !!b.residentName
-                        );
+                        const occupiedBeds = originalArea.beds.filter(isBedOccupied);
                         if (occupiedBeds.length > 0) {
                           const indices = occupiedBeds.map((b) => {
                             const match = b.name.match(/\d+$/);

@@ -78,6 +78,19 @@ Planned Work
 * Occupancy View
 
 ---
+### Accommodation
+
+**Status:** ✅ Architecture Complete
+
+Completed engineering tasks:
+
+- ACC-001 – Remove Legacy Coupling
+- ACC-002 – Centralise Accommodation Business Rules
+
+The Accommodation module now serves as a Clean Architecture reference implementation alongside Resident, Stay, and Finance.
+
+Future work in this module will be driven by new business capabilities rather than architectural refactoring.
+---
 
 ## Sprint 6 – Finance Module
 

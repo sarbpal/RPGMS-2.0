@@ -1,5 +1,5 @@
 import type { AccommodationStats } from '../../components/AccommodationSummary';
-import { BedStatus, type Flat, synchronizeBedOccupancy } from '../../domain';
+import { BedStatus, canDeleteFlat, type Flat, synchronizeBedOccupancy } from '../../domain';
 import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
 import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
@@ -10,6 +10,7 @@ import type { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { AccommodationWorkspaceViewModel } from '../models/AccommodationWorkspaceViewModel';
+import type { FlatDraft } from '../models/FlatDraft';
 
 export interface BedOccupantInput {
   fullName: string;
@@ -53,6 +54,59 @@ export class AccommodationWorkspaceCoordinator {
     }
 
     return synchronizedFlats;
+  }
+
+  /**
+   * Transforms a FlatDraft into a Flat domain entity and saves it via repository abstraction.
+   * Preserves existing bed status and occupant details when updating a flat.
+   */
+  public saveFlatDraft(draft: FlatDraft, flatToEdit?: Flat): Flat {
+    const newFlat: Flat = {
+      id: draft.flatNumber,
+      name: draft.flatNumber,
+      floor: draft.floor,
+      description: draft.description,
+      areas: draft.areas.map((area) => ({
+        id: `${draft.flatNumber}-${area.name.toLowerCase().replace(/\s+/g, '-')}`,
+        name: area.name,
+        bedPrefix: area.bedPrefix,
+        defaultRent: area.defaultRent,
+        defaultDeposit: area.defaultDeposit,
+        beds: area.beds.map((bedId) => {
+          const fullBedId = `${draft.flatNumber}-${bedId}`;
+          let existingBedStatus: BedStatus = BedStatus.VACANT;
+          let existingResidentName: string | undefined = undefined;
+
+          if (flatToEdit) {
+            const foundBed = flatToEdit.areas
+              .flatMap((a) => a.beds)
+              .find((b) => b.id === fullBedId);
+            if (foundBed) {
+              existingBedStatus = foundBed.status;
+              existingResidentName = foundBed.residentName;
+            }
+          }
+
+          return {
+            id: fullBedId,
+            name: bedId,
+            status: existingBedStatus,
+            residentName: existingResidentName,
+            defaultRent: area.defaultRent,
+            defaultDeposit: area.defaultDeposit,
+          };
+        }),
+      })),
+    };
+
+    return this.saveFlat(newFlat);
+  }
+
+  /**
+   * Validates whether a flat can be safely deleted using domain deletion rules.
+   */
+  public canDeleteFlat(flat: Flat) {
+    return canDeleteFlat(flat);
   }
 
   /**

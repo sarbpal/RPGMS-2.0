@@ -1393,7 +1393,7 @@ Technical implementation details must never dictate business concepts.
 
 Historical information is a business asset.
 
-Business events should be recorded rather than overwritten. Corrections should create new business records wherever practical.
+Domain Events should be recorded rather than overwritten. Corrections should create new business records wherever practical.
 
 ---
 

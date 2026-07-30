@@ -1,6 +1,6 @@
 # RPGMS 2.0
 
-# RPGMS 2.0 Business Blueprint
+# RPGMS 2.0 Business Constitution
 
 **Document ID:** RPGMS-BP-001
 **Version:** 1.0
@@ -14,7 +14,7 @@
 
 # Document Purpose
 
-The Business Blueprint is the authoritative description of the business architecture of RPGMS 2.0.
+The Business Constitution is the authoritative description of the business architecture of RPGMS 2.0.
 
 It defines how the business operates independently of software implementation.
 
@@ -117,7 +117,7 @@ It should be considered the primary business reference for every architectural a
 
 # Relationship to Other Project Documents
 
-The Business Blueprint defines the business architecture.
+The Business Constitution defines the business architecture.
 
 Other project documents derive their direction from this document.
 
@@ -132,13 +132,13 @@ Other project documents derive their direction from this document.
 | AI_CONTEXT.md | AI Project Context |
 | AI_WORKFLOW.md | AI Development Workflow |
 
-The Business Blueprint takes precedence whenever business intent must be interpreted.
+The Business Constitution takes precedence whenever business intent must be interpreted.
 
 ---
 
 # How to Read This Document
 
-The Business Blueprint is organised by business domains rather than software modules.
+The Business Constitution is organised by business domains rather than software modules.
 
 Each chapter explains:
 
@@ -195,7 +195,7 @@ These principles are independent of technology, programming language, database d
 
 Historical business facts must never be overwritten.
 
-When business circumstances change, RPGMS records new business events rather than modifying historical records.
+When business circumstances change, RPGMS records new Domain Events rather than modifying historical records.
 
 Examples include:
 
@@ -339,7 +339,7 @@ The explanation should be traceable through:
 
 - Business Rules
 - Business Policies
-- Business Events
+- Domain Events
 - Audit History
 - Recorded Exceptions
 
@@ -1655,15 +1655,15 @@ This hierarchy ensures that organisation-wide defaults may be customised for ind
 
 ## Purpose
 
-RPGMS records both business events and audit information.
+RPGMS records both Domain Events and audit information.
 
 Although closely related, these represent different architectural concepts.
 
 ---
 
-## Business Events
+## Domain Events
 
-Business Events describe **what happened**.
+Domain Events describe **what happened**.
 
 Examples include:
 
@@ -1673,7 +1673,7 @@ Examples include:
 - Checkout
 - Settlement Completed
 
-Business Events form the operational and financial history of the business.
+Domain Events form the operational and financial history of the business.
 
 ---
 
@@ -1857,9 +1857,9 @@ Business history must always remain complete.
 
 ## Purpose
 
-Notifications communicate business events to appropriate recipients.
+Notifications communicate Domain Events to appropriate recipients.
 
-Notifications improve operational awareness but do not constitute business events themselves.
+Notifications improve operational awareness but do not constitute Domain Events themselves.
 
 ---
 
@@ -1937,7 +1937,7 @@ New channels may be introduced without changing the notification model.
 
 ## Notification Principles
 
-- Notifications are triggered by business events.
+- Notifications are triggered by Domain Events.
 - Delivery channels are independent of business logic.
 - Failed delivery does not invalidate the underlying business event.
 - Notification history should remain available for audit purposes.
@@ -2019,7 +2019,7 @@ These enhancements extend the search experience without altering the underlying 
 # Architecture Overview
 
 ```
-                 Business Events
+                 Domain Events
                         │
         ┌───────────────┼───────────────┐
         ▼               ▼               ▼
@@ -2422,7 +2422,7 @@ The architecture distinguishes between:
 
 - People and occupancy.
 - Operations and finance.
-- Business events and audit records.
+- Domain Events and audit records.
 - Business rules and business policies.
 - Business identifiers and technical identifiers.
 - Normal operations and business exceptions.
@@ -2576,7 +2576,7 @@ The architecture should accommodate future business growth through extension rat
 
 # Conclusion
 
-The Business Blueprint defines the business architecture of RPGMS independently of any specific technology or implementation.
+The Business Constitution defines the business architecture of RPGMS independently of any specific technology or implementation.
 
 It provides a stable foundation for software architecture, database design, user interface development, testing, documentation and AI-assisted engineering.
 

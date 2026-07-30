@@ -135,7 +135,7 @@ Every Stay remains permanently available for reporting, auditing, and financial 
 
 ---
 
-## Principle 6 — Business Events Drive Other Domains
+## Principle 6 — Domain Events Drive Other Domains
 
 Resident lifecycle events may trigger business processes in other domains such as Accommodation, Finance, Security, Laundry, and Reporting.
 
@@ -611,5 +611,5 @@ Finance records their financial activity.
 
 Other operational modules provide services throughout their stay.
 
-The Resident domain remains the authoritative source of resident identity, lifecycle, and business events, ensuring consistency, traceability, and long-term historical integrity across the entire application.
+The Resident domain remains the authoritative source of resident identity, lifecycle, and Domain Events, ensuring consistency, traceability, and long-term historical integrity across the entire application.
 

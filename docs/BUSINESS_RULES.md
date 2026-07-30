@@ -21,7 +21,7 @@ Business Rules describe what the system must always enforce in order to preserve
 
 These rules are independent of software implementation and remain valid regardless of programming language, database technology or user interface.
 
-Where the Business Blueprint explains the business architecture, this document specifies the mandatory rules that every implementation must enforce.
+Where the Business Constitution explains the business architecture, this document specifies the mandatory rules that every implementation must enforce.
 
 ---
 
@@ -54,7 +54,7 @@ Future business domains shall extend this document without changing the numberin
 
 # Relationship to Other Documents
 
-The Business Rules document should be read together with the Business Blueprint.
+The Business Rules document should be read together with the Business Constitution.
 
 The relationship between the two documents is:
 
@@ -63,7 +63,7 @@ The relationship between the two documents is:
 | BUSINESS_BLUEPRINT.md | Defines the business architecture and business concepts. |
 | BUSINESS_RULES.md | Defines the mandatory rules governing those business concepts. |
 
-The Business Blueprint explains **what the business is**.
+The Business Constitution explains **what the business is**.
 
 The Business Rules document defines **what the business must always enforce**.
 
@@ -131,7 +131,7 @@ Derived information shall always originate from its authoritative source.
 
 Historical business records shall never be modified in a manner that changes historical truth.
 
-Corrections shall create new business events rather than altering historical records.
+Corrections shall create new Domain Events rather than altering historical records.
 
 ---
 
@@ -560,7 +560,7 @@ Profile updates shall affect only current Resident information and shall not alt
 
 ### Reason
 
-Personal information may evolve over time while historical business events remain unchanged.
+Personal information may evolve over time while historical Domain Events remain unchanged.
 
 ### Applies To
 
@@ -1027,7 +1027,7 @@ Historical Stay records shall be immutable.
 
 Historical information shall never be modified in a manner that changes historical truth.
 
-Corrections shall be represented through new business events.
+Corrections shall be represented through new Domain Events.
 
 ### Reason
 
@@ -2184,7 +2184,7 @@ Historical business records shall remain unchanged.
 
 ### Reason
 
-Configuration establishes future behaviour rather than rewriting historical business events.
+Configuration establishes future behaviour rather than rewriting historical Domain Events.
 
 ### Applies To
 
@@ -2335,7 +2335,7 @@ Configuration supports consistency, controlled flexibility and future business e
 
 The Audit & Events domain governs the recording of significant business activities throughout RPGMS.
 
-Business Events describe what occurred.
+Domain Events describe what occurred.
 
 Audit Records describe who performed the operation, when it occurred and under what authority.
 
@@ -2349,11 +2349,11 @@ Together they provide accountability, traceability and historical integrity acro
 
 Every significant business operation shall generate a Business Event.
 
-Business Events represent completed business activities.
+Domain Events represent completed business activities.
 
 ### Reason
 
-Business Events provide the authoritative history of organisational activity.
+Domain Events provide the authoritative history of organisational activity.
 
 ### Applies To
 
@@ -2421,7 +2421,7 @@ Audit Records shall be immutable.
 
 Audit Records shall never be modified or deleted in a manner that changes historical truth.
 
-Corrections shall be represented through new Business Events.
+Corrections shall be represented through new Domain Events.
 
 ### Reason
 
@@ -2463,7 +2463,7 @@ Each business object should provide a complete history of significant events thr
 
 ### Rule
 
-Business Events shall be classified according to their business purpose.
+Domain Events shall be classified according to their business purpose.
 
 Examples include:
 
@@ -2494,7 +2494,7 @@ Classification improves reporting, searching and operational analysis.
 
 Business history shall remain fully traceable.
 
-The sequence of Business Events shall accurately represent the order in which business activities occurred.
+The sequence of Domain Events shall accurately represent the order in which business activities occurred.
 
 ### Reason
 
@@ -2511,7 +2511,7 @@ Business decisions should be understandable through their historical sequence.
 
 ### Rule
 
-Administrative Overrides shall generate Business Events and corresponding Audit Records.
+Administrative Overrides shall generate Domain Events and corresponding Audit Records.
 
 The reason for the override shall become part of the permanent audit history.
 
@@ -2530,7 +2530,7 @@ Exceptional authority shall remain fully accountable.
 
 ### Rule
 
-Visibility of Business Events and Audit Records shall be governed by user permissions and business policy.
+Visibility of Domain Events and Audit Records shall be governed by user permissions and business policy.
 
 Restricted audit information shall be available only to authorised users.
 
@@ -2549,7 +2549,7 @@ Audit transparency shall be balanced with information security.
 
 ### Rule
 
-Audit Records and Business Events shall be retained according to organisational retention policy.
+Audit Records and Domain Events shall be retained according to organisational retention policy.
 
 Where retention periods are defined, disposal shall comply with applicable legal and regulatory requirements.
 
@@ -2566,7 +2566,7 @@ Audit information supports accountability, compliance and historical reference.
 
 # Audit & Events Summary
 
-Business Events record what occurred.
+Domain Events record what occurred.
 
 Audit Records establish who performed the operation, when it occurred and under what authority.
 
@@ -2696,7 +2696,7 @@ Retention ensures compliance while supporting efficient document management.
 
 # Notifications
 
-The Notifications domain governs communication generated by business events.
+The Notifications domain governs communication generated by Domain Events.
 
 Notifications communicate information.
 
@@ -2708,7 +2708,7 @@ Notifications do not themselves modify business data.
 
 ### Rule
 
-Notifications shall be generated only in response to defined Business Events or approved business processes.
+Notifications shall be generated only in response to defined Domain Events or approved business processes.
 
 ### Reason
 
@@ -2898,7 +2898,7 @@ Correct business information is more important than incomplete or misleading res
 
 Documents preserve business evidence.
 
-Notifications communicate business events.
+Notifications communicate Domain Events.
 
 Search enables discovery of authorised business information.
 
@@ -3141,7 +3141,7 @@ Historical exceptions provide valuable operational insight and support accountab
 
 Authorised users may resolve Business Exceptions where permitted by business policy.
 
-Administrative resolution shall generate appropriate Business Events and Audit Records.
+Administrative resolution shall generate appropriate Domain Events and Audit Records.
 
 ### Reason
 
@@ -3180,7 +3180,7 @@ Historical business records shall preserve historical truth.
 
 Historical records shall not be modified in a manner that changes the facts that existed at the time they were created.
 
-Corrections shall be represented through new business events rather than alteration of historical records.
+Corrections shall be represented through new Domain Events rather than alteration of historical records.
 
 ### Reason
 
@@ -3393,7 +3393,7 @@ All software implementation, testing, documentation and future enhancements shal
 
 The Business Rules document defines the mandatory principles that govern every operational and financial activity within RPGMS.
 
-Together with the Business Blueprint, it establishes a complete business architecture consisting of:
+Together with the Business Constitution, it establishes a complete business architecture consisting of:
 
 - Business Concepts
 - Business Relationships

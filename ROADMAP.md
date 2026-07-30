@@ -1,156 +1,113 @@
 # RPGMS 2.0 Roadmap
 
+## Document Information
+
+**Document ID:** ROADMAP.md
+**Version:** 2.0
+**Status:** Active
+**Owner:** RPGMS Project
+**Last Updated:** 30 July 2026
+
 ---
 
-## Project Status
+# Project Status
 
-Current Milestone
+**Current Milestone**
 
 M2 – Core Feature Development
 
-Current Sprint
+**Current Sprint**
 
-Sprint 4 – Residents Module Foundation
+Sprint 4.4 – Accommodation Persistence & List Integration
 
-Status
+**Status**
 
-Planning
-
----
-
-## Completed
-
-### Milestone M0 – Engineering Foundation
-
-* Repository foundation
-* React + Vite setup
-* TypeScript
-* Material UI
-* AI engineering governance
-* Development standards
-* Project documentation
-
-Completed ✅
+Ready to Begin
 
 ---
 
-### Milestone M1 – Application Shell
+# Completed
 
-* Application shell
-* Header
-* Sidebar
-* MainLayout
-* Dashboard foundation
-* Feature scaffolding
-* React Router integration
-* Sidebar navigation
-* Active route highlighting
+## Milestone M0 – Engineering Foundation
 
-Completed ✅
+- Repository foundation
+- React + Vite setup
+- TypeScript
+- Material UI
+- AI engineering governance
+- Development standards
+- Documentation framework
 
----
-
-## Sprint 4 – Residents Module Foundation
-
-Objective
-
-Develop the first business feature module using static UI components.
-
-Planned Work
-
-* Residents List
-* Resident Details
-* Search UI
-* Filter UI
-* Shared page layout
-* Placeholder data only
+**Completed ✅**
 
 ---
 
-## Sprint 5 – Accommodation Module
+## Milestone A1 – Architecture Baseline
 
-Planned Work
+- Business Constitution
+- Domain Model
+- Software Architecture
+- Project Rules
+- Documentation framework
+- Architectural governance
+- Architecture consistency review
+- Architecture Polish Sprint
 
-* Flats
-* Rooms
-* Beds
-* Bed Allocation
-* Occupancy View
-
----
-### Accommodation
-
-**Status:** ✅ Architecture Complete
-
-Completed engineering tasks:
-
-- ACC-001 – Remove Legacy Coupling
-- ACC-002 – Centralise Accommodation Business Rules
-
-The Accommodation module now serves as a Clean Architecture reference implementation alongside Resident, Stay, and Finance.
-
-Future work in this module will be driven by new business capabilities rather than architectural refactoring.
----
-
-## Sprint 6 – Finance Module
-
-Planned Work
-
-* Resident Ledger
-* Security Deposit
-* Payments
-* Outstanding Dues
-* Financial Summary
+**Completed ✅**
 
 ---
 
-## Sprint 7 – Electricity Module
+## Milestone M1 – Application Shell
 
-Planned Work
+- Application shell
+- Header
+- Sidebar
+- MainLayout
+- Dashboard foundation
+- Feature scaffolding
+- React Router integration
+- Sidebar navigation
+- Active route highlighting
 
-* Bill Entry
-* Bill Calculation
-* Bill Distribution
-* Ledger Integration
-
----
-
-## Future Modules
-
-* Laundry
-* Maintenance
-* Complaints
-* Reports
-* Notifications
-* Visitor Register
-* Document Management
-* Settings
-* Analytics
-* AI-assisted Operations
+**Completed ✅**
 
 ---
 
-## Long-Term Vision
+## Sprint 4.1 – Accommodation Foundation
 
-* Supabase backend integration
-* Authentication & role management
-* Real-time updates
-* Mobile responsiveness
-* Production deployment
-* Performance optimization
-* Automated testing
-* CI/CD pipeline
+**Completed ✅**
 
-Sprint 4.1 ✅
-Sprint 4.2 ✅
+Deliverables
+
+- Accommodation workspace
+- Flat cards
+- Area sections
+- Bed cards
+- Accommodation summary
+- Toolbar
+- Status filtering
+
 ---
-## Sprint 4.3
 
-### Status
+## Sprint 4.2 – Accommodation UI Refinement
 
-✅ COMPLETE
+**Completed ✅**
 
-### Deliverables
+Deliverables
+
+- Typography improvements
+- Flat card refinement
+- Layout consistency
+- UI polish
+- Navigation improvements
+
+---
+
+## Sprint 4.3 – Accommodation Creation Workflow
+
+**Completed ✅**
+
+Deliverables
 
 - Add Flat dialog
 - Area management
@@ -162,23 +119,98 @@ Sprint 4.2 ✅
 
 ---
 
-## Next Sprint
+## Sprint 4.4 – Accommodation Persistence & List Integration
 
-Sprint 4.4 – Accommodation Persistence & List Integration
+### Objective
 
-Planned goals:
+Complete the Accommodation module by integrating the creation workflow into the application state.
 
-- Integrate Flat Draft with application state.
-- Replace developer preview with persistence workflow.
-- Refresh Accommodation list after creation.
-- Prepare for Supabase integration.
+### Planned Work
 
-Milestone 10 – Resident Foundation
+- Integrate Flat Draft with application state
+- Replace developer preview with persistence workflow
+- Refresh Accommodation list after creation
+- Prepare architecture for Supabase integration
 
-Sprint 10.1 – Resident Presentation
-Sprint 10.2 – Resident Application
-Sprint 10.3 – Resident Domain
-Sprint 10.4 – Resident Infrastructure
-Sprint 10.5 – Resident Workspace Integration
+---
+
+## Current Sprint
+
+## Sprint 5.1 – Resident Presentation Foundation
+
+Status
+
+Ready to Begin
+
+---
+
+# Upcoming Milestones
+
+## Milestone M3 – Resident Module
+
+### Sprint 5.1 – Resident Presentation
+
+- Residents List
+- Resident Details
+- Search
+- Filters
+- Shared Layout
+
+### Sprint 5.2 – Resident Application
+
+### Sprint 5.3 – Resident Domain
+
+### Sprint 5.4 – Resident Infrastructure
+
+### Sprint 5.5 – Resident Workspace Integration
+
+---
+
+## Milestone M4 – Finance Module
+
+- Resident Ledger
+- Security Deposit
+- Payments
+- Outstanding Dues
+- Financial Summary
+
+---
+
+## Milestone M5 – Electricity Module
+
+- Bill Entry
+- Bill Calculation
+- Bill Distribution
+- Ledger Integration
+
+---
+
+# Future Modules
+
+- Laundry
+- Maintenance
+- Complaints
+- Reports
+- Notifications
+- Visitor Register
+- Document Management
+- Settings
+- Analytics
+- AI-assisted Operations
+
+---
+
+# Long-Term Vision
+
+- Supabase backend integration
+- Authentication & Role Management
+- Real-time updates
+- Mobile responsiveness
+- Production deployment
+- Performance optimisation
+- Automated testing
+- CI/CD pipeline
+
+---
 
 End of Document

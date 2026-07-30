@@ -179,7 +179,7 @@ The Finance domain is governed by the following architectural principles:
 7. Settlements apply financial value.
 8. Financial balances are always derived.
 9. Deposits are independent of operational receivables.
-10. Operational Checkout and Financial Closure are independent business events.
+10. Operational Checkout and Financial Closure are independent Domain Events.
 11. Financial reports derive information exclusively from Finance.
 12. Every financial event must be fully auditable.
 13. Clear domain ownership must be preserved.
@@ -219,7 +219,7 @@ The Finance domain is independent of operational domains such as Resident, Stay,
 
 Operational events may trigger financial events, but Finance alone owns the resulting financial records, balances, and financial state.
 
-The Finance domain is designed around immutable business events rather than mutable balances.
+The Finance domain is designed around immutable Domain Events rather than mutable balances.
 
 All financial information presented elsewhere in the system is derived from the Finance domain.
 
@@ -261,7 +261,7 @@ Examples include:
 
 The Finance domain ends only when the Stay reaches Financial Closure.
 
-Operational completion (Checkout) and Financial completion are intentionally independent business events.
+Operational completion (Checkout) and Financial completion are intentionally independent Domain Events.
 
 ---
 
@@ -893,7 +893,7 @@ The Settlement Engine guarantees that:
 - Every allocation is reproducible.
 - Every allocation can be explained.
 - Every allocation preserves historical integrity.
-- Financial value always flows through explicit business events.
+- Financial value always flows through explicit Domain Events.
   
 ---
 
@@ -1045,7 +1045,7 @@ The Timeline is a projection of financial history, not a separate source of trut
 
 ## Design Philosophy
 
-Finance is a sequence of business events.
+Finance is a sequence of Domain Events.
 
 Every significant financial event contributes to the Financial Timeline.
 
@@ -1242,7 +1242,7 @@ The lifecycle provides a business model for financial progression and is indepen
 
 A Stay has exactly one Financial Lifecycle.
 
-The lifecycle is driven exclusively by financial business events recorded within the Finance domain.
+The lifecycle is driven exclusively by financial Domain Events recorded within the Finance domain.
 
 Operational events may trigger lifecycle transitions, but they do not determine financial state.
 
@@ -1352,7 +1352,7 @@ Only financially closed Stays are considered complete from the Finance perspecti
 
 The Financial Lifecycle guarantees that:
 
-- Every financial state is explainable through recorded business events.
+- Every financial state is explainable through recorded Domain Events.
 - Lifecycle progression preserves historical integrity.
 - Financial Closure permanently completes the lifecycle.
 - Closed financial lifecycles remain available for auditing and reporting.
@@ -1441,7 +1441,7 @@ Each domain owns its own lifecycle.
 
 One domain must never directly modify another domain's state.
 
-Instead, domains communicate through business events.
+Instead, domains communicate through Domain Events.
 
 Examples:
 
@@ -1897,7 +1897,7 @@ Finance owns money.
 
 Reporting owns presentation.
 
-Cross-domain modifications should occur only through business events.
+Cross-domain modifications should occur only through Domain Events.
 
 ---
 
@@ -1953,7 +1953,7 @@ The Finance Architecture of RPGMS 2.0 is founded on the following architectural 
 
 • Operational and Financial lifecycles are independent.
 
-• Checkout and Financial Closure are separate business events.
+• Checkout and Financial Closure are separate Domain Events.
 
 ---
 
@@ -2036,7 +2036,7 @@ The Finance Architecture is guided by the following principles:
 - History is Immutable
 - Balances are Derived
 - System Recommends, Operator Decides
-- Business Events Drive the System
+- Domain Events Drive the System
 - Clear Domain Ownership
 - Complete Auditability
 

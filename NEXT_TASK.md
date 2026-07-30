@@ -18,7 +18,7 @@ Core reference modules have been established and should serve as implementation 
 
 ## Business Foundation
 
-- ✅ Business Blueprint
+- ✅ Business Constitution
 - ✅ Business Rules
 - ✅ Domain Model
 - ✅ Resident Specification

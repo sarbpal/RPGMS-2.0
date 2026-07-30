@@ -22,7 +22,7 @@
 
 This document illustrates how the Finance Architecture behaves during common business situations.
 
-The scenarios demonstrate the interaction between Business Events, Financial Accounts, the Settlement Engine, and the Ledger.
+The scenarios demonstrate the interaction between Domain Events, Financial Accounts, the Settlement Engine, and the Ledger.
 
 These examples improve understanding of the Finance Architecture and serve as reference material during implementation, testing, and future enhancements.
 
@@ -36,7 +36,7 @@ Each scenario follows the same structure.
 
 - Business Situation
 - Initial State
-- Business Events
+- Domain Events
 - Financial Processing
 - Final State
 - Key Principles
@@ -59,7 +59,7 @@ A new Resident joins the hostel.
 - No active Stay.
 - No Financial Accounts.
 
-### Business Events
+### Domain Events
 
 Resident Admitted
 
@@ -107,7 +107,7 @@ Resident pays rent before the first Bill is generated.
 - Active Stay
 - No Bill generated
 
-### Business Events
+### Domain Events
 
 Advance Payment Received
 
@@ -154,7 +154,7 @@ Monthly billing cycle is generated.
 - Active Stay
 - Financial State = Open
 
-### Business Events
+### Domain Events
 
 Billing Cycle Started
 
@@ -189,7 +189,7 @@ Laundry charges are added after monthly billing.
 
 Monthly Bill already exists.
 
-### Business Events
+### Domain Events
 
 Manual Bill Created
 
@@ -221,7 +221,7 @@ Resident pays the complete outstanding amount.
 
 Outstanding Receivable ₹6,800
 
-### Business Events
+### Domain Events
 
 Payment Received
 
@@ -257,7 +257,7 @@ Resident pays only part of the outstanding amount.
 
 Outstanding Receivable ₹6,800
 
-### Business Events
+### Domain Events
 
 Payment Received
 
@@ -360,7 +360,7 @@ Deposits are never automatically utilized.
 
 Resident checks out with all obligations settled.
 
-### Business Events
+### Domain Events
 
 Operational Checkout
 
@@ -392,7 +392,7 @@ Electricity bill has not yet been received.
 
 Deposit ₹6,500
 
-### Business Events
+### Domain Events
 
 Operational Checkout
 

@@ -10,10 +10,71 @@
 
 **Status:** Approved Software Architecture
 
+**Architecture Baseline v3.0 — Approved for MVP Implementation
+
 **Owner:** RPGMS Architecture
 
 **Last Updated:** 26 July 2026
 
+
+## Document Status
+
+This document defines the baseline software architecture for RPGMS 2.0 MVP.
+
+The architectural structure described herein is considered stable.
+
+Changes to this document should occur only when:
+
+- A new business capability is introduced.
+- A significant architectural decision changes.
+- An implementation experience reveals a genuine architectural improvement.
+
+Editorial improvements do not constitute architectural changes.
+
+---
+
+## How to Use This Document
+
+This document is intended for software developers, AI coding agents and technical reviewers working on RPGMS 2.0.
+
+New readers should begin with:
+
+1. Architectural Principles
+2. Layered Architecture
+3. Domain Architecture
+
+Implementation work should then focus on the Software Domain relevant to the feature being developed.
+
+Supporting chapters such as Data Architecture, Event Architecture and Security Architecture provide cross-cutting guidance that applies to all Software Domains.
+
+---
+
+# Table of Contents
+
+1. Purpose
+2. Scope
+3. Relationship to Other Documents
+4. Architectural Objectives
+5. Architectural Philosophy
+6. Architectural Principles
+7. Layered Architecture
+8. Domain Architecture
+9. Data Architecture
+10. Domain Interaction Architecture
+11. Operational Support Domains
+12. Platform Domains
+13. Domain Independence
+14. Cross-Domain Workflows
+15. Cross-Cutting Architectural Services
+16. Event Architecture
+17. Security Architecture
+18. Runtime & Deployment Architecture
+19. Technology Stack
+20. User Interface Architecture
+21. Future Evolution
+22. Documentation Architecture
+23. Architectural Governance
+24. Conclusion
 ---
 
 # Purpose
@@ -60,47 +121,109 @@ These responsibilities belong to their respective governance documents.
 
 RPGMS documentation follows a layered governance model.
 
-Each document has a single, clearly defined responsibility.
+Each document has a single, clearly defined responsibility and derives its authority from the layer above it.
 
-### BUSINESS_BLUEPRINT.md
+---
+
+## BUSINESS_MODEL.md (Business Constitution)
 
 Defines:
 
 > **What the business is.**
 
-It describes the business concepts, business relationships and business lifecycles that exist independently of software implementation.
+This document establishes the constitutional foundation of RPGMS.
+
+It defines:
+
+- Business philosophy
+- Business principles
+- Business entities
+- Business relationships
+- Business lifecycles
+- Business state machines
+- Business terminology
+- Constitutional business rules
+
+The Business Constitution is the highest authority for business behaviour within RPGMS.
 
 ---
 
-### BUSINESS_RULES.md
+## PROJECT_RULES.md
 
 Defines:
 
-> **What the business must do.**
+> **How the project is engineered.**
 
-It specifies the mandatory business rules governing every operational and financial activity within RPGMS.
+This document establishes the engineering standards governing the development of RPGMS.
+
+It defines:
+
+- Development workflow
+- Documentation standards
+- AI collaboration practices
+- Coding conventions
+- Definition of Done
+- Architectural governance
+- Project engineering policies
+
+PROJECT_RULES.md governs how software is developed but does not define business behaviour.
 
 ---
 
-### ARCHITECTURE.md
+## ARCHITECTURE.md
 
 Defines:
 
 > **How the software realises the business.**
 
-It explains how the software is organised to implement the Business Blueprint and enforce the Business Rules.
+This document translates the Business Constitution into a modular software architecture.
+
+It defines:
+
+- Architectural principles
+- Software domains
+- Aggregate boundaries
+- Application layers
+- Cross-cutting services
+- Communication patterns
+- Technical responsibilities
+
+Architecture shall remain consistent with the Business Constitution and comply with the engineering standards defined in PROJECT_RULES.md.
 
 ---
 
-Together these documents establish a complete architectural foundation for RPGMS.
+## Relationship Between the Documents
 
----
+The governance hierarchy of RPGMS is:
+
+```text
+Business Constitution
+(BUSINESS_MODEL.md)
+        │
+        ▼
+Project Engineering Rules
+(PROJECT_RULES.md)
+        │
+        ▼
+Software Architecture
+(ARCHITECTURE.md)
+        │
+        ▼
+Implementation
+(Source Code)
+```
+
+Every implementation should be traceable to an architectural decision.
+
+Every architectural decision should be traceable to the Business Constitution.
+
+Where conflicts arise, the higher-level document shall take precedence until formally revised.
 
 # Architectural Objectives
 
 The architecture of RPGMS is designed to achieve the following objectives:
 
-- Alignment with the Business Blueprint
+- Alignment with the Business Constitution
 - Enforcement of Business Rules
 - Clear separation of responsibilities
 - High maintainability
@@ -282,7 +405,7 @@ Explicit dependency management preserves architectural integrity.
 
 ### Principle
 
-Significant business operations shall be represented as Business Events.
+Significant business operations shall be represented as Domain Events.
 
 Architectural services such as Audit, Notifications and Reporting shall derive behaviour from those events rather than directly from user interface actions.
 
@@ -320,9 +443,66 @@ Long-term stability enables predictable growth while protecting existing functio
 
 ---
 
-# Architectural Principles Summary
+## AP-013 Business Aggregates Reflect Business Ownership
 
-The architecture of RPGMS is guided by a small set of stable principles:
+### Principle
+
+Aggregate boundaries shall reflect business ownership rather than database structure, user interface design or implementation convenience.
+
+Each Aggregate shall encapsulate the business entities, lifecycle and invariants required to preserve the integrity of the business capability it represents.
+
+### Rationale
+
+Business ownership remains significantly more stable than implementation technology.
+
+Architectural aggregates that reflect business ownership remain understandable, maintainable and resilient as the software evolves.
+---
+## AP-014 Independent Business Lifecycles
+
+### Principle
+
+Where the business defines independent lifecycles, the software architecture shall model them independently.
+
+Operational Status, Financial Status and other significant business lifecycles shall remain separate architectural concepts unless the Business Constitution explicitly defines them otherwise.
+
+### Rationale
+
+Independent business lifecycles reduce coupling, improve flexibility and more accurately represent real-world business operations.
+
+The software architecture shall preserve these distinctions rather than merging them for implementation convenience.
+
+---
+## AP-015 Timeline as a First-Class Business Concept
+
+### Principle
+
+Where the business requires a historical narrative of significant business activity, the architecture shall model the Timeline as a business concept rather than as a technical logging mechanism.
+
+Business Timelines shall be derived from Domain Events and form part of the business domain.
+
+### Rationale
+
+Treating Timelines as business concepts improves operational traceability, user understanding and future extensibility while clearly separating business history from technical audit information.
+
+---
+## AP-016 Separation of Business and Technical Services
+
+### Principle
+
+Business Domains shall own business behaviour.
+
+Architectural Services shall provide reusable technical capabilities.
+
+Architectural Services shall never become owners of business concepts, business rules or business lifecycles.
+
+### Rationale
+
+Separating business ownership from technical capability preserves modularity, simplifies maintenance and prevents business behaviour from gradually migrating into shared infrastructure.
+
+---
+## Architectural Principles Summary
+
+The architecture of RPGMS is guided by a stable set of enduring principles:
 
 - Business before technology
 - Clear ownership
@@ -330,12 +510,15 @@ The architecture of RPGMS is guided by a small set of stable principles:
 - Single source of truth
 - Layered organisation
 - Feature cohesion
+- Business-driven aggregates
+- Independent business lifecycles
 - Event-driven accountability
+- Timeline as a business concept
 - Historical integrity
+- Separation of business and technical services
 - Evolution through extension
 
-These principles provide the foundation for every architectural decision made within the project.
-
+These principles provide the foundation for every architectural decision made within the project and ensure that the software architecture remains aligned with the Business Constitution while supporting long-term maintainability and controlled evolution.
 ---
 
 # Layered Architecture
@@ -444,7 +627,7 @@ A Coordinator shall not:
 
 The Domain Layer implements the business architecture.
 
-Every software domain corresponds to an owning business domain defined in the Business Blueprint.
+Every software domain corresponds to an owning business domain defined in the Business Constitution.
 
 The Domain Layer owns:
 
@@ -491,7 +674,7 @@ The Persistence Layer shall not contain business rules.
 
 ---
 
-# Dependency Direction
+## Dependency Direction
 
 Dependencies always flow downward through the architecture.
 
@@ -515,7 +698,7 @@ Lower layers shall never depend upon higher layers.
 
 ---
 
-# Layer Communication Rules
+## Layer Communication Rules
 
 ## Presentation → Application
 
@@ -549,7 +732,7 @@ Persistence details remain encapsulated within Infrastructure.
 
 ---
 
-# Layer Responsibilities Summary
+## Layer Responsibilities Summary
 
 | Layer | Primary Responsibility |
 |--------|------------------------|
@@ -559,25 +742,29 @@ Persistence details remain encapsulated within Infrastructure.
 | Infrastructure | Technical services |
 | Persistence | Durable storage |
 
-Together these layers provide a stable architectural framework that separates business concerns from technical implementation while preserving alignment with the Business Blueprint and Business Rules.
+Together these layers provide a stable architectural framework that separates business concerns from technical implementation while preserving alignment with the Business Constitution and Business Rules.
 
 ---
 
 # Domain Architecture
 
-The Domain Architecture defines how the software implements the business domains described in the Business Blueprint.
+The Domain Architecture defines how the software implements the business domains described in the Business Constitution.
 
-Each Software Domain is responsible for implementing one Business Domain.
+Each Software Domain owns one clearly defined Business Capability.
+
+A Software Domain is responsible for the complete implementation of that capability, including its business entities, business behaviour, business rules, business lifecycle, aggregate consistency and Domain Events.
+
+No Business Capability shall be owned by more than one Software Domain.
 
 Software Domains own business behaviour.
 
 Cross-domain workflows are coordinated by the Application Layer.
 
-Software Domains communicate through well-defined interfaces and Business Events rather than implementation details.
+Software Domains communicate through well-defined interfaces and Domain Events rather than implementation details.
 
 ---
 
-# Domain Responsibilities
+## Domain Responsibilities
 
 Every Software Domain shall:
 
@@ -585,14 +772,196 @@ Every Software Domain shall:
 - Own its business behaviour
 - Enforce Business Rules
 - Maintain domain consistency
-- Publish Business Events
+- Publish Domain Events
 - Expose well-defined public services
 
 Software Domains shall not duplicate responsibilities owned by another domain.
 
 ---
 
-# Core Software Domains
+## Domain Classification
+
+Software Domains within RPGMS are organised according to the business capabilities they own.
+
+Each Software Domain has exclusive ownership of a clearly defined business capability, including its business entities, behaviour, lifecycle, business rules and Domain Events.
+
+This ownership model establishes clear architectural boundaries, prevents duplication of business logic and enables independent evolution of each domain.
+
+Software Domains are classified into the following categories.
+
+---
+
+## Core Business Domains
+
+Core Business Domains implement the primary capabilities that define the business of RPGMS.
+
+These domains own the fundamental business concepts and collectively represent the core operational model of the organisation.
+
+Core Business Domains include:
+
+- Accommodation
+- Commercial
+- Resident
+- Reservation
+- Stay
+- Finance
+- Deposit
+
+---
+
+## Operational Support Domains
+
+Operational Support Domains provide specialised capabilities that support the day-to-day operation of the business.
+
+These domains extend the core operational model while maintaining independent ownership of their own business rules and lifecycle.
+
+Operational Support Domains include:
+
+- Laundry
+- Internet
+- Maintenance
+- Complaints
+
+---
+
+## Information Domains
+
+Information Domains provide information and business insight derived from the Core Business Domains and Operational Support Domains.
+
+They do not own operational business capabilities or modify business data.
+
+Information Domains consume data published by other Software Domains and present it for decision-making, monitoring and analysis.
+
+Information Domains transform business information into operational insight.
+
+They own reporting, analytics and business intelligence but do not own operational business state.
+
+Information Domains include:
+
+- Reporting
+- Dashboard
+
+---
+
+## Platform Domains
+
+Platform Domains provide the technical capabilities required to support the operation of the software platform.
+
+They do not own business capabilities or operational workflows.
+
+Platform Domains provide shared technical services used by the Core Business Domains, Operational Support Domains and Information Domains while remaining independent of business rules wherever possible.
+
+Platform Domains provide configuration and administrative capabilities required for operating the software platform.
+
+They own system configuration, administration and application-level policies but do not own business behaviour.
+
+Platform Domains include:
+
+- User Administration
+- Security Administration
+- Authentication & Authorization
+- Notification
+- Audit
+- Configuration / System Settings
+
+---
+
+## Cross-Cutting Architectural Services
+
+Cross-Cutting Architectural Services provide reusable technical capabilities shared across multiple Software Domains.
+
+They are part of the software architecture rather than the business model.
+
+Architectural Services never own business entities, business rules or business lifecycles.
+
+Examples include:
+
+- Authentication
+- Authorisation
+- Audit
+- Notifications
+- Search
+- File Storage
+- Integration
+- Scheduling
+
+Each Cross-Cutting Architectural Service is implemented and governed by the corresponding Platform Domain where one exists. The service describes the reusable technical capability, while the Platform Domain owns its lifecycle, policies and implementation.
+
+---
+
+# Data Architecture
+
+The RPGMS Data Architecture is organised around Software Domain ownership.
+
+Every business entity has a single authoritative owner responsible for its lifecycle, integrity and business rules.
+
+Software Domains collaborate by referencing information owned by other domains rather than sharing ownership of business data.
+
+This architecture ensures clear ownership, maintains data consistency and reduces coupling between Software Domains.
+
+---
+
+## Data Ownership Principles
+
+The RPGMS platform follows these principles:
+
+- Every business entity has exactly one owning Software Domain.
+- The owning Software Domain is the only domain permitted to modify that entity.
+- Other Software Domains may reference the entity but must not modify it.
+- Business rules are enforced by the owning Software Domain.
+- Cross-domain communication occurs through Domain Events and well-defined service interfaces.
+
+---
+
+## Cross-Domain References
+
+Software Domains frequently reference information owned by other Software Domains.
+
+A reference does not imply ownership.
+
+For example:
+
+- Stay references Resident.
+- Stay references Accommodation.
+- Finance references Stay.
+- Deposit references Resident.
+- Laundry references Stay.
+
+The owning Software Domain remains solely responsible for maintaining the referenced information.
+
+---
+
+## Data Consistency
+
+Each Software Domain is responsible for maintaining consistency of its own data.
+
+Cross-domain consistency is achieved through Domain Events and coordinated business processes rather than distributed transactions wherever practical.
+
+This approach supports modularity, scalability and independent evolution of Software Domains.
+
+---
+
+## Historical Data
+
+Historical business data is preserved as an immutable record of completed business activities.
+
+Software Domains may archive completed records according to business policies but historical information must remain available for reporting, auditing and business analysis.
+
+Historical records continue to belong to their original owning Software Domain.
+
+---
+
+## Architectural Principle
+
+Data ownership defines software ownership.
+
+Every business entity has one authoritative owner.
+
+All other Software Domains collaborate through references, Domain Events and well-defined interfaces rather than shared ownership of business data.
+
+---
+
+## Core Software Domains
 
 The following domains form the core architecture of RPGMS.
 
@@ -602,21 +971,81 @@ The following domains form the core architecture of RPGMS.
 
 ### Purpose
 
-Provides operational visibility across the application.
+The Dashboard Domain provides operational visibility into the current state of the business.
+
+It aggregates information from multiple Software Domains to present key operational indicators, business metrics and alerts for monitoring and decision-making.
+
+The Dashboard Domain is an Information Domain and does not own operational business data.
+
+---
 
 ### Responsibilities
 
+The Dashboard Domain is responsible for:
+
+- Business metrics
 - Operational summaries
-- Key performance indicators
-- Alerts
-- Business insights
+- Occupancy indicators
+- Financial indicators
+- Operational alerts
+- Key Performance Indicators (KPIs)
+
+---
 
 ### Owns
 
-- Dashboard Views
-- Dashboard Services
+The Dashboard Domain owns:
 
-Dashboard does not own business data.
+- Dashboard Views
+- Dashboard Widgets
+- Dashboard Configuration
+- Dashboard Domain Events
+
+---
+
+### Does Not Own
+
+The Dashboard Domain does **not** own:
+
+- Resident data
+- Accommodation data
+- Financial records
+- Operational workflows
+- Business transactions
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Dashboard Domain publishes Domain Events including:
+
+- DashboardRefreshed
+- DashboardConfigurationChanged
+
+---
+
+### Dependencies
+
+The Dashboard Domain consumes information from:
+
+- Accommodation Domain
+- Commercial Domain
+- Resident Domain
+- Reservation Domain
+- Stay Domain
+- Finance Domain
+- Deposit Domain
+- Operational Support Domains
+
+---
+
+### Architectural Principle
+
+The Dashboard Domain presents business information without owning the underlying business data.
+
+Operational decisions remain the responsibility of the domains that own the corresponding business capabilities.
 
 ---
 
@@ -624,29 +1053,202 @@ Dashboard does not own business data.
 
 ### Purpose
 
-Implements the physical accommodation model.
+The Accommodation Domain owns the physical accommodation inventory of RPGMS.
+
+It is responsible for defining, organising and maintaining the physical accommodation infrastructure that can be occupied by residents.
+
+The Accommodation Domain is concerned exclusively with physical accommodation assets and their structural relationships. It has no knowledge of commercial agreements, reservations, occupancy or financial transactions.
+
+---
 
 ### Responsibilities
 
-- Property
-- Flats
+The Accommodation Domain is responsible for:
+
 - Areas
+- Buildings (Future)
+- Floors (Future)
+- Flats
+- Rooms (where applicable)
 - Beds
-- Occupancy availability
+- Physical accommodation hierarchy
+- Physical bed characteristics
+- Physical capacity
+- Physical availability
+- Blocking and unblocking of physical accommodation
+
+---
 
 ### Owns
 
-- Property
-- Flat
-- Area
-- Bed
+The Accommodation Domain owns:
 
-Produces Business Events including:
+- Accommodation entities
+- Physical identifiers
+- Structural relationships
+- Capacity constraints
+- Physical availability status
+- Physical accommodation validation rules
+- Accommodation Domain Events
 
-- Bed Created
-- Bed Status Changed
-- Bed Blocked
-- Bed Released
+---
+
+### Does Not Own
+
+The Accommodation Domain does **not** own:
+
+- Accommodation Plans
+- Pricing
+- Rent
+- Reservations
+- Resident allocation
+- Bed occupancy
+- Stay lifecycle
+- Occupancy history
+- Financial transactions
+- Deposit Accounts
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Accommodation Domain publishes Domain Events including:
+
+- AreaCreated
+- AreaUpdated
+- AreaBlocked
+- AreaUnblocked
+
+- FlatCreated
+- FlatUpdated
+- FlatBlocked
+- FlatUnblocked
+
+- BedCreated
+- BedUpdated
+- BedBlocked
+- BedUnblocked
+
+- PhysicalCapacityChanged
+
+---
+
+### Dependencies
+
+The Accommodation Domain has no mandatory dependency on any other Core Business Domain.
+
+Other Software Domains consume Accommodation information, but the Accommodation Domain remains independently responsible for maintaining the physical accommodation inventory.
+
+---
+
+### Architectural Principle
+
+The Accommodation Domain represents physical infrastructure.
+
+It owns the physical accommodation inventory and nothing more.
+
+Commercial agreements belong to the Commercial Domain.
+
+Reservations belong to the Reservation Domain.
+
+Occupancy belongs to the Stay Domain.
+
+Financial responsibility belongs to the Finance and Deposit Domains.
+
+This strict separation of ownership preserves clear architectural boundaries, prevents business rule duplication and enables independent evolution of each domain.
+
+---
+
+## Commercial Domain
+
+### Purpose
+
+The Commercial Domain owns the commercial offering of RPGMS.
+
+It is responsible for defining the accommodation plans, pricing structures and commercial terms under which physical accommodation is offered to residents.
+
+The Commercial Domain is concerned exclusively with commercial agreements. It has no knowledge of physical accommodation inventory, occupancy or financial transactions.
+
+---
+
+### Responsibilities
+
+The Commercial Domain is responsible for:
+
+- Accommodation Plans
+- Plan pricing
+- Rent structures
+- Plan features
+- Plan availability
+- Commercial terms
+- Plan lifecycle management
+- Versioning of commercial offerings
+
+---
+
+### Owns
+
+The Commercial Domain owns:
+
+- Accommodation Plan entities
+- Pricing structures
+- Commercial rules
+- Plan validation
+- Commercial Domain Events
+
+---
+
+### Does Not Own
+
+The Commercial Domain does **not** own:
+
+- Areas
+- Flats
+- Rooms
+- Beds
+- Resident allocation
+- Reservations
+- Stay lifecycle
+- Financial ledger
+- Payments
+- Deposit Accounts
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Commercial Domain publishes Domain Events including:
+
+- AccommodationPlanCreated
+- AccommodationPlanUpdated
+- AccommodationPlanActivated
+- AccommodationPlanSuspended
+- AccommodationPlanRetired
+- PlanPricingChanged
+
+---
+
+### Dependencies
+
+The Commercial Domain depends on no operational domain.
+
+Other Software Domains consume Accommodation Plan information when creating Reservations, Stays and Financial Charges.
+
+---
+
+### Architectural Principle
+
+The Commercial Domain represents the business offering rather than the physical infrastructure.
+
+Physical accommodation belongs to the Accommodation Domain.
+
+Commercial agreements belong to the Commercial Domain.
+
+Separating physical accommodation from commercial offerings allows pricing strategies, accommodation plans and commercial policies to evolve independently of the physical accommodation inventory.
 
 ---
 
@@ -654,51 +1256,88 @@ Produces Business Events including:
 
 ### Purpose
 
-Implements permanent resident identity.
+The Resident Domain owns the permanent identity of every person who interacts with RPGMS as a resident.
 
-### Responsibilities
+It is responsible for maintaining resident identity, personal information, contact details, documentation and resident-specific information throughout the resident's lifetime within the organisation.
 
-- Resident profile
-- Personal information
-- Contact information
-- Identity documents
-
-### Owns
-
-- Resident
-
-Produces Business Events including:
-
-- Resident Created
-- Resident Updated
-- Resident Archived
+The Resident Domain is concerned exclusively with the identity of the resident. It has no knowledge of accommodation allocation, reservations, occupancy or financial obligations.
 
 ---
 
-## Stay Domain
-
-### Purpose
-
-Implements operational residency.
-
 ### Responsibilities
 
-- Admission
-- Stay lifecycle
-- Bed allocation
-- Operational resources
-- Checkout
+The Resident Domain is responsible for:
+
+- Resident identity
+- Personal information
+- Contact information
+- Emergency contacts
+- Government identification
+- Resident documents
+- Profile information
+- Resident preferences
+- Resident lifecycle management
+- Resident status
+
+---
 
 ### Owns
 
-- Stay
+The Resident Domain owns:
 
-Produces Business Events including:
+- Resident entities
+- Resident identifiers
+- Personal information
+- Identity validation
+- Resident Domain Events
 
-- Stay Created
-- Bed Allocated
-- Stay Checked Out
-- Stay Closed
+---
+
+### Does Not Own
+
+The Resident Domain does **not** own:
+
+- Accommodation allocation
+- Reservations
+- Bed occupancy
+- Stay lifecycle
+- Financial obligations
+- Payments
+- Deposit Accounts
+- Accommodation Plans
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Resident Domain publishes Domain Events including:
+
+- ResidentRegistered
+- ResidentUpdated
+- ResidentDocumentAdded
+- ResidentDocumentUpdated
+- ResidentStatusChanged
+- ResidentArchived
+
+---
+
+### Dependencies
+
+The Resident Domain has no mandatory dependency on any other Core Business Domain.
+
+Other Software Domains reference the Resident Domain when establishing Reservations, Stays, Financial Accounts and Deposit Accounts.
+
+---
+
+### Architectural Principle
+
+The Resident Domain represents a person rather than their accommodation or financial relationship with the organisation.
+
+A Resident may exist without an active Reservation, Stay, Financial Account or Deposit Account.
+
+The Resident Domain provides the permanent identity upon which all other resident-related business capabilities are built.
 
 ---
 
@@ -706,75 +1345,863 @@ Produces Business Events including:
 
 ### Purpose
 
-Implements reservation management.
+The Reservation Domain owns the future intent to occupy accommodation.
 
-### Responsibilities
+It is responsible for managing reservation requests, reservation commitments, reservation lifecycle and the allocation of future accommodation prior to the commencement of a Stay.
 
-- Reservation lifecycle
-- Reservation validity
-- Reservation conversion
-- Reservation cancellation
-
-### Owns
-
-- Reservation
-
-Produces Business Events including:
-
-- Reservation Created
-- Reservation Confirmed
-- Reservation Cancelled
-- Reservation Converted
+The Reservation Domain is concerned exclusively with future occupancy. It has no knowledge of current occupancy, resident lifecycle or financial settlement.
 
 ---
 
+### Responsibilities
+
+The Reservation Domain is responsible for:
+
+- Reservation creation
+- Reservation modification
+- Reservation confirmation
+- Reservation cancellation
+- Reservation expiry
+- Future accommodation allocation
+- Reservation lifecycle management
+- Reservation validation
+
+---
+
+### Owns
+
+The Reservation Domain owns:
+
+- Reservation entities
+- Reservation status
+- Reservation validation rules
+- Reservation Domain Events
+
+---
+
+### Does Not Own
+
+The Reservation Domain does **not** own:
+
+- Physical accommodation inventory
+- Accommodation Plans
+- Resident identity
+- Current occupancy
+- Stay lifecycle
+- Financial charges
+- Payments
+- Deposit Accounts
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Reservation Domain publishes Domain Events including:
+
+- ReservationCreated
+- ReservationUpdated
+- ReservationConfirmed
+- ReservationCancelled
+- ReservationExpired
+- ReservationConvertedToStay
+
+---
+
+### Dependencies
+
+The Reservation Domain references:
+
+- Accommodation Domain for physical accommodation.
+- Commercial Domain for Accommodation Plans.
+- Resident Domain for resident identity.
+
+A confirmed Reservation may subsequently create a Stay.
+
+---
+
+### Architectural Principle
+
+The Reservation Domain represents future intent rather than current occupancy.
+
+A Reservation reserves the opportunity to occupy accommodation.
+
+A Reservation never represents an active Stay.
+
+When a resident physically checks in, operational responsibility transfers from the Reservation Domain to the Stay Domain.
+
+This separation allows Reservations and Stays to evolve independently while preserving a complete business history.
+
+---
+## Stay Domain
+
+### Purpose
+
+The Stay Domain owns the operational occupancy lifecycle of a resident.
+
+It is responsible for managing the complete operational relationship between a resident and the organisation from physical check-in until operational checkout.
+
+The Stay Domain coordinates occupancy while referencing Accommodation, Commercial and Resident information. It is concerned exclusively with operational occupancy and has no ownership of commercial offerings, resident identity or financial settlement.
+
+---
+
+### Responsibilities
+
+The Stay Domain is responsible for:
+
+- Check-in
+- Bed allocation
+- Bed transfer
+- Stay management
+- Operational occupancy
+- Operational status management
+- Operational checkout
+- Stay timeline
+- Stay lifecycle management
+- Occupancy validation
+
+---
+
+### Owns
+
+The Stay Domain owns:
+
+- Stay entities
+- Stay identifiers
+- Operational occupancy state
+- Bed allocation
+- Stay timeline
+- Operational lifecycle
+- Stay Domain Events
+
+---
+
+### Does Not Own
+
+The Stay Domain does **not** own:
+
+- Resident identity
+- Physical accommodation inventory
+- Accommodation Plans
+- Reservation lifecycle
+- Financial charges
+- Payments
+- Financial settlement
+- Deposit Accounts
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Stay Domain publishes Domain Events including:
+
+- StayStarted
+- BedAllocated
+- BedTransferred
+- StayUpdated
+- OperationalCheckoutInitiated
+- OperationalCheckoutCompleted
+- StayCompleted
+
+---
+
+### Dependencies
+
+The Stay Domain references:
+
+- Resident Domain for resident identity.
+- Accommodation Domain for physical accommodation.
+- Commercial Domain for Accommodation Plans.
+- Reservation Domain when a Reservation is converted into a Stay.
+
+The Finance and Deposit Domains consume Stay Domain Events to initiate financial processing where required.
+
+---
+
+### Architectural Principle
+
+The Stay Domain represents the operational occupancy relationship between a resident and the organisation.
+
+A Stay is neither a Reservation nor a Financial Account.
+
+A Stay begins when a resident physically checks in and ends when operational checkout is completed.
+
+The Stay Domain owns operational occupancy only.
+
+Commercial agreements belong to the Commercial Domain.
+
+Resident identity belongs to the Resident Domain.
+
+Financial obligations belong to the Finance Domain.
+
+Security deposits belong to the Deposit Domain.
+
+This separation preserves clear business ownership while allowing operational and financial lifecycles to evolve independently.
+
+### Stay Aggregate
+
+The Stay Aggregate is the central operational aggregate of RPGMS.
+
+It encapsulates all information required to manage the operational occupancy lifecycle while referencing business information owned by other domains.
+
+The Stay Aggregate consists of:
+
+- Stay
+- Bed Allocation
+- Operational Status
+- Stay Timeline
+- Check-in Information
+- Checkout Information
+
+The Stay Aggregate references, but does not own:
+
+- Resident
+- Accommodation
+- Accommodation Plan
+- Reservation
+- Financial Account
+- Deposit Account
+
+### Lifecycle Independence
+
+The completion of a Stay does not imply completion of the associated financial obligations.
+
+Operational Checkout and Financial Settlement are independent business processes owned by different Software Domains.
+
+The Stay Domain concludes with Operational Checkout.
+
+Any remaining financial obligations continue to be managed by the Finance and Deposit Domains until financial settlement is complete.
+  
+---
 ## Finance Domain
 
 ### Purpose
 
-Implements financial accounting.
+The Finance Domain owns the financial obligations arising from a resident's relationship with the organisation.
 
-### Responsibilities
+It is responsible for recording charges, payments, outstanding balances and financial settlement while maintaining a complete financial history.
 
-- Charges
-- Payments
-- Ledger
-- Deposits
-- Settlement
-
-### Owns
-
-- Charge
-- Payment
-- Ledger
-- Deposit
-
-Produces Business Events including:
-
-- Charge Raised
-- Payment Received
-- Deposit Collected
-- Settlement Completed
+The Finance Domain is concerned exclusively with financial accounting. It has no ownership of resident identity, accommodation inventory, occupancy or security deposits.
 
 ---
 
+### Responsibilities
+
+The Finance Domain is responsible for:
+
+- Financial charges
+- Payment recording
+- Outstanding balance calculation
+- Financial adjustments
+- Financial settlement
+- Financial account management
+- Financial validation
+- Financial history
+
+---
+
+### Owns
+
+The Finance Domain owns:
+
+- Financial Accounts
+- Charges
+- Payments
+- Outstanding balances
+- Financial statements
+- Financial Domain Events
+
+---
+
+### Does Not Own
+
+The Finance Domain does **not** own:
+
+- Resident identity
+- Physical accommodation
+- Accommodation Plans
+- Reservations
+- Stay lifecycle
+- Bed occupancy
+- Security Deposit Accounts
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Finance Domain publishes Domain Events including:
+
+- ChargeRaised
+- ChargeAdjusted
+- PaymentRecorded
+- PaymentReversed
+- FinancialSettlementStarted
+- FinancialSettlementCompleted
+- AccountClosed
+
+---
+
+### Dependencies
+
+The Finance Domain references:
+
+- Resident Domain for resident identity.
+- Stay Domain for occupancy events.
+- Commercial Domain for applicable Accommodation Plans.
+
+The Finance Domain operates independently of the Deposit Domain, although both may participate in the overall checkout process.
+
+---
+
+### Architectural Principle
+
+The Finance Domain represents the financial relationship between the resident and the organisation.
+
+It owns financial obligations arising from business activities but does not own the business activities themselves.
+
+Business activities generate financial consequences.
+
+The Finance Domain records and manages those consequences while remaining independent of operational occupancy and security deposit management.
+
+---
+
+## Deposit Domain
+
+### Purpose
+
+The Deposit Domain owns the complete lifecycle of Security Deposits held by the organisation.
+
+It is responsible for receiving, safeguarding, adjusting, reconciling and refunding Security Deposits while maintaining a complete history of all deposit-related activities.
+
+The Deposit Domain is concerned exclusively with Security Deposit management. It has no ownership of accommodation, occupancy or general financial accounting.
+
+---
+
+### Responsibilities
+
+The Deposit Domain is responsible for:
+
+- Security Deposit Accounts
+- Deposit collection
+- Deposit adjustments
+- Deposit deductions
+- Deposit refunds
+- Deposit reconciliation
+- Deposit balance management
+- Deposit lifecycle management
+
+---
+
+### Owns
+
+The Deposit Domain owns:
+
+- Deposit Accounts
+- Deposit transactions
+- Deposit balances
+- Deposit adjustments
+- Deposit reconciliation
+- Deposit Domain Events
+
+---
+
+### Does Not Own
+
+The Deposit Domain does **not** own:
+
+- Resident identity
+- Physical accommodation
+- Accommodation Plans
+- Reservations
+- Stay lifecycle
+- Financial charges
+- Rent payments
+- General financial accounting
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Deposit Domain publishes Domain Events including:
+
+- DepositAccountOpened
+- DepositCollected
+- DepositAdjusted
+- DepositDeductionApplied
+- DepositRefundInitiated
+- DepositRefundCompleted
+- DepositAccountClosed
+
+---
+
+### Dependencies
+
+The Deposit Domain references:
+
+- Resident Domain for resident identity.
+- Stay Domain for operational occupancy.
+- Finance Domain during financial settlement.
+
+The Deposit Domain operates independently throughout the resident's Stay and participates in the final financial settlement process where applicable.
+
+---
+
+### Architectural Principle
+
+The Deposit Domain represents Security Deposits held in trust by the organisation.
+
+Security Deposits are independent business assets with their own lifecycle, transactions and reconciliation requirements.
+
+They are neither revenue nor ordinary payments.
+
+Separating Security Deposit management from general financial accounting preserves clear business ownership, improves auditability and allows the Deposit lifecycle to evolve independently of the Finance Domain.
+
+### Deposit Lifecycle
+
+A Security Deposit follows an independent business lifecycle:
+
+Deposit Account Opened
+
+↓
+
+Deposit Collected
+
+↓
+
+Deposit Held
+
+↓
+
+Adjustments (Optional)
+
+↓
+
+Financial Settlement
+
+↓
+
+Deposit Refunded
+
+↓
+
+Deposit Account Closed
+
+The Deposit lifecycle is independent of both the Stay lifecycle and the Financial Account lifecycle.
+
+Operational Checkout does not automatically close the Deposit Account.
+
+The Deposit Account remains active until all authorised deductions and refunds have been completed.
+
+---
+
+# Domain Interaction Architecture
+
+The Core Business Domains of RPGMS operate as independent business capabilities while collaborating through well-defined business relationships and Domain Events.
+
+Each Software Domain owns a single business capability and remains solely responsible for its entities, business rules, lifecycle and Domain Events.
+
+Interaction between domains shall preserve clear ownership boundaries while enabling the coordinated execution of business processes.
+
+---
+
+## Core Business Domain Summary
+
+The Core Business Domains represent the primary business capabilities of RPGMS. Each domain owns a single business capability and is solely responsible for its entities, business rules, lifecycle and Domain Events.
+
+| Domain | Primary Responsibility |
+|---------|------------------------|
+| Accommodation | Physical accommodation inventory |
+| Commercial | Commercial offerings and pricing |
+| Resident | Resident identity |
+| Reservation | Future occupancy intent |
+| Stay | Operational occupancy lifecycle |
+| Finance | Financial obligations and accounting |
+| Deposit | Security Deposit lifecycle |
+
+Each Core Business Domain has a single, clearly defined owner.
+
+Business capabilities are never shared between domains. Domains collaborate through Domain Events while preserving independent ownership of their own entities, business rules and lifecycles.
+
+---
+
+## Core Business Domain Dependencies
+
+```text
+                    Resident
+                        │
+                        │
+                        ▼
+                  Reservation
+                        │
+                        ▼
+                      Stay
+                 ╱      │      ╲
+                ╱       │       ╲
+Accommodation   │   Commercial   │
+                ╲       │       ╱
+                 ╲      ▼      ╱
+                  ─── Finance ───
+                        │
+                        ▼
+                     Deposit
+```
+
+### Dependency Principles
+
+- Accommodation provides the physical accommodation inventory.
+- Commercial provides the commercial offering.
+- Resident provides resident identity.
+- Reservation represents future occupancy.
+- Stay owns operational occupancy.
+- Finance records financial obligations arising from business activities.
+- Deposit manages the Security Deposit lifecycle.
+
+Dependencies always point towards the domain providing the required business capability.
+
+Software Domains may reference information owned by another domain but never assume ownership of that information.
+
+---
+
+## Business Lifecycle Overview
+
+```text
+Resident
+    │
+    ▼
+Reservation (Optional)
+    │
+    ▼
+Stay
+    │
+    ├──────────────► Finance
+    │
+    └──────────────► Deposit
+    │
+    ▼
+Operational Checkout
+    │
+    ▼
+Historical Stay
+
+Finance continues independently until
+Financial Settlement is complete.
+
+Deposit continues independently until
+Deposit Account is closed.
+```
+
+The operational lifecycle, financial lifecycle and Security Deposit lifecycle are independent business processes coordinated through Domain Events.
+
+Completion of one lifecycle does not imply completion of another.
+
+---
+
+## Domain Event Flow
+
+Domain Events communicate significant changes in business state between Software Domains while preserving clear ownership boundaries.
+
+Typical Domain Event flow:
+
+```text
+ReservationCreated
+        │
+        ▼
+ReservationConfirmed
+        │
+        ▼
+ReservationConvertedToStay
+        │
+        ▼
+StayStarted
+        │
+        ▼
+ChargeRaised
+        │
+        ▼
+PaymentRecorded
+        │
+        ▼
+OperationalCheckoutCompleted
+        │
+        ▼
+FinancialSettlementCompleted
+        │
+        ▼
+DepositRefundCompleted
+```
+
+Each Domain Event is published by exactly one Software Domain.
+
+Other Software Domains may consume the event but never assume ownership of the originating business capability.
+
+---
+
+## Ownership Principles
+
+The interaction between Software Domains is governed by the following architectural principles:
+
+- Each Business Capability has exactly one owner.
+- Each Software Domain owns its own entities, business rules, lifecycle and Domain Events.
+- Software Domains collaborate through published Domain Events and well-defined interfaces.
+- Software Domains may reference information owned by another domain but shall never modify it directly.
+- Aggregate consistency is maintained exclusively within the owning domain.
+- Business ownership shall never be duplicated across Software Domains.
+- Operational, Financial and Deposit lifecycles remain independent while collaborating through Domain Events.
+- Architectural Services provide technical capabilities but never own business concepts.
+
+These principles preserve clear business ownership, minimise coupling between Software Domains and allow the architecture to evolve through extension rather than modification.
+
+---
+
+## Laundry Domain
+
+### Purpose
+
+The Laundry Domain owns the complete lifecycle of laundry services provided to residents.
+
+It is responsible for recording laundry items, tracking service requests, calculating service charges and maintaining a history of laundry transactions.
+
+The Laundry Domain provides an operational support service and does not own resident occupancy or financial accounting.
+
+---
+
+### Responsibilities
+
+The Laundry Domain is responsible for:
+
+- Laundry service requests
+- Laundry item recording
+- Laundry service tracking
+- Laundry charge calculation
+- Laundry transaction history
+- Laundry validation
+
+---
+
+### Owns
+
+The Laundry Domain owns:
+
+- Laundry Transactions
+- Laundry Service Records
+- Laundry Domain Events
+
+---
+
+### Does Not Own
+
+The Laundry Domain does **not** own:
+
+- Resident identity
+- Stay lifecycle
+- Financial Accounts
+- Accommodation
+- Security Deposits
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Laundry Domain publishes Domain Events including:
+
+- LaundryRecorded
+- LaundryChargeCalculated
+- LaundryChargeRaised
+- LaundryTransactionCorrected
+
+---
+
+### Dependencies
+
+The Laundry Domain references:
+
+- Resident Domain for resident identity.
+- Stay Domain for operational occupancy.
+- Finance Domain for financial charge processing.
+
+---
+
+### Architectural Principle
+
+The Laundry Domain owns the laundry service lifecycle.
+
+Financial responsibility for laundry charges belongs to the Finance Domain.
+
+Operational responsibility for resident occupancy belongs to the Stay Domain.
+
+---
+
+## Internet Domain
+
+### Purpose
+
+The Internet Domain owns the provisioning and management of internet access services provided to residents.
+
+It is responsible for assigning, maintaining and revoking internet access while maintaining a complete history of internet service activities.
+
+The Internet Domain provides an operational support service and does not own resident occupancy or authentication.
+
+---
+
+### Responsibilities
+
+The Internet Domain is responsible for:
+
+- Internet account provisioning
+- Internet credential assignment
+- Internet service activation
+- Internet service suspension
+- Internet service termination
+- Internet access history
+
+---
+
+### Owns
+
+The Internet Domain owns:
+
+- Internet Service Accounts
+- Internet Credentials
+- Internet Service Records
+- Internet Domain Events
+
+---
+
+### Does Not Own
+
+The Internet Domain does **not** own:
+
+- Resident identity
+- Stay lifecycle
+- Authentication
+- User accounts
+- Financial Accounts
+- Accommodation
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Internet Domain publishes Domain Events including:
+
+- InternetServiceProvisioned
+- InternetServiceActivated
+- InternetServiceSuspended
+- InternetServiceTerminated
+- InternetCredentialsChanged
+
+---
+
+### Dependencies
+
+The Internet Domain references:
+
+- Resident Domain for resident identity.
+- Stay Domain for operational occupancy.
+- Platform Services where external internet systems require technical integration.
+
+---
+
+### Architectural Principle
+
+The Internet Domain owns internet service provisioning.
+
+Authentication and system security remain the responsibility of the Platform Domains and Cross-Cutting Architectural Services.
+
+Internet services are operational support services provided to residents during an active Stay.
+
+---
 ## Maintenance Domain
 
 ### Purpose
 
-Implements maintenance management.
+The Maintenance Domain owns the complete lifecycle of maintenance activities performed on the organisation's physical accommodation and facilities.
+
+It is responsible for recording maintenance requests, planning maintenance work, tracking progress, managing completion and maintaining a history of maintenance activities.
+
+The Maintenance Domain provides an operational support service and does not own accommodation inventory or resident occupancy.
+
+---
 
 ### Responsibilities
 
+The Maintenance Domain is responsible for:
+
 - Maintenance requests
-- Work orders
-- Resolution tracking
+- Preventive maintenance
+- Corrective maintenance
+- Maintenance scheduling
+- Maintenance status tracking
+- Maintenance completion
+- Maintenance history
 
-Produces Business Events including:
+---
 
-- Maintenance Reported
-- Work Assigned
-- Work Completed
+### Owns
+
+The Maintenance Domain owns:
+
+- Maintenance Requests
+- Maintenance Work Orders
+- Maintenance Records
+- Maintenance Domain Events
+
+---
+
+### Does Not Own
+
+The Maintenance Domain does **not** own:
+
+- Accommodation inventory
+- Resident identity
+- Stay lifecycle
+- Financial Accounts
+- Complaints
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Maintenance Domain publishes Domain Events including:
+
+- MaintenanceRequested
+- MaintenanceScheduled
+- MaintenanceStarted
+- MaintenanceCompleted
+- MaintenanceCancelled
+
+---
+
+### Dependencies
+
+The Maintenance Domain references:
+
+- Accommodation Domain for physical assets requiring maintenance.
+- Resident Domain where a maintenance request originates from a resident.
+- Stay Domain where maintenance affects occupied accommodation.
+
+---
+
+### Architectural Principle
+
+The Maintenance Domain owns maintenance activities.
+
+The Accommodation Domain continues to own the physical accommodation throughout the maintenance lifecycle.
+
+Maintenance activities support and preserve physical assets without assuming ownership of those assets.
 
 ---
 
@@ -782,19 +2209,253 @@ Produces Business Events including:
 
 ### Purpose
 
-Implements complaint management.
+The Complaints Domain owns the complete lifecycle of complaints raised by residents.
+
+It is responsible for recording complaints, tracking their progress, coordinating resolution activities and maintaining a complete history of complaint management.
+
+The Complaints Domain provides an operational support service and does not own maintenance activities or operational occupancy.
+
+---
 
 ### Responsibilities
 
+The Complaints Domain is responsible for:
+
 - Complaint registration
-- Investigation
-- Resolution
+- Complaint categorisation
+- Complaint prioritisation
+- Complaint assignment
+- Complaint status tracking
+- Complaint resolution tracking
+- Complaint history
 
-Produces Business Events including:
+---
 
-- Complaint Logged
-- Complaint Escalated
-- Complaint Closed
+### Owns
+
+The Complaints Domain owns:
+
+- Complaint Records
+- Complaint Workflow
+- Complaint History
+- Complaint Domain Events
+
+---
+
+### Does Not Own
+
+The Complaints Domain does **not** own:
+
+- Resident identity
+- Stay lifecycle
+- Maintenance activities
+- Financial Accounts
+- Accommodation inventory
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Complaints Domain publishes Domain Events including:
+
+- ComplaintRegistered
+- ComplaintAssigned
+- ComplaintEscalated
+- ComplaintResolved
+- ComplaintClosed
+
+---
+
+### Dependencies
+
+The Complaints Domain references:
+
+- Resident Domain for resident identity.
+- Stay Domain for operational occupancy.
+- Maintenance Domain where a complaint requires maintenance work.
+- Other Software Domains where complaint resolution requires their business capabilities.
+
+---
+
+### Architectural Principle
+
+The Complaints Domain owns the complaint management lifecycle.
+
+Resolution activities remain the responsibility of the Software Domain that owns the underlying business capability.
+
+A complaint may result in maintenance, operational action, administrative action or no corrective action depending on investigation and business rules.
+
+---
+
+Information Domains provide information and business insight derived from the Core Business Domains and Operational Support Domains.
+
+They do not own operational business capabilities or modify business data.
+
+Information Domains consume data published by other Software Domains and present it for decision-making, monitoring and analysis.
+
+---
+
+## Authentication & Authorization Domain
+
+### Purpose
+
+The Authentication & Authorization Domain provides identity verification and access control for users of the RPGMS platform.
+
+It is responsible for authenticating users, authorising access to system resources and enforcing security policies.
+
+The Authentication & Authorization Domain is a Platform Domain and does not own business capabilities or operational data.
+
+---
+
+### Responsibilities
+
+The Authentication & Authorization Domain is responsible for:
+
+- User authentication
+- Role-based access control
+- Permission management
+- Session management
+- Access policy enforcement
+- Authentication auditing
+
+---
+
+### Owns
+
+The Authentication & Authorization Domain owns:
+
+- Authentication Sessions
+- Roles
+- Permissions
+- Access Policies
+- Authentication Domain Events
+
+---
+
+### Does Not Own
+
+The Authentication & Authorization Domain does **not** own:
+
+- Resident identity
+- Staff information
+- Business workflows
+- Financial data
+- Accommodation data
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Authentication & Authorization Domain publishes Domain Events including:
+
+- UserAuthenticated
+- UserSignedOut
+- PermissionGranted
+- PermissionRevoked
+- AccessDenied
+
+---
+
+### Dependencies
+
+The Authentication & Authorization Domain may reference:
+
+- User Administration Domain for user accounts.
+- Platform infrastructure for identity providers where applicable.
+
+It remains independent of business domains.
+
+---
+
+### Architectural Principle
+
+The Authentication & Authorization Domain determines who may access the system and what actions they are permitted to perform.
+
+Business decisions remain the responsibility of the domains that own the corresponding business capabilities.
+
+---
+
+## User Administration Domain
+
+### Purpose
+
+The User Administration Domain owns the lifecycle of system users who operate the RPGMS platform.
+
+It is responsible for managing user accounts, user profiles, organisational assignments and user status throughout their relationship with the system.
+
+The User Administration Domain is a Platform Domain and does not own authentication or business capabilities.
+
+---
+
+### Responsibilities
+
+The User Administration Domain is responsible for:
+
+- User account management
+- User profile management
+- User activation and deactivation
+- Organisational assignments
+- User preferences
+- User lifecycle management
+
+---
+
+### Owns
+
+The User Administration Domain owns:
+
+- User Accounts
+- User Profiles
+- User Preferences
+- User Status
+- User Administration Events
+
+---
+
+### Does Not Own
+
+The User Administration Domain does **not** own:
+
+- Authentication sessions
+- Roles and permissions
+- Resident records
+- Staff business information
+- Business workflows
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The User Administration Domain publishes Domain Events including:
+
+- UserCreated
+- UserUpdated
+- UserActivated
+- UserDeactivated
+- UserArchived
+
+---
+
+### Dependencies
+
+The User Administration Domain collaborates with:
+
+- Authentication & Authorization Domain for access control.
+- Other Software Domains that associate business activities with users.
+
+---
+
+### Architectural Principle
+
+The User Administration Domain owns user identity within the RPGMS platform.
+
+Authentication and access control remain the responsibility of the Authentication & Authorization Domain.
 
 ---
 
@@ -802,17 +2463,82 @@ Produces Business Events including:
 
 ### Purpose
 
-Provides business reporting.
+The Reporting Domain provides historical analysis, operational reporting and business insight derived from information owned by other Software Domains.
+
+It is responsible for generating reports, supporting business analysis and maintaining reusable reporting definitions.
+
+The Reporting Domain is an Information Domain and does not own operational business data.
+
+---
 
 ### Responsibilities
 
+The Reporting Domain is responsible for:
+
+- Operational reports
+- Financial reports
+- Occupancy reports
+- Historical analysis
 - Report generation
-- Business analytics
-- Operational summaries
+- Report definitions
 
-Reporting derives information from other domains.
+---
 
-Reporting owns no business entities.
+### Owns
+
+The Reporting Domain owns:
+
+- Report Definitions
+- Report Templates
+- Report Configuration
+- Reporting Domain Events
+
+---
+
+### Does Not Own
+
+The Reporting Domain does **not** own:
+
+- Business transactions
+- Resident records
+- Financial Accounts
+- Accommodation inventory
+- Operational workflows
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Reporting Domain publishes Domain Events including:
+
+- ReportGenerated
+- ReportScheduled
+- ReportDefinitionUpdated
+
+---
+
+### Dependencies
+
+The Reporting Domain consumes information from:
+
+- Accommodation Domain
+- Commercial Domain
+- Resident Domain
+- Reservation Domain
+- Stay Domain
+- Finance Domain
+- Deposit Domain
+- Operational Support Domains
+
+---
+
+### Architectural Principle
+
+The Reporting Domain transforms business information into operational, financial and analytical reports.
+
+Reports provide business insight without assuming ownership of the underlying business data.
 
 ---
 
@@ -820,17 +2546,164 @@ Reporting owns no business entities.
 
 ### Purpose
 
-Implements business communication.
+The Notification Domain provides message delivery services for the RPGMS platform.
+
+It is responsible for preparing, scheduling and delivering notifications through supported communication channels while maintaining a history of notification activities.
+
+The Notification Domain is a Platform Domain and does not own business workflows or business decisions.
+
+---
 
 ### Responsibilities
 
+The Notification Domain is responsible for:
+
 - Notification generation
-- Delivery coordination
-- Communication history
+- Message template management
+- Multi-channel message delivery
+- Delivery scheduling
+- Delivery status tracking
+- Notification history
 
-Notifications derive from Business Events.
+---
 
-Notifications do not modify business data.
+### Owns
+
+The Notification Domain owns:
+
+- Notification Requests
+- Message Templates
+- Delivery Records
+- Notification History
+- Notification Domain Events
+
+---
+
+### Does Not Own
+
+The Notification Domain does **not** own:
+
+- Business workflows
+- Business rules
+- Resident data
+- Financial transactions
+- Operational decisions
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Notification Domain publishes Domain Events including:
+
+- NotificationQueued
+- NotificationSent
+- NotificationDelivered
+- NotificationFailed
+- NotificationCancelled
+
+---
+
+### Dependencies
+
+The Notification Domain receives notification requests from:
+
+- Core Business Domains
+- Operational Support Domains
+- Information Domains
+- Platform Domains
+
+It may integrate with external communication providers including email, SMS, messaging platforms and push notification services.
+
+---
+
+### Architectural Principle
+
+The Notification Domain delivers messages requested by other Software Domains.
+
+The responsibility for deciding when and why a notification should be sent always remains with the originating Software Domain.
+
+---
+
+## Audit Domain
+
+### Purpose
+
+The Audit Domain provides immutable recording of significant activities performed within the RPGMS platform.
+
+It is responsible for maintaining a complete audit trail of system actions, Domain Events and security-related activities to support accountability, investigation and compliance.
+
+The Audit Domain is a Platform Domain and does not own business capabilities or modify business data.
+
+---
+
+### Responsibilities
+
+The Audit Domain is responsible for:
+
+- Audit trail recording
+- Activity logging
+- Security event logging
+- Business event recording
+- Audit history
+- Audit search and retrieval
+
+---
+
+### Owns
+
+The Audit Domain owns:
+
+- Audit Records
+- Audit History
+- Audit Metadata
+- Audit Domain Events
+
+---
+
+### Does Not Own
+
+The Audit Domain does **not** own:
+
+- Business transactions
+- Business rules
+- Resident records
+- Financial records
+- Operational workflows
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Audit Domain publishes Domain Events including:
+
+- AuditRecordCreated
+- AuditArchiveCompleted
+- AuditRetentionPolicyApplied
+
+---
+
+### Dependencies
+
+The Audit Domain receives audit information from:
+
+- Core Business Domains
+- Operational Support Domains
+- Information Domains
+- Platform Domains
+
+It remains independent of the business logic that generated the audited activity.
+
+---
+
+### Architectural Principle
+
+The Audit Domain provides an immutable historical record of significant platform activities.
+
+It observes and records business and technical events without influencing their execution or outcome.
 
 ---
 
@@ -838,15 +2711,84 @@ Notifications do not modify business data.
 
 ### Purpose
 
-Implements business configuration.
+The Configuration Domain manages configurable behaviour of the RPGMS platform.
+
+It is responsible for storing, validating and maintaining system-wide configuration settings that influence platform behaviour without owning business capabilities or operational workflows.
+
+The Configuration Domain is a Platform Domain and provides shared configuration services to other Software Domains.
+
+---
 
 ### Responsibilities
 
-- Business defaults
-- Operational policies
-- Configurable behaviour
+The Configuration Domain is responsible for:
 
-Configuration influences future operations but does not modify historical business records.
+- System configuration management
+- Business parameter configuration
+- Feature configuration
+- Configuration validation
+- Configuration versioning
+- Configuration history
+
+---
+
+### Owns
+
+The Configuration Domain owns:
+
+- System Configuration
+- Business Parameters
+- Feature Flags
+- Configuration History
+- Configuration Domain Events
+
+---
+
+### Does Not Own
+
+The Configuration Domain does **not** own:
+
+- Business transactions
+- Business workflows
+- Resident data
+- Financial data
+- Operational decisions
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Configuration Domain publishes Domain Events including:
+
+- ConfigurationCreated
+- ConfigurationUpdated
+- ConfigurationActivated
+- ConfigurationArchived
+
+---
+
+### Dependencies
+
+The Configuration Domain provides configuration services to:
+
+- Core Business Domains
+- Operational Support Domains
+- Information Domains
+- Platform Domains
+
+Configuration consumers remain responsible for interpreting and applying configuration according to their own business rules.
+
+---
+
+### Architectural Principle
+
+The Configuration Domain owns configurable platform behaviour.
+
+Business decisions remain the responsibility of the Software Domain that consumes the configuration.
+
+Configuration changes influence future behaviour but do not modify historical business data.
 
 ---
 
@@ -857,10 +2799,94 @@ Software Domains remain independently maintainable.
 Domains communicate through:
 
 - Public services
-- Business Events
+- Domain Events
 - Shared contracts
 
 Domains shall never depend upon another domain's internal implementation.
+
+---
+
+## Integration Domain
+
+### Purpose
+
+The Integration Domain manages communication between the RPGMS platform and external systems and services.
+
+It is responsible for orchestrating external integrations, transforming data where required, handling integration failures and maintaining the lifecycle of external system interactions.
+
+The Integration Domain is a Platform Domain and does not own business capabilities or business rules.
+
+---
+
+### Responsibilities
+
+The Integration Domain is responsible for:
+
+- External system integration
+- API communication
+- Data transformation
+- Integration orchestration
+- Integration monitoring
+- Integration error handling
+
+---
+
+### Owns
+
+The Integration Domain owns:
+
+- Integration Configurations
+- External Service Connectors
+- Integration Requests
+- Integration Responses
+- Integration Domain Events
+
+---
+
+### Does Not Own
+
+The Integration Domain does **not** own:
+
+- Business workflows
+- Business rules
+- Resident data
+- Financial data
+- Operational decisions
+
+These responsibilities belong to their respective Software Domains.
+
+---
+
+### Domain Events
+
+The Integration Domain publishes Domain Events including:
+
+- IntegrationRequested
+- IntegrationSucceeded
+- IntegrationFailed
+- ExternalServiceUnavailable
+- IntegrationRetried
+
+---
+
+### Dependencies
+
+The Integration Domain provides integration services to:
+
+- Core Business Domains
+- Operational Support Domains
+- Information Domains
+- Platform Domains
+
+It communicates with external platforms including communication providers, payment services, identity providers, cloud services and future third-party integrations.
+
+---
+
+### Architectural Principle
+
+The Integration Domain isolates the RPGMS platform from external systems.
+
+Business Domains request integration services without depending on the implementation details of external providers.
 
 ---
 
@@ -909,7 +2935,7 @@ Individual domains remain responsible only for their own business behaviour.
 
 ---
 
-# Domain Architecture Summary
+## Domain Architecture Summary
 
 Software Domains provide the primary organisational structure of RPGMS.
 
@@ -933,7 +2959,7 @@ Their purpose is to provide reusable capabilities while preserving the independe
 
 ---
 
-# Architectural Service Principles
+## Architectural Service Principles
 
 Every Architectural Service shall:
 
@@ -941,13 +2967,13 @@ Every Architectural Service shall:
 - Remain independent of business ownership
 - Expose well-defined interfaces
 - Avoid storing duplicated business information
-- Derive behaviour from Business Events where appropriate
+- Derive behaviour from Domain Events where appropriate
 
 Architectural Services shall never become owners of business concepts.
 
 ---
 
-# Authentication Service
+## Authentication Service
 
 ## Purpose
 
@@ -966,7 +2992,7 @@ It does not determine authorisation.
 
 ---
 
-# Authorisation Service
+##  Authorisation Service
 
 ## Purpose
 
@@ -983,7 +3009,7 @@ Business Domains rely upon Authorisation rather than implementing permission log
 
 ---
 
-# Audit Service
+## Audit Service
 
 ## Purpose
 
@@ -996,13 +3022,13 @@ Provides permanent accountability for significant business activity.
 - Timeline generation
 - Historical traceability
 
-The Audit Service derives information from Business Events.
+The Audit Service derives information from Domain Events.
 
 It does not create business behaviour.
 
 ---
 
-# Notification Service
+## Notification Service
 
 ## Purpose
 
@@ -1015,13 +3041,13 @@ Coordinates business communication.
 - Channel selection
 - Delivery history
 
-Notifications are generated from completed Business Events.
+Notifications are generated from completed Domain Events.
 
 Notifications never modify business state.
 
 ---
 
-# Search Service
+## Search Service
 
 ## Purpose
 
@@ -1040,7 +3066,7 @@ Search provides discovery only.
 
 ---
 
-# Reporting Service
+## Reporting Service
 
 ## Purpose
 
@@ -1059,7 +3085,7 @@ Reporting never becomes an independent source of business truth.
 
 ---
 
-# Billing Engine
+## Billing Engine
 
 ## Purpose
 
@@ -1078,7 +3104,7 @@ The Billing Engine coordinates execution.
 
 ---
 
-# Ledger Engine
+## Ledger Engine
 
 ## Purpose
 
@@ -1095,7 +3121,7 @@ The Ledger Engine provides financial consistency across the application.
 
 ---
 
-# Configuration Service
+## Configuration Service
 
 ## Purpose
 
@@ -1114,7 +3140,7 @@ Configuration never rewrites historical business information.
 
 ---
 
-# File Storage Service
+## File Storage Service
 
 ## Purpose
 
@@ -1131,7 +3157,7 @@ Business ownership of documents remains with the owning Software Domain.
 
 ---
 
-# Integration Service
+## Integration Service
 
 ## Purpose
 
@@ -1149,21 +3175,21 @@ External integrations remain isolated from core business behaviour.
 
 ---
 
-# Service Independence
+## Service Independence
 
 Architectural Services remain independent of one another wherever practical.
 
 Services communicate through:
 
 - Public interfaces
-- Business Events
+- Domain Events
 - Shared contracts
 
 Services shall not become tightly coupled.
 
 ---
 
-# Service Architecture Summary
+## Service Architecture Summary
 
 Architectural Services provide reusable capabilities shared across multiple Software Domains.
 
@@ -1215,7 +3241,7 @@ The owning domain is responsible for:
 - Validating the entity
 - Maintaining the entity
 - Preserving historical integrity
-- Publishing Business Events affecting the entity
+- Publishing Domain Events affecting the entity
 
 Other domains may reference the entity but shall not assume ownership.
 
@@ -1325,7 +3351,7 @@ Examples include:
 
 Consistency shall be maintained within each Aggregate.
 
-Cross-domain consistency shall be achieved through coordinated business workflows and Business Events.
+Cross-domain consistency shall be achieved through coordinated business workflows and Domain Events.
 
 Architectural consistency shall take precedence over implementation convenience.
 
@@ -1367,129 +3393,207 @@ Relationships remain explicit.
 
 Historical truth remains permanent.
 
-Together these principles ensure that business information remains accurate, maintainable and aligned with the Business Blueprint throughout the lifetime of the application.
+Together these principles ensure that business information remains accurate, maintainable and aligned with the Business Constitution throughout the lifetime of the application.
 
 ---
-
 # Event Architecture
 
-The Event Architecture defines how significant business activity is communicated throughout RPGMS.
+## Introduction
 
-Business Events provide the primary mechanism for communicating completed business operations between Software Domains and Architectural Services.
+The RPGMS platform uses Domain Events to communicate significant business and platform activities between Software Domains.
 
-The Event Architecture promotes loose coupling, historical traceability and architectural extensibility.
+Each Software Domain publishes Domain Events describing changes to information that it owns.
 
----
+Other Software Domains may consume these Domain Events to perform their own responsibilities while remaining independent of the publishing domain.
 
-# Event Principles
-
-Business Events shall:
-
-- Represent completed business operations
-- Be owned by the originating Software Domain
-- Be immutable
-- Become part of the permanent business history
-- Be available to authorised Architectural Services
-
-Business Events shall describe what has occurred rather than what should occur.
+This event-driven architecture reduces coupling, promotes modularity and enables Software Domains to evolve independently.
 
 ---
 
-# Business Events
+## Objectives
 
-A Business Event represents a completed business operation.
+The Event Architecture is designed to:
+
+- Reduce coupling between Software Domains.
+- Enable independent evolution of Software Domains.
+- Maintain clear ownership of business capabilities.
+- Improve scalability and maintainability.
+- Support reliable communication across the platform.
+
+---
+
+## Domain Event Principles
+
+The RPGMS platform follows these architectural principles:
+
+- Every Domain Event has exactly one publishing Software Domain.
+- A Domain Event represents something that has already happened.
+- Only the owning Software Domain may publish events describing changes to its business entities.
+- Software Domains consume events without assuming ownership of the originating data.
+- Events communicate facts rather than commands.
+- Event consumers remain responsible for their own business decisions.
+
+---
+
+## Event Ownership
+
+Each Domain Event has a single authoritative publisher.
+
+Only the Software Domain that owns a business capability may publish Domain Events describing changes to that capability.
 
 Examples include:
 
-- Resident Created
-- Reservation Confirmed
-- Stay Created
-- Bed Allocated
-- Charge Raised
-- Payment Received
-- Checkout Completed
-- Settlement Completed
+| Software Domain | Example Domain Events |
+|-----------------|----------------------|
+| Reservation | ReservationCreated, ReservationConfirmed, ReservationCancelled |
+| Stay | StayStarted, StayExtended, StayCompleted |
+| Finance | ChargeRaised, PaymentRecorded, FinancialSettlementCompleted |
+| Deposit | DepositCollected, DepositAdjusted, DepositRefundCompleted |
+| Laundry | LaundryRecorded, LaundryChargeRaised |
+| Internet | InternetServiceProvisioned, InternetServiceTerminated |
+| Maintenance | MaintenanceRequested, MaintenanceCompleted |
+| Complaints | ComplaintRegistered, ComplaintResolved |
+| Notification | NotificationSent, NotificationDelivered |
+| Audit | AuditRecordCreated |
+| Configuration | ConfigurationUpdated |
+| Integration | IntegrationSucceeded, IntegrationFailed |
 
-Business Events represent facts.
-
-Business Events shall never represent user intentions or incomplete activities.
+No Domain Event should have multiple publishers.
 
 ---
 
-# Event Ownership
+## Event Consumers
 
-Every Business Event shall originate from exactly one Software Domain.
+Software Domains consume Domain Events to perform responsibilities that they own.
+
+Receiving a Domain Event does not transfer ownership of the originating data.
+
+Each Software Domain continues to own and manage only its own business capabilities.
 
 Examples include:
 
-| Business Event | Originating Domain |
-|----------------|-------------------|
-| Resident Created | Resident Domain |
-| Stay Created | Stay Domain |
-| Bed Allocated | Accommodation Domain |
-| Charge Raised | Finance Domain |
-| Complaint Logged | Complaints Domain |
-
-Originating domains remain responsible for the correctness of published Business Events.
+- Finance consumes StayStarted to create financial obligations.
+- Notification consumes PaymentRecorded to deliver payment confirmations.
+- Audit consumes significant Domain Events to maintain an immutable audit trail.
+- Reporting consumes Domain Events to update analytical information.
 
 ---
 
-# Event Publication
+## Event Flow
 
-Business Events are published after successful completion of the corresponding business operation.
-
-Events shall represent completed business state.
-
-Events shall never be published for operations that have failed or been rolled back.
-
----
-
-# Event Consumers
-
-Multiple Architectural Services may consume the same Business Event.
-
-Examples include:
-
-- Audit Service
-- Notification Service
-- Reporting Service
-- Search Service
-
-Each consuming service remains independent.
-
-Consumers shall not depend upon one another.
-
----
-
-# Event Flow
-
-A completed business operation typically follows the architectural flow below.
+A typical business lifecycle may produce the following Domain Events:
 
 ```text
-Business Operation
+Resident
         │
         ▼
-Business Domain
+ReservationCreated
         │
         ▼
-Business Event
+ReservationConfirmed
         │
-        ├────────────► Audit Service
+        ▼
+StayStarted
         │
-        ├────────────► Notification Service
+        ├────────────► DepositCollected
         │
-        ├────────────► Reporting Service
+        ├────────────► ChargeRaised
         │
-        └────────────► Search Service
+        ├────────────► LaundryRecorded
+        │
+        ├────────────► MaintenanceRequested
+        │
+        └────────────► ComplaintRegistered
+                          │
+                          ▼
+                 NotificationSent
+                          │
+                          ▼
+                  AuditRecordCreated
 ```
 
-The originating Business Domain remains unaware of how individual Architectural Services use the published event.
+Each Software Domain publishes only the Domain Events corresponding to the business capabilities that it owns.
 
 ---
 
-# Audit Integration
+## Event Processing
 
-The Audit Service records significant Business Events.
+Software Domains process Domain Events independently.
+
+Processing a Domain Event should:
+
+- Respect Software Domain ownership.
+- Avoid direct modification of another Software Domain's data.
+- Execute only responsibilities owned by the consuming Software Domain.
+- Remain independent of the internal implementation of the publishing Software Domain.
+
+---
+
+## Event Reliability
+
+The RPGMS platform should provide reliable delivery of Domain Events.
+
+Where immediate delivery is not possible:
+
+- Events should be retained until successful processing.
+- Consumers should tolerate duplicate event delivery.
+- Event processing should be designed to be idempotent wherever practical.
+- Temporary communication failures should not result in data loss.
+
+---
+
+## Event Versioning
+
+Domain Events should evolve in a backward-compatible manner wherever practical.
+
+Changes that are incompatible with existing consumers should result in a new event version rather than modification of existing event contracts.
+
+This approach supports long-term platform evolution while protecting existing integrations.
+
+---
+
+## Event Naming
+
+Domain Events should describe completed facts.
+
+Examples:
+
+- ResidentCreated
+- ReservationConfirmed
+- StayStarted
+- ChargeRaised
+- PaymentRecorded
+- DepositCollected
+- ComplaintResolved
+
+Domain Events should never be named as commands.
+
+Avoid names such as:
+
+- CreateReservation
+- UpdateResident
+- GenerateBill
+- SendNotification
+
+Commands request work.
+
+Domain Events describe completed work.
+
+---
+
+## Architectural Principle
+
+Software Domains collaborate through Domain Events while maintaining independent ownership of their business capabilities.
+
+Every Domain Event has one publisher, may have many consumers and communicates a completed fact rather than an instruction.
+
+This architecture enables modularity, scalability and long-term maintainability of the RPGMS platform.
+
+---
+
+## Audit Integration
+
+The Audit Service records significant Domain Events.
 
 Audit information includes:
 
@@ -1505,9 +3609,9 @@ Audit records completed business behaviour.
 
 ---
 
-# Notification Integration
+## Notification Integration
 
-Notifications derive from Business Events.
+Notifications derive from Domain Events.
 
 Examples include:
 
@@ -1520,39 +3624,39 @@ Notification delivery shall not influence the success or failure of the originat
 
 ---
 
-# Reporting Integration
+## Reporting Integration
 
-Reporting derives operational and analytical information from Business Events and authoritative business data.
+Reporting derives operational and analytical information from Domain Events and authoritative business data.
 
 Reporting shall never become an independent owner of business information.
 
 ---
 
-# Search Integration
+## Search Integration
 
-Search indexes business information based on completed Business Events.
+Search indexes business information based on completed Domain Events.
 
 Search remains a discovery mechanism rather than a source of business truth.
 
 ---
 
-# Event Evolution
+## Event Evolution
 
-New Business Events may be introduced as the business architecture evolves.
+New Domain Events may be introduced as the business architecture evolves.
 
-Existing Business Events should remain stable wherever practical.
+Existing Domain Events should remain stable wherever practical.
 
 Architectural evolution shall preserve compatibility with existing consuming services.
 
 ---
 
-# Event Architecture Summary
+## Event Architecture Summary
 
 The Event Architecture provides the communication backbone of RPGMS.
 
-Business Domains publish Business Events.
+Business Domains publish Domain Events.
 
-Architectural Services consume Business Events.
+Architectural Services consume Domain Events.
 
 Audit records accountability.
 
@@ -1576,7 +3680,7 @@ Every Software Domain relies upon the Security Architecture rather than implemen
 
 ---
 
-# Security Principles
+## Security Principles
 
 The Security Architecture is governed by the following principles:
 
@@ -1589,9 +3693,11 @@ The Security Architecture is governed by the following principles:
 
 Security shall remain consistent across every Software Domain.
 
+Software Domains remain responsible for protecting the business information that they own while relying upon shared security services for authentication, authorisation and auditing.
+
 ---
 
-# Authentication
+## Authentication
 
 ## Purpose
 
@@ -1617,7 +3723,7 @@ It does not determine permissions.
 
 ---
 
-# Authorisation
+## Authorisation
 
 ## Purpose
 
@@ -1641,7 +3747,7 @@ Business Domains rely upon Authorisation rather than implementing permission log
 
 ---
 
-# Role-Based Access Control
+## Role-Based Access Control
 
 RPGMS implements security using Role-Based Access Control (RBAC).
 
@@ -1655,7 +3761,7 @@ This approach simplifies administration and promotes consistent access control.
 
 ---
 
-# Permission Evaluation
+## Permission Evaluation
 
 Every protected business operation shall undergo permission evaluation before execution.
 
@@ -1671,7 +3777,7 @@ Security-related audit information may still be recorded according to organisati
 
 ---
 
-# Administrative Overrides
+## Administrative Overrides
 
 Certain exceptional business operations may require Administrative Override.
 
@@ -1679,7 +3785,7 @@ Administrative Overrides shall:
 
 - Require appropriate authority
 - Be explicitly authorised
-- Generate Business Events
+- Generate Domain Events
 - Generate Audit Records
 - Preserve historical traceability
 
@@ -1687,7 +3793,7 @@ Administrative Override does not bypass accountability.
 
 ---
 
-# Security Boundaries
+## Security Boundaries
 
 Every Software Domain shall expose only its authorised public interfaces.
 
@@ -1703,7 +3809,7 @@ Security boundaries shall protect:
 
 ---
 
-# Principle of Least Privilege
+## Principle of Least Privilege
 
 Users shall receive only the permissions required to perform their assigned business responsibilities.
 
@@ -1713,7 +3819,7 @@ Least Privilege reduces operational risk while supporting efficient business ope
 
 ---
 
-# Sensitive Information
+## Sensitive Information
 
 Sensitive business information shall be protected according to organisational policy.
 
@@ -1728,9 +3834,11 @@ Examples include:
 
 Access to sensitive information shall always require appropriate authority.
 
+Sensitive information shall be protected during storage, transmission and access according to organisational policy.
+
 ---
 
-# Audit and Security
+## Audit and Security
 
 Security-related business operations shall remain fully auditable.
 
@@ -1742,7 +3850,7 @@ Examples include:
 - Role assignments
 - Configuration changes
 
-Audit records shall preserve:
+The Audit Domain shall preserve:
 
 - Responsible User
 - Date and Time
@@ -1752,7 +3860,22 @@ Audit records shall preserve:
 
 ---
 
-# Security Evolution
+## External Integrations
+
+Communication with external systems shall occur exclusively through the Integration Domain.
+
+External integrations shall:
+
+- authenticate securely
+- protect confidential information
+- validate external responses
+- handle failures safely
+
+Business Domains remain independent of external service implementations.
+
+---
+
+## Security Evolution
 
 The Security Architecture shall support future enhancement without requiring redesign of existing Software Domains.
 
@@ -1768,7 +3891,7 @@ Security evolution shall preserve compatibility with the Business Architecture.
 
 ---
 
-# Security Architecture Summary
+## Security Architecture Summary
 
 The Security Architecture provides consistent protection across RPGMS.
 
@@ -1784,7 +3907,361 @@ Administrative Overrides remain accountable.
 
 Audit preserves security history.
 
-Together these principles provide a secure, maintainable and scalable security model aligned with the Business Blueprint and Business Rules.
+Together these principles provide a secure, maintainable and scalable security model aligned with the Business Constitution and Business Rules.
+
+---
+
+# Runtime & Deployment Architecture
+
+The Deployment Architecture defines how the RPGMS platform is deployed, hosted and operated in production.
+
+It establishes the separation between application components, infrastructure services and external platforms while supporting scalability, reliability and maintainability.
+
+---
+
+## Deployment Principles
+
+The Deployment Architecture is governed by the following principles:
+
+- Separate application logic from infrastructure.
+- Keep Software Domains independent of deployment technology.
+- Deploy components using managed platform services where practical.
+- Support secure, reliable and repeatable deployments.
+- Minimise operational complexity.
+- Allow the platform to evolve without major architectural changes.
+
+Deployment decisions shall not influence Business Architecture or Software Domain responsibilities.
+
+---
+
+## Deployment Model
+
+The RPGMS platform follows a modern web application deployment model consisting of:
+
+- Client Application
+- Backend Services
+- Database Platform
+- External Integration Services
+
+Each component has clearly defined responsibilities and communicates through well-defined interfaces.
+
+---
+
+## Client Application
+
+The Client Application provides the user interface for the RPGMS platform.
+
+Responsibilities include:
+
+- User interaction
+- Presentation logic
+- Client-side navigation
+- User experience
+- Communication with backend services
+
+The Client Application contains no authoritative business data.
+
+Business decisions remain within the appropriate Software Domains.
+
+---
+
+## Backend Services
+
+Backend Services implement the Software Domains defined by the Architecture.
+
+Responsibilities include:
+
+- Business logic
+- Domain validation
+- Business Rules
+- Domain Events
+- Data persistence
+- Integration orchestration
+
+Backend Services remain independent of presentation technology.
+
+---
+
+## Database Platform
+
+The Database Platform provides persistent storage for the RPGMS platform.
+
+The database:
+
+- Stores business information.
+- Preserves data integrity.
+- Supports transactional consistency.
+- Maintains historical information.
+- Enforces data reliability.
+
+Business ownership remains with the respective Software Domains rather than the database itself.
+
+---
+
+## External Services
+
+External services extend platform capabilities without becoming part of the core business architecture.
+
+Examples include:
+
+- Authentication providers
+- Email services
+- SMS gateways
+- WhatsApp services
+- Payment gateways
+- Cloud storage
+- Monitoring platforms
+
+All communication with external services shall occur through the Integration Domain.
+
+---
+
+## Deployment Environments
+
+The RPGMS platform supports multiple deployment environments.
+
+Typical environments include:
+
+- Development
+- Testing
+- Staging
+- Production
+
+Each environment shall remain logically isolated while following the same architectural principles.
+
+---
+
+## Configuration Management
+
+Deployment-specific configuration shall remain separate from application code.
+
+Configuration includes:
+
+- Environment variables
+- Service endpoints
+- Secrets
+- Feature configuration
+- Infrastructure settings
+
+Configuration changes shall not require modification of Business Architecture.
+
+---
+
+## Scalability
+
+The Deployment Architecture shall support future growth by allowing platform components to scale independently where practical.
+
+Scalability may include:
+
+- Application scaling
+- Database optimisation
+- Background processing
+- Integration scaling
+- Storage expansion
+
+Scalability decisions shall preserve Software Domain boundaries.
+
+---
+
+## Reliability
+
+The platform should support reliable operation through:
+
+- Managed infrastructure
+- Data backup
+- Failure recovery
+- Monitoring
+- Health checking
+- Error handling
+
+Operational failures should minimise impact on business operations.
+
+---
+
+## Deployment Architecture Summary
+
+The Deployment Architecture separates business capabilities from infrastructure concerns.
+
+Software Domains remain independent of deployment technology while infrastructure services provide reliable hosting, persistence and operational support.
+
+This separation enables the RPGMS platform to evolve without compromising its Business Architecture or Software Domain responsibilities.
+
+---
+
+# Technology Stack
+
+The Technology Stack defines the primary technologies used to implement the RPGMS platform.
+
+Technology selection is guided by the architectural principles of simplicity, maintainability, scalability and long-term sustainability.
+
+Individual technologies may evolve over time without changing the underlying Business Architecture or Software Domain responsibilities.
+
+---
+
+## Technology Selection Principles
+
+Technology decisions are guided by the following principles:
+
+- Prefer mature and widely adopted technologies.
+- Minimise operational complexity.
+- Use managed platform services where appropriate.
+- Separate business architecture from implementation technology.
+- Prefer maintainability over unnecessary technical complexity.
+- Enable future evolution with minimal architectural impact.
+
+Technology choices support the architecture rather than define it.
+
+---
+
+## Application Layer
+
+The Client Application is implemented using modern web technologies that provide a responsive, maintainable and component-based user interface.
+
+Current technologies include:
+
+| Technology | Responsibility |
+|------------|----------------|
+| React | User Interface Framework |
+| TypeScript | Type Safety |
+| Vite | Build System |
+| Material UI | User Interface Components |
+| React Router | Client-side Navigation |
+
+These technologies implement the presentation layer only.
+
+Business rules remain within the appropriate Software Domains.
+
+---
+
+## Backend Platform
+
+The backend platform provides business logic, data persistence and integration capabilities.
+
+Current technologies include:
+
+| Technology | Responsibility |
+|------------|----------------|
+| Supabase | Backend Platform |
+| PostgreSQL | Relational Database |
+| Supabase Authentication | Identity Management |
+| Supabase Storage | File Storage |
+
+The backend platform implements the Software Domains defined by the Architecture.
+
+---
+
+## Database Technology
+
+RPGMS uses PostgreSQL as its primary relational database.
+
+PostgreSQL provides:
+
+- Transactional consistency
+- Relational integrity
+- Structured business data
+- Reliable persistence
+- Long-term maintainability
+
+The database stores business information but does not own business behaviour.
+
+Business ownership remains within the appropriate Software Domains.
+
+---
+
+## User Interface Framework
+
+The user interface follows a component-based architecture.
+
+The UI is responsible for:
+
+- Presentation
+- Navigation
+- User interaction
+- Responsive layouts
+- Accessibility
+
+Business rules remain independent of the presentation layer.
+
+---
+
+## Development Tooling
+
+Development tooling supports consistent engineering practices.
+
+Current tooling includes:
+
+| Technology | Responsibility |
+|------------|----------------|
+| Git | Version Control |
+| GitHub | Source Code Hosting |
+| Vercel | Application Deployment |
+| npm | Package Management |
+| ESLint | Code Quality |
+| Prettier | Code Formatting |
+
+These tools support development but are not part of the runtime architecture.
+
+---
+
+## AI-Assisted Development
+
+RPGMS adopts AI-assisted software engineering as part of its development workflow.
+
+AI tools assist with:
+
+- Code generation
+- Refactoring
+- Documentation
+- Architecture review
+- Test generation
+- Development productivity
+
+All AI-generated changes remain subject to human review and architectural governance as defined by the project documentation.
+
+---
+
+## External Services
+
+The platform integrates with selected external services where appropriate.
+
+Examples include:
+
+- WhatsApp messaging
+- SMS providers
+- Email services
+- Payment gateways
+- Cloud storage services
+
+External technologies remain isolated behind the Integration Domain.
+
+Business Domains remain independent of external implementations.
+
+---
+
+## Technology Evolution
+
+The Technology Stack is expected to evolve over time.
+
+Individual technologies may be replaced provided that:
+
+- Business Architecture remains unchanged.
+- Software Domain responsibilities remain unchanged.
+- Public interfaces remain compatible where practical.
+- Business Rules remain unaffected.
+
+Technology evolution should minimise disruption to business capabilities.
+
+---
+
+## Technology Stack Summary
+
+The Technology Stack provides the implementation foundation for the RPGMS platform.
+
+Technology choices support the Business Architecture, Software Domains and Architectural Principles while remaining replaceable as the platform evolves.
+
+The architecture defines the system.
+
+The technology implements it.
 
 ---
 
@@ -1800,7 +4277,7 @@ Business behaviour remains within the Domain Layer.
 
 ---
 
-# User Interface Principles
+## User Interface Principles
 
 The User Interface shall:
 
@@ -1815,7 +4292,7 @@ The User Interface is responsible for presentation, not business decision-making
 
 ---
 
-# Application Layout
+## Application Layout
 
 RPGMS provides a consistent application shell.
 
@@ -1832,7 +4309,7 @@ Every module shall operate within the same application layout.
 
 ---
 
-# Navigation Architecture
+## Navigation Architecture
 
 Navigation provides access to the major Software Domains.
 
@@ -1852,7 +4329,7 @@ Navigation reflects business capabilities rather than technical implementation.
 
 ---
 
-# Page Architecture
+## Page Architecture
 
 Every major feature is represented by a dedicated page.
 
@@ -1867,7 +4344,7 @@ Pages do not implement business rules.
 
 ---
 
-# Workspace Architecture
+## Workspace Architecture
 
 Complex business activities are implemented using Workspaces.
 
@@ -1884,7 +4361,7 @@ Business coordination occurs through the Application Layer.
 
 ---
 
-# Component Architecture
+## Component Architecture
 
 User Interface components shall be organised according to responsibility.
 
@@ -1901,7 +4378,7 @@ Components remain reusable wherever practical.
 
 ---
 
-# View Models
+## View Models
 
 The User Interface presents business information through View Models.
 
@@ -1917,7 +4394,7 @@ View Models do not own business behaviour.
 
 ---
 
-# State Management
+## State Management
 
 User Interface state shall remain local wherever practical.
 
@@ -1935,7 +4412,7 @@ The User Interface shall not become the authoritative source of business informa
 
 ---
 
-# Forms
+## Forms
 
 Forms provide controlled interaction with business information.
 
@@ -1950,7 +4427,7 @@ Business validation remains the responsibility of the Domain Layer.
 
 ---
 
-# Shared Design System
+## Shared Design System
 
 All User Interface elements shall follow the shared Design System.
 
@@ -1971,7 +4448,7 @@ Shared design standards promote usability and maintainability.
 
 ---
 
-# Responsive Design
+## Responsive Design
 
 The User Interface shall adapt appropriately to supported screen sizes.
 
@@ -1986,7 +4463,7 @@ Responsive design shall not change business behaviour.
 
 ---
 
-# Accessibility
+## Accessibility
 
 The User Interface shall support accessible interaction wherever practical.
 
@@ -2003,7 +4480,7 @@ Accessibility supports efficient operation for all authorised users.
 
 ---
 
-# Error Presentation
+## Error Presentation
 
 Errors shall be communicated clearly and consistently.
 
@@ -2018,7 +4495,7 @@ Users shall receive sufficient information to understand the outcome without exp
 
 ---
 
-# User Interface Evolution
+## User Interface Evolution
 
 The User Interface shall support future enhancement without requiring redesign of the underlying Software Domains.
 
@@ -2034,7 +4511,7 @@ Presentation may evolve independently while preserving business consistency.
 
 ---
 
-# User Interface Architecture Summary
+## User Interface Architecture Summary
 
 The User Interface provides a consistent presentation layer for RPGMS.
 
@@ -2058,11 +4535,11 @@ The architecture of RPGMS is designed to support continuous business and technic
 
 Future enhancements shall extend the existing architecture rather than replace it.
 
-Architectural evolution shall remain guided by the Business Blueprint and Business Rules.
+Architectural evolution shall remain guided by the Business Constitution and Business Rules.
 
 ---
 
-# Evolution Principles
+## Evolution Principles
 
 Future development shall adhere to the following principles:
 
@@ -2079,7 +4556,7 @@ Technology choices support architectural objectives.
 
 ---
 
-# Business Expansion
+## Business Expansion
 
 The architecture supports the addition of new business capabilities through new Software Domains.
 
@@ -2098,7 +4575,7 @@ Each new capability shall follow the established Domain Architecture.
 
 ---
 
-# Workflow Expansion
+## Workflow Expansion
 
 Business workflows may become more sophisticated over time.
 
@@ -2116,7 +4593,7 @@ Workflow expansion shall preserve existing domain responsibilities.
 
 ---
 
-# Technology Independence
+## Technology Independence
 
 The architecture is intentionally independent of specific implementation technologies.
 
@@ -2129,11 +4606,11 @@ Examples of replaceable technologies include:
 - Storage provider
 - Reporting tools
 
-Technology may evolve without requiring changes to the Business Blueprint or Business Rules.
+Technology may evolve without requiring changes to the Business Constitution or Business Rules.
 
 ---
 
-# Integration Readiness
+## Integration Readiness
 
 RPGMS shall support integration with external systems through well-defined interfaces.
 
@@ -2151,7 +4628,7 @@ Integrations shall remain isolated from core business logic.
 
 ---
 
-# Scalability
+## Scalability
 
 The architecture supports growth in:
 
@@ -2166,7 +4643,7 @@ Scalability shall be achieved through modular architecture rather than architect
 
 ---
 
-# Multi-Property Readiness
+## Multi-Property Readiness
 
 The architecture supports future expansion from a single property to multiple properties.
 
@@ -2182,7 +4659,7 @@ Business ownership shall remain clearly defined regardless of organisational sca
 
 ---
 
-# Automation Readiness
+## Automation Readiness
 
 The architecture supports increasing levels of business automation.
 
@@ -2199,7 +4676,7 @@ Automation coordinates business operations but does not replace Business Rules.
 
 ---
 
-# Artificial Intelligence Readiness
+## Artificial Intelligence Readiness
 
 The architecture is designed to support responsible use of Artificial Intelligence.
 
@@ -2221,17 +4698,17 @@ All AI-generated outputs remain subject to human review where business judgement
 
 ---
 
-# Documentation Evolution
+## Documentation Evolution
 
 Architectural documentation shall evolve together with the software.
 
-Changes to the Business Blueprint or Business Rules shall be reflected in the corresponding architectural documentation.
+Changes to the Business Constitution or Business Rules shall be reflected in the corresponding architectural documentation.
 
 Documentation shall remain synchronised with implementation throughout the lifetime of the project.
 
 ---
 
-# Future Evolution Summary
+## Future Evolution Summary
 
 The architecture of RPGMS is designed for long-term sustainability.
 
@@ -2257,7 +4734,7 @@ Every significant architectural and business decision shall be represented withi
 
 ---
 
-# Documentation Principles
+## Documentation Principles
 
 Project documentation shall:
 
@@ -2272,12 +4749,12 @@ Documentation shall describe architecture rather than duplicate implementation.
 
 ---
 
-# Documentation Hierarchy
+## Documentation Hierarchy
 
 Project documentation follows a hierarchical structure.
 
 ```text
-Business Blueprint
+Business Constitution
         │
         ▼
 Business Rules
@@ -2323,14 +4800,14 @@ Responsibilities shall not overlap unnecessarily.
 
 ---
 
-# Traceability
+## Traceability
 
 Architectural decisions shall be traceable through the documentation hierarchy.
 
 For example:
 
 ```text
-Business Blueprint
+Business Constitution
         │
 Defines:
 Resident
@@ -2367,7 +4844,7 @@ Every architectural decision should be traceable to a business decision.
 
 ---
 
-# Documentation Consistency
+## Documentation Consistency
 
 When significant business or architectural changes occur:
 
@@ -2379,7 +4856,7 @@ Documentation and implementation shall evolve together.
 
 ---
 
-# Domain Documentation
+## Domain Documentation
 
 As the application grows, individual Software Domains may maintain their own supporting documentation.
 
@@ -2394,7 +4871,7 @@ Domain documentation shall remain subordinate to this Architecture document.
 
 ---
 
-# Decision Records
+## Decision Records
 
 Significant architectural decisions shall be recorded in a permanent decision log.
 
@@ -2409,7 +4886,7 @@ Decision records preserve architectural history and support future maintenance.
 
 ---
 
-# Documentation Ownership
+## Documentation Ownership
 
 Business documentation is owned by the business architecture.
 
@@ -2421,7 +4898,7 @@ Ownership ensures accountability for maintaining each document.
 
 ---
 
-# Documentation Review
+## Documentation Review
 
 Documentation shall be reviewed whenever:
 
@@ -2435,7 +4912,7 @@ Documentation review is an integral part of architectural governance.
 
 ---
 
-# Documentation Evolution
+## Documentation Evolution
 
 Documentation shall evolve incrementally.
 
@@ -2445,7 +4922,7 @@ Historical versions provide an important record of architectural evolution.
 
 ---
 
-# Documentation Architecture Summary
+## Documentation Architecture Summary
 
 Documentation forms the architectural memory of RPGMS.
 
@@ -2465,11 +4942,11 @@ Architectural Governance defines how the software architecture of RPGMS is maint
 
 The purpose of governance is not to restrict development, but to ensure that architectural consistency is preserved as the application grows.
 
-Every significant architectural decision shall remain aligned with the Business Blueprint and Business Rules.
+Every significant architectural decision shall remain aligned with the Business Constitution and Business Rules.
 
 ---
 
-# Governance Principles
+## Governance Principles
 
 Architectural governance is guided by the following principles:
 
@@ -2484,7 +4961,7 @@ Architectural decisions shall support sustainable software development.
 
 ---
 
-# Architectural Compliance
+## Architectural Compliance
 
 All implementation shall comply with the architectural principles defined in this document.
 
@@ -2501,11 +4978,11 @@ Architectural compliance is considered part of the Definition of Done for signif
 
 ---
 
-# Architectural Decision-Making
+## Architectural Decision-Making
 
 Significant architectural decisions shall be evaluated against the following questions:
 
-1. Does the change support the Business Blueprint?
+1. Does the change support the Business Constitution?
 
 2. Does the change comply with Business Rules?
 
@@ -2521,7 +4998,7 @@ Only decisions that satisfy these principles should become part of the permanent
 
 ---
 
-# Architectural Exceptions
+## Architectural Exceptions
 
 Occasionally, implementation constraints may require deviations from the preferred architecture.
 
@@ -2539,7 +5016,7 @@ Temporary implementation shortcuts shall not become permanent architecture witho
 
 ---
 
-# Change Management
+## Change Management
 
 Architecture evolves through controlled change.
 
@@ -2554,13 +5031,13 @@ Architectural change shall be deliberate rather than incidental.
 
 ---
 
-# Architectural Reviews
+## Architectural Reviews
 
 Major development milestones should include an architectural review.
 
 Reviews should confirm:
 
-- Continued compliance with Business Blueprint
+- Continued compliance with Business Constitution
 - Continued compliance with Business Rules
 - Correct Domain ownership
 - Appropriate use of Architectural Services
@@ -2571,7 +5048,7 @@ Architectural review supports continuous improvement rather than fault-finding.
 
 ---
 
-# Documentation Authority
+## Documentation Authority
 
 The documentation hierarchy defines the authoritative source for architectural decisions.
 
@@ -2590,7 +5067,7 @@ Implementation shall be corrected to align with the governing documentation.
 
 ---
 
-# Continuous Improvement
+## Continuous Improvement
 
 Architecture is expected to evolve throughout the lifetime of RPGMS.
 
@@ -2605,7 +5082,7 @@ Architectural evolution is encouraged when guided by documented principles.
 
 ---
 
-# Architectural Vision
+## Architectural Vision
 
 The long-term vision of RPGMS is to provide a software platform that faithfully represents the business it serves.
 
@@ -2623,7 +5100,7 @@ Architecture provides the bridge between the two.
 
 The architecture of RPGMS is founded upon three complementary layers of governance:
 
-Business Blueprint defines the business.
+Business Constitution defines the business.
 
 Business Rules define business behaviour.
 

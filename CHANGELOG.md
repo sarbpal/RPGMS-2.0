@@ -5,11 +5,11 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-008
-Version         : 2.0
+Version         : 3.0
 Status          : Active
 Owner           : Development Team
 Created         : 2026-07-16
-Last Updated    : 2026-07-16
+Last Updated    : 2026-07-30
 Applies To      : RPGMS 2.0 Repository
 
 Purpose
@@ -181,7 +181,7 @@ Quality
 - No routing implemented.
 
 ===========================================================
-Milestone M0 – Engineering Foundation
+## Milestone M0 – Engineering Foundation
 ===========================================================
 
 Status
@@ -1087,29 +1087,6 @@ This is another meaningful architectural milestone.
 - All public APIs and UI behaviors preserved 100%.
 - TypeScript check (`npx tsc --noEmit`), Vite build (`npm run build`), and ESLint (`npm run lint`) pass cleanly.
 
-## Sprint 12.2 – Finance Application Layer
-
-### Added
-
-- Introduced the Finance Application layer.
-- Added `FinanceWorkspaceCoordinator` to orchestrate Finance workspace workflows.
-- Added `FinanceWorkspaceViewModel` and related presentation models.
-- Added application barrel exports.
-
-### Changed
-
-- Refactored `FinanceWorkspacePage` to consume the `FinanceWorkspaceCoordinator`.
-- Updated Finance hooks to delegate workflow orchestration through the Application layer.
-- Simplified the presentation layer by removing direct orchestration of multiple Finance services.
-
-### Notes
-
-- No business rules or financial calculations were modified.
-- No persistence or storage changes were made.
-- UI behaviour remains unchanged.
-- TypeScript, ESLint, and production build all pass successfully.
-
-
 ## Sprint 12.3 – Finance Domain Layer
 
 ### Added
@@ -1285,6 +1262,24 @@ Successfully passed:
 - Further reduced presentation-layer responsibilities, keeping React focused on rendering and user interaction.
 - Preserved all existing functionality while improving architectural consistency.
 
+===========================================================================
+## Milestone A1 – Architecture Baseline
+===========================================================================
+
+### Completed
+
+- Finalized BUSINESS_MODEL.md
+- Finalized DOMAIN_MODEL.md
+- Finalized ARCHITECTURE.md
+- Completed Architecture Review
+- Completed Architecture Polish Sprint
+- Established Architecture Baseline v3.0
+- Declared architecture stable for MVP implementation
+
+### Impact
+
+- Architecture frozen for MVP.
+- Future development will prioritize implementation over architectural redesign.
   
 ------------------------------------------------------------------------------
 End of Document

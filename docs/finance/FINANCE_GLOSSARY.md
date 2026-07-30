@@ -165,13 +165,13 @@ A Resident admitted on the 15th of a month may have billing periods running from
 
 A Business Event is a meaningful occurrence within the system that represents something that has happened in the business.
 
-Business Events communicate facts between domains but do not themselves perform financial processing.
+Domain Events communicate facts between domains but do not themselves perform financial processing.
 
-Business Events may trigger one or more Business Transactions.
+Domain Events may trigger one or more Business Transactions.
 
 ### Example
 
-Examples of Business Events include:
+Examples of Domain Events include:
 
 - Resident Admitted
 - Bill Generated
@@ -1012,7 +1012,7 @@ Avoid introducing alternative names for established business concepts.
 | Room               | Flat / Area / Bed                                               | Matches accommodation hierarchy |
 | Invoice            | Bill                                                            | Business terminology            |
 | Deposit Adjustment | Settlement Hold                                                 | Distinct business concepts      |
-| Checkout Complete  | Financially Closed                                              | Different business events       |
+| Checkout Complete  | Financially Closed                                              | Different Domain Events       |
 | Transaction        | Be specific (Business Transaction, Settlement, Ledger Entry)    | Removes ambiguity               |
 | Balance            | Specify the account (Receivable Balance, Deposit Balance, etc.) | Improves clarity                |
 

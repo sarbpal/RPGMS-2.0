@@ -3,4 +3,5 @@ export * from './entities/Area';
 export * from './entities/Flat';
 export * from './valueObjects/BedStatus';
 export * from './rules/occupancyRules';
+export * from './rules/flatRules';
 export * from './interfaces/AccommodationRepository';

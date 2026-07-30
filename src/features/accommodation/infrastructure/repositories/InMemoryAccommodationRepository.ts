@@ -37,24 +37,16 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     }
   }
 
-  public getAllSync(): Flat[] {
+  public findAll(): Flat[] {
     return this.flats.map((f) => ({ ...f }));
   }
 
-  public async findAll(): Promise<Flat[]> {
-    return this.getAllSync();
-  }
-
-  public findByIdSync(id: string): Flat | null {
+  public findById(id: string): Flat | null {
     const flat = this.flats.find((f) => f.id === id || f.name === id);
     return flat ? { ...flat } : null;
   }
 
-  public async findById(id: string): Promise<Flat | null> {
-    return this.findByIdSync(id);
-  }
-
-  public saveSync(flat: Flat): Flat {
+  public save(flat: Flat): Flat {
     const existingIndex = this.flats.findIndex((f) => f.id === flat.id);
     if (existingIndex >= 0) {
       this.flats[existingIndex] = { ...flat };
@@ -65,26 +57,14 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     return { ...flat };
   }
 
-  public async save(flat: Flat): Promise<Flat> {
-    return this.saveSync(flat);
-  }
-
-  public async update(flat: Flat): Promise<Flat> {
-    return this.save(flat);
-  }
-
-  public deleteSync(id: string): void {
-    this.flats = this.flats.filter((f) => f.id !== id);
-    this.persist();
-  }
-
-  public async delete(id: string): Promise<void> {
-    this.deleteSync(id);
-  }
-
-  public saveAllSync(flats: Flat[]): Flat[] {
+  public saveAll(flats: Flat[]): Flat[] {
     this.flats = [...flats];
     this.persist();
-    return this.getAllSync();
+    return this.findAll();
+  }
+
+  public delete(id: string): void {
+    this.flats = this.flats.filter((f) => f.id !== id);
+    this.persist();
   }
 }

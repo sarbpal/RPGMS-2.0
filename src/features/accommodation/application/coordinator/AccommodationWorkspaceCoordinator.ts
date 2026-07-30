@@ -1,5 +1,5 @@
 import type { AccommodationStats } from '../../components/AccommodationSummary';
-import { BedStatus, canDeleteFlat, type Flat, synchronizeBedOccupancy } from '../../domain';
+import { BedStatus, canDeleteFlat, canModifyFlatNumber, type Flat, synchronizeBedOccupancy, validateFlatAreaConfigs } from '../../domain';
 import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
 import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
@@ -37,20 +37,12 @@ export class AccommodationWorkspaceCoordinator {
    * Load flats from repository and perform self-healing synchronization against active/on-notice stays.
    */
   public loadAndSynchronizeFlats(occupants?: BedOccupantInput[]): Flat[] {
-    const initialFlats: Flat[] =
-      'getAllSync' in this.repository && typeof (this.repository as { getAllSync?: () => Flat[] }).getAllSync === 'function'
-        ? (this.repository as { getAllSync: () => Flat[] }).getAllSync()
-        : [];
+    const initialFlats: Flat[] = this.repository.findAll();
 
     const { synchronizedFlats, hasUpdates } = this.synchronizeFlats(initialFlats, occupants);
 
     if (hasUpdates) {
-      if (
-        'saveAllSync' in this.repository &&
-        typeof (this.repository as { saveAllSync?: (flats: Flat[]) => Flat[] }).saveAllSync === 'function'
-      ) {
-        (this.repository as { saveAllSync: (flats: Flat[]) => Flat[] }).saveAllSync(synchronizedFlats);
-      }
+      this.repository.saveAll(synchronizedFlats);
     }
 
     return synchronizedFlats;
@@ -61,6 +53,19 @@ export class AccommodationWorkspaceCoordinator {
    * Preserves existing bed status and occupant details when updating a flat.
    */
   public saveFlatDraft(draft: FlatDraft, flatToEdit?: Flat): Flat {
+    // Enforce domain area configuration validation rules
+    const validation = validateFlatAreaConfigs(draft.areas);
+    if (!validation.isValid) {
+      throw new Error('Flat Area configuration is invalid. Duplicate area names, duplicate prefixes, or 0-bed areas detected.');
+    }
+
+    // Enforce stable physical identifier protection rule (BR-ACC-003)
+    if (flatToEdit && flatToEdit.name !== draft.flatNumber) {
+      const { canModify } = canModifyFlatNumber(flatToEdit);
+      if (!canModify) {
+        throw new Error(`Flat number for Flat ${flatToEdit.name} cannot be modified while it contains occupied beds.`);
+      }
+    }
     const newFlat: Flat = {
       id: draft.flatNumber,
       name: draft.flatNumber,
@@ -113,25 +118,14 @@ export class AccommodationWorkspaceCoordinator {
    * Save flat entity via repository abstraction.
    */
   public saveFlat(flat: Flat): Flat {
-    if (
-      'saveSync' in this.repository &&
-      typeof (this.repository as { saveSync?: (f: Flat) => Flat }).saveSync === 'function'
-    ) {
-      return (this.repository as { saveSync: (f: Flat) => Flat }).saveSync(flat);
-    }
-    return flat;
+    return this.repository.save(flat);
   }
 
   /**
    * Delete flat entity by ID via repository abstraction.
    */
   public deleteFlat(id: string): void {
-    if (
-      'deleteSync' in this.repository &&
-      typeof (this.repository as { deleteSync?: (id: string) => void }).deleteSync === 'function'
-    ) {
-      (this.repository as { deleteSync: (id: string) => void }).deleteSync(id);
-    }
+    this.repository.delete(id);
   }
 
   /**
@@ -160,15 +154,13 @@ export class AccommodationWorkspaceCoordinator {
     } else {
       // Derive occupants from StayRepository & ResidentRepository
       const stays: Stay[] =
-        'getAllSync' in this.stayRepository &&
-        typeof (this.stayRepository as { getAllSync?: () => Stay[] }).getAllSync === 'function'
-          ? (this.stayRepository as { getAllSync: () => Stay[] }).getAllSync()
+        this.stayRepository instanceof InMemoryStayRepository
+          ? this.stayRepository.getAllSync()
           : [];
 
       const residents: Resident[] =
-        'getAllSync' in this.residentRepository &&
-        typeof (this.residentRepository as { getAllSync?: () => Resident[] }).getAllSync === 'function'
-          ? (this.residentRepository as { getAllSync: () => Resident[] }).getAllSync()
+        this.residentRepository instanceof InMemoryResidentRepository
+          ? this.residentRepository.getAllSync()
           : [];
 
       const residentLookup = new Map<string, Resident>();

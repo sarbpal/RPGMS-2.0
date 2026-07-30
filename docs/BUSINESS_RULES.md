@@ -483,6 +483,118 @@ Historical occupancy records depend upon historical accommodation records remain
 
 ---
 
+## BR-013 Stable Flat Identifiers
+
+### Rule
+
+Flat Numbers shall become immutable once a Flat contains occupied or on-notice beds.
+
+Renaming a Flat that contains active occupants shall be prohibited.
+
+### Reason
+
+Flat Numbers serve as physical identifiers. Renaming an occupied Flat invalidates referential integrity across active Stays, Resident ledgers, and billing records.
+
+### Applies To
+
+- Flat Management
+- Accommodation Setup
+
+---
+
+## BR-014 Stable Bed Identifiers & Prefixes
+
+### Rule
+
+Area Bed Prefixes shall become immutable once an Area contains occupied or on-notice beds.
+
+Modifying a Bed Prefix in an Area containing active occupants shall be prohibited.
+
+### Reason
+
+Bed Prefixes form part of permanent Bed identities (`{flatNumber}-{prefix}{index}`). Altering a Bed Prefix changes generated bed identifiers, breaking references in active Stay records.
+
+### Applies To
+
+- Area Management
+- Accommodation Setup
+
+---
+
+## BR-015 Area Name Uniqueness
+
+### Rule
+
+Area names within a single Flat must be unique.
+
+No two Areas within the same Flat shall share the same normalized name.
+
+### Reason
+
+Unique Area names prevent ambiguity during bed allocation, inspection, and maintenance routing.
+
+### Applies To
+
+- Area Management
+- Accommodation Setup
+
+---
+
+## BR-016 Bed Prefix Uniqueness
+
+### Rule
+
+Bed Prefixes across all Areas within a single Flat must be unique.
+
+No two Areas within the same Flat shall share the same Bed Prefix.
+
+### Reason
+
+Unique Bed Prefixes guarantee unique Bed identifiers (`{flatNumber}-{prefix}{index}`) across the entire Flat.
+
+### Applies To
+
+- Area Management
+- Accommodation Setup
+
+---
+
+## BR-017 Minimum Area Bed Inventory
+
+### Rule
+
+Every Area within a Flat must contain at least one allocatable Bed (`bedCount >= 1`).
+
+Creating or saving an Area with zero beds shall be prohibited.
+
+### Reason
+
+Areas define physical room spaces; empty areas without beds violate physical capacity modeling.
+
+### Applies To
+
+- Area Management
+- Accommodation Setup
+
+---
+
+## BR-018 Occupied Bed Truncation Guard
+
+### Rule
+
+An Area's configured Bed capacity shall not be reduced below the highest index of any currently occupied or on-notice Bed in that Area.
+
+### Reason
+
+Truncating bed inventory that contains active occupants destroys resident stay assignments and historical occupancy tracking.
+
+### Applies To
+
+- Flat Management
+- Area Management
+
+---
+
 # Accommodation Summary
 
 The Accommodation domain establishes the physical framework within which Residents occupy Beds during a Stay.

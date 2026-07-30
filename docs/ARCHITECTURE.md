@@ -1093,6 +1093,17 @@ The Accommodation Domain owns:
 
 ---
 
+### Domain Rule Module Separation
+
+To enforce Clean Architecture and preserve strict separation of concerns within the Accommodation Domain, domain rules are partitioned into distinct, focused modules:
+
+* **`flatRules.ts`**: Owns structural configuration validation rules for Flats and Areas (Area name uniqueness, Bed prefix uniqueness, minimum bed counts, stable physical identifier guards, and occupied bed truncation guards).
+* **`occupancyRules.ts`**: Owns temporal occupancy rules, bed status synchronization against active/on-notice Stays, and deletion safety checks against active occupants.
+
+This architectural decision prevents rule pollution and ensures that structural configuration logic remains cleanly decoupled from temporal occupancy synchronization.
+
+---
+
 ### Does Not Own
 
 The Accommodation Domain does **not** own:

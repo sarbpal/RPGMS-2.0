@@ -473,6 +473,27 @@ Beds are the operational units used for occupancy management.
 - Support reservation preferences
 - Maintain operational status
 
+---
+
+## 9.8 Stable Physical Identifiers
+
+### Architectural Invariant
+
+The Accommodation Domain enforces the architectural concept of **Stable Physical Identifiers** to preserve referential integrity across the system.
+
+- **Flat Number as Physical Identifier:** The Flat Number (e.g. `101`) acts as a primary physical identifier within a Property.
+- **Bed Prefix as Identity Component:** The Area Bed Prefix (e.g. `B`, `H`) forms a core component of every generated Bed identity (`{flatNumber}-{prefix}{index}`).
+
+### Referential Integrity Across Domains
+
+Once a Bed is referenced by active occupancy (a Stay record), its identity becomes a permanent operational reference across the system.
+
+To protect referential integrity across Stays, Resident Financial Profiles, Billing, Reports, and Audit trails:
+1. **Flat Numbers become immutable** once a Flat contains occupied or on-notice beds.
+2. **Bed Prefixes become immutable** once an Area contains occupied or on-notice beds.
+3. **Bed inventory cannot be truncated** below the index of an active occupant.
+
+
 ### Relationships
 
 Belongs to:

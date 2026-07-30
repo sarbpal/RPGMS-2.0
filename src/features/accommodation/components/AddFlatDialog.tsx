@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 
 import { generateBeds } from '../utils/generateBeds';
-import { canDeleteArea, hasOccupiedBeds, isBedOccupied } from '../domain';
+import { canDeleteArea, canModifyAreaBeds, canModifyAreaPrefix, canModifyFlatNumber, isBedOccupied } from '../domain';
 import type { Flat } from '../domain';
 import type { FlatDraft, FlatDraftArea } from '../application/models/FlatDraft';
 
@@ -460,27 +460,35 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
             Flat Details
           </Typography>
 
-          <TextField
-            required
-            fullWidth
-            id="flat-number"
-            label="Flat Number"
-            value={flatNumber}
-            onChange={(e) => setFlatNumber(e.target.value.toUpperCase())}
-            onBlur={() => {
-              setFlatNumberTouched(true);
-              setFlatNumber((prev) => prev.trim());
-            }}
-            error={(!flatNumber.trim() && flatNumberTouched) || isFlatNumberDuplicate}
-            helperText={
-              !flatNumber.trim()
-                ? (flatNumberTouched ? 'Flat Number is required' : '')
-                : isFlatNumberDuplicate
-                ? 'Flat Number already exists'
-                : ''
-            }
-            placeholder="e.g. G01, 101, 205"
-          />
+          {(() => {
+            const isFlatNumberLocked = Boolean(flatToEdit && !canModifyFlatNumber(flatToEdit).canModify);
+            return (
+              <TextField
+                required
+                fullWidth
+                id="flat-number"
+                label="Flat Number"
+                value={flatNumber}
+                disabled={isFlatNumberLocked}
+                onChange={(e) => setFlatNumber(e.target.value.toUpperCase())}
+                onBlur={() => {
+                  setFlatNumberTouched(true);
+                  setFlatNumber((prev) => prev.trim());
+                }}
+                error={(!flatNumber.trim() && flatNumberTouched) || isFlatNumberDuplicate}
+                helperText={
+                  isFlatNumberLocked
+                    ? 'Flat number cannot be modified while flat contains occupied beds.'
+                    : !flatNumber.trim()
+                    ? (flatNumberTouched ? 'Flat Number is required' : '')
+                    : isFlatNumberDuplicate
+                    ? 'Flat Number already exists'
+                    : ''
+                }
+                placeholder="e.g. G01, 101, 205"
+              />
+            );
+          })()}
 
           <FormControl fullWidth required error={floorTouched && !floor}>
             <InputLabel id="floor-select-label">Floor</InputLabel>
@@ -568,24 +576,25 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                   return '';
                 })();
 
+                const isPrefixLocked = (() => {
+                  if (flatToEdit) {
+                    const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
+                    if (originalArea) {
+                      return !canModifyAreaPrefix(originalArea).canModify;
+                    }
+                  }
+                  return false;
+                })();
+
                 const bedPrefixError = (() => {
+                  if (isPrefixLocked) {
+                    return 'Prefix locked (beds occupied)';
+                  }
                   if (hasDuplicatePrefix(area.id, area.bedPrefix)) {
                     return 'Duplicate Bed Prefix';
                   }
                   if (area.touched?.bedPrefix && !area.bedPrefix.trim()) {
                     return 'Bed Prefix is required';
-                  }
-                  if (flatToEdit) {
-                    const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
-                    if (originalArea) {
-                      if (
-                        hasOccupiedBeds(originalArea) &&
-                        area.bedPrefix.trim().toUpperCase() !==
-                          originalArea.bedPrefix?.trim().toUpperCase()
-                      ) {
-                        return 'Beds occupied (cannot edit prefix)';
-                      }
-                    }
                   }
                   return '';
                 })();
@@ -598,16 +607,9 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                     if (flatToEdit) {
                       const originalArea = flatToEdit.areas.find((a) => a.id === area.id);
                       if (originalArea) {
-                        const occupiedBeds = originalArea.beds.filter(isBedOccupied);
-                        if (occupiedBeds.length > 0) {
-                          const indices = occupiedBeds.map((b) => {
-                            const match = b.name.match(/\d+$/);
-                            return match ? parseInt(match[0], 10) : 0;
-                          });
-                          const maxOccupiedIndex = Math.max(...indices);
-                          if (area.bedCount < maxOccupiedIndex) {
-                            return `Must be >= ${maxOccupiedIndex} (bed ${area.bedPrefix || originalArea.bedPrefix}${maxOccupiedIndex} is occupied)`;
-                          }
+                        const check = canModifyAreaBeds(originalArea, area.bedCount);
+                        if (!check.canModify) {
+                          return `Must be >= ${check.maxOccupiedIndex} (bed ${area.bedPrefix || originalArea.bedPrefix}${check.maxOccupiedIndex} is occupied)`;
                         }
                       }
                     }
@@ -662,7 +664,7 @@ export function AddFlatDialog({ open, onClose, onSubmit, existingFlatNumbers = [
                     <TextField
                       label="Bed Prefix"
                       value={area.bedPrefix}
-                      disabled={!area.name.trim()}
+                      disabled={!area.name.trim() || isPrefixLocked}
                       onChange={(e) => {
                         const rawValue = e.target.value;
                         const suggested = getSuggestedPrefix(area.name);

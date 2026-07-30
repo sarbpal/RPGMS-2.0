@@ -9,8 +9,9 @@ import { AccommodationWorkspaceCoordinator } from '../application/coordinator/Ac
 import { AccommodationSummary } from '../components/AccommodationSummary';
 import { AccommodationToolbar } from '../components/AccommodationToolbar';
 import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
+import { BedDetailsDialog } from '../components/BedDetailsDialog';
 import { FlatCard } from '../components/FlatCard';
-import type { Flat } from '../domain';
+import type { Bed, Flat } from '../domain';
 
 export default function AccommodationWorkspacePage() {
   const coordinator = useMemo(() => new AccommodationWorkspaceCoordinator(), []);
@@ -25,6 +26,12 @@ export default function AccommodationWorkspacePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedBed, setSelectedBed] = useState<{
+    bed: Bed;
+    flatId: string;
+    flatName: string;
+    areaName: string;
+  } | null>(null);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -73,12 +80,12 @@ export default function AccommodationWorkspacePage() {
   };
 
   const handleDeleteFlatClick = (flat: Flat) => {
-    const { canDelete } = coordinator.canDeleteFlat(flat);
-
+    const { canDelete, occupiedBeds } = coordinator.canDeleteFlat(flat);
     if (!canDelete) {
+      const bedNames = occupiedBeds.map((b) => b.name).join(', ');
       setSnackbar({
         open: true,
-        message: `Cannot delete Flat ${flat.name} because it contains occupied beds. Please check out or reassign residents first.`,
+        message: `Cannot delete Flat ${flat.name} because it contains occupied beds (${bedNames}). Check out residents first.`,
         severity: 'error',
       });
       return;
@@ -114,6 +121,50 @@ export default function AccommodationWorkspacePage() {
     }
     setIsDeleteConfirmationOpen(false);
     setFlatToDelete(undefined);
+  };
+
+  const handleBedClick = (flatId: string, flatName: string, areaName: string, bed: Bed) => {
+    setSelectedBed({ bed, flatId, flatName, areaName });
+  };
+
+  const handleBlockBed = (flatId: string, bedId: string) => {
+    try {
+      const updatedFlat = coordinator.blockBed(flatId, bedId);
+      setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
+      setSnackbar({ open: true, message: `Bed ${bedId} has been blocked.`, severity: 'success' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Failed to block bed.', severity: 'error' });
+    }
+  };
+
+  const handleUnblockBed = (flatId: string, bedId: string) => {
+    try {
+      const updatedFlat = coordinator.unblockBed(flatId, bedId);
+      setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
+      setSnackbar({ open: true, message: `Bed ${bedId} has been unblocked.`, severity: 'success' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Failed to unblock bed.', severity: 'error' });
+    }
+  };
+
+  const handleStartMaintenance = (flatId: string, bedId: string) => {
+    try {
+      const updatedFlat = coordinator.startBedMaintenance(flatId, bedId);
+      setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
+      setSnackbar({ open: true, message: `Bed ${bedId} placed into maintenance.`, severity: 'warning' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Failed to start maintenance.', severity: 'error' });
+    }
+  };
+
+  const handleCompleteMaintenance = (flatId: string, bedId: string) => {
+    try {
+      const updatedFlat = coordinator.completeBedMaintenance(flatId, bedId);
+      setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
+      setSnackbar({ open: true, message: `Maintenance on Bed ${bedId} completed. Released to vacant.`, severity: 'success' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Failed to complete maintenance.', severity: 'error' });
+    }
   };
 
   return (
@@ -173,6 +224,7 @@ export default function AccommodationWorkspacePage() {
               flat={flat}
               onEdit={() => handleEditFlatClick(flat)}
               onDelete={() => handleDeleteFlatClick(flat)}
+              onBedClick={handleBedClick}
             />
           ))}
           {viewModel.filteredFlats.length === 0 && (
@@ -195,6 +247,19 @@ export default function AccommodationWorkspacePage() {
         onSubmit={handleSaveFlat}
         existingFlatNumbers={flats.map((f) => f.name)}
         flatToEdit={flatToEdit}
+      />
+
+      <BedDetailsDialog
+        open={Boolean(selectedBed)}
+        bed={selectedBed?.bed || null}
+        flatId={selectedBed?.flatId}
+        flatName={selectedBed?.flatName}
+        areaName={selectedBed?.areaName}
+        onClose={() => setSelectedBed(null)}
+        onBlockBed={handleBlockBed}
+        onUnblockBed={handleUnblockBed}
+        onStartMaintenance={handleStartMaintenance}
+        onCompleteMaintenance={handleCompleteMaintenance}
       />
 
       <Dialog

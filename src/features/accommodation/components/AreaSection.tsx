@@ -1,13 +1,14 @@
 import { Box, Typography } from '@mui/material';
 
-import type { Area } from '../types';
+import type { Area, Bed } from '../domain';
 import { BedCard } from './BedCard';
 
 interface AreaSectionProps {
   area: Area;
+  onBedClick?: (areaName: string, bed: Bed) => void;
 }
 
-export function AreaSection({ area }: AreaSectionProps) {
+export function AreaSection({ area, onBedClick }: AreaSectionProps) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography
@@ -34,7 +35,11 @@ export function AreaSection({ area }: AreaSectionProps) {
         }}
       >
         {area.beds.map((bed) => (
-          <BedCard key={bed.id} bed={bed} />
+          <BedCard
+            key={bed.id}
+            bed={bed}
+            onClick={onBedClick ? () => onBedClick(area.name, bed) : undefined}
+          />
         ))}
       </Box>
     </Box>

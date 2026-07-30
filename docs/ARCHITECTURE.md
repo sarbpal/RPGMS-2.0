@@ -1099,8 +1099,17 @@ To enforce Clean Architecture and preserve strict separation of concerns within 
 
 * **`flatRules.ts`**: Owns structural configuration validation rules for Flats and Areas (Area name uniqueness, Bed prefix uniqueness, minimum bed counts, stable physical identifier guards, and occupied bed truncation guards).
 * **`occupancyRules.ts`**: Owns temporal occupancy rules, bed status synchronization against active/on-notice Stays, and deletion safety checks against active occupants.
+* **`bedRules.ts`**: Owns operational Bed lifecycle transition rules (`canBlockBed`, `canUnblockBed`, `canStartMaintenance`, `canCompleteMaintenance`) and execution helpers.
 
-This architectural decision prevents rule pollution and ensures that structural configuration logic remains cleanly decoupled from temporal occupancy synchronization.
+This architectural decision prevents rule pollution and ensures that structural configuration, operational transitions, and temporal occupancy synchronization remain cleanly decoupled.
+
+---
+
+### Application Layer Business Operations Over State Mutations
+
+The Application layer (`AccommodationWorkspaceCoordinator`) strictly exposes explicit **Business Operations** representing domain intent (`blockBed()`, `unblockBed()`, `startBedMaintenance()`, `completeBedMaintenance()`) rather than generic state mutations (`updateStatus()`, `setStatus()`).
+
+Each business operation executes its own domain validation guard (`bedRules.ts`) before mutating state, simplifying future integration with Audit Logging, Permission Checks, and Notifications.
 
 ---
 

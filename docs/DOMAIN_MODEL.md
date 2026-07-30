@@ -493,6 +493,25 @@ To protect referential integrity across Stays, Resident Financial Profiles, Bill
 2. **Bed Prefixes become immutable** once an Area contains occupied or on-notice beds.
 3. **Bed inventory cannot be truncated** below the index of an active occupant.
 
+---
+
+## 9.9 Bed Status Operational Ownership Boundary
+
+### Operational Ownership Model
+
+Bed status lifecycle is governed by strict operational ownership boundaries across domains:
+
+| Domain | Owned Statuses | Permitted Operations |
+| :--- | :--- | :--- |
+| **Accommodation Domain** | `VACANT`, `BLOCKED`, `MAINTENANCE` | Block Bed, Unblock Bed, Start Maintenance, Complete Maintenance |
+| **Stay Management Domain** | `OCCUPIED`, `ON_NOTICE` | Check-in, Notice Processing, Check-out |
+| **Reservation Domain** | `RESERVED` | Create Reservation, Confirm Reservation, Cancel Reservation |
+
+### Domain Ownership Invariant
+
+The Accommodation Domain owns physical availability and operational holds (`VACANT`, `BLOCKED`, `MAINTENANCE`). The Stay Management Domain owns resident occupancy (`OCCUPIED`, `ON_NOTICE`). Direct state mutation across domain ownership boundaries is strictly prohibited.
+
+
 
 ### Relationships
 

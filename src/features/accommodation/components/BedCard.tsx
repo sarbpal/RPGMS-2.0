@@ -6,9 +6,10 @@ import type { Bed } from '../types';
 
 interface BedCardProps {
   bed: Bed;
+  onClick?: () => void;
 }
 
-export function BedCard({ bed }: BedCardProps) {
+export function BedCard({ bed, onClick }: BedCardProps) {
   const getStatusConfig = (status: BedStatus) => {
     switch (status) {
       case BedStatus.VACANT:
@@ -33,12 +34,22 @@ export function BedCard({ bed }: BedCardProps) {
   return (
     <Card
       elevation={0}
+      onClick={onClick}
       sx={{
         border: '1px solid',
         borderColor: 'grey.200',
         bgcolor: 'background.default',
         borderRadius: 1.5,
         height: '100%',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': onClick
+          ? {
+              borderColor: 'primary.main',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              transform: 'translateY(-2px)',
+            }
+          : {},
       }}
     >
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>

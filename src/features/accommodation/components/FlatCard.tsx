@@ -1,17 +1,18 @@
 import { Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 
-import { BedStatus } from '../types';
-import type { Flat } from '../types';
+import { BedStatus } from '../domain';
+import type { Bed, Flat } from '../domain';
 import { AreaSection } from './AreaSection';
 
 interface FlatCardProps {
   flat: Flat;
   onEdit?: () => void;
   onDelete?: () => void;
+  onBedClick?: (flatId: string, flatName: string, areaName: string, bed: Bed) => void;
 }
 
-export function FlatCard({ flat, onEdit, onDelete }: FlatCardProps) {
+export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) {
   // Derive metrics dynamically
   let totalBeds = 0;
   let occupiedBeds = 0;
@@ -88,7 +89,15 @@ export function FlatCard({ flat, onEdit, onDelete }: FlatCardProps) {
         {/* Nested Areas */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {flat.areas.map((area) => (
-            <AreaSection key={area.id} area={area} />
+            <AreaSection
+              key={area.id}
+              area={area}
+              onBedClick={
+                onBedClick
+                  ? (areaName, bed) => onBedClick(flat.id, flat.name, areaName, bed)
+                  : undefined
+              }
+            />
           ))}
         </Box>
       </CardContent>

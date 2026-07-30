@@ -595,6 +595,108 @@ Truncating bed inventory that contains active occupants destroys resident stay a
 
 ---
 
+## BR-019 Operational Bed Status Transitions
+
+### Rule
+
+Operational status transitions for Beds (`VACANT` ↔ `BLOCKED` ↔ `MAINTENANCE`) are managed exclusively within the Accommodation Domain.
+
+Supported operational transitions:
+- `VACANT` → `BLOCKED` / `MAINTENANCE`
+- `BLOCKED` → `VACANT` / `MAINTENANCE`
+- `MAINTENANCE` → `VACANT` / `BLOCKED`
+
+### Reason
+
+Administrative locks and physical repair holds represent operational availability states owned by the Accommodation Domain.
+
+### Applies To
+
+- Bed Management
+- Operational Setup
+
+---
+
+## BR-020 Occupancy Protection Guard
+
+### Rule
+
+Beds with status `OCCUPIED` or `ON_NOTICE` shall not be manually transitioned to `BLOCKED`, `MAINTENANCE`, or `VACANT` through Bed Management operations.
+
+Status changes for occupied beds must originate exclusively from Stay lifecycle events (Check-in, Check-out, Notice Processing).
+
+### Reason
+
+Bypass of Stay lifecycle operations severs active resident assignments, corrupts ledger billing, and destroys audit history.
+
+### Applies To
+
+- Bed Management
+- Stay Management
+
+---
+
+## BR-021 Maintenance Hold Lifecycle
+
+### Rule
+
+Placing a Bed into `MAINTENANCE` requires the bed to be currently `VACANT` or `BLOCKED`.
+
+Completing maintenance releases the bed back to `VACANT` status.
+
+### Reason
+
+Beds under maintenance must be excluded from vacant capacity planning until repairs are confirmed complete.
+
+### Applies To
+
+- Bed Management
+- Maintenance Operations
+
+---
+
+## BR-022 Administrative Block Lifecycle
+
+### Rule
+
+Placing a Bed into `BLOCKED` requires the bed to be currently `VACANT` or `MAINTENANCE`.
+
+Unblocking a bed releases the bed back to `VACANT` status.
+
+### Reason
+
+Administrative blocks protect physical assets (owner holds, structural locks) while preventing invalid resident allocation.
+
+### Applies To
+
+- Bed Management
+- Asset Administration
+
+---
+
+## BR-023 Domain Ownership Boundary for Bed Status
+
+### Rule
+
+Bed status ownership is split cleanly across domain boundaries:
+- **Accommodation Domain owns:** `VACANT`, `BLOCKED`, `MAINTENANCE`
+- **Stay Management Domain owns:** `OCCUPIED`, `ON_NOTICE`
+- **Reservation Domain owns:** `RESERVED`
+
+No domain shall directly mutate a status owned by another domain.
+
+### Reason
+
+Strict domain ownership preserves bounded contexts and prevents cross-domain state corruption.
+
+### Applies To
+
+- Accommodation
+- Stay Management
+- Reservation
+
+---
+
 # Accommodation Summary
 
 The Accommodation domain establishes the physical framework within which Residents occupy Beds during a Stay.

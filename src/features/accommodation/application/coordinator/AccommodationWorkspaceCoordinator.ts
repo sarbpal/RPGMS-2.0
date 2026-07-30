@@ -1,5 +1,16 @@
 import type { AccommodationStats } from '../../components/AccommodationSummary';
-import { BedStatus, canDeleteFlat, canModifyFlatNumber, type Flat, synchronizeBedOccupancy, validateFlatAreaConfigs } from '../../domain';
+import {
+  BedStatus,
+  canDeleteFlat,
+  canModifyFlatNumber,
+  executeBlockBed,
+  executeCompleteMaintenance,
+  executeStartMaintenance,
+  executeUnblockBed,
+  type Flat,
+  synchronizeBedOccupancy,
+  validateFlatAreaConfigs,
+} from '../../domain';
 import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
 import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
@@ -66,6 +77,7 @@ export class AccommodationWorkspaceCoordinator {
         throw new Error(`Flat number for Flat ${flatToEdit.name} cannot be modified while it contains occupied beds.`);
       }
     }
+
     const newFlat: Flat = {
       id: draft.flatNumber,
       name: draft.flatNumber,
@@ -126,6 +138,106 @@ export class AccommodationWorkspaceCoordinator {
    */
   public deleteFlat(id: string): void {
     this.repository.delete(id);
+  }
+
+  /**
+   * Business Operation: Block a Bed (VACANT or MAINTENANCE -> BLOCKED).
+   */
+  public blockBed(flatId: string, bedId: string): Flat {
+    const flat = this.repository.findById(flatId);
+    if (!flat) throw new Error(`Flat ${flatId} not found.`);
+
+    let targetBedFound = false;
+    const updatedAreas = flat.areas.map((area) => ({
+      ...area,
+      beds: area.beds.map((bed) => {
+        if (bed.id === bedId) {
+          targetBedFound = true;
+          return executeBlockBed(bed);
+        }
+        return bed;
+      }),
+    }));
+
+    if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
+
+    const updatedFlat: Flat = { ...flat, areas: updatedAreas };
+    return this.saveFlat(updatedFlat);
+  }
+
+  /**
+   * Business Operation: Unblock a Bed (BLOCKED -> VACANT).
+   */
+  public unblockBed(flatId: string, bedId: string): Flat {
+    const flat = this.repository.findById(flatId);
+    if (!flat) throw new Error(`Flat ${flatId} not found.`);
+
+    let targetBedFound = false;
+    const updatedAreas = flat.areas.map((area) => ({
+      ...area,
+      beds: area.beds.map((bed) => {
+        if (bed.id === bedId) {
+          targetBedFound = true;
+          return executeUnblockBed(bed);
+        }
+        return bed;
+      }),
+    }));
+
+    if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
+
+    const updatedFlat: Flat = { ...flat, areas: updatedAreas };
+    return this.saveFlat(updatedFlat);
+  }
+
+  /**
+   * Business Operation: Put a Bed into Maintenance (VACANT or BLOCKED -> MAINTENANCE).
+   */
+  public startBedMaintenance(flatId: string, bedId: string): Flat {
+    const flat = this.repository.findById(flatId);
+    if (!flat) throw new Error(`Flat ${flatId} not found.`);
+
+    let targetBedFound = false;
+    const updatedAreas = flat.areas.map((area) => ({
+      ...area,
+      beds: area.beds.map((bed) => {
+        if (bed.id === bedId) {
+          targetBedFound = true;
+          return executeStartMaintenance(bed);
+        }
+        return bed;
+      }),
+    }));
+
+    if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
+
+    const updatedFlat: Flat = { ...flat, areas: updatedAreas };
+    return this.saveFlat(updatedFlat);
+  }
+
+  /**
+   * Business Operation: Complete Maintenance on a Bed (MAINTENANCE -> VACANT).
+   */
+  public completeBedMaintenance(flatId: string, bedId: string): Flat {
+    const flat = this.repository.findById(flatId);
+    if (!flat) throw new Error(`Flat ${flatId} not found.`);
+
+    let targetBedFound = false;
+    const updatedAreas = flat.areas.map((area) => ({
+      ...area,
+      beds: area.beds.map((bed) => {
+        if (bed.id === bedId) {
+          targetBedFound = true;
+          return executeCompleteMaintenance(bed);
+        }
+        return bed;
+      }),
+    }));
+
+    if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
+
+    const updatedFlat: Flat = { ...flat, areas: updatedAreas };
+    return this.saveFlat(updatedFlat);
   }
 
   /**

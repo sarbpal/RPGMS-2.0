@@ -1314,6 +1314,31 @@ Successfully passed:
 - Adopted Business Constitution as the authoritative business architecture document for RPGMS.
 - Established the Business Architecture Foundation (Milestone B0) as the governing reference for future business capabilities.
 
+
+## [B0] - BUSINESS_RULES Reconciliation
+
+### Changed
+- Reconciled BUSINESS_RULES.md with the approved Business Constitution and Business Architecture Foundation (Milestone B0).
+- Updated document hierarchy to establish BUSINESS_CONSTITUTION.md as the authoritative business architecture reference.
+- Reconciled Accommodation rules to support one Stay within one Flat occupying one or more Beds.
+- Added explicit business rules governing Bed Release as an operational event without terminating the Stay.
+- Added Accommodation Amendment rules to preserve immutable operational history for bed allocation changes.
+- Reconciled Resident and Stay rules to distinguish Resident identity from Stay lifecycle responsibilities.
+- Removed Notice from Resident operational status and established Notice as a Stay-level business event.
+- Clarified that Operational Checkout is the sole operational event that terminates a Stay, while Financial Settlement remains an independent commercial process.
+- Reconciled Commercial Agreement ownership of rent, deposit, billing anniversary, lock-in period, notice period, concessions, and other commercial terms.
+- Added Commercial Amendment rules governing changes to commercial terms without creating a new Stay.
+- Added Lock-in Period ownership under the Commercial Agreement.
+- Added Decision Support rules reinforcing that RPGMS provides recommendations while authorised operators make final operational and commercial decisions.
+- Added Security Deposit Adjustment and Refund rules supporting operator-approved deposit recommendations.
+- Expanded Audit & Event classification to include Accommodation Amendments, Commercial Amendments, Bed Releases, and Notice events.
+- Updated Change Management references to align with BUSINESS_CONSTITUTION.md.
+
+### Governance
+- Completed reconciliation of BUSINESS_RULES.md with the approved Business Architecture Foundation.
+- Strengthened operational business rule coverage while preserving implementation independence and strict MVP focus.
+
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

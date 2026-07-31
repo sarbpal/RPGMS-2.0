@@ -60,7 +60,7 @@ The relationship between the two documents is:
 
 | Document | Purpose |
 |----------|---------|
-| BUSINESS_BLUEPRINT.md | Defines the business architecture and business concepts. |
+| BUSINESS_CONSTITUTION.md | Defines the business architecture and business concepts. |
 | BUSINESS_RULES.md | Defines the mandatory rules governing those business concepts. |
 
 The Business Constitution explains **what the business is**.
@@ -310,19 +310,20 @@ Occupancy is always assigned at Bed level.
 
 A Bed shall have at most one Active Stay at any point in time.
 
+A single Active Stay belongs to exactly one Flat, but may occupy one or more Beds within that Flat simultaneously.
+
 Multiple historical Stay allocations may exist for the same Bed.
 
 ### Reason
 
-A Bed cannot be simultaneously occupied by more than one Resident.
-
-Historical occupancy must remain preserved.
+A Bed cannot be simultaneously occupied by more than one Resident. However, a Stay may occupy multiple beds within a single Flat.
 
 ### Applies To
 
 - Admission
 - Bed Allocation
 - Bed Transfer
+- Accommodation Operations
 
 ---
 
@@ -361,18 +362,21 @@ Bed status shall always be consistent with the operational state of the associat
 
 An Occupied Bed shall have an Active Stay.
 
-A Vacant Bed shall have no Active Stay.
+A Vacant Bed shall have no active bed allocation for an Active Stay.
+
+Releasing a single bed (partial bed release) transitions that bed's status to Vacant while the Stay remains active in the Flat.
 
 A Reserved Bed shall not yet have active occupancy.
 
 ### Reason
 
-Bed status must accurately represent real-world occupancy.
+Bed status must accurately represent real-world occupancy and availability.
 
 ### Applies To
 
 - Admission
 - Checkout
+- Bed Release
 - Reservation
 - Bed Management
 
@@ -623,11 +627,11 @@ Administrative locks and physical repair holds represent operational availabilit
 
 Beds with status `OCCUPIED` or `ON_NOTICE` shall not be manually transitioned to `BLOCKED`, `MAINTENANCE`, or `VACANT` through Bed Management operations.
 
-Status changes for occupied beds must originate exclusively from Stay lifecycle events (Check-in, Check-out, Notice Processing).
+Status changes for occupied beds must originate exclusively from Stay lifecycle operations (Bed Allocation, Bed Release, Accommodation Amendment, Operational Checkout).
 
 ### Reason
 
-Bypass of Stay lifecycle operations severs active resident assignments, corrupts ledger billing, and destroys audit history.
+Bypass of Stay lifecycle operations severs active resident assignments, corrupts ledger billing, and destroys audit history. Notice submission does not mutate bed status.
 
 ### Applies To
 
@@ -694,6 +698,67 @@ Strict domain ownership preserves bounded contexts and prevents cross-domain sta
 - Accommodation
 - Stay Management
 - Reservation
+
+---
+
+## BR-024 Multi-Bed Occupancy within Flat
+
+### Rule
+
+A single Active Stay shall belong to exactly one Flat, but may occupy one or more Beds within that Flat simultaneously.
+
+All Beds allocated to a single Stay must belong to the same Flat.
+
+### Reason
+
+Reflects actual hostel operations where a resident or family unit reserves multiple beds within the same physical flat under a single Stay (BCR-002).
+
+### Applies To
+
+- Admission
+- Bed Allocation
+- Stay Management
+- Accommodation Operations
+
+---
+
+## BR-025 Bed Release Operational Event
+
+### Rule
+
+Releasing a Bed from an Active Stay shall remove occupancy from that Bed without terminating the Stay, provided at least one Bed remains allocated to the Stay.
+
+The final allocated Bed cannot be released independently through Bed Release; the last Bed is released exclusively through Operational Checkout.
+
+### Reason
+
+Bed Release is an operational resource adjustment for partial accommodation changes. Terminating the entire Stay requires Operational Checkout (BCR-003).
+
+### Applies To
+
+- Bed Release
+- Accommodation Operations
+- Stay Management
+
+---
+
+## BR-026 Accommodation Amendments
+
+### Rule
+
+Operational changes to bed occupancy within a Flat during an Active Stay (adding a bed, releasing a bed, or transferring beds within the Flat) shall be recorded as immutable Accommodation Amendments.
+
+Accommodation Amendments modify physical bed occupancy without creating a new Stay or terminating the existing Stay.
+
+### Reason
+
+Preserves a complete, auditable operational timeline of bed occupancy changes over time (BCR-004).
+
+### Applies To
+
+- Accommodation Operations
+- Stay Management
+- Audit
 
 ---
 
@@ -792,15 +857,15 @@ Every Resident shall have exactly one operational status.
 Supported statuses are:
 
 - Active
-- On Notice
 - Checked Out
 - Alumni
+- Inactive
 
 Additional statuses may be introduced through future architectural revisions.
 
 ### Reason
 
-Resident status reflects the current operational relationship between the Resident and the organisation.
+Resident status reflects the current operational relationship between the Resident and the organisation. Notice is a Stay-level event and does not alter Resident identity status.
 
 ### Applies To
 
@@ -1046,7 +1111,7 @@ Stay status represents the operational state of occupancy.
 
 ### Rule
 
-Every Active Stay shall have one or more allocated Beds.
+Every Active Stay belongs to exactly one Flat and shall have one or more allocated Beds within that Flat.
 
 Every allocated Bed shall belong exclusively to that Active Stay.
 
@@ -1054,13 +1119,14 @@ Bed allocations shall be recorded as part of the permanent Stay history.
 
 ### Reason
 
-Accommodation forms part of the operational history of a Stay.
+Accommodation forms part of the operational history of a Stay, bounded by Flat (BCR-002).
 
 ### Applies To
 
 - Admission
 - Bed Allocation
 - Bed Transfer
+- Accommodation Operations
 
 ---
 
@@ -1095,13 +1161,13 @@ Operational resources are temporary allocations associated with occupancy rather
 
 Every Stay shall operate under one active Commercial Agreement.
 
-Commercial terms shall be established before occupancy begins.
+Commercial terms (rent, deposit, lock-in period, concessions) belong to the Commercial Agreement rather than the Stay directly.
 
 Historical Commercial Agreements shall remain immutable.
 
 ### Reason
 
-Commercial obligations belong to the Stay rather than the Resident.
+Commercial obligations belong to the Commercial Agreement associated with the Stay (BCR-005, BCR-007).
 
 ### Applies To
 
@@ -1115,26 +1181,18 @@ Commercial obligations belong to the Stay rather than the Resident.
 
 ### Rule
 
-Operational and commercial changes may occur during an Active Stay.
-
-Examples include:
-
-- Bed Transfers
-- Rent Revisions
-- Billing Cycle Changes
-- Deposit Revisions
+Operational changes (recorded as Accommodation Amendments) and commercial changes (recorded as Commercial Amendments) may occur during an Active Stay without ending the Stay.
 
 Historical business records shall not be modified.
 
-Amendments shall apply prospectively unless otherwise defined by business policy.
-
 ### Reason
 
-Business conditions may change during occupancy while preserving historical accuracy.
+Business conditions may change during occupancy while preserving historical accuracy and Stay continuity (BCR-004, BCR-005).
 
 ### Applies To
 
 - Stay Management
+- Accommodation Operations
 - Billing
 
 ---
@@ -1149,7 +1207,9 @@ Examples include:
 
 - Admission
 - Bed Allocation
-- Bed Transfer
+- Bed Release
+- Accommodation Amendment
+- Commercial Amendment
 - Door ID Assignment
 - Notice Submission
 - Checkout
@@ -1170,20 +1230,19 @@ The Stay provides the complete operational timeline of occupancy.
 
 ### Rule
 
-Operational Checkout concludes an Active Stay.
+Operational Checkout is the sole operational Business Event that concludes an Active Stay.
 
 Checkout shall:
 
-- Release operational resources.
-- Release allocated Beds.
-- Release assigned Door IDs.
+- Release all allocated Beds.
+- Release assigned operational resources and Door IDs.
 - Preserve the complete Stay history.
 
 Operational Checkout shall not perform Financial Settlement.
 
 ### Reason
 
-Operational departure and financial completion are independent business processes.
+Operational departure and financial completion are independent business processes. Checkout is the sole terminal operational event (BCR-003, BCR-006).
 
 ### Applies To
 
@@ -1310,6 +1369,45 @@ The Stay serves as the central operational entity connecting occupancy-related b
 
 - Business Operations
 - Reporting
+
+---
+
+## BR-215 Notice as Intent
+
+### Rule
+
+Notice of Intent to Vacate shall record the Resident's declared intention to end a Stay at a future date.
+
+Submission of Notice shall not release allocated Beds, stop recurring billing, or terminate the Stay.
+
+### Reason
+
+Notice communicates intent, not execution. The Stay remains active until Operational Checkout is completed (BCR-006).
+
+### Applies To
+
+- Stay Management
+- Notice Processing
+
+---
+
+## BR-216 Notice Revision and Withdrawal
+
+### Rule
+
+A submitted Notice may be revised to a new departure date or withdrawn entirely prior to Operational Checkout.
+
+Notice Withdrawal may have commercial implications governed by the active Commercial Agreement and organizational business policies.
+
+### Reason
+
+Preserves operational flexibility for residents changing departure plans while acknowledging that commercial commitments or notice period policies may apply under the active Commercial Agreement (BCR-006, BAP-001, BAP-005).
+
+### Applies To
+
+- Stay Management
+- Notice Processing
+- Commercial Management
 
 ---
 
@@ -1526,18 +1624,21 @@ Occupancy belongs to the Resident while preserving permanent identity.
 
 ### Rule
 
-Admission shall allocate one or more eligible Beds to the newly created Stay.
+Admission shall assign exactly one Flat and allocate one or more eligible Beds within that Flat to the newly created Stay.
+
+All Beds allocated to a single Stay must belong to the same Flat.
 
 Only available Beds may be allocated.
 
 ### Reason
 
-Occupancy requires accommodation assignment.
+Occupancy requires accommodation assignment bounded by Flat (BCR-002).
 
 ### Applies To
 
 - Admission
 - Bed Allocation
+- Accommodation Operations
 
 ---
 
@@ -1659,16 +1760,17 @@ The Commercial Agreement defines the financial terms governing a Stay.
 
 Every Stay shall operate under exactly one active Commercial Agreement.
 
-The Commercial Agreement shall define the financial obligations applicable to the Stay.
+The Commercial Agreement shall define the financial terms governing the Stay, including Monthly Rent, Security Deposit, Billing Anniversary, Lock-in Period, Notice Period, Commercial Concessions, and Refund Policies.
 
 ### Reason
 
-Commercial obligations belong to the Stay rather than the Resident.
+Commercial obligations belong to the Commercial Agreement associated with the Stay rather than the Resident or Bed (BCR-005, BCR-007).
 
 ### Applies To
 
 - Admission
 - Commercial Management
+- Billing
 
 ---
 
@@ -1682,7 +1784,7 @@ Changes to commercial terms shall create a new Commercial Amendment rather than 
 
 ### Reason
 
-Historical commercial obligations must remain auditable.
+Historical commercial obligations must remain auditable and traceable.
 
 ### Applies To
 
@@ -1695,20 +1797,79 @@ Historical commercial obligations must remain auditable.
 
 ### Rule
 
-Commercial terms may be amended during an Active Stay where permitted by business policy.
+Commercial terms may be amended during an Active Stay through recorded Commercial Amendments where permitted by business policy.
 
-Amendments shall apply prospectively unless explicitly defined otherwise.
-
-Historical agreements shall remain unchanged.
+Historical agreement versions shall remain unchanged.
 
 ### Reason
 
-Commercial conditions may change without compromising historical integrity.
+Commercial conditions may change without compromising historical integrity (BCR-005).
 
 ### Applies To
 
 - Commercial Management
 - Billing
+
+---
+
+## BR-403 Lock-in Period Ownership
+
+### Rule
+
+The Lock-in Period shall belong to the active Commercial Agreement as a financial commitment.
+
+Lock-in terms shall be evaluated by the Commercial domain during departure, early checkout, or settlement calculations.
+
+### Reason
+
+Lock-in represents a negotiated financial commitment rather than an operational attribute of residence (BCR-007).
+
+### Applies To
+
+- Commercial Management
+- Billing
+- Settlement
+
+---
+
+## BR-404 Commercial Amendment Event
+
+### Rule
+
+Revisions to financial terms (Commercial Amendments modify the commercial terms of an active Commercial Agreement) during an Active Stay shall be recorded as immutable Commercial Amendments.
+
+Commercial Amendments modify commercial terms without creating a new Stay or altering physical accommodation directly.
+
+### Reason
+
+Separates commercial financial terms from operational accommodation state while preserving auditability (BCR-005, BAP-005).
+
+### Applies To
+
+- Commercial Management
+- Billing
+- Audit
+
+---
+
+## BR-405 Operator Approval for Recommendations (Decision Support)
+
+### Rule
+
+Wherever RPGMS generates recommendations with operational or commercial consequences (such as rent recalculations, deposit refunds, payment allocations, or fee adjustments), final approval shall rest with an authorised operator.
+
+System calculations, warnings, and recommendations shall assist the operator but shall not automatically alter operational state or financial terms without an explicit, approved operator decision.
+
+### Reason
+
+Enforces BAP-001 (Decision Support) and BAP-006 (Separation of Operational and Commercial Concerns).
+
+### Applies To
+
+- Commercial Management
+- Accommodation Operations
+- Billing
+- Finance
 
 ---
 
@@ -1998,6 +2159,26 @@ Deposit activity requires independent accounting.
 ### Applies To
 
 - Finance
+
+---
+
+## BR-452 Security Deposit Adjustments and Refunds
+
+### Rule
+
+Security Deposit adjustments and refunds shall be evaluated based on outstanding financial obligations, damage recoveries, or stage refunds.
+
+RPGMS shall calculate and recommend deposit adjustment or refund amounts based on policy, but final approval and posting of deposit transactions rests with an authorised operator.
+
+### Reason
+
+Security Deposits represent financial liabilities requiring explicit operator decisions and transparent accounting (BCR-005, BAP-001).
+
+### Applies To
+
+- Finance
+- Security Deposit Management
+- Settlement
 
 ---
 
@@ -2681,13 +2862,13 @@ Domain Events shall be classified according to their business purpose.
 
 Examples include:
 
-- Creation
-- Amendment
-- Allocation
-- Transfer
-- Approval
-- Reversal
-- Closure
+- Creation (Admission, Reservation)
+- Bed Allocation & Bed Release
+- Accommodation Amendment
+- Commercial Amendment
+- Notice Submission
+- Approval & Reversal
+- Checkout & Closure
 
 Additional classifications may be introduced through future architectural revisions.
 
@@ -3586,8 +3767,8 @@ Existing rule identifiers shall never be renumbered or reused.
 
 Changes affecting business behaviour shall be reflected in both:
 
-- BUSINESS_BLUEPRINT.md
-- BUSINESS_RULES.md
+BUSINESS_CONSTITUTION.md
+BUSINESS_RULES.md
 
 where applicable.
 

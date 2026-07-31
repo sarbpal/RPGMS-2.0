@@ -1279,8 +1279,41 @@ Successfully passed:
 ### Impact
 
 - Architecture frozen for MVP.
-- Future development will prioritize implementation over architectural redesign.
-  
+- Future development will prioritize implementation over architectural redesign.## Capability Release 1 – Accommodation
+
+# Capability Release 1 – Accommodation
+
+## CR-1.1 – Architecture Cleanup (Completed)
+
+- Cleaned AccommodationRepository interface.
+- Removed dynamic type casting.
+- Refactored AccommodationWorkspaceCoordinator.
+- Removed obsolete scaffold directories.
+- No functional changes.
+
+  ## [B0] - Business Architecture Foundation
+
+### Added
+- Introduced Business Architecture Principles (BAP-001 through BAP-006) establishing the enduring business architecture of RPGMS.
+- Formally defined the separation between Business Philosophy, Business Architecture Principles, and Software Architectural Principles.
+- Added Business Constitution Reconciliation and Business Constitution Audit as governance artifacts for controlled business architecture evolution.
+
+### Changed
+- Reconciled the Business Constitution with the approved Business Architecture Foundation.
+- Clarified the separation between Resident (identity) and Stay (business relationship).
+- Established that a Stay belongs to exactly one Resident and one Flat, while allowing occupancy of one or more Beds within that Flat.
+- Defined Bed Release as an operational event that adjusts accommodation without terminating a Stay.
+- Defined Accommodation Amendments and Commercial Amendments as immutable Business Events.
+- Established the Commercial Agreement as the owner of rent, deposit, lock-in period, notice period, and other commercial terms.
+- Clarified that Notice represents declared intent only and does not terminate a Stay, release accommodation, or stop billing.
+- Distinguished Operational Checkout from Financial Settlement as separate business processes.
+- Strengthened the immutable Business Event model across operational and commercial domains.
+- Updated the Business Model, business lifecycles, architecture diagrams, and glossary to align with the reconciled business architecture.
+
+### Governance
+- Adopted Business Constitution as the authoritative business architecture document for RPGMS.
+- Established the Business Architecture Foundation (Milestone B0) as the governing reference for future business capabilities.
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

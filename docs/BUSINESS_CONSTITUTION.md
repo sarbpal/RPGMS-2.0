@@ -347,6 +347,100 @@ Business decisions should never depend upon undocumented operator knowledge.
 
 ---
 
+# Business Architecture Principles
+
+Business Architecture Principles define the enduring design philosophy of RPGMS 2.0.
+
+Unlike business rules, which may evolve as business policies change, these principles describe the fundamental structure of the business domain and the responsibilities of its core entities. They guide business modelling, software architecture, implementation, and future evolution of the system.
+
+All business operations, rules, and domain models shall conform to these principles.
+
+---
+
+## BAP-001 — Decision Support
+
+### Statement
+
+RPGMS is a decision support system.
+
+The system validates business rules, performs calculations, detects inconsistencies, and recommends actions. Final business decisions remain the responsibility of an authorised human operator.
+
+### Rationale
+
+Hostel management decisions frequently depend upon business judgement, negotiation, exceptional circumstances, and customer relationships. The system assists operators by providing accurate calculations and recommendations while preserving human control over final decisions.
+
+---
+
+## BAP-002 — Business Events
+
+### Statement
+
+Every significant change in the business shall be represented as an explicit business event.
+
+Business events describe what happened. They do not rewrite history.
+
+### Rationale
+
+Operational and financial history must remain complete, auditable, and explainable. Recording immutable business events instead of overwriting previous state provides a permanent record of how a Stay evolved over time.
+
+---
+
+## BAP-003 — Identity
+
+### Statement
+
+A Resident represents a person.
+
+A Stay represents a period of residence.
+
+The identity of a Resident is independent of any individual Stay.
+
+### Rationale
+
+Residents may leave and return multiple times throughout the lifetime of the business. Their identity, documents, and history remain continuous across multiple stays.
+
+---
+
+## BAP-004 — Accommodation
+
+### Statement
+
+Accommodation describes where a Resident lives during a Stay.
+
+Accommodation is an operational concern and is independent of commercial agreements.
+
+### Rationale
+
+Operational accommodation may change during a Stay (e.g. bed changes, partial bed releases, or accommodation amendments) without creating a new Stay or altering commercial commitments directly.
+
+---
+
+## BAP-005 — Commercial
+
+### Statement
+
+Commercial Agreements define the financial relationship between the Resident and the business.
+
+### Rationale
+
+Commercial terms such as rent, deposits, lock-in periods, concessions, and refunds may change independently of accommodation. Separating commercial concerns from accommodation provides operational flexibility while preserving business history.
+
+---
+
+## BAP-006 — Separation of Operational and Commercial Concerns
+
+### Statement
+
+Operational events and commercial events are distinct business concerns.
+
+Operational changes may trigger commercial recommendations, but they remain independent.
+
+### Rationale
+
+A change in accommodation does not automatically imply a change in financial obligations. Likewise, a commercial concession does not require an accommodation change. Maintaining this separation simplifies business logic and preserves decision support governance.
+
+---
+
 # Core Architectural Principles
 
 The following architectural principles govern the design of RPGMS.
@@ -525,8 +619,9 @@ Residents are never deleted merely because they are no longer staying.
 - Every Resident has a unique identity.
 - A Resident may exist without a Stay.
 - Historical Residents are never deleted.
-- Resident identity should remain independent of accommodation history.
+- Resident identity remains independent of accommodation history and commercial agreements.
 - Permanent identity belongs to the Resident.
+- A returning Resident always receives a new Stay; historical Stays remain immutable.
 
 ---
 
@@ -557,14 +652,11 @@ Almost every business transaction relates to a Stay rather than directly to a Re
 
 ## Definition
 
-A Stay represents the complete commercial and operational relationship between a Resident and the organisation for a single period of occupancy.
+A Stay represents the complete commercial and operational relationship between a Resident and the organisation for a single period of occupancy within a single Flat.
 
-The Stay begins with Admission and concludes only after:
+A Stay owns its operational and financial history, derived from approved immutable Business Events.
 
-- Operational Checkout
-- Financial Settlement
-
-have both been completed.
+A Stay begins with Admission and is operationally terminated by Operational Checkout. Financial obligations arising from the Stay continue until Financial Settlement is completed.
 
 ---
 
@@ -573,8 +665,8 @@ have both been completed.
 A Stay owns:
 
 - Admission
-- Bed Allocation
-- Commercial Agreement
+- Bed Allocation (within Flat)
+- Active Commercial Agreement
 - Charges
 - Payments
 - Unified Stay Ledger
@@ -590,15 +682,19 @@ The Stay does not own permanent identity.
 
 Each Stay belongs to exactly one Resident.
 
-Each Stay may have:
+Each Stay belongs to exactly one Flat.
 
-- One Commercial Agreement
+Each Stay may occupy one or more Beds within that Flat simultaneously.
+
+Each Stay has:
+
+- One active Commercial Agreement
 - Many Charges
 - Many Payments
 - One Unified Stay Ledger
 - One Settlement
 - Many Documents
-- Many Audit Events
+- Many Business Events (Bed Allocations, Bed Releases, Accommodation Amendments, Commercial Amendments, Notice)
 - Many Notifications
 
 ---
@@ -615,7 +711,11 @@ Admission
 
 ↓
 
-Active Stay
+Active Stay (with Bed Allocations & Amendments)
+
+↓
+
+Optional Notice (Declared Intent)
 
 ↓
 
@@ -636,11 +736,12 @@ Historical Stays remain permanently available for reporting and audit.
 ## Business Rules
 
 - Every Stay belongs to exactly one Resident.
-- A Stay occupies accommodation.
-- A Stay owns its financial history.
-- A Stay owns its operational history.
+- A Stay belongs to exactly one Flat, but may occupy one or more Beds within that Flat.
+- Operational changes (Bed Allocation (which may allocate one or more Beds), releases, transfers within flat) are recorded as Accommodation Amendments and do not terminate the Stay.
+- A Stay owns its financial history and operational history.
 - A Stay cannot be deleted once business activity exists.
 - Operational Checkout and Financial Settlement are separate business processes.
+- Current business state of a Stay is derived from approved immutable Business Events.
 
 ---
 
@@ -818,7 +919,7 @@ Admission may include:
 - Identity Verification
 - Document Collection
 - Compliance Verification
-- Bed Allocation
+- Bed Allocation (which may allocate one or more Beds)
 - Commercial Agreement Creation
 - Security Deposit Collection
 - Initial Payment Collection
@@ -957,9 +1058,19 @@ Accommodation may have:
 - Maintenance Records
 - Inspection Records
 
-Each Stay occupies one Bed at a time.
+One Stay belongs to exactly one Flat, but may occupy one or more Beds within that Flat simultaneously.
 
-Beds may be occupied by many different Residents throughout their lifetime, but never simultaneously.
+Beds may be occupied by different Residents over time, but never simultaneously.
+
+---
+
+## Recognized Accommodation Events
+
+Accommodation changes during a Stay are recorded as explicit, immutable Business Events:
+
+- **Bed Allocations**: Assigns one or more Beds within the assigned Flat to a Stay.
+- **Bed Release**: Removes occupancy from one or more Beds within the Flat. Bed Release is an operational event and does not terminate the Stay.
+- **Accommodation Amendment**: Records changes to bed occupancy (allocations, releases, transfers within the Flat) during an active Stay without ending the Stay.
 
 ---
 
@@ -992,6 +1103,9 @@ Maintenance activities may temporarily interrupt availability.
 ## Business Rules
 
 - A Bed may have only one active occupant at a time.
+- One Stay belongs to exactly one Flat, but may occupy one or more Beds within that Flat.
+- Bed Release is an operational event and does not terminate a Stay or trigger Checkout.
+- Accommodation changes during an active Stay are recorded as immutable Accommodation Amendments.
 - Occupancy belongs to the Stay rather than the Resident.
 - Accommodation history is retained permanently.
 - Beds cannot be deleted while historical occupancy exists.
@@ -1071,9 +1185,10 @@ The Commercial Agreement owns:
 - Lock-in Period
 - Notice Period
 - Commercial Concessions
+- Refund Calculations
 - Special Financial Terms
 
-It does not own Charges or Payments.
+It does not own Charges, Payments, or physical accommodation state.
 
 ---
 
@@ -1083,19 +1198,27 @@ Each Stay has one active Commercial Agreement.
 
 Commercial Agreements may be amended during the lifetime of a Stay.
 
-Amendments never overwrite historical agreements.
+Amendments never overwrite historical agreements. Instead, RPGMS records successive agreement versions.
 
-Instead, RPGMS records successive agreement versions.
+---
+
+## Recognized Commercial Events
+
+Financial term revisions during a Stay are recorded as explicit, immutable Business Events:
+
+- **Commercial Amendment**: Commercial Amendments modify commercial terms without creating a new Stay or altering accommodation directly.
+- Operational changes (such as Bed Allocations or releases) may generate commercial recommendations, but financial changes require an explicit Commercial Amendment approved by an authorized operator (BAP-001, BAP-006).
 
 ---
 
 ## Business Rules
 
 - Every Stay must have one active Commercial Agreement.
-- Commercial terms belong to the Stay.
-- Historical agreements are never modified.
-- Amendments create new agreement versions.
-- Charges should always be generated using the applicable agreement.
+- Lock-in Period belongs to the Commercial Agreement, not the Stay or Bed.
+- Commercial terms are revised through immutable Commercial Amendments.
+- Commercial Amendments modify financial obligations without altering accommodation or Stay continuity.
+- Historical agreement versions are preserved permanently.
+- Charges shall always be generated using the active Commercial Agreement applicable at the time of charge generation.
 
 ---
 
@@ -1369,19 +1492,68 @@ Settlement is independent of Operational Checkout.
 
 ---
 
+# Notice
+
+## Purpose
+
+Notice records a Resident's declared intention to end a Stay at a future date.
+
+It provides operational and commercial visibility into planned departures without altering active occupancy or commercial commitments.
+
+---
+
+## Definition
+
+Notice is an informational Business Event communicating intent.
+
+Notice communicates **when the Resident intends to vacate**, not **that the Resident has vacated**.
+
+---
+
+## Operational Reality
+
+Notice represents intent, not execution (BCR-006).
+
+- Submitting Notice does not terminate the Stay.
+- Submitting Notice does not release accommodation or beds.
+- Submitting Notice does not automatically stop billing.
+- Operational and commercial activities continue normally during the notice period.
+- Accommodation Amendments and Commercial Amendments may still occur during the notice period.
+- Notice may be revised or withdrawn subject to organizational policy.
+
+---
+
+## Business Rules
+
+- Notice is an informational Business Event.
+- Notice does not release accommodation or alter bed availability.
+- Notice does not stop commercial billing obligations.
+- Operational Checkout remains the sole event that terminates a Stay.
+
+---
+
 # Operational Checkout and Financial Settlement
 
 Operational Checkout and Financial Settlement are separate business processes.
 
-Operational Checkout represents physical departure.
+Operational Checkout represents physical departure and operational termination of a Stay.
 
 Financial Settlement represents commercial closure.
+
+Operational Checkout is the sole operational Business Event that terminates a Stay (BCR-003, BCR-006).
 
 Operational Checkout includes:
 
 - Resident Vacates
-- Bed Released
-- Door ID Returned
+- All Beds Released
+- Access / Door ID Returned
+- Stay Status marked Checked Out
+
+Operational Checkout is distinct from:
+
+- **Notice** (intent vs execution)
+- **Bed Release** (operational bed adjustment vs Stay termination)
+- **Financial Settlement** (commercial closure vs physical departure)
 
 Financial Settlement includes:
 
@@ -1393,8 +1565,6 @@ Financial Settlement includes:
 A Stay is considered fully completed only after both processes have been completed.
 
 ---
-
-# Financial Completion
 
 Financial Completion occurs only when:
 
@@ -1418,6 +1588,7 @@ Examples include:
 - Charge Created
 - Payment Received
 - Allocation Completed
+- Commercial Amendment
 - Charge Waived
 - Adjustment Posted
 - Deposit Refunded
@@ -1668,6 +1839,11 @@ Domain Events describe **what happened**.
 Examples include:
 
 - Admission
+- Bed Allocation (which may allocate one or more Beds)
+- Bed Release
+- Accommodation Amendment
+- Commercial Amendment
+- Notice Submission
 - Charge Created
 - Payment Received
 - Checkout
@@ -1729,7 +1905,7 @@ The following diagram illustrates how governance capabilities support every busi
                     │ Resident            │
                     │ Stay                │
                     │ Reservation         │
-                    │ Agreement           │
+                    │ Commercial Agreement│
                     │ Charges             │
                     │ Payments            │
                     └──────────┬──────────┘
@@ -1737,7 +1913,7 @@ The following diagram illustrates how governance capabilities support every busi
         ┌──────────────────────┼──────────────────────┐
         │                      │                      │
         ▼                      ▼                      ▼
- Roles & Permissions      Configuration        Audit & Events
+  Roles & Permissions     Configuration        Audit & Events
         │                      │                      │
         └──────────────────────┴──────────────────────┘
                                │
@@ -1876,11 +2052,14 @@ Notifications inform users without altering business data.
 Operational:
 
 - Admission
-- Bed Allocation
+- Bed Allocation (which may allocate one or more Beds)
+- Accommodation Amendment
+- Notice Submission
 - Checkout
 
 Financial:
 
+- Commercial Amendment
 - Rent Due
 - Payment Received
 - Outstanding Balance
@@ -2443,28 +2622,40 @@ The following diagram illustrates the relationship between the major business do
       Reservation                      Active Stay
             │                               │
             ▼                               ▼
-       Admission ───────────────► Accommodation
+       Admission ───────────────► Accommodation (Flat/Beds)
                                             │
-                                            ▼
-                                Commercial Agreement
-                                            │
-                                            ▼
-                                        Charges
-                                            │
-                                            ▼
-                                        Payments
-                                            │
-                                            ▼
-                                  Payment Allocation
-                                            │
-                                            ▼
-                                  Unified Stay Ledger
-                                            │
-                                            ▼
-                                       Settlement
-                                            │
-                                            ▼
-                                      Stay Closed
+                                  ┌─────────┴─────────┐
+                                  ▼                   ▼
+                           Accommodation         Commercial
+                             Amendments          Agreement
+                                  │                   │
+                                  │                   ▼
+                                  │              Commercial
+                                  │              Amendments
+                                  │                   │
+                                  │                   ▼
+                                  │                Charges
+                                  │                   │
+                                  │                   ▼
+                                  │                Payments
+                                  │                   │
+                                  │                   ▼
+                                  │           Payment Allocation
+                                  │                   │
+                                  │                   ▼
+                                  └─────────► Unified Stay Ledger
+                                                      │
+                                                      ▼
+                                              Optional Notice (Intent)
+                                                      │
+                                                      ▼
+                                             Operational Checkout
+                                                      │
+                                                      ▼
+                                             Financial Settlement
+                                                      │
+                                                      ▼
+                                                 Stay Closed
 ```
 
 Every major business capability described within this document supports or extends this lifecycle.
@@ -2554,11 +2745,18 @@ The architecture should accommodate future business growth through extension rat
 | Term | Definition |
 |------|------------|
 | Resident | The permanent identity of a person who interacts with the organisation. |
-| Stay | One continuous period of occupancy by a Resident. |
+| Stay | One continuous period of occupancy by a Resident within a single Flat. |
 | Reservation | An intention to occupy accommodation at a future date. |
 | Admission | The business process that creates an active Stay. |
 | Accommodation | The physical assets available for occupancy. |
+| Bed Allocations | The operational event assigning one or more Beds within a Flat to a Stay. |
+| Bed Release | The operational event removing occupancy from one or more Beds without ending the Stay. |
+| Accommodation Amendment | An immutable business event recording changes to bed occupancy within a Flat during a Stay. |
 | Commercial Agreement | The financial contract governing a Stay. |
+| Commercial Amendment | An immutable business event modifying financial terms during a Stay without ending the Stay. |
+| Lock-in Period | The minimum financial commitment defined by the Commercial Agreement. |
+| Notice | A declaration of the Resident's intention to end a Stay at a future date (intent, not execution). |
+| Operational Checkout | The operational business event that formally terminates a Stay and releases accommodation. |
 | Charge | A financial obligation owed by the Resident. |
 | Payment | Money received from the Resident. |
 | Payment Allocation | The process of applying Payments against Charges. |

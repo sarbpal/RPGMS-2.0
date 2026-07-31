@@ -125,7 +125,7 @@ Each document has a single, clearly defined responsibility and derives its autho
 
 ---
 
-## BUSINESS_MODEL.md (Business Constitution)
+## BUSINESS_CONSTITUTION.md (Business Constitution)
 
 Defines:
 
@@ -135,38 +135,32 @@ This document establishes the constitutional foundation of RPGMS.
 
 It defines:
 
-- Business philosophy
-- Business principles
-- Business entities
-- Business relationships
-- Business lifecycles
-- Business state machines
-- Business terminology
-- Constitutional business rules
+- Business philosophy & architecture principles (BAP-001 to BAP-006)
+- Business principles & domain reconciliation (BCR-001 to BCR-008)
+- Business entities, relationships & lifecycles
+- Constitutional business rules & operational boundaries
 
 The Business Constitution is the highest authority for business behaviour within RPGMS.
 
 ---
 
-## PROJECT_RULES.md
+## BUSINESS_RULES.md (Business Rules)
 
 Defines:
 
-> **How the project is engineered.**
+> **What operational rules the business enforces.**
 
-This document establishes the engineering standards governing the development of RPGMS.
+This document translates the Business Constitution into mandatory operational rules governing every domain.
 
-It defines:
+---
 
-- Development workflow
-- Documentation standards
-- AI collaboration practices
-- Coding conventions
-- Definition of Done
-- Architectural governance
-- Project engineering policies
+## DOMAIN_MODEL.md (Domain Model)
 
-PROJECT_RULES.md governs how software is developed but does not define business behaviour.
+Defines:
+
+> **What conceptual entities, aggregates, and domain boundaries model the business.**
+
+This document translates the Business Constitution into conceptual domain entities, aggregate boundaries, and invariants.
 
 ---
 
@@ -176,7 +170,7 @@ Defines:
 
 > **How the software realises the business.**
 
-This document translates the Business Constitution into a modular software architecture.
+This document translates the Business Constitution, Business Rules, and Domain Model into a modular software architecture.
 
 It defines:
 
@@ -188,7 +182,7 @@ It defines:
 - Communication patterns
 - Technical responsibilities
 
-Architecture shall remain consistent with the Business Constitution and comply with the engineering standards defined in PROJECT_RULES.md.
+Architecture shall remain consistent with the Business Constitution, Business Rules, and Domain Model.
 
 ---
 
@@ -197,20 +191,16 @@ Architecture shall remain consistent with the Business Constitution and comply w
 The governance hierarchy of RPGMS is:
 
 ```text
-Business Constitution
-(BUSINESS_MODEL.md)
+Business Constitution (BUSINESS_CONSTITUTION.md)
         │
         ▼
-Project Engineering Rules
-(PROJECT_RULES.md)
+Business Rules & Domain Model (BUSINESS_RULES.md / DOMAIN_MODEL.md)
         │
         ▼
-Software Architecture
-(ARCHITECTURE.md)
+Software Architecture (ARCHITECTURE.md)
         │
         ▼
-Implementation
-(Source Code)
+Implementation (Source Code)
 ```
 
 Every implementation should be traceable to an architectural decision.
@@ -666,11 +656,13 @@ Infrastructure implements technical concerns while remaining independent of busi
 
 ### Responsibility
 
-The Persistence Layer provides durable storage for business information.
+The Persistence Layer implements repository abstractions and persistence mechanisms defined by the Domain Layer.
 
-Persistence technologies may evolve without requiring changes to business architecture.
+It provides durable data storage and mapping without owning repository contracts conceptually.
 
-The Persistence Layer shall not contain business rules.
+Persistence technologies may evolve without requiring changes to business architecture or domain boundaries.
+
+The Persistence Layer shall not contain business rules or domain validation logic.
 
 ---
 
@@ -1458,11 +1450,11 @@ This separation allows Reservations and Stays to evolve independently while pres
 
 ### Purpose
 
-The Stay Domain owns the operational occupancy lifecycle of a resident.
+The Stay Domain owns the operational occupancy lifecycle of a resident within a designated Flat.
 
 It is responsible for managing the complete operational relationship between a resident and the organisation from physical check-in until operational checkout.
 
-The Stay Domain coordinates occupancy while referencing Accommodation, Commercial and Resident information. It is concerned exclusively with operational occupancy and has no ownership of commercial offerings, resident identity or financial settlement.
+The Stay Domain coordinates occupancy while referencing Accommodation, Commercial and Resident information. It is bounded by Flat (1 Stay = 1 Flat boundary) and is concerned exclusively with operational occupancy.
 
 ---
 
@@ -1470,15 +1462,14 @@ The Stay Domain coordinates occupancy while referencing Accommodation, Commercia
 
 The Stay Domain is responsible for:
 
-- Check-in
-- Bed allocation
-- Bed transfer
-- Stay management
-- Operational occupancy
-- Operational status management
-- Operational checkout
-- Stay timeline
-- Stay lifecycle management
+- Check-in & Stay commencement
+- Flat assignment and multi-bed allocation within Flat
+- Bed allocation, Bed release, and Bed transfer
+- Accommodation Amendments recording
+- Notice processing (intent to vacate)
+- Operational occupancy & operational status management
+- Operational checkout (sole terminal operational event)
+- Stay operational timeline derived from Business Events
 - Occupancy validation
 
 ---
@@ -1489,9 +1480,10 @@ The Stay Domain owns:
 
 - Stay entities
 - Stay identifiers
-- Operational occupancy state
-- Bed allocation
-- Stay timeline
+- Operational occupancy state bounded by Flat
+- Bed allocations within assigned Flat
+- Accommodation Amendments history
+- Notice processing state
 - Operational lifecycle
 - Stay Domain Events
 
@@ -1501,14 +1493,14 @@ The Stay Domain owns:
 
 The Stay Domain does **not** own:
 
-- Resident identity
-- Physical accommodation inventory
-- Accommodation Plans
-- Reservation lifecycle
-- Financial charges
-- Payments
-- Financial settlement
-- Deposit Accounts
+- Resident identity (owned by Resident Domain)
+- Physical accommodation inventory (owned by Accommodation Domain)
+- Commercial terms & Lock-in Period (owned by Commercial/Finance Domain)
+- Reservation lifecycle (owned by Reservation Domain)
+- Financial charges & Ledger (owned by Finance Domain)
+- Payments (owned by Finance Domain)
+- Financial settlement (owned by Finance Domain)
+- Security Deposit Accounts (owned by Deposit Domain)
 
 These responsibilities belong to their respective Software Domains.
 
@@ -1520,8 +1512,12 @@ The Stay Domain publishes Domain Events including:
 
 - StayStarted
 - BedAllocated
+- BedReleased
 - BedTransferred
-- StayUpdated
+- AccommodationAmendmentRecorded
+- NoticeSubmitted
+- NoticeRevised
+- NoticeWithdrawn
 - OperationalCheckoutInitiated
 - OperationalCheckoutCompleted
 - StayCompleted
@@ -1532,9 +1528,9 @@ The Stay Domain publishes Domain Events including:
 
 The Stay Domain references:
 
-- Resident Domain for resident identity.
-- Accommodation Domain for physical accommodation.
-- Commercial Domain for Accommodation Plans.
+- Resident Domain for resident identity profile.
+- Accommodation Domain for Flat and Bed physical accommodation.
+- Commercial Domain for Commercial Agreements.
 - Reservation Domain when a Reservation is converted into a Stay.
 
 The Finance and Deposit Domains consume Stay Domain Events to initiate financial processing where required.
@@ -1545,42 +1541,34 @@ The Finance and Deposit Domains consume Stay Domain Events to initiate financial
 
 The Stay Domain represents the operational occupancy relationship between a resident and the organisation.
 
-A Stay is neither a Reservation nor a Financial Account.
+A Stay is bounded by exactly one Flat and may occupy one or more Beds within that Flat simultaneously (BCR-002).
 
 A Stay begins when a resident physically checks in and ends when operational checkout is completed.
 
-The Stay Domain owns operational occupancy only.
+The Stay Domain owns operational occupancy only. Commercial agreements belong to the Commercial Domain, resident identity belongs to the Resident Domain, and financial obligations belong to the Finance Domain.
 
-Commercial agreements belong to the Commercial Domain.
+### Stay Primary Domain Aggregate
 
-Resident identity belongs to the Resident Domain.
-
-Financial obligations belong to the Finance Domain.
-
-Security deposits belong to the Deposit Domain.
-
-This separation preserves clear business ownership while allowing operational and financial lifecycles to evolve independently.
-
-### Stay Aggregate
-
-The Stay Aggregate is the central operational aggregate of RPGMS.
+The Stay Primary Domain Aggregate is the central operational boundary of RPGMS.
 
 It encapsulates all information required to manage the operational occupancy lifecycle while referencing business information owned by other domains.
 
-The Stay Aggregate consists of:
+The Stay Primary Domain Aggregate consists of:
 
 - Stay
-- Bed Allocation
+- Flat assignment reference (1 Stay = 1 Flat)
+- Bed Allocation(s) within Flat
 - Operational Status
+- Accommodation Amendments history
+- Notice processing state
 - Stay Timeline
-- Check-in Information
-- Checkout Information
+- Check-in & Operational Checkout Information
 
-The Stay Aggregate references, but does not own:
+The Stay Primary Domain Aggregate references, but does not own:
 
-- Resident
-- Accommodation
-- Accommodation Plan
+- Resident Profile
+- Accommodation Physical Structure
+- Commercial Agreement
 - Reservation
 - Financial Account
 - Deposit Account
@@ -1589,11 +1577,11 @@ The Stay Aggregate references, but does not own:
 
 The completion of a Stay does not imply completion of the associated financial obligations.
 
-Operational Checkout and Financial Settlement are independent business processes owned by different Software Domains.
+Operational Checkout and Financial Settlement are independent business processes owned by different Software Domains (BR-209, BR-460).
 
 The Stay Domain concludes with Operational Checkout.
 
-Any remaining financial obligations continue to be managed by the Finance and Deposit Domains until financial settlement is complete.
+Any remaining financial obligations continue to be managed by the Finance Domain until financial settlement is complete.
   
 ---
 ## Finance Domain
@@ -3420,13 +3408,13 @@ Together these principles ensure that business information remains accurate, mai
 
 ## Introduction
 
-The RPGMS platform uses Domain Events to communicate significant business and platform activities between Software Domains.
+The RPGMS platform uses Domain Events and a cross-domain **Business Event Conceptual Model** (`BCR-008`, `BAP-002`) to communicate significant business and platform activities between Software Domains.
 
 Each Software Domain publishes Domain Events describing changes to information that it owns.
 
 Other Software Domains may consume these Domain Events to perform their own responsibilities while remaining independent of the publishing domain.
 
-This event-driven architecture reduces coupling, promotes modularity and enables Software Domains to evolve independently.
+This event-driven architecture reduces coupling, promotes modularity, preserves historical truth, and enables Software Domains to evolve independently.
 
 ---
 
@@ -3435,9 +3423,10 @@ This event-driven architecture reduces coupling, promotes modularity and enables
 The Event Architecture is designed to:
 
 - Reduce coupling between Software Domains.
+- Provide an immutable audit trail of business history (`BCR-008`).
 - Enable independent evolution of Software Domains.
+- Support the Decision Support pattern (`BAP-001`) where system recommendations require operator approval.
 - Maintain clear ownership of business capabilities.
-- Improve scalability and maintainability.
 - Support reliable communication across the platform.
 
 ---
@@ -3452,6 +3441,19 @@ The RPGMS platform follows these architectural principles:
 - Software Domains consume events without assuming ownership of the originating data.
 - Events communicate facts rather than commands.
 - Event consumers remain responsible for their own business decisions.
+- Current operational and financial state across all domains is derived from the sequence of approved Business Events (`BCR-008`).
+
+---
+
+## Decision Support Pattern (BAP-001)
+
+The Event Architecture supports the **Decision Support** architectural pattern:
+
+- Event-driven calculations and recommendations (such as rent recalculations, deposit refunds, payment allocations, or fee adjustments) are published as system recommendations.
+- Final approval and posting of operational or commercial decisions rests with an authorised human operator.
+- Automated events generate recommendations; operator decision events execute state changes.
+
+---
 
 ---
 
@@ -4804,10 +4806,10 @@ Each document has a clearly defined responsibility.
 
 | Document | Primary Responsibility |
 |----------|------------------------|
-| BUSINESS_BLUEPRINT.md | Business concepts, terminology and organisational model |
+| BUSINESS_CONSTITUTION.md| Business concepts, terminology and organisational model |
 | BUSINESS_RULES.md | Business policies, constraints and operational rules |
 | ARCHITECTURE.md | Software architecture and architectural principles |
-| DOMAIN_MODEL.md *(planned)* | Business entities and relationships |
+| DOMAIN_MODEL.md  | Business entities and relationships |
 | UI_GUIDELINES.md | User interface standards and design principles |
 | ROADMAP.md | Planned business and technical evolution |
 | CHANGELOG.md | Historical record of significant changes |
@@ -5074,12 +5076,13 @@ The documentation hierarchy defines the authoritative source for architectural d
 
 The order of authority is:
 
-1. BUSINESS_BLUEPRINT.md
+1. BUSINESS_CONSTITUTION.md
 2. BUSINESS_RULES.md
-3. ARCHITECTURE.md
-4. Domain Documentation
-5. Implementation Documentation
-6. Source Code
+3. DOMAIN_MODEL.md
+4. ARCHITECTURE.md
+5. Domain Documentation
+6. Implementation Documentation
+7. Source Code
 
 Where inconsistencies exist, the higher-level document takes precedence.
 

@@ -1360,6 +1360,51 @@ Successfully passed:
 - Completed reconciliation of DOMAIN_MODEL.md with the approved Business Architecture Foundation.
 - Strengthened domain ownership, aggregate boundaries, and conceptual business modelling while preserving technology, implementation, and persistence independence.
 
+## [B0] - ARCHITECTURE Reconciliation
+
+### Changed
+- Reconciled ARCHITECTURE.md with the approved Business Constitution, Business Rules, and Domain Model as part of the Business Architecture Foundation (Milestone B0).
+- Updated the governance hierarchy to establish BUSINESS_CONSTITUTION.md, BUSINESS_RULES.md, and DOMAIN_MODEL.md as the authoritative architectural inputs.
+- Refined layered architecture responsibilities, clarifying that the Persistence Layer implements repository abstractions and persistence mechanisms defined by the Domain Layer.
+- Reconciled the Domain Architecture to align with the approved business model, including the Flat-bounded Stay model (1 Stay = 1 Flat, occupying one or more Beds within that Flat).
+- Updated architectural boundaries to support Accommodation Amendments, Commercial Amendments, Notice processing, Operational Checkout, and independent Financial Settlement.
+- Replaced implementation-specific event terminology with the technology-independent Business Event Conceptual Model and Business Event Publisher.
+- Expanded the Event Architecture to formalise cross-domain Business Events, immutable business history, and the Decision Support pattern while preserving implementation independence.
+- Updated cross-domain workflows, software domain interactions, and architectural responsibilities to align with the reconciled Business Architecture Foundation.
+- Reconciled documentation hierarchy, governance references, and architectural traceability across the project documentation.
+
+### Governance
+- Completed reconciliation of ARCHITECTURE.md with the approved Business Architecture Foundation.
+- Established full architectural alignment between the Business Constitution, Business Rules, Domain Model, and Software Architecture while preserving Clean Architecture principles, technology independence, and long-term maintainability.
+
+## [B0] - Business Architecture Foundation Complete
+
+### Summary
+Completed the Business Architecture Foundation for RPGMS 2.0 by reconciling the project's four governance documents into a single, consistent architectural framework:
+
+- BUSINESS_CONSTITUTION.md
+- BUSINESS_RULES.md
+- DOMAIN_MODEL.md
+- ARCHITECTURE.md
+
+### Outcome
+Established the authoritative governance stack defining:
+
+- Business philosophy and constitutional principles.
+- Operational business rules and constraints.
+- Conceptual domain model and ownership boundaries.
+- Software architecture and implementation guidance.
+
+### Impact
+- Unified terminology and business concepts across the project.
+- Eliminated inconsistencies between governance documents.
+- Established clear ownership boundaries for all major business capabilities.
+- Reinforced the Decision Support principle and immutable Business Event model.
+- Created a stable architectural foundation for MVP implementation and future evolution.
+
+### Next Phase
+Resume capability-driven MVP development beginning with **CR-1.4 – Accommodation Validation & Test Suite**.
+
 
 ------------------------------------------------------------------------------
 End of Document

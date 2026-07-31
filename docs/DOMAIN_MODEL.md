@@ -51,7 +51,7 @@ The RPGMS documentation follows a layered governance model.
 
 | Document | Responsibility |
 |-----------|----------------|
-| BUSINESS_BLUEPRINT.md | Business vision, objectives and scope |
+| BUSINESS_CONSTITUTION.md | Business architecture, constitution, and principles |
 | BUSINESS_RULES.md | Operational policies and business rules |
 | DOMAIN_MODEL.md | Business concepts and relationships |
 | ARCHITECTURE.md | Software architecture and implementation principles |
@@ -204,18 +204,24 @@ The following business terms are used consistently throughout the project.
 | Term | Definition |
 |------|------------|
 | Property | A physical hostel managed by the business |
-| Flat | Primary accommodation unit within a Property |
+| Flat | Primary operational accommodation unit within a Property |
 | Area | A physical subdivision within a Flat |
 | Bed | The smallest allocatable accommodation unit |
 | Reservation | A future commitment to admit a prospective resident |
-| Resident | A person known to the business |
-| Stay | One continuous period of occupancy |
+| Resident | A person known to the business (permanent identity profile) |
+| Stay | One continuous period of residence bounded by one Flat |
+| Accommodation Amendment | Domain concept representing an immutable business event for bed allocation changes within a Flat |
 | Commercial Agreement | The financial terms governing a Stay |
+| Commercial Amendment | Domain concept representing an immutable business event for financial term revisions during a Stay |
+| Lock-in Period | Financial commitment owned by the Commercial Agreement |
+| Notice | Informational domain event communicating declared intent to vacate at a future date |
+| Operational Checkout | Sole terminal operational Business Event concluding a Stay and releasing accommodation |
 | Charge | A financial obligation owed by the Resident |
 | Payment | Money received by the business |
 | Payment Allocation | The relationship between Payments and Charges |
 | Security Deposit | Refundable liability held during a Stay |
 | Ledger Entry | Derived accounting representation of financial events |
+| Business Event | Cross-domain conceptual model representing an immutable record of completed business activity |
 
 These terms form the common language used throughout the project.
 
@@ -223,7 +229,7 @@ These terms form the common language used throughout the project.
 
 # 7. Domain Overview
 
-RPGMS is organised into four primary business domains.
+RPGMS is organised into four primary business domains, supported by a cross-domain Business Event model.
 
 ```
 Accommodation
@@ -244,14 +250,15 @@ Each domain represents a distinct area of business responsibility.
 Business Processes coordinate interactions between domains without transferring ownership of business concepts.
 
 
-## Core Business Entities
+## Core Business Entities and Domain Concepts
 
-| Domain | Entities |
+| Domain | Entities and Domain Concepts |
 |---------|----------|
-| Accommodation | Property, Flat, Area, Bed |
+| Accommodation | Property, Flat, Area, Bed, Accommodation Amendment (Domain Event Concept) |
 | Reservation | Reservation, Reservation Preference, Reservation Token |
-| Resident Lifecycle | Resident, Stay, Bed Allocation |
-| Finance | Commercial Agreement, Charge, Payment, Payment Allocation, Security Deposit, Ledger Entry |
+| Resident Lifecycle | Resident, Stay, Bed Allocation, Notice (Informational Event Concept) |
+| Finance | Commercial Agreement, Commercial Amendment (Domain Event Concept), Charge, Payment, Payment Allocation, Security Deposit, Ledger Entry |
+| Cross-Domain | Business Event (Cross-Domain Conceptual Model) |
 
 
 # 8. Primary Business Domains
@@ -266,6 +273,7 @@ Responsible for:
 - Flats
 - Areas
 - Beds
+- Accommodation Amendments
 
 ---
 
@@ -290,6 +298,8 @@ Responsible for:
 - Residents
 - Stays
 - Bed Allocation
+- Notice Processing
+- Operational Checkout
 
 ---
 
@@ -300,6 +310,7 @@ Models the financial relationship between the business and its residents.
 Responsible for:
 
 - Commercial Agreements
+- Commercial Amendments
 - Charges
 - Payments
 - Payment Allocation
@@ -530,10 +541,32 @@ Referenced by:
 
 - Every Bed belongs to exactly one Area.
 - Every Bed ultimately belongs to exactly one Flat.
-- A Bed may have at most one Active Stay at any point in time.
+- A Bed may have at most one Active Stay at any point in time. However, a single Active Stay may occupy multiple Beds within its assigned Flat simultaneously (BCR-002).
+- Releasing a single Bed (partial bed release) transitions that Bed to `VACANT` while the Stay remains active in the Flat.
 - Historical occupancy is preserved through Stay history.
 
-Operational status (Vacant, Occupied, Reserved, Under Maintenance, Blocked) does not change structural ownership.
+Operational status (Vacant, Occupied, Reserved, Under Maintenance, Blocked) does not change structural ownership. Operational availability (`VACANT`, `BLOCKED`, `MAINTENANCE`) is owned by the Accommodation Domain, while resident occupancy (`OCCUPIED`, `ON_NOTICE`) is owned by the Stay Management Domain (BR-023).
+
+---
+
+## 9.10 Accommodation Amendments
+
+### Purpose
+
+An Accommodation Amendment is a domain concept representing an immutable business event for operational bed occupancy changes (bed allocations, bed releases, bed transfers) within a Flat during an active Stay.
+
+### Responsibilities
+
+- Record operational changes in bed occupancy within a Flat over time
+- Preserve an auditable, immutable operational timeline of accommodation changes
+- Support multi-bed allocations and partial bed releases without altering Stay continuity
+
+### Business Rules
+
+- Accommodation Amendments are domain concepts representing immutable business events (BCR-004).
+- Accommodation Amendments alter bed occupancy within a Flat without creating a new Stay or terminating an existing Stay.
+
+---
 
 # 10. Reservation Domain
 
@@ -776,36 +809,45 @@ May have:
 
 ### Purpose
 
-A Stay represents one continuous period during which a Resident occupies accommodation.
+A Stay represents one continuous period during which a Resident occupies accommodation within a designated Flat.
 
 A Stay is the primary operational entity of the Resident Lifecycle Domain.
 
 ### Responsibilities
 
-- Manage occupancy
-- Reference Commercial Agreement
-- Maintain operational history
-- Support Bed Transfers
-- Support Checkout
+- Manage occupancy within one Flat
+- Reference active Commercial Agreement
+- Maintain operational timeline derived from Business Events
+- Support Bed Allocations, Bed Releases, and Bed Transfers
+- Support Notice processing and Operational Checkout
 
 ### Relationships
 
-References:
+Belongs to:
 
 - Resident
-- Bed
-- Commercial Agreement
+- Flat (1 Stay = 1 Flat boundary)
+
+Occupies:
+
+- One or more Beds within the assigned Flat
+
+References:
+
+- Commercial Agreement (1 Active)
 
 Owns:
 
 - Bed Allocation history
+- Accommodation Amendments history
 
 ### Business Rules
 
 - Every Stay belongs to one Resident.
-- Every Stay references one Commercial Agreement.
-- Every Active Stay occupies one Bed.
-- A Stay concludes only through Checkout.
+- Every Active Stay belongs to exactly one Flat.
+- Every Active Stay occupies one or more Beds within its assigned Flat (BCR-002).
+- Every Stay operates under one active Commercial Agreement.
+- A Stay concludes only through Operational Checkout.
 - Historical Stays remain permanently preserved.
 
 ---
@@ -862,30 +904,68 @@ or
 A successful Admission performs the following business activities:
 
 1. Create or identify Resident.
-2. Create Stay.
-3. Create Commercial Agreement.
-4. Allocate Bed.
+2. Create Stay and assign Flat.
+3. Establish Commercial Agreement.
+4. Allocate one or more Beds within the Flat.
 5. Activate Stay.
 
 When Admission originates from a Reservation, the Reservation lifecycle concludes with Conversion.
 
 ---
 
-## 11.7 Checkout
+## 11.7 Bed Release
 
-Checkout is a Business Process.
+Bed Release is a Business Process.
 
-It concludes an active Stay.
+It is **not** a standalone Business Entity.
 
-Typical Checkout activities include:
+Bed Release reduces the allocated Beds of an Active Stay.
 
-- End occupancy
-- Release Bed
-- Settle outstanding finances
-- Settle Security Deposit
-- Close Stay
+The final allocated Bed is released only through Operational Checkout.
 
-Historical records remain permanently available after Checkout.
+### Business Rules
+
+- Bed Release removes bed occupancy without ending the Stay, as long as the Stay remains active in the Flat (BCR-003).
+- Every Bed Release generates an immutable Accommodation Amendment.
+
+---
+
+## 11.8 Notice
+
+Notice of Intent to Vacate is an informational domain event.
+
+It communicates the Resident's declared intention to end a Stay at a future date.
+
+### Responsibilities
+
+- Record declared departure intent
+- Inform operational and financial planning
+- Support Notice revision or withdrawal
+
+### Business Rules
+
+- Notice is an informational event communicating intent, not execution (BCR-006).
+- Notice submission does not release allocated Beds, stop recurring billing, or terminate the Stay.
+- Notice may be revised or withdrawn prior to Operational Checkout, subject to commercial implications under the active Commercial Agreement (BR-216).
+
+---
+
+## 11.9 Operational Checkout
+
+Operational Checkout is a Business Process and the sole terminal operational Business Event.
+
+It concludes an Active Stay.
+
+Operational Checkout performs the following activities:
+
+- Terminate active Stay occupancy
+- Release all allocated Beds within the Flat
+- Release assigned operational resources and Door IDs
+- Close operational Stay lifecycle
+
+Operational Checkout is strictly separated from Financial Settlement. Operational departure does not perform Financial Settlement.
+
+Historical records remain permanently available after Operational Checkout.
 
 # 12. Finance Domain
 
@@ -961,23 +1041,24 @@ The Accounting Projection is derived from operational data and does not own busi
 
 ### Purpose
 
-A Commercial Agreement defines the commercial terms under which a Stay operates.
+A Commercial Agreement defines the financial terms governing a Stay.
 
-Examples include:
+Commercial terms owned by the Commercial Agreement include:
 
 - Monthly Rent
-- Security Deposit
-- Electricity Policy
-- Included Services
+- Security Deposit requirement
+- Lock-in Period (financial commitment)
+- Notice Period requirement
+- Commercial Concessions and Discounts
 
-A Commercial Agreement represents the agreed financial terms rather than the financial transactions themselves.
+A Commercial Agreement represents the agreed financial commitments rather than the financial transactions themselves.
 
 ### Responsibilities
 
-- Define pricing
-- Define billing policy
-- Define deposit requirements
-- Support agreement revisions
+- Define pricing and recurring billing terms
+- Define deposit requirements and lock-in period commitment (BCR-007)
+- Define notice period requirements and commercial concessions
+- Support commercial term revisions via Commercial Amendments
 
 ### Relationships
 
@@ -985,15 +1066,41 @@ Referenced by:
 
 - Stay
 
+Owns:
+
+- Commercial Amendments history
+
 Produces:
 
 - Charges
 
 ### Business Rules
 
-- Every Stay references one Commercial Agreement.
-- A Commercial Agreement may be superseded by a newer Agreement.
-- Previous Agreements remain part of business history.
+- Every Stay operates under one active Commercial Agreement.
+- Lock-in Period belongs to the Commercial Agreement as a financial commitment (BCR-007).
+- Revisions to financial terms create immutable Commercial Amendments without altering accommodation or Stay continuity (BCR-005).
+- Historical Commercial Agreements and Amendments remain immutable.
+
+---
+
+## 12.4.1 Commercial Amendments
+
+### Purpose
+
+A Commercial Amendment is a domain concept representing an immutable business event for financial term revisions (rent, deposit, lock-in period, concessions) during an active Stay.
+
+### Responsibilities
+
+- Record revisions to financial terms during occupancy
+- Preserve an auditable, immutable commercial timeline of financial term changes
+- Modify commercial terms without creating a new Stay or altering accommodation
+
+### Business Rules
+
+- Commercial Amendments are domain concepts representing immutable business events (BCR-005).
+- Commercial Amendments belong to the Commercial Agreement associated with the Stay.
+
+---
 
 ---
 
@@ -1273,15 +1380,18 @@ Business Entities own business state.
 
 ## 13.4 Business Processes
 
-The following activities are Business Processes rather than Business Entities.
+The following activities are Business Processes rather than Business Entities:
 
 - Reservation Management
 - Admission
 - Monthly Billing
 - Payment Collection
+- Bed Allocation & Additional Bed Allocation
+- Bed Release
 - Bed Transfer
-- Checkout
-- Deposit Settlement
+- Notice Processing
+- Operational Checkout
+- Financial Settlement & Deposit Settlement
 
 Business Processes coordinate work across multiple Aggregates.
 
@@ -1301,18 +1411,22 @@ The following business rules must always remain true.
 
 ### Occupancy
 
-- A Bed may have at most one Active Stay.
-- A Resident may have at most one Active Stay.
+- A Bed may have at most one Active Stay at any point in time.
+- A single Active Stay belongs to exactly one Flat and occupies one or more Beds within that Flat (BCR-002).
+- A Resident may have at most one Active Stay at any point in time.
+- Operational Checkout is the sole terminal operational Business Event concluding a Stay and releasing accommodation (BCR-003, BCR-006).
 
 ### Reservation
 
 - Reservations never allocate Beds.
-- Admission performs Bed Allocation.
+- Admission performs Bed Allocation within a Flat.
 
 ### Finance
 
 - Charges are immutable.
 - Payments are immutable.
+- Commercial term revisions create immutable Commercial Amendments (BCR-005).
+- Lock-in Period belongs to the Commercial Agreement as a financial commitment (BCR-007).
 - Payment Allocation preserves settlement history.
 - Security Deposits remain separate from revenue.
 
@@ -1361,6 +1475,28 @@ The Domain Model is governed by the following architectural principles.
 - Business Processes coordinate entities without owning them.
 - References communicate relationships but never ownership.
 
+---
+
+## 13.8 Business Event Model & Decision Support
+
+### Business Event Model
+
+The Domain Model incorporates a cross-domain **Business Event** conceptual model (BCR-008, BAP-002).
+
+A Business Event represents an immutable record of a completed business activity (such as Admission, Bed Allocation, Bed Release, Accommodation Amendment, Commercial Amendment, Notice Submission, or Operational Checkout).
+
+The Business Event model is a cross-domain conceptual model rather than a mandatory persisted entity or aggregate root. Current operational and financial state across all domains is derived from the sequence of approved Business Events.
+
+### Decision Support Principle (BAP-001)
+
+RPGMS operates under the **Decision Support** principle:
+
+- The system calculates, validates, and generates recommendations (e.g. rent recalculations, deposit refunds, payment allocations, or operational warnings).
+- Final approval and posting of operational or commercial decisions rests with an authorised human operator.
+- System calculations or recommendations do not automatically mutate business state without explicit operator authorization.
+
+---
+
 # 14. Business Lifecycle
 
 The following diagram illustrates the conceptual lifecycle of a resident within RPGMS.
@@ -1375,23 +1511,29 @@ Reservation (Optional)
 Admission  
 │  
 ▼  
-Resident  
+Resident Profile (Permanent)  
 │  
 ▼  
-Stay  
+Active Stay (Bounded by 1 Flat)  
 │  
-├───────────────┐  
-│               │  
-▼               ▼  
-Billing     Bed Transfer  
-│               │  
-└───────┬───────┘  
-│  
-▼  
-Checkout  
-│  
-▼  
-Historical Records
+├──────────────────────┬──────────────────────┬──────────────────────┐  
+│                      │                      │                      │  
+▼                      ▼                      ▼                      ▼  
+Billing & Charges    Bed Allocations /      Commercial Amendments   Notice of Intent  
+(Commercial Agr.)    Releases / Transfers   (Term Revisions)        (Informational)  
+│                    (Accom. Amendments)      │                      │  
+└──────────────────────┼──────────────────────┴──────────────────────┘  
+                       │  
+                       ▼  
+             Operational Checkout  
+             (Sole Terminal Event)  
+                       │  
+                       ▼  
+              Financial Settlement  
+             (Commercial Closure)  
+                       │  
+                       ▼  
+               Historical Records
 
 ---
 
@@ -1524,7 +1666,7 @@ It defines:
 - Historical preservation principles
 - Rules governing future evolution
 
-Together with **BUSINESS_BLUEPRINT.md**, **BUSINESS_RULES.md**, and **ARCHITECTURE.md**, this document forms part of the constitutional foundation of RPGMS 2.0.
+Together with **BUSINESS_CONSTITUTION.md**, **BUSINESS_RULES.md**, and **ARCHITECTURE.md**, this document forms part of the constitutional foundation of RPGMS 2.0.
 
 Future development should preserve the business principles defined in these documents while allowing the implementation to evolve as business requirements and technology change.
 

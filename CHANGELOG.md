@@ -1338,6 +1338,28 @@ Successfully passed:
 - Completed reconciliation of BUSINESS_RULES.md with the approved Business Architecture Foundation.
 - Strengthened operational business rule coverage while preserving implementation independence and strict MVP focus.
 
+## [B0] - DOMAIN_MODEL Reconciliation
+
+### Changed
+- Reconciled DOMAIN_MODEL.md with the approved Business Constitution, Business Rules, and Business Architecture Foundation (Milestone B0).
+- Updated document governance hierarchy to recognise BUSINESS_CONSTITUTION.md as the authoritative business architecture document.
+- Reconciled the Accommodation Domain to model one Stay occupying one or more Beds within a single Flat.
+- Clarified Bed ownership, occupancy boundaries, and operational status responsibilities across Accommodation, Stay Management, and Reservation domains.
+- Added Accommodation Amendments as domain concepts representing immutable business events for operational accommodation changes.
+- Reconciled the Resident Lifecycle Domain to distinguish permanent Resident identity from Stay lifecycle responsibilities.
+- Added Bed Release as an operational business process that adjusts accommodation without terminating a Stay.
+- Added Notice as an informational domain event representing declared intent to vacate without affecting occupancy or billing.
+- Reconciled Operational Checkout as the sole terminal operational event ending a Stay and releasing accommodation, independent of Financial Settlement.
+- Expanded the Finance Domain to establish Commercial Agreement ownership of rent, deposit, lock-in period, notice period, and commercial terms.
+- Added Commercial Amendments as domain concepts representing immutable business events for commercial term revisions.
+- Introduced the cross-domain Business Event conceptual model to support immutable business history while remaining implementation independent.
+- Formalised the Decision Support principle within the Domain Model, reinforcing that RPGMS generates recommendations while authorised operators retain final decision-making authority.
+- Updated domain relationships, aggregate responsibilities, domain invariants, ubiquitous language, and lifecycle diagrams to align with the reconciled business architecture.
+
+### Governance
+- Completed reconciliation of DOMAIN_MODEL.md with the approved Business Architecture Foundation.
+- Strengthened domain ownership, aggregate boundaries, and conceptual business modelling while preserving technology, implementation, and persistence independence.
+
 
 ------------------------------------------------------------------------------
 End of Document

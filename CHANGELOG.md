@@ -1403,7 +1403,26 @@ Established the authoritative governance stack defining:
 - Created a stable architectural foundation for MVP implementation and future evolution.
 
 ### Next Phase
-Resume capability-driven MVP development beginning with **CR-1.4 – Accommodation Validation & Test Suite**.
+Resume capability-driven MVP development beginning with **CR-2 — Reservation Management**.
+
+---
+
+## [CR-1] - Accommodation Management Complete
+
+### Summary
+Completed CR-1 (Accommodation Management), establishing the physical accommodation domain, operational bed status lifecycles, domain validation rules, and automated test coverage.
+
+### Key Deliverables
+- **CR-1.1**: Architecture Cleanup & Repository Interface Standardization.
+- **CR-1.2**: Area & Flat Management with layout drafting and deletion protections.
+- **CR-1.3**: Bed Management & Operational Status Lifecycle (Block/Unblock, Maintenance hold).
+- **CR-1.4**: Accommodation Validation & Test Suite (Vitest runner, 49/49 tests passed, 100% pass rate).
+- **Completion Report**: Generated `CR-1_COMPLETION_REPORT.md`.
+
+### Verification
+- `npm run test`: 49 / 49 tests passed (100% pass rate).
+- `npx tsc -b`: 0 errors.
+- `npm run build`: Production bundle built successfully.
 
 
 ------------------------------------------------------------------------------

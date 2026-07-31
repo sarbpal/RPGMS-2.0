@@ -738,6 +738,32 @@ Together these layers provide a stable architectural framework that separates bu
 
 ---
 
+## Testing Philosophy
+
+RPGMS adopts a layered testing strategy aligned with its Clean Architecture.
+
+### Domain Layer
+- Pure domain rules are validated using fast unit tests.
+- Tests focus on business behaviour and domain invariants.
+
+### Application Layer
+- Application Coordinators are validated using integration-style tests with in-memory repositories.
+- Tests verify workflow orchestration, repository state, and business rule enforcement.
+
+### Presentation Layer
+- UI components remain intentionally lightweight.
+- Business behaviour is verified through Domain and Application tests rather than extensive UI testing.
+
+### Verification Requirements
+Every completed capability should satisfy:
+
+- Automated tests passing.
+- Zero TypeScript compilation errors.
+- Successful production build.
+
+Testing prioritises business correctness and regression prevention over code coverage percentages.
+
+---
 # Domain Architecture
 
 The Domain Architecture defines how the software implements the business domains described in the Business Constitution.

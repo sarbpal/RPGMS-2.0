@@ -587,6 +587,32 @@ Typical responsibilities include:
 
 The Application Layer orchestrates business operations but does not own business behaviour.
 
+### Admission Integration Capability
+
+Admission is implemented as an Application Service responsible for coordinating multiple business domains.
+
+Admission owns no domain entities.
+
+It orchestrates:
+
+- Reservation
+- Resident
+- Stay
+- Commercial Agreement
+- Accommodation
+
+Admission is the only business operation permitted to create an ACTIVE Stay.
+
+Admission execution is atomic.
+
+Either:
+
+- All business entities are successfully created and linked.
+
+or
+
+- No business state changes occur.
+  
 ---
 
 ## Coordinators
@@ -4406,6 +4432,27 @@ Examples include:
 A Workspace may combine information from multiple Software Domains while presenting a unified business workflow.
 
 Business coordination occurs through the Application Layer.
+
+---
+
+### Multi-Domain Workspaces
+
+Where a business workflow spans multiple Software Domains, the User Interface may present a unified Workspace that combines information from those domains into a single operational experience.
+
+A Workspace simplifies operator interaction by presenting the complete business workflow while preserving the architectural independence of the participating Software Domains.
+
+A Workspace does not own business entities, business rules, or business state.
+
+Instead, it delegates workflow execution to the appropriate Application Layer Coordinator, which orchestrates the participating Software Domains.
+
+Typical examples include:
+
+- Reservation Workspace
+- Admission Workspace
+- Stay Workspace
+- Checkout Workspace
+
+This architectural pattern enables complex cross-domain business processes to appear as a single cohesive workflow while maintaining clear ownership boundaries, modularity, and separation of responsibilities.
 
 ---
 

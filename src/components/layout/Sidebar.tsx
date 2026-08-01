@@ -7,6 +7,7 @@ import {
   Dashboard,
   People,
   Settings,
+  EventAvailable,
 } from '@mui/icons-material';
 import {
   Drawer,
@@ -23,6 +24,7 @@ const sidebarWidth = 240;
 const menuItems = [
   { label: 'Dashboard', icon: <Dashboard />, to: '/' },
   { label: 'Accommodation', icon: <Apartment />, to: '/accommodation' },
+  { label: 'Reservations', icon: <EventAvailable />, to: '/reservations' },
   { label: 'Residents', icon: <People />, to: '/residents' },
   { label: 'Finance', icon: <AccountBalanceWallet />, to: '/finance' },
   { label: 'Electricity', icon: <Bolt />, to: '/electricity' },

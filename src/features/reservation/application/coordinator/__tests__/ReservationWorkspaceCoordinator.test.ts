@@ -1,0 +1,225 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ReservationWorkspaceCoordinator } from '../ReservationWorkspaceCoordinator';
+import { InMemoryReservationRepository } from '../../../infrastructure/repositories/InMemoryReservationRepository';
+import { ReservationStatus } from '../../../domain/valueObjects/ReservationStatus';
+import type { ReservationDraft } from '../../models/ReservationDraft';
+
+describe('ReservationWorkspaceCoordinator Integration Suite', () => {
+  let repository: InMemoryReservationRepository;
+  let coordinator: ReservationWorkspaceCoordinator;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = tomorrowDate.toISOString().split('T')[0];
+
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+  beforeEach(() => {
+    repository = new InMemoryReservationRepository([]);
+    coordinator = new ReservationWorkspaceCoordinator(repository);
+  });
+
+  describe('saveReservation Operations', () => {
+    it('creates and saves a new Reservation from a valid draft and updates repository state', () => {
+      const draft: ReservationDraft = {
+        prospectName: 'Karan Mehra',
+        mobileNumber: '9988776655',
+        expectedJoiningDate: tomorrowStr,
+        accommodationPreference: 'Double Sharing',
+        tokenAmount: 2000,
+        tokenReceivedOn: todayStr,
+        tokenRemarks: 'GPay',
+        notes: 'Needs upper bunk',
+      };
+
+      const result = coordinator.saveReservation(draft);
+
+      expect(result.reservationNumber).toBe('RES-000001');
+      expect(result.prospectName).toBe('Karan Mehra');
+      expect(result.status).toBe(ReservationStatus.ACTIVE);
+      expect(result.auditLog).toHaveLength(1);
+      expect(result.auditLog[0].action).toBe('Reservation Created');
+
+      // Refinement #3: Verify repository state after operation
+      const repoState = repository.findByIdSync(result.id);
+      expect(repoState).toBeDefined();
+      expect(repoState?.reservationNumber).toBe('RES-000001');
+      expect(repoState?.tokenAmount).toBe(2000);
+    });
+
+    it('throws error when draft validation fails', () => {
+      const invalidDraft: ReservationDraft = {
+        prospectName: '',
+        mobileNumber: '123',
+        expectedJoiningDate: 'invalid',
+      };
+
+      expect(() => coordinator.saveReservation(invalidDraft)).toThrow(
+        'Reservation validation failed'
+      );
+    });
+
+    it('generates Joining Date Updated and automatic Status Updated audit entries when extending date', () => {
+      // 1. Create an active reservation
+      const res = coordinator.saveReservation({
+        prospectName: 'Karan Mehra',
+        mobileNumber: '9988776655',
+        expectedJoiningDate: yesterdayStr,
+      });
+
+      // 2. Perform self-healing check to flag as FOLLOW_UP_REQUIRED
+      coordinator.loadWorkspace();
+      expect(repository.findByIdSync(res.id)?.status).toBe(ReservationStatus.FOLLOW_UP_REQUIRED);
+
+      // 3. Extend joining date to tomorrow
+      const followUpRes = repository.findByIdSync(res.id)!;
+      const updated = coordinator.saveReservation(
+        {
+          ...followUpRes,
+          expectedJoiningDate: tomorrowStr,
+        },
+        followUpRes,
+        'Exams delayed'
+      );
+
+      // Verify automatic status recovery to ACTIVE (BR-RESV-005)
+      expect(updated.status).toBe(ReservationStatus.ACTIVE);
+
+      // Verify audit events generated (Joining Date Updated, Status Updated)
+      const auditActions = updated.auditLog.map((a) => a.action);
+      expect(auditActions).toContain('Joining Date Updated');
+      expect(auditActions).toContain('Status Updated');
+
+      const statusAudit = updated.auditLog.find((a) => a.details?.includes('automatic status recovery'));
+      expect(statusAudit?.details).toContain('Status updated from FOLLOW_UP_REQUIRED to ACTIVE'); // Refinement #6
+
+      // Refinement #3: Verify repository state
+      const repoState = repository.findByIdSync(res.id);
+      expect(repoState?.status).toBe(ReservationStatus.ACTIVE);
+      expect(repoState?.expectedJoiningDate).toBe(tomorrowStr);
+    });
+
+    it('generates Token Updated audit entry when token details are modified (Refinement #3)', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'Token Prospect',
+        mobileNumber: '9111111111',
+        expectedJoiningDate: tomorrowStr,
+        tokenAmount: 0,
+      });
+
+      const updated = coordinator.saveReservation(
+        {
+          ...res,
+          tokenAmount: 3000,
+          tokenReceivedOn: todayStr,
+          tokenRemarks: 'Cash',
+        },
+        res
+      );
+
+      expect(updated.tokenAmount).toBe(3000);
+      const lastAudit = updated.auditLog[updated.auditLog.length - 1];
+      expect(lastAudit.action).toBe('Token Updated');
+      expect(lastAudit.details).toContain('Token amount updated to ₹3,000');
+    });
+  });
+
+  describe('cancelReservation Operations', () => {
+    it('cancels an active reservation, updates status to CANCELLED, and logs audit event', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'John Doe',
+        mobileNumber: '9876543210',
+        expectedJoiningDate: tomorrowStr,
+      });
+
+      const cancelled = coordinator.cancelReservation(res.id, 'Found alternative accommodation');
+
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      const lastAudit = cancelled.auditLog[cancelled.auditLog.length - 1];
+      expect(lastAudit.action).toBe('Reservation Cancelled');
+      expect(lastAudit.details).toContain('Reason: Found alternative accommodation');
+
+      // Refinement #3: Verify repository state after cancellation
+      const repoState = repository.findByIdSync(res.id);
+      expect(repoState?.status).toBe(ReservationStatus.CANCELLED);
+    });
+
+    it('prevents cancelling an already CANCELLED reservation', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'John Doe',
+        mobileNumber: '9876543210',
+        expectedJoiningDate: tomorrowStr,
+      });
+      coordinator.cancelReservation(res.id);
+
+      expect(() => coordinator.cancelReservation(res.id)).toThrow('Reservation is already cancelled');
+    });
+  });
+
+  describe('Read-Only Immutability Guards', () => {
+    it('prevents editing or modifying a CONVERTED or CANCELLED reservation', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'Immutable Prospect',
+        mobileNumber: '9555555555',
+        expectedJoiningDate: tomorrowStr,
+      });
+
+      // Mark as CONVERTED
+      repository.saveSync({ ...res, status: ReservationStatus.CONVERTED });
+      const convertedRes = repository.findByIdSync(res.id)!;
+
+      // Attempt edit
+      expect(() => coordinator.saveReservation({ ...convertedRes, prospectName: 'Changed' }, convertedRes)).toThrow(
+        'Reservation is CONVERTED and is read-only'
+      );
+
+      // Attempt cancel
+      expect(() => coordinator.cancelReservation(res.id)).toThrow('Converted reservations cannot be cancelled');
+
+      // Verify repository state remains completely unchanged
+      const finalRepoState = repository.findByIdSync(res.id);
+      expect(finalRepoState?.prospectName).toBe('Immutable Prospect');
+      expect(finalRepoState?.status).toBe(ReservationStatus.CONVERTED);
+    });
+  });
+
+  describe('checkDuplicateMobile', () => {
+    it('returns warning details when an active reservation exists for the mobile number', () => {
+      const draft: ReservationDraft = {
+        prospectName: 'John Doe',
+        mobileNumber: '9876543210',
+        expectedJoiningDate: tomorrowStr,
+      };
+      coordinator.saveReservation(draft);
+
+      const check = coordinator.checkDuplicateMobile('9876543210');
+      expect(check.hasDuplicate).toBe(true);
+      expect(check.existingReservation?.reservationNumber).toBe('RES-000001');
+      expect(check.warning).toContain('ACTIVE reservation (RES-000001 for John Doe)');
+    });
+  });
+
+  describe('loadWorkspace and createViewModel', () => {
+    it('calculates summary statistics accurately including Arriving Today', () => {
+      coordinator.saveReservation({
+        prospectName: 'Active 1',
+        mobileNumber: '9000000001',
+        expectedJoiningDate: tomorrowStr,
+      });
+
+      coordinator.saveReservation({
+        prospectName: 'Arriving Today 1',
+        mobileNumber: '9000000002',
+        expectedJoiningDate: todayStr,
+      });
+
+      const viewModel = coordinator.loadWorkspace();
+      expect(viewModel.stats.totalActive).toBe(2);
+      expect(viewModel.stats.arrivingToday).toBe(1);
+    });
+  });
+});

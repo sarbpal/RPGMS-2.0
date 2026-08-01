@@ -1424,6 +1424,85 @@ Completed CR-1 (Accommodation Management), establishing the physical accommodati
 - `npx tsc -b`: 0 errors.
 - `npm run build`: Production bundle built successfully.
 
+## CR-2 — Reservation & Admission Management
+
+### Added
+
+- Reservation Domain
+- Reservation Workspace
+- Lightweight Reservation Entry
+- Reservation Management
+- Admission Workspace
+- Admission Readiness Panel
+- Token Disposition
+- Admission Success Screen
+- Click-to-Call
+- Decision Support badges
+- Duplicate Reservation detection
+
+### Architecture
+
+- Admission implemented as Integration Capability
+- Atomic Admission workflow
+- Single Admission Workspace
+- Reservation immutable after conversion
+- Reusable Admission engine
+
+# CR-2 — Reservation & Admission Management
+
+## Added
+
+### Reservation
+
+- Reservation Domain
+- Reservation Entity
+- Reservation Number generation
+- Duplicate Reservation detection
+- Reservation Workspace
+- Lightweight Reservation Entry
+- Reservation Detail View
+- Reservation Summary
+- Click-to-Call support
+- Reservation Search
+- Decision Support indicators
+
+### Reservation Operations
+
+- Reservation Editing
+- Follow-up workflow
+- Automatic status recovery
+- Reservation Cancellation
+- Immutable Audit Timeline
+- Read-only terminal states
+- Token updates
+
+### Admission
+
+- Admission Workspace
+- Admission Readiness Panel
+- Resident creation
+- Stay creation
+- Commercial Agreement creation
+- Multi-bed Admission
+- Token Disposition
+- Admission Success Screen
+
+## Architecture
+
+- Admission implemented as an Integration Capability.
+- Admission coordinates Reservation, Resident, Stay, Commercial Agreement, and Accommodation.
+- Admission is executed atomically.
+- Reservation becomes immutable after successful Admission.
+- Decision Support principles extended throughout the Admission workflow.
+
+## Testing
+
+- Added comprehensive Reservation domain tests.
+- Added Admission integration tests.
+- Added end-to-end Reservation → Admission regression test.
+- Total automated coverage increased to 8 test suites and 85 test cases.
+- Production build and TypeScript compilation verified successfully.
+
 
 ------------------------------------------------------------------------------
 End of Document

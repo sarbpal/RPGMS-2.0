@@ -1411,6 +1411,37 @@ Preserves operational flexibility for residents changing departure plans while a
 
 ---
 
+### BR-217 — Admission Creates the Active Stay
+
+An ACTIVE Stay shall be created exclusively through a successful Admission business operation.
+
+A Stay shall not become ACTIVE through direct creation, Reservation processing, Accommodation allocation, or any other business workflow.
+
+This rule establishes Admission as the controlled business operation responsible for initiating operational occupancy.
+
+**Rationale**
+
+Maintains a single authoritative business workflow for transitioning a Prospect into an operational Resident while preserving business consistency and auditability.
+
+---
+
+### BR-218 — Atomic Admission
+
+Admission shall execute as a single atomic business operation.
+
+Where Admission coordinates multiple business domains, either:
+
+- all participating business entities are successfully created or updated, or
+- no business state shall be changed.
+
+Partial Admissions are prohibited.
+
+**Rationale**
+
+Maintains business consistency by preventing orphan Residents, incomplete Stays, inconsistent Accommodation allocations, or partially created Commercial Agreements.
+
+---
+
 # Stay Summary
 
 The Stay represents the complete operational relationship between a Resident and the organisation during one uninterrupted period of occupancy.

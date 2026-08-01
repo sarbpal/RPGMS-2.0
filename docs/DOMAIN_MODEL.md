@@ -893,6 +893,10 @@ It is **not** a Business Entity.
 
 Admission converts a prospective resident into an active Stay.
 
+Admission is an Integration Capability responsible for coordinating the creation of Resident, Stay, Commercial Agreement, and Accommodation allocation.
+
+Admission is not a persistent domain aggregate.
+
 Admission may begin from:
 
 - Reservation

@@ -11,7 +11,7 @@ import { AccountType, SettlementOutcome, deriveSettlementPreview } from '../doma
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
-import { stayService } from '../../residents/stay';
+import { InMemoryStayRepository, StayStatus } from '../../stay';
 
 export interface GeneratePreviewResult {
   success: boolean;
@@ -68,7 +68,7 @@ export class SettlementApplicationService {
       return { success: false, preview: null, errors };
     }
 
-    const stay = stayService.getStay(stayId);
+    const stay = new InMemoryStayRepository().findByIdSync(stayId);
     if (!stay) {
       errors.push(`Stay '${stayId}' not found in system.`);
       return { success: false, preview: null, errors };
@@ -269,8 +269,16 @@ export class SettlementApplicationService {
     // Save Settlement via repository
     this.repository.saveSettlement(finalizedSettlement);
 
-    // Financially close the Stay via stayService
-    stayService.closeStay(stayId);
+    // Financially close the Stay via InMemoryStayRepository
+    const stayRepo = new InMemoryStayRepository();
+    const currentStay = stayRepo.findByIdSync(stayId);
+    if (currentStay) {
+      stayRepo.update({
+        ...currentStay,
+        status: StayStatus.CLOSED,
+        actualCheckoutDate: new Date().toISOString().split('T')[0],
+      });
+    }
 
 
     return {

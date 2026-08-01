@@ -12,12 +12,12 @@ Each feature is self-contained and owns its:
 Example:
 
 features/
-    residents/
+    resident/
+        application/
         components/
-        hooks/
-        services/
-        types/
-        ResidentsPage.tsx
+        domain/
+        infrastructure/
+        pages/
         index.ts
 
 Features should not directly depend on each other.

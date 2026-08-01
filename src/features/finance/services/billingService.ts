@@ -10,7 +10,7 @@ import type {
 import { AccountType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
-import { stayService } from '../../residents/stay';
+import { InMemoryStayRepository } from '../../stay';
 
 export interface CreateBillResult {
   success: boolean;
@@ -211,7 +211,7 @@ export class BillingApplicationService {
       };
     }
 
-    const stay = stayService.getStay(stayId);
+    const stay = new InMemoryStayRepository().findByIdSync(stayId);
     const rentAmount = stay ? stay.agreedRent : 0;
 
     if (!stay || rentAmount <= 0) {

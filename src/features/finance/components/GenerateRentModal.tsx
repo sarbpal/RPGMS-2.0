@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { MonetizationOn } from '@mui/icons-material';
 
-import type { Resident } from '../../residents/types';
+import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
 import { billingService } from '../services/billingService';
 import { formatCurrency } from '../utils/currencyFormatters';
@@ -84,19 +84,21 @@ export function GenerateRentModal({
     return bills.find((b) => b.period === billingPeriod && b.billType === 'MONTHLY_RENT') || null;
   }, [isDuplicate, stayId, billingPeriod]);
 
+  const res = resident as Resident & { allocatedBedIds?: string[]; agreedRent?: number };
+
   const bedLabel = useMemo(() => {
-    if (!resident.allocatedBedIds || resident.allocatedBedIds.length === 0) {
+    if (!res.allocatedBedIds || res.allocatedBedIds.length === 0) {
       return 'No Bed Allocated';
     }
-    return resident.allocatedBedIds
-      .map((bId) => {
+    return res.allocatedBedIds
+      .map((bId: string) => {
         const match = bId.match(/[^-]+$/);
         return match ? match[0] : bId;
       })
       .join(', ');
-  }, [resident.allocatedBedIds]);
+  }, [res]);
 
-  const isFormValid = Boolean(stayId) && !isDuplicate && resident.agreedRent > 0;
+  const isFormValid = Boolean(stayId) && !isDuplicate && (res.agreedRent || 0) > 0;
 
   const handleSubmit = () => {
     if (!stayId || !isFormValid) return;
@@ -262,7 +264,7 @@ export function GenerateRentModal({
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Monthly Rent Amount"
-                value={formatCurrency(resident.agreedRent)}
+                value={formatCurrency(res.agreedRent || 0)}
                 fullWidth
                 disabled
                 helperText="Auto-populated from stay contract"

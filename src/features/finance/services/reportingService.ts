@@ -10,8 +10,8 @@ import { billingService } from './billingService';
 import { paymentService } from './paymentService';
 import { settlementService } from './settlementService';
 import { timelineService } from './timelineService';
-import { stayService } from '../../residents/stay';
-import { residentService } from '../../residents/services/residentService';
+import { InMemoryStayRepository } from '../../stay';
+import { InMemoryResidentRepository } from '../../resident';
 
 export const reportingService = {
   /**
@@ -20,7 +20,7 @@ export const reportingService = {
    */
   getFinanceDashboard(): FinanceDashboardMetrics {
     const summary = balanceEngine.calculateFinanceSummary();
-    const stays = stayService.getStays();
+    const stays = new InMemoryStayRepository().getAllSync();
     const activeStays = stays.filter((s) => s.status === 'ACTIVE' || s.status === 'ON_NOTICE');
     const settlements = settlementService.getAllSettlements();
     const closedSettlements = settlements.filter((s) => s.status === 'SETTLED');
@@ -51,10 +51,10 @@ export const reportingService = {
   getResidentFinancialSummary(stayId: string): ResidentFinancialSummaryReport | null {
     if (!stayId || stayId.trim() === '') return null;
 
-    const stay = stayService.getStay(stayId);
+    const stay = new InMemoryStayRepository().findByIdSync(stayId);
     if (!stay) return null;
 
-    const residents = residentService.getResidents();
+    const residents = new InMemoryResidentRepository().getAllSync();
     const resident = residents.find((r) => r.id === stay.residentId);
 
     const balances = balanceEngine.calculateStayBalances(stayId);
@@ -117,8 +117,8 @@ export const reportingService = {
    * Return list of active residents with outstanding receivables (> 0), sorted highest first.
    */
   getOutstandingResidents(): OutstandingResidentReportItem[] {
-    const stays = stayService.getStays();
-    const residents = residentService.getResidents();
+    const stays = new InMemoryStayRepository().getAllSync();
+    const residents = new InMemoryResidentRepository().getAllSync();
     const report: OutstandingResidentReportItem[] = [];
 
     stays.forEach((stay) => {
@@ -146,8 +146,8 @@ export const reportingService = {
    */
   getSettlementReport(): SettlementReportItem[] {
     const settlements = settlementService.getAllSettlements();
-    const residents = residentService.getResidents();
-    const stays = stayService.getStays();
+    const residents = new InMemoryResidentRepository().getAllSync();
+    const stays = new InMemoryStayRepository().getAllSync();
 
     return settlements
       .filter((s) => s.status === 'SETTLED')

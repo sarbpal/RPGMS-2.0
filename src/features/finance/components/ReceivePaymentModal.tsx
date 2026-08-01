@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Payments } from '@mui/icons-material';
 
-import type { Resident } from '../../residents/types';
+import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
 import type { PaymentMethod, StayBalance } from '../domain';
 import { paymentService } from '../services/paymentService';
@@ -61,16 +61,17 @@ export function ReceivePaymentModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const bedLabel = useMemo(() => {
-    if (!resident.allocatedBedIds || resident.allocatedBedIds.length === 0) {
+    const res = resident as Resident & { allocatedBedIds?: string[] };
+    if (!res.allocatedBedIds || res.allocatedBedIds.length === 0) {
       return 'No Bed Allocated';
     }
-    return resident.allocatedBedIds
-      .map((bId) => {
+    return res.allocatedBedIds
+      .map((bId: string) => {
         const match = bId.match(/[^-]+$/);
         return match ? match[0] : bId;
       })
       .join(', ');
-  }, [resident.allocatedBedIds]);
+  }, [resident]);
 
   // Numerical payment amount evaluation
   const parsedAmount = parseFloat(paymentAmountStr);

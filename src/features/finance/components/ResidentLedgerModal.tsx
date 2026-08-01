@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { ReceiptLong } from '@mui/icons-material';
 
-import type { Resident } from '../../residents/types';
+import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
 import { ledgerService } from '../services/ledgerService';
 import { formatCurrency } from '../utils/currencyFormatters';

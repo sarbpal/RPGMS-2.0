@@ -41,9 +41,9 @@ import {
   InfoOutlined,
 } from '@mui/icons-material';
 
-import type { Resident } from '../../residents/types';
+import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
-import { stayService } from '../../residents/stay';
+import { InMemoryStayRepository, StayStatus } from '../../stay';
 import { useStayFinance } from '../hooks/useStayFinance';
 import { formatCurrency } from '../utils/currencyFormatters';
 
@@ -69,12 +69,25 @@ export function ResidentFinancialProfile({
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
 
+  const res = resident as Resident & {
+    allocatedBedIds?: string[];
+    agreedRent?: number;
+    agreedDeposit?: number;
+  };
 
   // Fetch active stay for resident
-  const activeStay = useMemo(
-    () => stayService.getActiveStay(resident.id),
-    [resident.id]
-  );
+  const activeStay = useMemo(() => {
+    const stayRepo = new InMemoryStayRepository();
+    return (
+      stayRepo
+        .getAllSync()
+        .find(
+          (s) =>
+            s.residentId === resident.id &&
+            (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE)
+        ) || null
+    );
+  }, [resident.id]);
   const stayId = activeStay?.id;
 
   // Retrieve stay financial metrics via application hook
@@ -150,11 +163,11 @@ export function ResidentFinancialProfile({
   };
 
   const getBedLabel = () => {
-    if (!resident.allocatedBedIds || resident.allocatedBedIds.length === 0) {
+    if (!res.allocatedBedIds || res.allocatedBedIds.length === 0) {
       return 'No Bed Allocated';
     }
-    return resident.allocatedBedIds
-      .map((bedId) => {
+    return res.allocatedBedIds
+      .map((bedId: string) => {
         const match = bedId.match(/[^-]+$/);
         return match ? match[0] : bedId;
       })
@@ -169,7 +182,7 @@ export function ResidentFinancialProfile({
           icon: <MonetizationOn color="primary" sx={{ fontSize: 32 }} />,
           chipLabel: 'Workflow - Sprint 12.6',
           description: `This action will issue a monthly rent bill of ${formatCurrency(
-            resident.agreedRent
+            res.agreedRent || 0
           )} for Stay ID ${stayId || 'N/A'} for period ${currentMonthStr}.`,
         };
       case 'ADD_LAUNDRY':
@@ -295,7 +308,7 @@ export function ResidentFinancialProfile({
               {formatCurrency(balances.securityDepositHeld)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Agreed: {formatCurrency(resident.agreedDeposit)}
+              Agreed: {formatCurrency(res.agreedDeposit || 0)}
             </Typography>
           </Grid>
 
@@ -774,7 +787,7 @@ export function ResidentFinancialProfile({
                       </Typography>
 
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatCurrency(resident.agreedRent)}
+                        {formatCurrency(res.agreedRent || 0)}
                       </Typography>
                     </Grid>
 

@@ -247,7 +247,7 @@ export const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({
 
       {/* Drawer Action Buttons (Read-Only Enforcement) */}
       <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {reservation.status === ReservationStatus.ACTIVE && onConvertAdmission && (
+        {(reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && onConvertAdmission && (
           <Button
             variant="contained"
             color="success"

@@ -38,7 +38,6 @@ export interface EmergencyContactViewModel {
   contactName: string;
   relationship: string;
   emergencyPhone: string;
-  fatherOrGuardianName: string;
   motherName: string;
 }
 

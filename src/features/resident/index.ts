@@ -7,4 +7,5 @@ export * from './components/ResidentSummaryCard';
 export * from './components/ContactInformationCard';
 export * from './components/DocumentsCard';
 export * from './components/EmergencyContactCard';
+export * from './components/ResidentIdentityForm';
 export { default as ResidentWorkspacePage } from './pages/ResidentWorkspacePage';

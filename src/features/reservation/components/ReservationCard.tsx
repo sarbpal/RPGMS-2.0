@@ -17,7 +17,6 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import type { Reservation } from '../domain/entities/Reservation';
@@ -210,8 +209,8 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
         </Typography>
       </Box>
 
-      {/* Primary Convert to Admission Action for ACTIVE Reservations (CR-2.4) */}
-      {isActive && onConvertAdmission && (
+      {/* Primary Convert to Admission Action for ACTIVE and FOLLOW_UP_REQUIRED Reservations (CR-2.4 & REF-003) */}
+      {(isActive || isFollowUpRequired) && onConvertAdmission && (
         <Box sx={{ mb: 1.5 }}>
           <Button
             variant="contained"
@@ -229,20 +228,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
       {/* Footer Actions */}
       <Box sx={{ display: 'flex', gap: 1, pt: 1.5, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
-        {isFollowUpRequired && (
-          <Button
-            variant="contained"
-            color="warning"
-            size="small"
-            startIcon={<EventRepeatIcon />}
-            onClick={() => onEdit(reservation)}
-            sx={{ flex: 1, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
-          >
-            Follow Up
-          </Button>
-        )}
-
-        {isEditable && !isFollowUpRequired && (
+        {isEditable && (
           <Button
             variant="outlined"
             size="small"

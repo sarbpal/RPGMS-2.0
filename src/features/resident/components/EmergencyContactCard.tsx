@@ -44,15 +44,7 @@ export function EmergencyContactCard({ data }: EmergencyContactCardProps) {
           <Divider />
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                Father / Guardian Name
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
-                {data.fatherOrGuardianName}
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 Mother Name
               </Typography>

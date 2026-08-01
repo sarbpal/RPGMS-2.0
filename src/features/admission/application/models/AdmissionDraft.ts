@@ -10,7 +10,6 @@ export interface AdmissionDraft {
   emergencyContactPhone: string;
   idProofType?: string;
   idProofNumber?: string;
-  fatherOrGuardianName?: string;
   permanentAddress?: string;
 
   // Section 3: Commercial Terms

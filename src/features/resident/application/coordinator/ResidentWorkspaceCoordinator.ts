@@ -94,7 +94,6 @@ export class ResidentWorkspaceCoordinator {
         contactName: resident.emergencyContact?.name || 'N/A',
         relationship: resident.emergencyContact?.relationship || 'N/A',
         emergencyPhone: resident.emergencyContact?.phone || 'N/A',
-        fatherOrGuardianName: resident.fatherOrGuardianName || 'N/A',
         motherName: resident.motherName || 'N/A',
       },
     };

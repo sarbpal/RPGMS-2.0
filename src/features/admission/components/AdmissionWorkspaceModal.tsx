@@ -19,8 +19,6 @@ import {
   Checkbox,
   FormGroup,
 } from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
-import LocalPhoneIcon from '@mui/icons-material/LocalPhone';
 import StarIcon from '@mui/icons-material/Star';
 import type { Reservation } from '../../reservation/domain/entities/Reservation';
 import { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
@@ -29,6 +27,7 @@ import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordi
 import { AdmissionReadinessPanel } from './AdmissionReadinessPanel';
 import { TokenAdjustmentPreview } from './TokenAdjustmentPreview';
 import type { AdmissionResult } from '../application/models/AdmissionResult';
+import { ResidentIdentityForm, type ResidentIdentityFormData } from '../../resident';
 
 interface AdmissionWorkspaceModalProps {
   open: boolean;
@@ -47,16 +46,13 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Section 2 State
-  const [residentName, setResidentName] = useState('');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [emergencyContactName, setEmergencyContactName] = useState('');
-  const [emergencyContactRelationship] = useState('Parent/Guardian');
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
-  const [fatherOrGuardianName, setFatherOrGuardianName] = useState('');
-  const [permanentAddress, setPermanentAddress] = useState('');
-  const [idProofType] = useState('Aadhaar');
-  const [idProofNumber, setIdProofNumber] = useState('');
+  // Section 2 State using Shared ResidentIdentityForm
+  const [residentFormData, setResidentFormData] = useState<ResidentIdentityFormData>({
+    fullName: '',
+    mobileNumber: '',
+    idProofType: 'Aadhaar',
+    idProofNumber: '',
+  });
 
   // Section 3 State
   const [checkInDate, setCheckInDate] = useState(todayStr);
@@ -76,14 +72,16 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
   // Populate from reservation on open
   useEffect(() => {
     if (reservation) {
-      setResidentName(reservation.prospectName || '');
-      setMobileNumber(reservation.mobileNumber || '');
+      setResidentFormData({
+        fullName: reservation.prospectName || '',
+        mobileNumber: reservation.mobileNumber || '',
+        idProofType: 'Aadhaar',
+        idProofNumber: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        emergencyContactRelationship: '',
+      });
       setCheckInDate(reservation.expectedJoiningDate || todayStr);
-      setEmergencyContactName('');
-      setEmergencyContactPhone('');
-      setFatherOrGuardianName('');
-      setPermanentAddress('');
-      setIdProofNumber('');
       setAgreedRent(8000);
       setAgreedDeposit(6500);
       setFlatId('flat-101');
@@ -100,15 +98,14 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
 
   const currentDraft: AdmissionDraft = {
     reservationId: reservation.id,
-    residentName,
-    mobileNumber,
-    emergencyContactName,
-    emergencyContactRelationship,
-    emergencyContactPhone,
-    fatherOrGuardianName,
-    permanentAddress,
-    idProofType,
-    idProofNumber,
+    residentName: residentFormData.fullName,
+    mobileNumber: residentFormData.mobileNumber,
+    emergencyContactName: residentFormData.emergencyContactName || '',
+    emergencyContactRelationship: residentFormData.emergencyContactRelationship || '',
+    emergencyContactPhone: residentFormData.emergencyContactPhone || '',
+    permanentAddress: residentFormData.permanentAddressLine1 || '',
+    idProofType: residentFormData.idProofType,
+    idProofNumber: residentFormData.idProofNumber,
     checkInDate,
     agreedRent,
     agreedDeposit,
@@ -180,52 +177,16 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
               )}
             </Paper>
 
-            {/* Section 2: Resident Identity Details */}
+            {/* Section 2: Resident Identity Details using Shared Component */}
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0f172a', mb: 1.5 }}>
                 Section 2: Resident Identity Details
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                <TextField
-                  label="Resident Full Name *"
-                  size="small"
-                  value={residentName}
-                  onChange={(e) => setResidentName(e.target.value)}
-                  slotProps={{ input: { startAdornment: <PersonIcon fontSize="small" sx={{ mr: 1, color: '#94a3b8' }} /> } }}
-                />
-                <TextField
-                  label="Mobile Number *"
-                  size="small"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  slotProps={{ input: { startAdornment: <LocalPhoneIcon fontSize="small" sx={{ mr: 1, color: '#94a3b8' }} /> } }}
-                />
-                <TextField
-                  label="Emergency Contact Name *"
-                  size="small"
-                  value={emergencyContactName}
-                  onChange={(e) => setEmergencyContactName(e.target.value)}
-                />
-                <TextField
-                  label="Emergency Contact Phone *"
-                  size="small"
-                  value={emergencyContactPhone}
-                  onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                />
-                <TextField
-                  label="Father / Guardian Name"
-                  size="small"
-                  value={fatherOrGuardianName}
-                  onChange={(e) => setFatherOrGuardianName(e.target.value)}
-                />
-                <TextField
-                  label="ID Proof Number"
-                  size="small"
-                  placeholder="Aadhaar / Passport #"
-                  value={idProofNumber}
-                  onChange={(e) => setIdProofNumber(e.target.value)}
-                />
-              </Box>
+              <ResidentIdentityForm
+                mode="onboarding"
+                value={residentFormData}
+                onChange={setResidentFormData}
+              />
             </Box>
 
             <Divider />

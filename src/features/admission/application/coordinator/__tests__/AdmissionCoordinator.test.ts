@@ -111,6 +111,25 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(readiness.validationMessages).toContain('Token disposition choice must be selected.');
     });
 
+    it('allows readiness and admission without emergency contact details (REF-001.1 Progressive Data Capture)', () => {
+      const draftWithoutEmergencyContact: AdmissionDraft = {
+        ...validDraft,
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        emergencyContactRelationship: '',
+      };
+      const readiness = coordinator.evaluateReadiness(draftWithoutEmergencyContact, sampleActiveReservation);
+      expect(readiness.isResidentDetailsValid).toBe(true);
+      expect(readiness.isReadyToConfirm).toBe(true);
+
+      const result = coordinator.confirmReservedAdmission(draftWithoutEmergencyContact, sampleActiveReservation);
+      expect(result.success).toBe(true);
+
+      const createdResident = residentRepo.getByIdSync(result.residentCode.replace('RESID-', 'res-'));
+      expect(createdResident).toBeDefined();
+      expect(createdResident?.emergencyContact).toBeUndefined();
+    });
+
     it('rejects readiness if reservation is CANCELLED or CONVERTED', () => {
       const cancelledRes: Reservation = {
         ...sampleActiveReservation,

@@ -27,7 +27,6 @@ export interface Resident {
   occupation?: string;
   organizationName?: string;
   bloodGroup?: string;
-  fatherOrGuardianName?: string;
   motherName?: string;
   permanentAddress?: string;
   correspondenceAddress?: string;

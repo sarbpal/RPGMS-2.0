@@ -1,15 +1,12 @@
-import { Edit, Hotel, Phone, UploadFile, Visibility } from '@mui/icons-material';
+import { Edit, Hotel, PersonAdd, Phone, UploadFile, Visibility } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 
-const actions = [
-  { label: 'Edit Profile', icon: <Edit /> },
-  { label: 'View Active Stay', icon: <Visibility /> },
-  { label: 'Start New Stay', icon: <Hotel /> },
-  { label: 'Upload Document', icon: <UploadFile /> },
-  { label: 'Contact Resident', icon: <Phone /> },
-];
+interface ResidentQuickActionsProps {
+  onEditProfile?: () => void;
+  onNewOnboarding?: () => void;
+}
 
-export function ResidentQuickActions() {
+export function ResidentQuickActions({ onEditProfile, onNewOnboarding }: ResidentQuickActionsProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
@@ -17,17 +14,57 @@ export function ResidentQuickActions() {
           Quick Actions
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              startIcon={action.icon}
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {action.label}
-            </Button>
-          ))}
+          <Button
+            startIcon={<Edit />}
+            variant="outlined"
+            size="small"
+            onClick={onEditProfile}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Edit Profile
+          </Button>
+          <Button
+            startIcon={<PersonAdd />}
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={onNewOnboarding}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Onboard New Resident
+          </Button>
+          <Button
+            startIcon={<Visibility />}
+            variant="outlined"
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            View Active Stay
+          </Button>
+          <Button
+            startIcon={<Hotel />}
+            variant="outlined"
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Start New Stay
+          </Button>
+          <Button
+            startIcon={<UploadFile />}
+            variant="outlined"
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Upload Document
+          </Button>
+          <Button
+            startIcon={<Phone />}
+            variant="outlined"
+            size="small"
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Contact Resident
+          </Button>
         </Box>
       </CardContent>
     </Card>

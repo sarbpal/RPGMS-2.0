@@ -4471,6 +4471,28 @@ Component categories include:
 
 Components remain reusable wherever practical.
 
+### Shared Business Components
+
+Where multiple business workflows capture or maintain the same business information, the User Interface shall provide a single reusable business component rather than multiple independent implementations.
+
+Shared business components establish a single presentation implementation for a specific business capability while remaining independent of business workflows.
+
+Examples include:
+
+- ResidentIdentityForm
+- Future CommercialAgreementForm
+- Future PaymentAllocationForm
+
+Business workflows such as Resident Workspace, Admission Workspace, and future Walk-in Admission shall reuse the same ResidentIdentityForm component rather than maintaining separate implementations.
+
+This approach promotes:
+
+- Single presentation implementation
+- Consistent user experience
+- Reduced duplication
+- Simplified maintenance
+- Alignment with the authoritative business specifications
+
 ---
 
 ## View Models
@@ -4519,6 +4541,10 @@ Forms are responsible for:
 - Error presentation
 
 Business validation remains the responsibility of the Domain Layer.
+
+Where practical, forms representing the same business capability shall be implemented as reusable shared components.
+
+Business workflows shall compose these components rather than duplicate equivalent form implementations.
 
 ---
 

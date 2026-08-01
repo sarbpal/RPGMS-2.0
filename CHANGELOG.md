@@ -1503,6 +1503,38 @@ Completed CR-1 (Accommodation Management), establishing the physical accommodati
 - Total automated coverage increased to 8 test suites and 85 test cases.
 - Production build and TypeScript compilation verified successfully.
 
+REF-001 – Shared Resident Identity
+
+Implemented canonical ResidentIdentityForm.
+
+Implemented Progressive Data Capture.
+
+Removed duplicated Resident onboarding forms.
+
+Resident Workspace and Admission Workspace now share a single Resident identity component.
+
+Removed obsolete fatherOrGuardianName.
+
+Removed automatic Emergency Contact defaults.
+
+## REF-001 – Shared Resident Identity
+
+### Added
+
+- Introduced reusable ResidentIdentityForm.
+- Added support for Onboarding and Profile operating modes.
+- Implemented Progressive Data Capture during Resident onboarding.
+
+### Changed
+
+- Resident Workspace and Admission Workspace now share the same Resident identity component.
+- Eliminated duplicated Resident identity forms.
+- Updated Admission validation to align with Progressive Data Capture.
+
+### Removed
+
+- Removed obsolete `fatherOrGuardianName`.
+- Removed automatic Emergency Contact default generation.
 
 ------------------------------------------------------------------------------
 End of Document

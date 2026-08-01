@@ -55,30 +55,26 @@ export class AdmissionCoordinator {
     let isReservationValid = false;
     if (reservation) {
       const editCheck = canEditReservation(reservation.status);
-      if (reservation.status === ReservationStatus.ACTIVE && editCheck.allowed) {
+      if ((reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && editCheck.allowed) {
         isReservationValid = true;
       } else {
-        validationMessages.push(`Reservation ${reservation.reservationNumber} must be ACTIVE and editable.`);
+        validationMessages.push(`Reservation ${reservation.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`);
       }
     } else {
       validationMessages.push('Active reservation is required.');
     }
 
-    // 2. Resident Details Verification
+    // 2. Resident Details Verification (Progressive Data Capture: Name & 10-digit Mobile)
     let isResidentDetailsValid = false;
     const nameValid = Boolean(draft.residentName && draft.residentName.trim().length > 0);
     const cleanedMobile = draft.mobileNumber ? draft.mobileNumber.trim().replace(/\D/g, '') : '';
     const mobileValid = cleanedMobile.length === 10;
-    const emergencyNameValid = Boolean(draft.emergencyContactName && draft.emergencyContactName.trim().length > 0);
-    const cleanedEmergencyPhone = draft.emergencyContactPhone ? draft.emergencyContactPhone.trim().replace(/\D/g, '') : '';
-    const emergencyPhoneValid = cleanedEmergencyPhone.length === 10;
 
-    if (nameValid && mobileValid && emergencyNameValid && emergencyPhoneValid) {
+    if (nameValid && mobileValid) {
       isResidentDetailsValid = true;
     } else {
       if (!nameValid) validationMessages.push('Resident full name is required.');
       if (!mobileValid) validationMessages.push('Valid 10-digit mobile number is required.');
-      if (!emergencyNameValid || !emergencyPhoneValid) validationMessages.push('Complete emergency contact name and 10-digit phone number are required.');
     }
 
     // 3. Commercial Terms Verification
@@ -145,12 +141,12 @@ export class AdmissionCoordinator {
       isTokenDecisionValid;
 
     return {
+      isReadyToConfirm,
       isReservationValid,
       isResidentDetailsValid,
       isCommercialTermsValid,
       isAccommodationValid,
       isTokenDecisionValid,
-      isReadyToConfirm,
       validationMessages,
     };
   }
@@ -231,19 +227,22 @@ export class AdmissionCoordinator {
       const nextSeq = allResidents.length + 1;
       const residentCode = `RESID-${String(nextSeq).padStart(6, '0')}`;
 
+      const hasEmergencyContact = Boolean(draft.emergencyContactName && draft.emergencyContactName.trim().length > 0);
+
       const newResident: Resident = {
         id: `res-${String(nextSeq).padStart(6, '0')}`,
         residentCode,
         fullName: draft.residentName.trim(),
         status: ResidentStatus.ACTIVE,
         mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
-        fatherOrGuardianName: draft.fatherOrGuardianName?.trim() || undefined,
         permanentAddress: draft.permanentAddress?.trim() || undefined,
-        emergencyContact: {
-          name: draft.emergencyContactName.trim(),
-          relationship: draft.emergencyContactRelationship.trim() || 'Parent/Guardian',
-          phone: draft.emergencyContactPhone.trim().replace(/\D/g, ''),
-        },
+        emergencyContact: hasEmergencyContact
+          ? {
+              name: draft.emergencyContactName!.trim(),
+              relationship: draft.emergencyContactRelationship?.trim() || 'Other',
+              phone: draft.emergencyContactPhone ? draft.emergencyContactPhone.trim().replace(/\D/g, '') : '',
+            }
+          : undefined,
         documents: draft.idProofType && draft.idProofNumber ? [
           {
             type: draft.idProofType as any,

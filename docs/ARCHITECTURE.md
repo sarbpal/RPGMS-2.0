@@ -10,7 +10,7 @@
 
 **Status:** Approved Software Architecture
 
-**Architecture Baseline v3.0 — Approved for MVP Implementation
+**Architecture Baseline v3.0 — Frozen for MVP Implementation
 
 **Owner:** RPGMS Architecture
 
@@ -59,22 +59,23 @@ Supporting chapters such as Data Architecture, Event Architecture and Security A
 6. Architectural Principles
 7. Layered Architecture
 8. Domain Architecture
-9. Data Architecture
+9. Data Ownership Architecture
 10. Domain Interaction Architecture
 11. Operational Support Domains
 12. Platform Domains
 13. Domain Independence
 14. Cross-Domain Workflows
 15. Cross-Cutting Architectural Services
-16. Event Architecture
-17. Security Architecture
-18. Runtime & Deployment Architecture
-19. Technology Stack
-20. User Interface Architecture
-21. Future Evolution
-22. Documentation Architecture
-23. Architectural Governance
-24. Conclusion
+16. Business Data Architecture
+17. Event Architecture
+18. Security Architecture
+19. Runtime & Deployment Architecture
+20. Technology Stack
+21. User Interface Architecture
+22. Future Evolution
+23. Documentation Architecture
+24. Architectural Governance
+25. Conclusion
 ---
 
 # Purpose
@@ -933,7 +934,7 @@ Each Cross-Cutting Architectural Service is implemented and governed by the corr
 
 ---
 
-# Data Architecture
+# Data Ownership Architecture
 
 The RPGMS Data Architecture is organised around Software Domain ownership.
 
@@ -1502,27 +1503,25 @@ This separation allows Reservations and Stays to evolve independently while pres
 
 ### Purpose
 
-The Stay Domain owns the operational occupancy lifecycle of a resident within a designated Flat.
+The Stay Domain owns the operational relationship between a Resident and the organisation from Admission until Operational Checkout.
 
-It is responsible for managing the complete operational relationship between a resident and the organisation from physical check-in until operational checkout.
+It preserves the complete operational history of the Stay while exposing a derived Current Projection for day-to-day operations.
 
-The Stay Domain coordinates occupancy while referencing Accommodation, Commercial and Resident information. It is bounded by Flat (1 Stay = 1 Flat boundary) and is concerned exclusively with operational occupancy.
-
+The Stay Domain coordinates operational occupancy by referencing Resident, Accommodation and Commercial information without assuming ownership of those domains.
 ---
 
 ### Responsibilities
 
 The Stay Domain is responsible for:
 
-- Check-in & Stay commencement
-- Flat assignment and multi-bed allocation within Flat
-- Bed allocation, Bed release, and Bed transfer
-- Accommodation Amendments recording
-- Notice processing (intent to vacate)
-- Operational occupancy & operational status management
-- Operational checkout (sole terminal operational event)
-- Stay operational timeline derived from Business Events
-- Occupancy validation
+• Stay lifecycle
+• Current Projection
+• Bed Allocation history
+• Commercial Agreement history
+• Business Events
+• Notice lifecycle
+• Operational Checkout
+• Operational Timeline
 
 ---
 
@@ -1607,14 +1606,13 @@ It encapsulates all information required to manage the operational occupancy lif
 
 The Stay Primary Domain Aggregate consists of:
 
-- Stay
-- Flat assignment reference (1 Stay = 1 Flat)
-- Bed Allocation(s) within Flat
-- Operational Status
-- Accommodation Amendments history
-- Notice processing state
-- Stay Timeline
-- Check-in & Operational Checkout Information
+• Stay
+• Current Projection
+• Bed Allocation History
+• Commercial Agreement History
+• Notice State
+• Business Events
+• Operational Timeline
 
 The Stay Primary Domain Aggregate references, but does not own:
 
@@ -1624,6 +1622,22 @@ The Stay Primary Domain Aggregate references, but does not own:
 - Reservation
 - Financial Account
 - Deposit Account
+
+### Current Projection
+
+The Current Projection is a derived operational representation of an Active Stay.
+
+It exists solely to optimise day-to-day operational workflows.
+
+The Current Projection is derived from:
+
+- Stay
+- Active Commercial Agreement
+- Active Bed Allocation(s)
+- Current Notice
+- Current Operational Status
+
+Historical information always remains authoritative within the Stay Aggregate.
 
 ### Lifecycle Independence
 
@@ -1912,6 +1926,24 @@ Accommodation   │   Commercial   │
                         ▼
                      Deposit
 ```
+
+### Stay Domain Internal Architecture
+
+While the Domain Dependency diagram illustrates relationships between Software Domains, the internal architecture of the Stay Domain is organised around the Current Stay.
+
+The Current Stay preserves the complete operational relationship between a Resident and the organisation throughout a single period of residence.
+
+The Stay Domain internally manages:
+
+- Commercial Agreement history
+- Bed Allocation history
+- Business Events
+- Notice lifecycle
+- Operational Checkout
+
+From these business components, the Stay Domain derives a **Current Projection** representing the current operational state required by day-to-day hostel operations.
+
+The Current Projection is consumed by the Stay Workspace and other operational workflows while historical business information remains preserved within the Stay Aggregate.
 
 ### Dependency Principles
 
@@ -3263,7 +3295,7 @@ This separation preserves modularity, maintainability and long-term scalability.
 
 ---
 
-# Data Architecture
+# Business Data Architecture
 
 The Data Architecture defines how business information is represented, owned and managed within RPGMS.
 
@@ -3388,6 +3420,12 @@ Examples include:
 
 Derived information shall never become an independent source of business truth.
 
+Current Projection is an example of derived operational information.
+
+It is calculated from authoritative business history within the Stay Aggregate.
+
+Derived operational views improve application performance and simplify workflows without becoming authoritative business records.
+
 ---
 
 # Historical Preservation
@@ -3459,6 +3497,12 @@ Together these principles ensure that business information remains accurate, mai
 # Event Architecture
 
 ## Introduction
+
+Domain Events are the technical mechanism by which Software Domains communicate.
+
+Business Events represent the business narrative derived from those Domain Events.
+
+Business Timelines and Current Projections are built from Business Events rather than directly from user interface actions.
 
 The RPGMS platform uses Domain Events and a cross-domain **Business Event Conceptual Model** (`BCR-008`, `BAP-002`) to communicate significant business and platform activities between Software Domains.
 

@@ -75,6 +75,10 @@ The guiding principle of RPGMS 2.0 is therefore:
 
 > **The Current Stay is the operational unit of the system.**
 
+The Stay Workspace operates primarily on the Current Projection of the active Stay.
+
+The Current Projection provides the operational state required for day-to-day hostel management while historical information remains preserved within the Stay's business components.
+
 Every operational activity performed by hostel staff is executed against an active Stay.
 
 This architectural decision provides a scalable foundation for future modules while ensuring that daily workflows remain simple, intuitive and consistent.
@@ -89,27 +93,26 @@ Each entity owns its own data and business rules.
 
 The Stay Workspace does not replace these entities. Instead, it brings them together to support day-to-day hostel operations.
 
-```
 Resident
-    │
-    ├── Stay #1 (Closed)
-    │      ├── Bed Allocation
-    │      ├── Ledger
-    │      ├── Settlement
-    │      └── Timeline
-    │
-    ├── Stay #2 (Closed)
-    │
-    └── Current Stay (Active)
-           ├── Accommodation
-           ├── Rent
-           ├── Deposit
-           ├── Bills
-           ├── Payments
-           ├── Timeline
-           ├── Documents
-           └── Checkout
-```
+│
+├── Historical Stay
+│
+├── Historical Stay
+│
+└── Current Stay
+      │
+      ├── Current Projection
+      │
+      ├── Commercial Agreement
+      │
+      ├── Bed Allocation
+      │
+      ├── Business Events
+      │
+      └── Operational Resources
+             └── Door ID
+
+The Stay Workspace presents the Current Projection while allowing operators to access the underlying Commercial Agreement, Bed Allocation and Business Events that together define the Current Stay.
 
 A Resident may have multiple stays over time.
 
@@ -131,6 +134,8 @@ For consistency throughout RPGMS 2.0, the following terminology is used.
 | Current Stay | The resident's active Stay and the operational unit of the system. |
 | Historical Stay | Any completed Stay that has been checked out and preserved for audit and reporting purposes. |
 | Stay Workspace | The operational workspace used to manage the Current Stay. It is an orchestration layer and does not own business data. |
+| Current Projection | The derived operational view of the Current Stay presented to operators. |
+| Business Event | A significant operational event recorded during the lifetime of a Stay. |
 
 # Core Business Entities
 
@@ -166,15 +171,13 @@ Every operational activity performed by hostel staff is associated with a Stay.
 
 Typical Stay information includes:
 
-- Check-in date
-- Check-out date
-- Current status
-- Assigned flat
-- Assigned bed
-- Monthly rent
-- Security deposit
-- Notice information
-- Current financial summary
+- Admission Date
+- Operational Checkout Date
+- Current Status
+- Commercial Agreement
+- Bed Allocation
+- Business Events
+- Current Projection
 
 A Resident may have multiple historical Stays, but only one active Stay at any given time.
 
@@ -194,7 +197,14 @@ Examples include:
 - Rooms
 - Beds
 
-Accommodation owns physical allocation only.
+Accommodation owns the physical accommodation resources:
+
+- Buildings
+- Floors
+- Flats
+- Beds
+
+The Stay is responsible for the Bed Allocation relationship linking a Stay to those resources.
 
 It does not own resident identity or financial information.
 
@@ -226,6 +236,8 @@ Operational workflows invoke Finance services through the Stay Workspace rather 
 # Relationship Between Entities
 
 The relationship between the primary business entities can be represented as follows.
+
+The Stay Workspace consumes the Current Projection of the active Stay while preserving the ownership boundaries of the participating domains.
 
 ```
 Accommodation
@@ -444,7 +456,7 @@ Accommodation ──────────┼────────── Re
                  Ledger & Timeline
 ```
 
-The important architectural principle is that users may enter from multiple modules, but all operational work is performed from a single workspace.
+The Current Stay Workspace presents the Current Projection of the active Stay and provides access to all Business Operations associated with that Stay.
 
 ---
 
@@ -454,33 +466,39 @@ Once inside the Stay Workspace, users should be able to complete the entire life
 
 A typical operational workflow is illustrated below.
 
-```
-Resident Check-in
-        │
-        ▼
+Admission
+
+↓
+
+Commercial Agreement
+
+↓
+
 Bed Allocation
-        │
-        ▼
+
+↓
+
 Monthly Billing
-        │
-        ▼
+
+↓
+
 Payments
-        │
-        ▼
-Additional Charges
-        │
-        ▼
+
+↓
+
 Notice
-        │
-        ▼
+
+↓
+
 Settlement
-        │
-        ▼
-Checkout
-        │
-        ▼
+
+↓
+
+Operational Checkout
+
+↓
+
 Stay Closed
-```
 
 This lifecycle represents the complete operational journey of a Stay and forms the foundation for future workflow enhancements within RPGMS 2.0.
 
@@ -504,7 +522,7 @@ The recommended layout is illustrated below.
 +--------------------------------------------------------------+
 | Stay Summary              | Financial Summary                |
 +---------------------------+----------------------------------+
-| Recent Timeline                                              |
+| Recent Business Events                                              |
 +--------------------------------------------------------------+
 | Supporting Information / Documents                           |
 +--------------------------------------------------------------+
@@ -526,9 +544,10 @@ The header should include:
 - Resident photograph (optional)
 - Resident ID
 - Stay ID
+- Current Door ID
 - Current status
-- Check-in date
-- Expected check-out date (if applicable)
+- Admission Date
+- Expected Operational Checkout Date (if applicable)
 - Flat and bed allocation
 
 Example:
@@ -541,7 +560,7 @@ Resident ID : RES-00124
 Stay ID     : STAY-2026-00041
 
 Status       : Active
-Check-in     : 12-Mar-2026
+Admission     : 12-Mar-2026
 Flat / Bed   : Flat 103 / Bed H2
 ---------------------------------------------------------------
 ```
@@ -558,15 +577,29 @@ Quick Actions provide immediate access to the most frequently performed operatio
 
 These actions should always operate on the Current Stay.
 
+Quick Actions represent the primary Business Operations performed against the Current Stay.
+
 Recommended actions include:
 
-- Record Payment
-- Generate Monthly Rent
-- Add Laundry Charges
-- Add Electricity Charges
-- Transfer Bed
-- Give Notice
-- Begin Checkout
+Generate Monthly Rent
+
+Record Payment
+
+Revise Commercial Agreement
+
+Allocate Additional Bed
+
+Transfer Bed
+
+Transfer Flat
+
+Assign Door ID
+
+Give Notice
+
+Withdraw Notice
+
+Begin Operational Checkout
 
 These actions should remain concise and represent the core daily operations of the hostel.
 
@@ -582,12 +615,13 @@ Typical information includes:
 
 - Current Stay Status
 - Occupancy Duration
-- Rent Plan
-- Security Deposit
+- Current Commercial Agreement
+- Current Bed Allocation(s)
+- Current Door ID
+- Current Occupants
 - Notice Status
-- Bed Allocation
-- Outstanding Maintenance Requests (future)
-- Visitor Status (future)
+- Expected Operational Checkout
+- Outstanding Operational Actions
 
 The objective is to provide operational information at a glance without requiring users to navigate into individual modules.
 
@@ -651,14 +685,15 @@ Accommodation owns all physical assets within the hostel.
 
 Examples include:
 
-- Buildings
-- Floors
-- Flats
-- Rooms
-- Beds
-- Bed Status
-- Bed Availability
-- Bed Allocation
+• Buildings
+• Floors
+• Flats
+• Rooms
+• Beds
+• Bed Status
+• Bed Availability
+
+The Stay domain owns the Bed Allocation relationship linking a Stay to those physical resources.
 
 Accommodation determines where a resident is staying.
 
@@ -672,13 +707,21 @@ Residents owns the permanent identity of every resident.
 
 Typical responsibilities include:
 
-- Personal Information
-- Contact Details
-- Emergency Contacts
-- Identity Documents
-- Medical Information
-- Educational Information
-- Resident History
+Personal Identity
+
+Contact Information
+
+Government Identification
+
+Permanent Address
+
+Professional Information
+
+Medical Information
+
+Emergency Contacts
+
+Historical Stays
 
 Residents does not own accommodation allocation or financial transactions.
 
@@ -703,10 +746,6 @@ Examples include:
 Finance is responsible for all accounting calculations, validations and audit history.
 
 The Stay Workspace must never implement financial calculations independently.
-
-Billing remains responsible for billing generation, billing cycles and billing rules.
-
-The Stay Workspace invokes Billing services as part of operational workflows but does not implement billing logic itself.
 
 Billing remains responsible for billing generation, billing cycles and billing rules.
 
@@ -809,12 +848,14 @@ These modules should contribute operational information while continuing to own 
 
 One of the guiding principles of RPGMS 2.0 is that each major module answers a specific business question.
 
-| Module | Primary Question |
-|---------|------------------|
-| Accommodation | **Where is the resident staying?** |
-| Residents | **Who is the resident?** |
-| Finance | **How much is owed or paid?** |
-| Stay Workspace | **What operational action happens next?** |
+| Module         | Primary Business Question                                        |
+| -------------- | ---------------------------------------------------------------- |
+| Residents      | **Who is the resident?**                                         |
+| Stay           | **What is the resident's current relationship with the hostel?** |
+| Accommodation  | **What physical resources are available and occupied?**          |
+| Finance        | **What financial obligations and transactions exist?**           |
+| Stay Workspace | **What operational action should be performed now?**             |
+| -------------- | ---------------------------------------------------------------- |
 
 This simple heuristic helps determine where new features belong within the system.
 
@@ -1022,6 +1063,42 @@ The following principles should guide future development.
 
 ---
 
+# ADR-005 — Current Projection
+
+## Status: Accepted
+
+## Context
+
+The Stay domain preserves complete historical business information, including Commercial Agreements, Bed Allocations and Business Events.
+
+However, day-to-day hostel operations require only the current operational state of an active Stay rather than its complete history.
+
+Presenting historical business objects directly to users would increase complexity and duplicate operational logic across the application.
+
+A derived Current Projection provides a simplified, real-time operational view while allowing historical information to remain immutable within the Stay domain.
+
+## Decision
+
+The Stay Workspace shall present a Current Projection derived from the active Stay.
+
+The Current Projection is composed from:
+
+Active Commercial Agreement
+Active Bed Allocation(s)
+Current Stay Status
+Current Door ID
+
+It is an operational view and shall not become the authoritative source of historical information.
+
+## Consequences
+
+Clear separation between history and operational state.
+Faster operator workflows.
+Preservation of immutable business history.
+Consistent architecture across future workspaces.
+
+---
+
 # Architectural Heuristic
 
 One of the guiding principles of RPGMS 2.0 is that every major module answers a specific business question.
@@ -1090,7 +1167,7 @@ The recommended implementation sequence is:
 
 ## Phase 4
 
-- Timeline
+- Business Events Timeline
 - Activity history
 - Operational workflow
 
@@ -1123,7 +1200,7 @@ These documents together define the architectural, technical and user experience
 
 The Stay Workspace is the operational heart of RPGMS 2.0.
 
-Rather than introducing another business module, it provides a unified operational experience by orchestrating the Stay, Accommodation, Residents and Finance domains around the Current Stay. around the Current Stay.
+Rather than introducing another business module, it provides a unified operational experience by orchestrating the Stay, Accommodation, Residents and Finance domains around the Current Stay.
 
 This architecture reflects the natural workflow of hostel operations while preserving clear ownership of business responsibilities.
 

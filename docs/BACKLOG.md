@@ -146,5 +146,11 @@ Future compliance records may include:
 Accommodation Enhancement: Bed Details Drawer
 
 Clicking a bed card opens a contextual side panel showing resident details, financial summary, stay status, and context-specific actions (occupied vs vacant), without leaving the Accommodation page.
+
+Future Constitutional Document: docs/business/BUSINESS_EVENTS_SPECIFICATION.md
+
+This document will define the philosophy, taxonomy, lifecycle, and responsibilities of Business Events across RPGMS 2.0, once the core domains (Resident, Stay, Finance) have stabilized.
+
+
 - 
 **Status:** Deferred until post-MVP.

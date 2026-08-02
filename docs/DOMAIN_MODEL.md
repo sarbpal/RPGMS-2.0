@@ -211,6 +211,9 @@ The following business terms are used consistently throughout the project.
 | Resident | A person known to the business (permanent identity profile) |
 | Stay | One continuous period of residence bounded by one Flat |
 | Accommodation Amendment | Domain concept representing an immutable business event for bed allocation changes within a Flat |
+| Current Stay | The single active Stay representing the Resident's current operational relationship with the organisation |
+| Current Projection | A derived operational view of the Current Stay used for day-to-day operations while preserving complete historical information |
+| Bed Allocation | The relationship assigning one or more Beds to a Stay for a defined period |
 | Commercial Agreement | The financial terms governing a Stay |
 | Commercial Amendment | Domain concept representing an immutable business event for financial term revisions during a Stay |
 | Lock-in Period | Financial commitment owned by the Commercial Agreement |
@@ -231,7 +234,6 @@ These terms form the common language used throughout the project.
 
 RPGMS is organised into four primary business domains, supported by a cross-domain Business Event model.
 
-```
 Accommodation
         │
         ▼
@@ -239,11 +241,21 @@ Reservation
         │
    Admission
         ▼
-Resident Lifecycle
+Resident
+        │
+        ▼
+Current Stay
+        │
+ ┌──────┼──────────────┐
+ ▼      ▼              ▼
+Commercial   Bed     Business
+Agreement Allocation Events
+        │
+        ▼
+Current Projection
         │
         ▼
 Finance
-```
 
 Each domain represents a distinct area of business responsibility.
 
@@ -809,17 +821,21 @@ May have:
 
 ### Purpose
 
-A Stay represents one continuous period during which a Resident occupies accommodation within a designated Flat.
+A Stay represents one continuous period of residence between Admission and Operational Checkout.
 
-A Stay is the primary operational entity of the Resident Lifecycle Domain.
+The Stay is the primary operational entity governing the relationship between the Resident and the organisation during that period.
+
+The Stay preserves operational history while exposing a Current Projection for day-to-day operations.
 
 ### Responsibilities
 
-- Manage occupancy within one Flat
-- Reference active Commercial Agreement
-- Maintain operational timeline derived from Business Events
-- Support Bed Allocations, Bed Releases, and Bed Transfers
-- Support Notice processing and Operational Checkout
+- Preserve the operational lifecycle of the Stay
+- Maintain Commercial Agreement history
+- Maintain Bed Allocation history
+- Maintain Business Events
+- Expose the Current Projection
+- Support Notice processing
+- Support Operational Checkout
 
 ### Relationships
 
@@ -852,6 +868,34 @@ Owns:
 
 ---
 
+## 11.4.1 Current Projection
+
+### Purpose
+
+The Current Projection represents the derived operational state of an active Stay.
+
+It provides the information required for day-to-day hostel operations while preserving complete historical information within the Stay.
+
+### Characteristics
+
+The Current Projection is derived from:
+
+- Current Stay Status
+- Active Commercial Agreement
+- Active Bed Allocation(s)
+- Current Door ID
+- Current Notice information
+
+The Current Projection is an operational view.
+
+It is not the authoritative source of historical information.
+
+### Business Rules
+
+- Every Active Stay exposes one Current Projection.
+- Historical business information remains authoritative.
+- Changes to business history are reflected through updates to the Current Projection.
+  
 ## 11.5 Bed Allocation
 
 ### Purpose
@@ -1357,30 +1401,35 @@ Business references never imply ownership.
 
 The primary business relationships are shown below.
 
-```
-Reservation
-      │
-      ▼
- Admission
-      │
-      ▼
- Resident
-      │
-      ▼
-   Stay
-      │
-      ▼
-Commercial Agreement
-      │
-      ▼
- Finance
-```
+
 
 Business Processes coordinate domains.
 
 Business Entities own business state.
 
 ---
+
+Reservation
+      │
+      ▼
+Admission
+      │
+      ▼
+Resident
+      │
+      ▼
+Current Stay
+      │
+ ┌──────┼──────────────┐
+ ▼      ▼              ▼
+Commercial   Bed     Business
+Agreement Allocation Events
+      │
+      ▼
+Current Projection
+      │
+      ▼
+Finance
 
 ## 13.4 Business Processes
 

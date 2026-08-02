@@ -34,7 +34,7 @@ export class Stay {
   readonly stayType: StayType;
   private _status: StayStatus;
   readonly checkInDate: string;
-  readonly expectedCheckoutDate?: string;
+  private _expectedCheckoutDate?: string;
   readonly actualCheckoutDate?: string;
   private _commercialAgreements: CommercialAgreement[];
   private _bedAllocations: BedAllocation[];
@@ -48,9 +48,9 @@ export class Stay {
     this.id = props.id;
     this.residentId = props.residentId;
     this.stayType = props.stayType;
-    this._status = props.status || (props as any)._status;
+    this._status = props.status;
     this.checkInDate = props.checkInDate;
-    this.expectedCheckoutDate = props.expectedCheckoutDate;
+    this._expectedCheckoutDate = props.expectedCheckoutDate;
     this.actualCheckoutDate = props.actualCheckoutDate;
     this.doorId = props.doorId;
     this.notes = props.notes;
@@ -154,6 +154,10 @@ export class Stay {
   // Aggregate Getters
   get status(): StayStatus {
     return this._status;
+  }
+
+  get expectedCheckoutDate(): string | undefined {
+    return this._expectedCheckoutDate;
   }
 
   get commercialAgreements(): readonly CommercialAgreement[] {
@@ -595,6 +599,70 @@ export class Stay {
     });
   }
 
+  // Aggregate API: Notice Domain Operations (CR-3.5)
+
+  /**
+   * Domain operation for placing an active Stay on Notice.
+   * Enforces that only ACTIVE Stays can enter Notice.
+   * Records noticeDate and expectedCheckoutDate, appends a NOTICE_GIVEN BusinessEvent,
+   * and regenerates CurrentProjection without modifying accommodation or commercial history.
+   */
+  public giveNotice(props: {
+    noticeDate: string;
+    expectedCheckoutDate: string;
+    reason?: string;
+  }): CurrentProjection {
+    if (this._status !== StayStatus.ACTIVE) {
+      throw new Error(
+        `Only ACTIVE Stays may enter Notice. Current status is ${this._status}.`
+      );
+    }
+
+    if (!props.noticeDate || props.noticeDate.trim() === '') {
+      throw new Error(`Notice date is required to place a Stay on Notice.`);
+    }
+
+    if (!props.expectedCheckoutDate || props.expectedCheckoutDate.trim() === '') {
+      throw new Error(`Expected checkout date is required to place a Stay on Notice.`);
+    }
+
+    if (props.expectedCheckoutDate < props.noticeDate) {
+      throw new Error(
+        `Expected checkout date (${props.expectedCheckoutDate}) cannot precede notice date (${props.noticeDate}).`
+      );
+    }
+
+    // Step 1: Transition lifecycle state to ON_NOTICE
+    this._status = StayStatus.ON_NOTICE;
+
+    // Step 2: Record expectedCheckoutDate
+    this._expectedCheckoutDate = props.expectedCheckoutDate;
+
+    // Step 3: Append NOTICE_GIVEN BusinessEvent
+    const eventDescription =
+      props.reason && props.reason.trim() !== ''
+        ? props.reason
+        : `Resident gave notice on ${props.noticeDate} with expected checkout on ${props.expectedCheckoutDate}`;
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'NOTICE_GIVEN',
+        timestamp: props.noticeDate,
+        description: eventDescription,
+        metadata: {
+          noticeDate: props.noticeDate,
+          expectedCheckoutDate: props.expectedCheckoutDate,
+          reason: props.reason,
+        },
+      })
+    );
+
+    // Step 4: Regenerate CurrentProjection
+    return this.getCurrentProjection();
+  }
+
   // Aggregate API: Current Projection
   getCurrentProjection(): CurrentProjection {
     const activeAgreement = this.activeCommercialAgreement;
@@ -603,6 +671,9 @@ export class Stay {
       .map((ba) => ba.bedId)
       .filter((b) => b !== 'UNASSIGNED');
     const flatId = activeAllocations.length > 0 ? activeAllocations[0].flatId : 'Unassigned';
+
+    const noticeEvent = [...this._businessEvents].reverse().find((be) => be.eventType === 'NOTICE_GIVEN');
+    const noticeDate = noticeEvent ? noticeEvent.timestamp : undefined;
 
     return new CurrentProjection({
       stayId: this.id,
@@ -617,6 +688,7 @@ export class Stay {
       currentDeposit: activeAgreement?.securityDeposit ?? 0,
       doorId: this.doorId,
       noticeStatus: this._status === StayStatus.ON_NOTICE ? 'ON_NOTICE' : 'NONE',
+      noticeDate,
     });
   }
 }

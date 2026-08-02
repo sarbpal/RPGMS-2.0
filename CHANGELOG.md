@@ -1584,6 +1584,24 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ TypeScript Compilation Passed
 - ✅ Production Build Passed
 
+## CR-3.5 – Notice Lifecycle
+
+### Added
+
+- Implemented Notice Lifecycle as an explicit Stay Aggregate business operation.
+- Added `giveNotice()` aggregate operation.
+- Added ACTIVE → ON_NOTICE lifecycle transition.
+- Added `NOTICE_GIVEN` BusinessEvent generation.
+- Added CurrentProjection regeneration following Notice placement.
+- Added StayNoticeCoordinator for Notice orchestration.
+- Added unit and integration tests for Notice Lifecycle.
+
+### Verification
+
+- ✅ Unit & Integration Tests Passed
+- ✅ TypeScript Compilation Passed
+- ✅ Production Build Passed
+- 
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

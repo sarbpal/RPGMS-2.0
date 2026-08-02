@@ -447,4 +447,117 @@ describe('Stay Aggregate Root (CR-3.1 Foundation)', () => {
       ).toThrow('An explicit amendment reason is required for commercial term revision');
     });
   });
+
+  describe('Notice Lifecycle Operations (CR-3.5)', () => {
+    it('transitions ACTIVE stay to ON_NOTICE, logs NOTICE_GIVEN event, and updates CurrentProjection', () => {
+      const stay = new Stay({
+        id: 'STAY-401',
+        residentId: 'RES-401',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      const projection = stay.giveNotice({
+        noticeDate: '2026-04-01',
+        expectedCheckoutDate: '2026-05-01',
+        reason: 'Relocating to another city',
+      });
+
+      expect(projection.status).toBe(StayStatus.ON_NOTICE);
+      expect(projection.noticeStatus).toBe('ON_NOTICE');
+      expect(projection.expectedCheckoutDate).toBe('2026-05-01');
+      expect(projection.noticeDate).toBe('2026-04-01');
+
+      expect(stay.status).toBe(StayStatus.ON_NOTICE);
+      expect(stay.expectedCheckoutDate).toBe('2026-05-01');
+
+      // Verify Business Event
+      const lastEvent = stay.businessEvents[stay.businessEvents.length - 1];
+      expect(lastEvent.eventType).toBe('NOTICE_GIVEN');
+      expect(lastEvent.timestamp).toBe('2026-04-01');
+      expect(lastEvent.description).toBe('Relocating to another city');
+      expect(lastEvent.metadata).toMatchObject({
+        noticeDate: '2026-04-01',
+        expectedCheckoutDate: '2026-05-01',
+      });
+    });
+
+    it('strictly preserves bedAllocations and commercialAgreements unchanged during Notice transition', () => {
+      const stay = new Stay({
+        id: 'STAY-402',
+        residentId: 'RES-402',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      const initialBedAllocationsCount = stay.bedAllocations.length;
+      const initialCommercialAgreementsCount = stay.commercialAgreements.length;
+      const initialActiveAgreement = stay.activeCommercialAgreement;
+
+      stay.giveNotice({
+        noticeDate: '2026-04-01',
+        expectedCheckoutDate: '2026-05-01',
+      });
+
+      // Confirm sub-entities were not modified or closed
+      expect(stay.bedAllocations).toHaveLength(initialBedAllocationsCount);
+      expect(stay.bedAllocations[0].status).toBe('ACTIVE');
+
+      expect(stay.commercialAgreements).toHaveLength(initialCommercialAgreementsCount);
+      expect(stay.activeCommercialAgreement?.id).toBe(initialActiveAgreement?.id);
+      expect(stay.activeCommercialAgreement?.status).toBe('ACTIVE');
+    });
+
+    it('enforces ACTIVE-only invariant: rejects giveNotice if Stay is already ON_NOTICE or CHECKED_OUT', () => {
+      const onNoticeStay = new Stay({
+        id: 'STAY-403',
+        residentId: 'RES-403',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ON_NOTICE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      expect(() =>
+        onNoticeStay.giveNotice({
+          noticeDate: '2026-04-15',
+          expectedCheckoutDate: '2026-05-15',
+        })
+      ).toThrow('Only ACTIVE Stays may enter Notice. Current status is ON_NOTICE');
+    });
+
+    it('enforces date validation: rejects expectedCheckoutDate preceding noticeDate', () => {
+      const stay = new Stay({
+        id: 'STAY-404',
+        residentId: 'RES-404',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      expect(() =>
+        stay.giveNotice({
+          noticeDate: '2026-05-01',
+          expectedCheckoutDate: '2026-04-01',
+        })
+      ).toThrow('Expected checkout date (2026-04-01) cannot precede notice date (2026-05-01)');
+    });
+  });
 });

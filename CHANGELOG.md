@@ -1601,7 +1601,27 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ Unit & Integration Tests Passed
 - ✅ TypeScript Compilation Passed
 - ✅ Production Build Passed
-- 
+
+## CR-3.6 – Operational Checkout
+
+### Added
+
+- Implemented Operational Checkout as an explicit Stay Aggregate business operation.
+- Added aggregate checkout lifecycle completion.
+- Added closure of active BedAllocation history.
+- Added closure of active CommercialAgreement history.
+- Added CHECKOUT_COMPLETED BusinessEvent generation.
+- Added CurrentProjection regeneration after checkout.
+- Added StayCheckoutCoordinator for operational checkout orchestration.
+- Refactored Finance settlement flow to delegate lifecycle completion to the Stay Aggregate.
+- Added unit and integration tests for Operational Checkout.
+
+### Verification
+
+- ✅ Unit & Integration Tests Passed
+- ✅ TypeScript Compilation Passed
+- ✅ Production Build Passed
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

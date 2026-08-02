@@ -11,7 +11,7 @@ import { AccountType, SettlementOutcome, deriveSettlementPreview } from '../doma
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
-import { InMemoryStayRepository, Stay, StayStatus } from '../../stay';
+import { InMemoryStayRepository, StayStatus } from '../../stay';
 
 export interface GeneratePreviewResult {
   success: boolean;
@@ -269,17 +269,22 @@ export class SettlementApplicationService {
     // Save Settlement via repository
     this.repository.saveSettlement(finalizedSettlement);
 
-    // Financially close the Stay via InMemoryStayRepository
+    // Ensure Stay operational checkout is reflected cleanly if not already checked out
     const stayRepo = new InMemoryStayRepository();
     const currentStay = stayRepo.findByIdSync(stayId);
-    if (currentStay) {
-      stayRepo.update(
-        new Stay({
-          ...currentStay,
-          status: StayStatus.CHECKED_OUT,
-          actualCheckoutDate: new Date().toISOString().split('T')[0],
-        })
-      );
+    if (currentStay && currentStay.status !== StayStatus.CHECKED_OUT) {
+      if (currentStay.status === StayStatus.ACTIVE) {
+        currentStay.giveNotice({
+          noticeDate: new Date().toISOString().split('T')[0],
+          expectedCheckoutDate: new Date().toISOString().split('T')[0],
+          reason: 'Settlement checkout',
+        });
+      }
+      currentStay.processCheckout({
+        actualCheckoutDate: new Date().toISOString().split('T')[0],
+        reason: 'Settlement finalized',
+      });
+      stayRepo.saveSync(currentStay);
     }
 
 

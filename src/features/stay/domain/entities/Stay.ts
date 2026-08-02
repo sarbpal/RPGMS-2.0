@@ -35,7 +35,7 @@ export class Stay {
   private _status: StayStatus;
   readonly checkInDate: string;
   private _expectedCheckoutDate?: string;
-  readonly actualCheckoutDate?: string;
+  private _actualCheckoutDate?: string;
   private _commercialAgreements: CommercialAgreement[];
   private _bedAllocations: BedAllocation[];
   private _businessEvents: BusinessEvent[];
@@ -51,7 +51,7 @@ export class Stay {
     this._status = props.status;
     this.checkInDate = props.checkInDate;
     this._expectedCheckoutDate = props.expectedCheckoutDate;
-    this.actualCheckoutDate = props.actualCheckoutDate;
+    this._actualCheckoutDate = props.actualCheckoutDate;
     this.doorId = props.doorId;
     this.notes = props.notes;
     this.createdAt = props.createdAt || new Date().toISOString();
@@ -158,6 +158,10 @@ export class Stay {
 
   get expectedCheckoutDate(): string | undefined {
     return this._expectedCheckoutDate;
+  }
+
+  get actualCheckoutDate(): string | undefined {
+    return this._actualCheckoutDate;
   }
 
   get commercialAgreements(): readonly CommercialAgreement[] {
@@ -663,13 +667,117 @@ export class Stay {
     return this.getCurrentProjection();
   }
 
+  // Aggregate API: Operational Checkout Domain Operations (CR-3.6)
+
+  /**
+   * Domain operation for completing Operational Checkout on a Stay.
+   * Enforces that only ON_NOTICE Stays can be checked out.
+   * Closes all active BedAllocations, closes active CommercialAgreement, transitions state to CHECKED_OUT,
+   * appends a CHECKOUT_COMPLETED BusinessEvent, and regenerates CurrentProjection.
+   */
+  public processCheckout(props: {
+    actualCheckoutDate: string;
+    reason?: string;
+  }): CurrentProjection {
+    if (this._status !== StayStatus.ON_NOTICE) {
+      throw new Error(
+        `Only ON_NOTICE Stays may be operationally checked out. Current status is ${this._status}.`
+      );
+    }
+
+    if (!props.actualCheckoutDate || props.actualCheckoutDate.trim() === '') {
+      throw new Error(`Actual checkout date is required to perform operational checkout.`);
+    }
+
+    if (props.actualCheckoutDate < this.checkInDate) {
+      throw new Error(
+        `Actual checkout date (${props.actualCheckoutDate}) cannot precede check-in date (${this.checkInDate}).`
+      );
+    }
+
+    // Step 1: Close all currently active BedAllocations
+    this._bedAllocations = this._bedAllocations.map((ba) => {
+      if (ba.status === 'ACTIVE') {
+        return new BedAllocation({
+          id: ba.id,
+          stayId: ba.stayId,
+          flatId: ba.flatId,
+          bedId: ba.bedId,
+          allocatedFrom: ba.allocatedFrom,
+          allocatedUntil: props.actualCheckoutDate,
+          status: 'RELEASED',
+          createdAt: ba.createdAt,
+        });
+      }
+      return ba;
+    });
+
+    // Step 2: Close all currently active CommercialAgreements
+    this._commercialAgreements = this._commercialAgreements.map((ca) => {
+      if (ca.status === 'ACTIVE') {
+        return new CommercialAgreement({
+          id: ca.id,
+          stayId: ca.stayId,
+          rent: ca.rent,
+          securityDeposit: ca.securityDeposit,
+          effectiveFrom: ca.effectiveFrom,
+          effectiveUntil: props.actualCheckoutDate,
+          amendmentReason: ca.amendmentReason,
+          status: 'HISTORICAL',
+          createdAt: ca.createdAt,
+        });
+      }
+      return ca;
+    });
+
+    // Step 3: Transition lifecycle state to CHECKED_OUT
+    this._status = StayStatus.CHECKED_OUT;
+
+    // Step 4: Record actualCheckoutDate
+    this._actualCheckoutDate = props.actualCheckoutDate;
+
+    // Step 5: Append CHECKOUT_COMPLETED BusinessEvent
+    const eventDescription =
+      props.reason && props.reason.trim() !== ''
+        ? props.reason
+        : `Operational checkout completed on ${props.actualCheckoutDate}`;
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'CHECKOUT_COMPLETED',
+        timestamp: props.actualCheckoutDate,
+        description: eventDescription,
+        metadata: {
+          actualCheckoutDate: props.actualCheckoutDate,
+          reason: props.reason,
+        },
+      })
+    );
+
+    // Step 6: Regenerate CurrentProjection
+    return this.getCurrentProjection();
+  }
+
+  /**
+   * Alias method for completeCheckout, delegating directly to processCheckout.
+   */
+  public completeCheckout(props: {
+    actualCheckoutDate: string;
+    reason?: string;
+  }): CurrentProjection {
+    return this.processCheckout(props);
+  }
+
   // Aggregate API: Current Projection
   getCurrentProjection(): CurrentProjection {
     const activeAgreement = this.activeCommercialAgreement;
     const activeAllocations = this.activeBedAllocations;
-    const activeBedIds = activeAllocations
-      .map((ba) => ba.bedId)
-      .filter((b) => b !== 'UNASSIGNED');
+    const activeBedIds =
+      this._status === StayStatus.CHECKED_OUT
+        ? []
+        : activeAllocations.map((ba) => ba.bedId).filter((b) => b !== 'UNASSIGNED');
     const flatId = activeAllocations.length > 0 ? activeAllocations[0].flatId : 'Unassigned';
 
     const noticeEvent = [...this._businessEvents].reverse().find((be) => be.eventType === 'NOTICE_GIVEN');
@@ -681,11 +789,11 @@ export class Stay {
       status: this._status,
       checkInDate: this.checkInDate,
       expectedCheckoutDate: this.expectedCheckoutDate,
-      actualCheckoutDate: this.actualCheckoutDate,
+      actualCheckoutDate: this._actualCheckoutDate,
       flatId,
       activeBedIds,
-      currentRent: activeAgreement?.rent ?? 0,
-      currentDeposit: activeAgreement?.securityDeposit ?? 0,
+      currentRent: this._status === StayStatus.CHECKED_OUT ? 0 : (activeAgreement?.rent ?? 0),
+      currentDeposit: this._status === StayStatus.CHECKED_OUT ? 0 : (activeAgreement?.securityDeposit ?? 0),
       doorId: this.doorId,
       noticeStatus: this._status === StayStatus.ON_NOTICE ? 'ON_NOTICE' : 'NONE',
       noticeDate,

@@ -560,4 +560,101 @@ describe('Stay Aggregate Root (CR-3.1 Foundation)', () => {
       ).toThrow('Expected checkout date (2026-04-01) cannot precede notice date (2026-05-01)');
     });
   });
+
+  describe('Operational Checkout Operations (CR-3.6)', () => {
+    it('executes operational checkout on ON_NOTICE stay, closes allocations/agreements, logs CHECKOUT_COMPLETED event, and regenerates projection', () => {
+      const stay = new Stay({
+        id: 'STAY-501',
+        residentId: 'RES-501',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      stay.giveNotice({
+        noticeDate: '2026-04-01',
+        expectedCheckoutDate: '2026-05-01',
+      });
+
+      const projection = stay.processCheckout({
+        actualCheckoutDate: '2026-05-01',
+        reason: 'End of residency agreement',
+      });
+
+      expect(projection.status).toBe(StayStatus.CHECKED_OUT);
+      expect(projection.actualCheckoutDate).toBe('2026-05-01');
+      expect(projection.activeBedIds).toEqual([]);
+      expect(projection.currentRent).toBe(0);
+      expect(projection.currentDeposit).toBe(0);
+      expect(projection.noticeStatus).toBe('NONE');
+
+      expect(stay.status).toBe(StayStatus.CHECKED_OUT);
+      expect(stay.actualCheckoutDate).toBe('2026-05-01');
+
+      // Verify active BedAllocation was closed to RELEASED
+      expect(stay.activeBedAllocations).toHaveLength(0);
+      expect(stay.bedAllocations[0].status).toBe('RELEASED');
+      expect(stay.bedAllocations[0].allocatedUntil).toBe('2026-05-01');
+
+      // Verify active CommercialAgreement was closed to HISTORICAL
+      expect(stay.activeCommercialAgreement?.status).toBe('HISTORICAL');
+      expect(stay.commercialAgreements[0].status).toBe('HISTORICAL');
+      expect(stay.commercialAgreements[0].effectiveUntil).toBe('2026-05-01');
+
+      // Verify Business Event
+      const lastEvent = stay.businessEvents[stay.businessEvents.length - 1];
+      expect(lastEvent.eventType).toBe('CHECKOUT_COMPLETED');
+      expect(lastEvent.timestamp).toBe('2026-05-01');
+      expect(lastEvent.description).toBe('End of residency agreement');
+    });
+
+    it('enforces ON_NOTICE-only invariant: rejects processCheckout if Stay is ACTIVE or CHECKED_OUT', () => {
+      const activeStay = new Stay({
+        id: 'STAY-502',
+        residentId: 'RES-502',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      expect(() =>
+        activeStay.processCheckout({
+          actualCheckoutDate: '2026-05-01',
+        })
+      ).toThrow('Only ON_NOTICE Stays may be operationally checked out. Current status is ACTIVE');
+    });
+
+    it('enforces date validation: rejects actualCheckoutDate preceding checkInDate', () => {
+      const stay = new Stay({
+        id: 'STAY-503',
+        residentId: 'RES-503',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-06-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      stay.giveNotice({
+        noticeDate: '2026-06-02',
+        expectedCheckoutDate: '2026-06-15',
+      });
+
+      expect(() =>
+        stay.processCheckout({
+          actualCheckoutDate: '2026-05-15',
+        })
+      ).toThrow('Actual checkout date (2026-05-15) cannot precede check-in date (2026-06-01)');
+    });
+  });
 });

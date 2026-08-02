@@ -58,24 +58,22 @@ export class Stay {
     this.updatedAt = props.updatedAt || new Date().toISOString();
 
     // Initialize Commercial Agreements
-    if (props.agreedRent !== undefined || props.agreedDeposit !== undefined) {
-      const defaultRent = props.commercialAgreements && props.commercialAgreements.length > 0 ? props.commercialAgreements[0].rent : 0;
-      const defaultDeposit = props.commercialAgreements && props.commercialAgreements.length > 0 ? props.commercialAgreements[0].securityDeposit : 0;
+    if (props.commercialAgreements && props.commercialAgreements.length > 0) {
+      this._commercialAgreements = props.commercialAgreements.map((ca) =>
+        ca instanceof CommercialAgreement ? ca : new CommercialAgreement(ca)
+      );
+    } else if (props.agreedRent !== undefined || props.agreedDeposit !== undefined) {
       this._commercialAgreements = [
         new CommercialAgreement({
           id: `CA-${props.id}-1`,
           stayId: props.id,
-          rent: props.agreedRent ?? defaultRent,
-          securityDeposit: props.agreedDeposit ?? defaultDeposit,
+          rent: props.agreedRent ?? 0,
+          securityDeposit: props.agreedDeposit ?? 0,
           effectiveFrom: props.checkInDate,
           amendmentReason: 'Admission Initial Agreement',
           status: 'ACTIVE',
         }),
       ];
-    } else if (props.commercialAgreements && props.commercialAgreements.length > 0) {
-      this._commercialAgreements = props.commercialAgreements.map((ca) =>
-        ca instanceof CommercialAgreement ? ca : new CommercialAgreement(ca)
-      );
     } else {
       this._commercialAgreements = [
         new CommercialAgreement({
@@ -91,8 +89,12 @@ export class Stay {
     }
 
     // Initialize Bed Allocations
-    if (props.allocatedBedIds !== undefined) {
-      const flatId = props.flatId || (props.bedAllocations && props.bedAllocations.length > 0 ? props.bedAllocations[0].flatId : 'Unassigned');
+    if (props.bedAllocations && props.bedAllocations.length > 0) {
+      this._bedAllocations = props.bedAllocations.map((ba) =>
+        ba instanceof BedAllocation ? ba : new BedAllocation(ba)
+      );
+    } else if (props.allocatedBedIds !== undefined) {
+      const flatId = props.flatId || 'Unassigned';
       const bedIds = props.allocatedBedIds;
       this._bedAllocations = bedIds.map(
         (bedId, index) =>
@@ -117,10 +119,6 @@ export class Stay {
           }),
         ];
       }
-    } else if (props.bedAllocations && props.bedAllocations.length > 0) {
-      this._bedAllocations = props.bedAllocations.map((ba) =>
-        ba instanceof BedAllocation ? ba : new BedAllocation(ba)
-      );
     } else {
       const flatId = props.flatId || 'Unassigned';
       this._bedAllocations = [
@@ -453,6 +451,148 @@ export class Stay {
     );
 
     return this.getCurrentProjection();
+  }
+
+  // Aggregate API: Commercial Domain Operations (CR-3.4)
+
+  /**
+   * Primary domain operation for revising commercial terms (Rent and/or Deposit).
+   * Enforces single active agreement invariant, gapless effective dates, and immutable history.
+   */
+  public reviseCommercialTerms(props: {
+    newRent: number;
+    newDeposit: number;
+    effectiveDate: string;
+    reason: string;
+    eventTypeOverride?: string;
+  }): CurrentProjection {
+    if (this._status !== StayStatus.ACTIVE && this._status !== StayStatus.ON_NOTICE) {
+      throw new Error(
+        `Cannot revise commercial terms for a Stay that is not ACTIVE or ON_NOTICE (current status: ${this._status}).`
+      );
+    }
+
+    if (props.newRent === undefined || props.newRent <= 0) {
+      throw new Error(`Revised monthly rent must be a positive number greater than 0.`);
+    }
+
+    if (props.newDeposit === undefined || props.newDeposit < 0) {
+      throw new Error(`Revised security deposit must be a non-negative number.`);
+    }
+
+    if (!props.effectiveDate || props.effectiveDate.trim() === '') {
+      throw new Error(`Effective date is required for commercial term revision.`);
+    }
+
+    if (!props.reason || props.reason.trim() === '') {
+      throw new Error(`An explicit amendment reason is required for commercial term revision.`);
+    }
+
+    const previousAgreement = this.activeCommercialAgreement;
+    const previousRent = previousAgreement ? previousAgreement.rent : 0;
+    const previousDeposit = previousAgreement ? previousAgreement.securityDeposit : 0;
+
+    // Step 1: Close all currently active commercial agreements immutably
+    this._commercialAgreements = this._commercialAgreements.map((ca) => {
+      if (ca.status === 'ACTIVE') {
+        return new CommercialAgreement({
+          id: ca.id,
+          stayId: ca.stayId,
+          rent: ca.rent,
+          securityDeposit: ca.securityDeposit,
+          effectiveFrom: ca.effectiveFrom,
+          effectiveUntil: props.effectiveDate,
+          amendmentReason: ca.amendmentReason,
+          status: 'HISTORICAL',
+          createdAt: ca.createdAt,
+        });
+      }
+      return ca;
+    });
+
+    // Step 2: Create new ACTIVE CommercialAgreement snapshot
+    const newAgreement = new CommercialAgreement({
+      id: `CA-${this.id}-${this._commercialAgreements.length + 1}`,
+      stayId: this.id,
+      rent: props.newRent,
+      securityDeposit: props.newDeposit,
+      effectiveFrom: props.effectiveDate,
+      amendmentReason: props.reason,
+      status: 'ACTIVE',
+    });
+    this._commercialAgreements.push(newAgreement);
+
+    // Step 3: Determine event type and append BusinessEvent
+    let eventType = props.eventTypeOverride;
+    if (!eventType) {
+      const rentChanged = props.newRent !== previousRent;
+      const depositChanged = props.newDeposit !== previousDeposit;
+      if (rentChanged && !depositChanged) {
+        eventType = 'RENT_REVISED';
+      } else if (depositChanged && !rentChanged) {
+        eventType = 'DEPOSIT_REVISED';
+      } else {
+        eventType = 'COMMERCIAL_TERMS_REVISED';
+      }
+    }
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType,
+        timestamp: props.effectiveDate,
+        description: props.reason,
+        metadata: {
+          previousRent,
+          newRent: props.newRent,
+          previousDeposit,
+          newDeposit: props.newDeposit,
+          effectiveDate: props.effectiveDate,
+          amendmentReason: props.reason,
+        },
+      })
+    );
+
+    return this.getCurrentProjection();
+  }
+
+  /**
+   * Convenience domain operation for revising monthly rent only.
+   * Delegates directly to reviseCommercialTerms.
+   */
+  public reviseRent(props: {
+    newRent: number;
+    effectiveDate: string;
+    reason: string;
+  }): CurrentProjection {
+    const currentDeposit = this.agreedDeposit;
+    return this.reviseCommercialTerms({
+      newRent: props.newRent,
+      newDeposit: currentDeposit,
+      effectiveDate: props.effectiveDate,
+      reason: props.reason,
+      eventTypeOverride: 'RENT_REVISED',
+    });
+  }
+
+  /**
+   * Convenience domain operation for revising security deposit only.
+   * Delegates directly to reviseCommercialTerms.
+   */
+  public reviseDeposit(props: {
+    newDeposit: number;
+    effectiveDate: string;
+    reason: string;
+  }): CurrentProjection {
+    const currentRent = this.agreedRent;
+    return this.reviseCommercialTerms({
+      newRent: currentRent,
+      newDeposit: props.newDeposit,
+      effectiveDate: props.effectiveDate,
+      reason: props.reason,
+      eventTypeOverride: 'DEPOSIT_REVISED',
+    });
   }
 
   // Aggregate API: Current Projection

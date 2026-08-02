@@ -28,7 +28,7 @@ The implementation reports provide the historical execution record of CR-3 and s
 | CR-3.1 | Stay Foundation | ✅ Completed |
 | CR-3.2 | Admission Workflow | ✅ Completed |
 | CR-3.3 | Accommodation Operations | ✅ Completed |
-| CR-3.4 | Commercial Operations | ⬜ Planned |
+| CR-3.4 | Commercial Operations | ✅ Completed |
 | CR-3.5 | Notice Lifecycle | ⬜ Planned |
 | CR-3.6 | Operational Checkout | ⬜ Planned |
 | CR-3.7 | Stay Workspace | ⬜ Planned |

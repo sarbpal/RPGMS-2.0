@@ -286,4 +286,165 @@ describe('Stay Aggregate Root (CR-3.1 Foundation)', () => {
       expect(lastEvent.description).toContain('Relocated to 2nd floor flat');
     });
   });
+
+  describe('Commercial Operations & History Preservation (CR-3.4)', () => {
+    it('revises rent, closes previous agreement, preserves history, and logs RENT_REVISED BusinessEvent', () => {
+      const stay = new Stay({
+        id: 'STAY-301',
+        residentId: 'RES-301',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      const projection = stay.reviseRent({
+        newRent: 8500,
+        effectiveDate: '2026-04-01',
+        reason: 'Annual 6% Rent Escalation',
+      });
+
+      expect(projection.currentRent).toBe(8500);
+      expect(projection.currentDeposit).toBe(6500);
+      expect(stay.agreedRent).toBe(8500);
+      expect(stay.agreedDeposit).toBe(6500);
+
+      // Verify Commercial Agreement History
+      expect(stay.commercialAgreements).toHaveLength(2);
+
+      const previousAgreement = stay.commercialAgreements[0];
+      const activeAgreement = stay.commercialAgreements[1];
+
+      expect(previousAgreement.status).toBe('HISTORICAL');
+      expect(previousAgreement.rent).toBe(8000);
+      expect(previousAgreement.effectiveUntil).toBe('2026-04-01');
+
+      expect(activeAgreement.status).toBe('ACTIVE');
+      expect(activeAgreement.rent).toBe(8500);
+      expect(activeAgreement.securityDeposit).toBe(6500);
+      expect(activeAgreement.effectiveFrom).toBe('2026-04-01');
+      expect(activeAgreement.amendmentReason).toBe('Annual 6% Rent Escalation');
+
+      // Verify Business Event
+      const lastEvent = stay.businessEvents[stay.businessEvents.length - 1];
+      expect(lastEvent.eventType).toBe('RENT_REVISED');
+      expect(lastEvent.description).toBe('Annual 6% Rent Escalation');
+      expect(lastEvent.metadata).toMatchObject({
+        previousRent: 8000,
+        newRent: 8500,
+        effectiveDate: '2026-04-01',
+      });
+    });
+
+    it('revises security deposit, closes previous agreement, preserves history, and logs DEPOSIT_REVISED BusinessEvent', () => {
+      const stay = new Stay({
+        id: 'STAY-302',
+        residentId: 'RES-302',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      const projection = stay.reviseDeposit({
+        newDeposit: 8000,
+        effectiveDate: '2026-04-01',
+        reason: 'Deposit top-up for AC room upgrade',
+      });
+
+      expect(projection.currentDeposit).toBe(8000);
+      expect(projection.currentRent).toBe(8000);
+
+      expect(stay.commercialAgreements).toHaveLength(2);
+      expect(stay.commercialAgreements[0].status).toBe('HISTORICAL');
+      expect(stay.commercialAgreements[0].securityDeposit).toBe(6500);
+      expect(stay.commercialAgreements[0].effectiveUntil).toBe('2026-04-01');
+
+      expect(stay.commercialAgreements[1].status).toBe('ACTIVE');
+      expect(stay.commercialAgreements[1].securityDeposit).toBe(8000);
+      expect(stay.commercialAgreements[1].rent).toBe(8000);
+
+      const lastEvent = stay.businessEvents[stay.businessEvents.length - 1];
+      expect(lastEvent.eventType).toBe('DEPOSIT_REVISED');
+    });
+
+    it('revises both rent and deposit via reviseCommercialTerms in a single atomic domain action', () => {
+      const stay = new Stay({
+        id: 'STAY-303',
+        residentId: 'RES-303',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      const projection = stay.reviseCommercialTerms({
+        newRent: 9500,
+        newDeposit: 9500,
+        effectiveDate: '2026-05-01',
+        reason: 'Upgraded to Master Suite with attached bath',
+      });
+
+      expect(projection.currentRent).toBe(9500);
+      expect(projection.currentDeposit).toBe(9500);
+
+      expect(stay.commercialAgreements).toHaveLength(2);
+      expect(stay.commercialAgreements[1].status).toBe('ACTIVE');
+      expect(stay.commercialAgreements[1].rent).toBe(9500);
+      expect(stay.commercialAgreements[1].securityDeposit).toBe(9500);
+
+      const lastEvent = stay.businessEvents[stay.businessEvents.length - 1];
+      expect(lastEvent.eventType).toBe('COMMERCIAL_TERMS_REVISED');
+    });
+
+    it('enforces invariants: rejects negative/zero rent, negative deposit, or missing amendment reason', () => {
+      const stay = new Stay({
+        id: 'STAY-304',
+        residentId: 'RES-304',
+        stayType: StayType.REGULAR,
+        status: StayStatus.ACTIVE,
+        checkInDate: '2026-01-01',
+        flatId: 'FLAT-101',
+        allocatedBedIds: ['BED-A1'],
+        agreedRent: 8000,
+        agreedDeposit: 6500,
+      });
+
+      // Invalid rent
+      expect(() =>
+        stay.reviseRent({
+          newRent: 0,
+          effectiveDate: '2026-04-01',
+          reason: 'Free rent',
+        })
+      ).toThrow('Revised monthly rent must be a positive number greater than 0');
+
+      // Invalid deposit
+      expect(() =>
+        stay.reviseDeposit({
+          newDeposit: -500,
+          effectiveDate: '2026-04-01',
+          reason: 'Negative deposit',
+        })
+      ).toThrow('Revised security deposit must be a non-negative number');
+
+      // Missing reason
+      expect(() =>
+        stay.reviseRent({
+          newRent: 9000,
+          effectiveDate: '2026-04-01',
+          reason: '',
+        })
+      ).toThrow('An explicit amendment reason is required for commercial term revision');
+    });
+  });
 });

@@ -1563,6 +1563,26 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ TypeScript Compilation Passed
 - ✅ Production Build Passed
 
+## CR-3.4 – Commercial Operations
+
+### Added
+
+- Implemented immutable Commercial Agreement history.
+- Added aggregate business operations:
+  - reviseCommercialTerms()
+  - reviseRent()
+  - reviseDeposit()
+- Added continuous contractual timeline enforcement.
+- Added automatic BusinessEvent generation for commercial operations.
+- Added StayCommercialCoordinator for orchestration.
+- Added CurrentProjection regeneration after commercial revisions.
+- Added unit and integration tests for commercial operations.
+
+### Verification
+
+- ✅ Unit & Integration Tests Passed
+- ✅ TypeScript Compilation Passed
+- ✅ Production Build Passed
 
 ------------------------------------------------------------------------------
 End of Document

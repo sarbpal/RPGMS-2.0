@@ -3,7 +3,7 @@ import type { Area } from '../../domain/entities/Area';
 import type { Flat } from '../../domain/entities/Flat';
 import type { FlatDraft } from '../../application/models/FlatDraft';
 import { BedStatus } from '../../domain/valueObjects/BedStatus';
-import type { Stay } from '../../../stay/domain/entities/Stay';
+import { Stay, type StayProps } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import { StayType } from '../../../stay/domain/valueObjects/StayType';
 import type { Resident } from '../../../resident/domain/entities/Resident';
@@ -65,8 +65,8 @@ export function createMockFlatDraft(overrides?: Partial<FlatDraft>): FlatDraft {
   };
 }
 
-export function createMockStay(overrides?: Partial<Stay>): Stay {
-  return {
+export function createMockStay(overrides?: Partial<StayProps>): Stay {
+  return new Stay({
     id: 'stay-1',
     residentId: 'res-1',
     flatId: '101',
@@ -79,7 +79,7 @@ export function createMockStay(overrides?: Partial<Stay>): Stay {
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
-  };
+  });
 }
 
 export function createMockResident(overrides?: Partial<Resident>): Resident {

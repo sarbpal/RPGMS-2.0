@@ -1,4 +1,4 @@
-import type { Stay } from '../../domain/entities/Stay';
+import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
 import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { StayWorkspaceViewModel } from '../models/StayWorkspaceViewModel';
@@ -13,7 +13,6 @@ export class StayWorkspaceCoordinator {
   public createViewModel(stayId: string): StayWorkspaceViewModel {
     const activeStayId = stayId || '';
 
-    // Retrieve Stay entity using the StayRepository interface contract
     let stay: Stay | null = null;
     if (
       'findByIdSync' in this.stayRepository &&
@@ -26,7 +25,7 @@ export class StayWorkspaceCoordinator {
     }
 
     if (!stay) {
-      return this.mapStayToViewModel({
+      stay = new Stay({
         id: activeStayId || 'NOT_FOUND',
         residentId: 'UNKNOWN',
         stayType: 'REGULAR',
@@ -37,8 +36,6 @@ export class StayWorkspaceCoordinator {
         agreedRent: 0,
         agreedDeposit: 0,
         notes: 'Stay record not found in repository.',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       });
     }
 
@@ -46,48 +43,51 @@ export class StayWorkspaceCoordinator {
   }
 
   private mapStayToViewModel(stay: Stay): StayWorkspaceViewModel {
-    const formattedFlat = stay.flatId.startsWith('FLAT-')
-      ? `Flat ${stay.flatId.replace('FLAT-', '')}`
-      : stay.flatId;
+    // Leverage Aggregate API to obtain CurrentProjection
+    const projection = stay.getCurrentProjection();
+
+    const formattedFlat = projection.flatId.startsWith('FLAT-')
+      ? `Flat ${projection.flatId.replace('FLAT-', '')}`
+      : projection.flatId;
 
     const formattedBeds =
-      stay.allocatedBedIds.length > 0
-        ? stay.allocatedBedIds.map((b) => b.replace('BED-', '')).join(', ')
+      projection.activeBedIds.length > 0
+        ? projection.activeBedIds.map((b) => b.replace('BED-', '')).join(', ')
         : 'None';
 
     const allocationLabel = `${formattedFlat} / Bed ${formattedBeds}`;
 
     return {
       header: {
-        residentName: stay.residentId === 'RES-00125' ? 'Amit Sharma' : 'Rajesh Kumar',
-        residentId: stay.residentId,
-        stayId: stay.id,
-        status: stay.status,
-        checkInDate: stay.checkInDate,
+        residentName: projection.residentId === 'RES-00125' ? 'Amit Sharma' : 'Rajesh Kumar',
+        residentId: projection.residentId,
+        stayId: projection.stayId,
+        status: projection.status,
+        checkInDate: projection.checkInDate,
         allocation: allocationLabel,
       },
       summary: {
-        status: stay.status,
-        occupancyDuration: stay.checkInDate !== 'N/A' ? '4 months 12 days' : 'N/A',
-        noticeStatus: stay.status === 'ON_NOTICE' ? 'On Notice' : 'Not on Notice',
-        rentPlan: `₹${stay.agreedRent.toLocaleString('en-IN')} / month`,
-        securityDeposit: `₹${stay.agreedDeposit.toLocaleString('en-IN')}`,
+        status: projection.status,
+        occupancyDuration: projection.checkInDate !== 'N/A' ? '4 months 12 days' : 'N/A',
+        noticeStatus: projection.noticeStatus === 'ON_NOTICE' ? 'On Notice' : 'Not on Notice',
+        rentPlan: `₹${projection.currentRent.toLocaleString('en-IN')} / month`,
+        securityDeposit: `₹${projection.currentDeposit.toLocaleString('en-IN')}`,
         bedAllocation: allocationLabel,
       },
       financialSummary: {
         outstandingBalance: 0,
-        currentMonthRent: stay.agreedRent,
-        pendingElectricity: stay.agreedRent > 0 ? 450 : 0,
+        currentMonthRent: projection.currentRent,
+        pendingElectricity: projection.currentRent > 0 ? 450 : 0,
         pendingLaundry: 0,
-        securityDepositHeld: stay.agreedDeposit,
-        lastPaymentReceived: stay.agreedRent > 0 ? `₹${stay.agreedRent.toLocaleString('en-IN')} (01-Jul-2026)` : 'N/A',
+        securityDepositHeld: projection.currentDeposit,
+        lastPaymentReceived: projection.currentRent > 0 ? `₹${projection.currentRent.toLocaleString('en-IN')} (01-Jul-2026)` : 'N/A',
         nextBillingDate: '01-Aug-2026',
       },
       timeline: [
         {
           id: 'evt-1',
           title: 'Payment Received',
-          description: `₹${stay.agreedRent.toLocaleString('en-IN')} collected via UPI for July 2026 rent`,
+          description: `₹${projection.currentRent.toLocaleString('en-IN')} collected via UPI for July 2026 rent`,
           date: '01-Jul-2026',
           type: 'PAYMENT',
           color: 'success',
@@ -95,7 +95,7 @@ export class StayWorkspaceCoordinator {
         {
           id: 'evt-2',
           title: 'Monthly Rent Bill Generated',
-          description: `Rent invoice generated for July 2026 (₹${stay.agreedRent.toLocaleString('en-IN')})`,
+          description: `Rent invoice generated for July 2026 (₹${projection.currentRent.toLocaleString('en-IN')})`,
           date: '01-Jul-2026',
           type: 'BILL',
           color: 'error',
@@ -112,7 +112,7 @@ export class StayWorkspaceCoordinator {
           id: 'evt-4',
           title: 'Stay Started (Check-in)',
           description: `Resident checked in and allocated to ${allocationLabel}`,
-          date: stay.checkInDate,
+          date: projection.checkInDate,
           type: 'CHECK_IN',
           color: 'info',
         },

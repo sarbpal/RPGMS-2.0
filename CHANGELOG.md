@@ -1542,6 +1542,26 @@ Removed automatic Emergency Contact defaults.
 
 This milestone freezes the core business architecture of RPGMS 2.0, including the Domain Model, Software Architecture, Resident Architecture, and Stay Architecture. It establishes the constitutional documents that will govern future implementation. Subsequent work will focus on implementation through CR-3 and later change requests, with architectural modifications made only when driven by new business requirements.
 
+## CR-3.3 – Accommodation Operations
+
+### Added
+
+- Implemented immutable Bed Allocation history.
+- Added aggregate business operations:
+  - allocateAdditionalBed()
+  - releaseBed()
+  - transferBed()
+  - transferFlat()
+- Added automatic BusinessEvent generation for accommodation operations.
+- Added StayAccommodationCoordinator for orchestration.
+- Added CurrentProjection regeneration after accommodation operations.
+- Added unit and integration tests for accommodation operations.
+
+### Verification
+
+- ✅ Unit & Integration Tests Passed
+- ✅ TypeScript Compilation Passed
+- ✅ Production Build Passed
 
 
 ------------------------------------------------------------------------------

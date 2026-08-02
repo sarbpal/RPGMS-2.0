@@ -199,6 +199,55 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       const reservation = reservationRepo.findByIdSync('resv-000001');
       expect(reservation?.status).toBe(ReservationStatus.CONVERTED);
     });
+
+    it('explicitly constructs Stay aggregate child objects (CommercialAgreement, BedAllocation, BusinessEvent) and validates CurrentProjection', () => {
+      const result = coordinator.confirmReservedAdmission(validDraft, sampleActiveReservation);
+      expect(result.success).toBe(true);
+
+      const stay = stayRepo.findByIdSync('stay-000001');
+      expect(stay).toBeDefined();
+
+      // 1. Verify Explicit CommercialAgreement
+      expect(stay?.commercialAgreements).toHaveLength(1);
+      const ca = stay?.commercialAgreements[0];
+      expect(ca?.rent).toBe(8000);
+      expect(ca?.securityDeposit).toBe(4500); // 6500 - 2000 token adjustment
+      expect(ca?.amendmentReason).toBe('Admission Initial Agreement');
+      expect(ca?.status).toBe('ACTIVE');
+
+      // 2. Verify Explicit BedAllocation
+      expect(stay?.bedAllocations).toHaveLength(1);
+      const ba = stay?.bedAllocations[0];
+      expect(ba?.flatId).toBe('flat-101');
+      expect(ba?.bedId).toBe('bed-101-a');
+      expect(ba?.status).toBe('ACTIVE');
+
+      // 3. Verify Explicit BusinessEvent
+      expect(stay?.businessEvents).toHaveLength(1);
+      const be = stay?.businessEvents[0];
+      expect(be?.eventType).toBe('ADMISSION');
+      expect(be?.description).toContain('Resident checked in');
+
+      // 4. Verify CurrentProjection
+      const projection = stay?.getCurrentProjection();
+      expect(projection).toBeDefined();
+      expect(projection?.stayId).toBe('stay-000001');
+      expect(projection?.status).toBe('ACTIVE');
+      expect(projection?.flatId).toBe('flat-101');
+      expect(projection?.activeBedIds).toEqual(['bed-101-a']);
+      expect(projection?.currentRent).toBe(8000);
+      expect(projection?.currentDeposit).toBe(4500);
+      expect(projection?.noticeStatus).toBe('NONE');
+    });
+
+    it('returns dynamic repository-driven available flats and vacant beds via getAvailableFlats()', () => {
+      const availableFlats = coordinator.getAvailableFlats();
+      expect(availableFlats).toHaveLength(1);
+      expect(availableFlats[0].id).toBe('flat-101');
+      expect(availableFlats[0].name).toBe('101');
+      expect(availableFlats[0].vacantBeds).toHaveLength(2);
+      expect(availableFlats[0].vacantBeds[0].id).toBe('bed-101-a');
+    });
   });
 
   describe('Multi-Bed Admission', () => {
@@ -213,6 +262,11 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
 
       const stay = stayRepo.findByIdSync('stay-000001');
       expect(stay?.allocatedBedIds).toEqual(['bed-101-a', 'bed-101-b']);
+
+      // Verify explicit BedAllocation domain objects created for both beds
+      expect(stay?.bedAllocations).toHaveLength(2);
+      expect(stay?.bedAllocations[0].bedId).toBe('bed-101-a');
+      expect(stay?.bedAllocations[1].bedId).toBe('bed-101-b');
 
       const flat = accommodationRepo.findById('flat-101');
       const allFlatBeds = flat?.areas.flatMap((a) => a.beds) || [];

@@ -10,7 +10,7 @@ import { billingService } from './billingService';
 import { paymentService } from './paymentService';
 import { settlementService } from './settlementService';
 import { timelineService } from './timelineService';
-import { InMemoryStayRepository } from '../../stay';
+import { InMemoryStayRepository, StayStatus } from '../../stay';
 import { InMemoryResidentRepository } from '../../resident';
 
 export const reportingService = {
@@ -122,7 +122,7 @@ export const reportingService = {
     const report: OutstandingResidentReportItem[] = [];
 
     stays.forEach((stay) => {
-      if (stay.status === 'CLOSED') return;
+      if (stay.status === StayStatus.CHECKED_OUT) return;
 
       const balances = balanceEngine.calculateStayBalances(stay.id);
       if (balances.receivableBalance > 0) {

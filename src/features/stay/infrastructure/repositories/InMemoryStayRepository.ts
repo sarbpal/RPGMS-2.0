@@ -1,4 +1,4 @@
-import type { Stay } from '../../domain/entities/Stay';
+import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
 import { StayStatus } from '../../domain/valueObjects/StayStatus';
 import { staySeedData } from '../data/staySeedData';
@@ -7,12 +7,12 @@ export class InMemoryStayRepository implements StayRepository {
   private stays: Stay[];
 
   constructor(initialData: Stay[] = staySeedData) {
-    this.stays = [...initialData];
+    this.stays = initialData.map((s) => (s instanceof Stay ? s : new Stay(s)));
   }
 
   public findByIdSync(id: string): Stay | null {
     const stay = this.stays.find((s) => s.id === id);
-    return stay ? { ...stay } : null;
+    return stay ? new Stay(stay) : null;
   }
 
   public async findById(id: string): Promise<Stay | null> {
@@ -20,30 +20,35 @@ export class InMemoryStayRepository implements StayRepository {
   }
 
   public getAllSync(): Stay[] {
-    return this.stays.map((s) => ({ ...s }));
+    return this.stays.map((s) => new Stay(s));
   }
 
   public async findByResidentId(residentId: string): Promise<Stay[]> {
     return this.stays
       .filter((s) => s.residentId === residentId)
-      .map((s) => ({ ...s }));
+      .map((s) => new Stay(s));
   }
 
   public async findActiveByResidentId(residentId: string): Promise<Stay | null> {
     const stay = this.stays.find(
       (s) => s.residentId === residentId && s.status === StayStatus.ACTIVE
     );
-    return stay ? { ...stay } : null;
+    return stay ? new Stay(stay) : null;
+  }
+
+  public saveSync(stay: Stay): Stay {
+    const stayInstance = stay instanceof Stay ? stay : new Stay(stay);
+    const existingIndex = this.stays.findIndex((s) => s.id === stayInstance.id);
+    if (existingIndex >= 0) {
+      this.stays[existingIndex] = stayInstance;
+    } else {
+      this.stays.push(stayInstance);
+    }
+    return new Stay(stayInstance);
   }
 
   public async save(stay: Stay): Promise<Stay> {
-    const existingIndex = this.stays.findIndex((s) => s.id === stay.id);
-    if (existingIndex >= 0) {
-      this.stays[existingIndex] = { ...stay };
-    } else {
-      this.stays.push({ ...stay });
-    }
-    return { ...stay };
+    return this.saveSync(stay);
   }
 
   public async update(stay: Stay): Promise<Stay> {

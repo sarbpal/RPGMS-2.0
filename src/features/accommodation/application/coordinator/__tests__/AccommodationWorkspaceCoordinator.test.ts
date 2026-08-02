@@ -13,7 +13,7 @@ import {
 } from '../../../test/fixtures/accommodationFixtures';
 import { BedStatus } from '../../../domain/valueObjects/BedStatus';
 import { StayStatus } from '../../../../stay/domain/valueObjects/StayStatus';
-import type { Stay } from '../../../../stay/domain/entities/Stay';
+import { Stay } from '../../../../stay/domain/entities/Stay';
 
 describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   let repository: InMemoryAccommodationRepository;
@@ -280,10 +280,11 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(sync1[0].areas[0].beds[1].status).toBe(BedStatus.OCCUPIED);
 
       // Step 2: Partial Bed Release — release 101-B1 (update stay.allocatedBedIds to ['101-B2'])
-      const updatedStay: Stay = {
+      const updatedStay: Stay = new Stay({
         ...stay,
+        status: stay.status,
         allocatedBedIds: ['101-B2'], // 101-B1 released
-      };
+      });
       await stayRepository.save(updatedStay);
 
       // Step 3: Synchronize again

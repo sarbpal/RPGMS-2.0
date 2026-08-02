@@ -69,9 +69,18 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
   );
   const [notes] = useState('');
 
+  // Section 4 Dynamic Accommodation Sourcing (CR-3.2)
+  const availableFlats = coordinator.getAvailableFlats();
+  const currentFlat = availableFlats.find((f) => f.id === flatId) || availableFlats[0];
+
   // Populate from reservation on open
   useEffect(() => {
-    if (reservation) {
+    if (reservation && open) {
+      const flats = coordinator.getAvailableFlats();
+      const defaultFlat = flats.length > 0 ? flats[0] : null;
+      const initialFlatId = defaultFlat ? defaultFlat.id : 'flat-101';
+      const initialBedIds = defaultFlat && defaultFlat.vacantBeds.length > 0 ? [defaultFlat.vacantBeds[0].id] : ['bed-101-a'];
+
       setResidentFormData({
         fullName: reservation.prospectName || '',
         mobileNumber: reservation.mobileNumber || '',
@@ -84,8 +93,8 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
       setCheckInDate(reservation.expectedJoiningDate || todayStr);
       setAgreedRent(8000);
       setAgreedDeposit(6500);
-      setFlatId('flat-101');
-      setSelectedBedIds(['bed-101-a']);
+      setFlatId(initialFlatId);
+      setSelectedBedIds(initialBedIds);
       setTokenDisposition(
         reservation.tokenAmount && reservation.tokenAmount > 0
           ? TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT
@@ -123,6 +132,16 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
     tokenDisposition
   );
 
+  const handleFlatChange = (newFlatId: string) => {
+    setFlatId(newFlatId);
+    const target = availableFlats.find((f) => f.id === newFlatId);
+    if (target && target.vacantBeds.length > 0) {
+      setSelectedBedIds([target.vacantBeds[0].id]);
+    } else {
+      setSelectedBedIds([]);
+    }
+  };
+
   const handleBedToggle = (bedId: string) => {
     setSelectedBedIds((prev) =>
       prev.includes(bedId) ? prev.filter((id) => id !== bedId) : [...prev, bedId]
@@ -131,11 +150,17 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
 
   const handleConfirm = () => {
     try {
+      const selectedFlatObj = availableFlats.find((f) => f.id === flatId);
+      const flatName = selectedFlatObj ? selectedFlatObj.name : 'Flat 101';
+      const bedNames = selectedFlatObj
+        ? selectedFlatObj.vacantBeds.filter((b) => selectedBedIds.includes(b.id)).map((b) => b.name)
+        : selectedBedIds.map((id) => id.replace('bed-101-', 'Bed ').toUpperCase());
+
       const result = coordinator.confirmReservedAdmission(
         currentDraft,
         reservation,
-        'Flat 101 (1st Floor)',
-        selectedBedIds.map((id) => id.replace('bed-101-', 'Bed ').toUpperCase())
+        flatName,
+        bedNames
       );
       onAdmissionConfirmed(result);
       onClose();
@@ -235,26 +260,44 @@ export const AdmissionWorkspaceModal: React.FC<AdmissionWorkspaceModalProps> = (
                   label="Select Flat *"
                   size="small"
                   value={flatId}
-                  onChange={(e) => setFlatId(e.target.value)}
+                  onChange={(e) => handleFlatChange(e.target.value)}
                 >
-                  <MenuItem value="flat-101">Flat 101 (1st Floor - Double Sharing)</MenuItem>
-                  <MenuItem value="flat-102">Flat 102 (1st Floor - Triple Sharing)</MenuItem>
+                  {availableFlats.length > 0 ? (
+                    availableFlats.map((f) => (
+                      <MenuItem key={f.id} value={f.id}>
+                        {f.name} ({f.vacantBeds.length} vacant beds)
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem value="flat-101">Flat 101 (1st Floor)</MenuItem>
+                  )}
                 </TextField>
 
                 <Paper elevation={0} sx={{ p: 1.5, borderRadius: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: '#475569', display: 'block', mb: 0.5 }}>
-                    Select Vacant Bed(s) in Flat 101 *
+                    Select Vacant Bed(s) in {currentFlat ? currentFlat.name : 'Flat'} *
                   </Typography>
-                  <FormGroup row>
-                    <FormControlLabel
-                      control={<Checkbox checked={selectedBedIds.includes('bed-101-a')} onChange={() => handleBedToggle('bed-101-a')} size="small" />}
-                      label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Bed A (Window)</Typography>}
-                    />
-                    <FormControlLabel
-                      control={<Checkbox checked={selectedBedIds.includes('bed-101-b')} onChange={() => handleBedToggle('bed-101-b')} size="small" />}
-                      label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Bed B</Typography>}
-                    />
-                  </FormGroup>
+                  {currentFlat && currentFlat.vacantBeds.length > 0 ? (
+                    <FormGroup row>
+                      {currentFlat.vacantBeds.map((bed) => (
+                        <FormControlLabel
+                          key={bed.id}
+                          control={
+                            <Checkbox
+                              checked={selectedBedIds.includes(bed.id)}
+                              onChange={() => handleBedToggle(bed.id)}
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2" sx={{ fontWeight: 600 }}>{bed.name}</Typography>}
+                        />
+                      ))}
+                    </FormGroup>
+                  ) : (
+                    <Typography variant="caption" color="error">
+                      No vacant beds available in selected flat.
+                    </Typography>
+                  )}
                 </Paper>
               </Box>
             </Box>

@@ -11,7 +11,7 @@ import { AccountType, SettlementOutcome, deriveSettlementPreview } from '../doma
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
-import { InMemoryStayRepository, StayStatus } from '../../stay';
+import { InMemoryStayRepository, Stay, StayStatus } from '../../stay';
 
 export interface GeneratePreviewResult {
   success: boolean;
@@ -74,8 +74,8 @@ export class SettlementApplicationService {
       return { success: false, preview: null, errors };
     }
 
-    if (stay.status === 'CLOSED') {
-      errors.push(`Stay '${stayId}' is already closed.`);
+    if (stay.status === StayStatus.CHECKED_OUT) {
+      errors.push(`Stay '${stayId}' is already checked out.`);
       return { success: false, preview: null, errors };
     }
 
@@ -273,11 +273,13 @@ export class SettlementApplicationService {
     const stayRepo = new InMemoryStayRepository();
     const currentStay = stayRepo.findByIdSync(stayId);
     if (currentStay) {
-      stayRepo.update({
-        ...currentStay,
-        status: StayStatus.CLOSED,
-        actualCheckoutDate: new Date().toISOString().split('T')[0],
-      });
+      stayRepo.update(
+        new Stay({
+          ...currentStay,
+          status: StayStatus.CHECKED_OUT,
+          actualCheckoutDate: new Date().toISOString().split('T')[0],
+        })
+      );
     }
 
 

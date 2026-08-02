@@ -19,7 +19,34 @@ const actions = [
   { label: 'Begin Checkout', icon: <ExitToApp /> },
 ];
 
-export function QuickActions() {
+export interface QuickActionsProps {
+  onTransferBed?: () => void;
+  onTransferFlat?: () => void;
+  onAllocateAdditionalBed?: () => void;
+  onReleaseBed?: () => void;
+}
+
+export function QuickActions({
+  onTransferBed,
+  onTransferFlat,
+  onAllocateAdditionalBed,
+  onReleaseBed,
+}: QuickActionsProps = {}) {
+  const getClickHandler = (label: string) => {
+    switch (label) {
+      case 'Transfer Bed':
+        return onTransferBed;
+      case 'Transfer Flat':
+        return onTransferFlat;
+      case 'Allocate Additional Bed':
+        return onAllocateAdditionalBed;
+      case 'Release Bed':
+        return onReleaseBed;
+      default:
+        return undefined;
+    }
+  };
+
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
@@ -27,17 +54,21 @@ export function QuickActions() {
           Quick Actions
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              startIcon={action.icon}
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {action.label}
-            </Button>
-          ))}
+          {actions.map((action) => {
+            const handler = getClickHandler(action.label);
+            return (
+              <Button
+                key={action.label}
+                startIcon={action.icon}
+                variant="outlined"
+                size="small"
+                onClick={handler}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                {action.label}
+              </Button>
+            );
+          })}
         </Box>
       </CardContent>
     </Card>

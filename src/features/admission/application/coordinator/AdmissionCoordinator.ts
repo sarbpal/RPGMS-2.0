@@ -9,10 +9,13 @@ import type { ResidentRepository } from '../../../resident/domain/interfaces/Res
 import { ResidentStatus } from '../../../resident/domain/valueObjects/ResidentStatus';
 import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 
-import type { Stay } from '../../../stay/domain/entities/Stay';
+import { Stay } from '../../../stay/domain/entities/Stay';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import { StayType } from '../../../stay/domain/valueObjects/StayType';
+import { CommercialAgreement } from '../../../stay/domain/valueObjects/CommercialAgreement';
+import { BedAllocation } from '../../../stay/domain/valueObjects/BedAllocation';
+import { BusinessEvent } from '../../../stay/domain/valueObjects/BusinessEvent';
 import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
@@ -196,6 +199,29 @@ export class AdmissionCoordinator {
   }
 
   /**
+   * Returns repository-driven available flats and vacant beds for dynamic UI selection (CR-3.2).
+   */
+  public getAvailableFlats(): Array<{
+    id: string;
+    name: string;
+    vacantBeds: Array<{ id: string; name: string }>;
+  }> {
+    const flats = this.accommodationRepo.findAll ? this.accommodationRepo.findAll() : [];
+    return flats.map((flat) => {
+      const vacantBeds = flat.areas
+        .flatMap((area) => area.beds)
+        .filter((bed) => bed.status === BedStatus.VACANT)
+        .map((bed) => ({ id: bed.id, name: bed.name }));
+
+      return {
+        id: flat.id,
+        name: flat.name,
+        vacantBeds,
+      };
+    });
+  }
+
+  /**
    * Executes atomic Reserved Admission conversion with complete rollback on failure.
    * Reusable core architecture for future Walk-in Admission (Refinement #7).
    */
@@ -257,7 +283,7 @@ export class AdmissionCoordinator {
       const savedResident = inMemResidentRepo.save ? inMemResidentRepo.save(newResident) as any : newResident;
       createdResidentId = savedResident.id || newResident.id;
 
-      // Step 2: Create Stay & Commercial Agreement (status ACTIVE)
+      // Step 2: Explicitly Create Stay Aggregate with CommercialAgreement, BedAllocation, and BusinessEvent
       const inMemStayRepo = this.stayRepo as InMemoryStayRepository;
       const allStays = inMemStayRepo.getAllSync ? inMemStayRepo.getAllSync() : [];
       const staySeq = allStays.length + 1;
@@ -272,20 +298,74 @@ export class AdmissionCoordinator {
         tokenDisposition
       );
 
-      const newStay: Stay = {
+      // Explicit Initial Commercial Agreement
+      const initialCommercialAgreement = new CommercialAgreement({
+        id: `CA-${stayId}-1`,
+        stayId,
+        rent: Number(draft.agreedRent),
+        securityDeposit: preview.adjustedDepositBalance,
+        effectiveFrom: draft.checkInDate,
+        amendmentReason: 'Admission Initial Agreement',
+        status: 'ACTIVE',
+        createdAt: nowIso,
+      });
+
+      // Explicit Initial Bed Allocations
+      const initialBedAllocations = draft.bedIds.map(
+        (bedId, index) =>
+          new BedAllocation({
+            id: `BA-${stayId}-${index + 1}`,
+            stayId,
+            flatId: draft.flatId,
+            bedId,
+            allocatedFrom: draft.checkInDate,
+            status: 'ACTIVE',
+            createdAt: nowIso,
+          })
+      );
+
+      // Explicit Initial Business Event
+      const resolvedFlatName = targetFlat ? targetFlat.name : draft.flatId;
+      const initialBusinessEvent = new BusinessEvent({
+        id: `BE-${stayId}-1`,
+        stayId,
+        eventType: 'ADMISSION',
+        timestamp: draft.checkInDate,
+        description: `Resident checked in and allocated to Flat ${resolvedFlatName} / Bed(s) ${draft.bedIds.join(', ')}`,
+        metadata: {
+          reservationId: reservation.id,
+          reservationNumber: reservation.reservationNumber,
+          tokenAmount,
+          appliedTokenDisposition: preview.dispositionLabel,
+          summaryText: preview.summaryText,
+        },
+      });
+
+      // Fully Assembled Stay Aggregate Root
+      const newStay: Stay = new Stay({
         id: stayId,
         residentId: newResident.id,
         stayType: StayType.REGULAR,
         status: StayStatus.ACTIVE,
         checkInDate: draft.checkInDate,
-        flatId: draft.flatId,
-        allocatedBedIds: [...draft.bedIds],
-        agreedRent: Number(draft.agreedRent),
-        agreedDeposit: Number(draft.agreedDeposit),
+        commercialAgreements: [initialCommercialAgreement],
+        bedAllocations: initialBedAllocations,
+        businessEvents: [initialBusinessEvent],
         notes: draft.notes ? `Admission Note: ${draft.notes}. ${preview.summaryText}` : preview.summaryText,
         createdAt: nowIso,
         updatedAt: nowIso,
-      };
+      });
+
+      // Current Projection Validation
+      const projection = newStay.getCurrentProjection();
+      if (
+        !projection.stayId ||
+        projection.status !== StayStatus.ACTIVE ||
+        projection.activeBedIds.length === 0 ||
+        projection.currentRent <= 0
+      ) {
+        throw new Error('CurrentProjection validation failed: Stay Aggregate constructed in an invalid state.');
+      }
 
       const savedStay = inMemStayRepo.save ? inMemStayRepo.save(newStay) as any : newStay;
       createdStayId = savedStay.id || stayId;

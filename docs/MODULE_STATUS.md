@@ -170,7 +170,7 @@ Manages the operational relationship between Residents and Accommodation, includ
 - Service & Hook Integration (`getResidentsWithActiveStay`, `saveOnboardingTransaction` atomic creation)
 - Architectural Stabilization & Verification (Sprint 7.3.4)
 
-**Pending**
+**Complete (Frozen)**
 
 - Stay event logging & timeline
 - Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)

@@ -1640,6 +1640,24 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ TypeScript Compilation Passed
 - ✅ Production Build Passed
 
+## Stay Module Complete (CR-3.8)
+
+### Completed
+
+- Completed Integration, Stabilisation & Release Readiness.
+- Streamlined Stay aggregate initialization.
+- Removed remaining transitional constructor initialization path.
+- Verified complete operational lifecycle from Reservation through Stay Workspace.
+- Produced Stay Module Release Certificate.
+- Completed Stay Module Closure Audit.
+- Formally froze the Stay module for production.
+
+### Verification
+
+- ✅ 141/141 tests passed
+- ✅ TypeScript compilation passed
+- ✅ Production build passed
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

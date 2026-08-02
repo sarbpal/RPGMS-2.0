@@ -551,6 +551,22 @@ Objective:
 
 Perform complete end-to-end verification of the Finance module before locking it for future development.
 
+Milestone
+
+Completed CR-3.8 Integration & Stabilisation.
+
+Stay Module formally closed.
+
+Produced:
+
+- Release Certificate
+- Module Closure Audit
+
+Status:
+
+Feature Complete
+Architecturally Frozen
+Production Ready
 
 End of Document
 

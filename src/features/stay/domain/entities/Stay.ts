@@ -62,25 +62,15 @@ export class Stay {
       this._commercialAgreements = props.commercialAgreements.map((ca) =>
         ca instanceof CommercialAgreement ? ca : new CommercialAgreement(ca)
       );
-    } else if (props.agreedRent !== undefined || props.agreedDeposit !== undefined) {
-      this._commercialAgreements = [
-        new CommercialAgreement({
-          id: `CA-${props.id}-1`,
-          stayId: props.id,
-          rent: props.agreedRent ?? 0,
-          securityDeposit: props.agreedDeposit ?? 0,
-          effectiveFrom: props.checkInDate,
-          amendmentReason: 'Admission Initial Agreement',
-          status: 'ACTIVE',
-        }),
-      ];
     } else {
+      const rent = props.agreedRent ?? 0;
+      const deposit = props.agreedDeposit ?? 0;
       this._commercialAgreements = [
         new CommercialAgreement({
           id: `CA-${props.id}-1`,
           stayId: props.id,
-          rent: 0,
-          securityDeposit: 0,
+          rent,
+          securityDeposit: deposit,
           effectiveFrom: props.checkInDate,
           amendmentReason: 'Admission Initial Agreement',
           status: 'ACTIVE',
@@ -93,9 +83,9 @@ export class Stay {
       this._bedAllocations = props.bedAllocations.map((ba) =>
         ba instanceof BedAllocation ? ba : new BedAllocation(ba)
       );
-    } else if (props.allocatedBedIds !== undefined) {
+    } else {
       const flatId = props.flatId || 'Unassigned';
-      const bedIds = props.allocatedBedIds;
+      const bedIds = props.allocatedBedIds && props.allocatedBedIds.length > 0 ? props.allocatedBedIds : ['UNASSIGNED'];
       this._bedAllocations = bedIds.map(
         (bedId, index) =>
           new BedAllocation({
@@ -107,30 +97,6 @@ export class Stay {
             status: 'ACTIVE',
           })
       );
-      if (this._bedAllocations.length === 0 && flatId !== 'Unassigned') {
-        this._bedAllocations = [
-          new BedAllocation({
-            id: `BA-${props.id}-1`,
-            stayId: props.id,
-            flatId,
-            bedId: 'UNASSIGNED',
-            allocatedFrom: props.checkInDate,
-            status: 'ACTIVE',
-          }),
-        ];
-      }
-    } else {
-      const flatId = props.flatId || 'Unassigned';
-      this._bedAllocations = [
-        new BedAllocation({
-          id: `BA-${props.id}-1`,
-          stayId: props.id,
-          flatId,
-          bedId: 'UNASSIGNED',
-          allocatedFrom: props.checkInDate,
-          status: 'ACTIVE',
-        }),
-      ];
     }
 
     // Initialize Business Events

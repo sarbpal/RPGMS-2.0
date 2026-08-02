@@ -4,6 +4,8 @@ import type { Flat } from '../../domain/entities/Flat';
 import type { FlatDraft } from '../../application/models/FlatDraft';
 import { BedStatus } from '../../domain/valueObjects/BedStatus';
 import { Stay, type StayProps } from '../../../stay/domain/entities/Stay';
+import { CommercialAgreement } from '../../../stay/domain/valueObjects/CommercialAgreement';
+import { BedAllocation } from '../../../stay/domain/valueObjects/BedAllocation';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import { StayType } from '../../../stay/domain/valueObjects/StayType';
 import type { Resident } from '../../../resident/domain/entities/Resident';
@@ -66,16 +68,45 @@ export function createMockFlatDraft(overrides?: Partial<FlatDraft>): FlatDraft {
 }
 
 export function createMockStay(overrides?: Partial<StayProps>): Stay {
+  const defaultCommercial = [
+    new CommercialAgreement({
+      id: 'ca-stay-1-1',
+      stayId: 'stay-1',
+      rent: 5000,
+      securityDeposit: 10000,
+      effectiveFrom: '2026-01-01',
+      amendmentReason: 'Admission Initial Agreement',
+      status: 'ACTIVE',
+    }),
+  ];
+
+  const defaultAllocations = [
+    new BedAllocation({
+      id: 'ba-stay-1-1',
+      stayId: 'stay-1',
+      flatId: '101',
+      bedId: '101-B1',
+      allocatedFrom: '2026-01-01',
+      status: 'ACTIVE',
+    }),
+    new BedAllocation({
+      id: 'ba-stay-1-2',
+      stayId: 'stay-1',
+      flatId: '101',
+      bedId: '101-B2',
+      allocatedFrom: '2026-01-01',
+      status: 'ACTIVE',
+    }),
+  ];
+
   return new Stay({
     id: 'stay-1',
     residentId: 'res-1',
-    flatId: '101',
-    allocatedBedIds: ['101-B1', '101-B2'],
     checkInDate: '2026-01-01',
     stayType: StayType.REGULAR,
-    agreedRent: 5000,
-    agreedDeposit: 10000,
     status: StayStatus.ACTIVE,
+    commercialAgreements: defaultCommercial,
+    bedAllocations: defaultAllocations,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,

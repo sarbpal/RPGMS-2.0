@@ -1622,6 +1622,24 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ TypeScript Compilation Passed
 - ✅ Production Build Passed
 
+## CR-3.7 – Stay Workspace
+
+### Added
+
+- Refactored Stay Workspace to consume `CurrentProjection` as the single source of truth.
+- Replaced hardcoded resident information with dynamic `ResidentRepository` lookups.
+- Replaced static timeline with projection-driven `BusinessEvent` timeline rendering.
+- Added dynamic occupancy duration calculation from lifecycle dates.
+- Removed static summary and financial mapping logic from the Workspace.
+- Simplified `StayWorkspaceCoordinator` into a presentation orchestrator.
+- Added unit and integration tests for the Stay Workspace.
+
+### Verification
+
+- ✅ Unit & Integration Tests Passed
+- ✅ TypeScript Compilation Passed
+- ✅ Production Build Passed
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

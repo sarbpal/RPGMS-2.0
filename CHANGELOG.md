@@ -1536,6 +1536,14 @@ Removed automatic Emergency Contact defaults.
 - Removed obsolete `fatherOrGuardianName`.
 - Removed automatic Emergency Contact default generation.
 
+---
+
+# Architecture Freeze – RPGMS 2.0
+
+This milestone freezes the core business architecture of RPGMS 2.0, including the Domain Model, Software Architecture, Resident Architecture, and Stay Architecture. It establishes the constitutional documents that will govern future implementation. Subsequent work will focus on implementation through CR-3 and later change requests, with architectural modifications made only when driven by new business requirements.
+
+
+
 ------------------------------------------------------------------------------
 End of Document
 ------------------------------------------------------------------------------

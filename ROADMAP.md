@@ -213,4 +213,25 @@ Ready to Begin
 
 ---
 
+## Current Implementation Focus
+
+### Resident Module MVP
+
+Implementation will proceed in the following order:
+
+1. Residents List Workspace
+2. Standard Admission Workspace
+3. Resident Workspace
+4. Universal Search
+5. Current Stay Summary
+6. Operational Readiness
+7. Documents Management
+8. Compliance Summary
+9. Timeline
+10. Resident Quick Actions
+
+The Resident Workspace V2 Specification shall serve as the implementation authority for this sprint.
+
+---
+
 End of Document

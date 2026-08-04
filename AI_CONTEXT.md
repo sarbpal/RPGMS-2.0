@@ -199,6 +199,67 @@ Checkout Date remains editable until checkout is completed.
 
 Historical resident information must always remain available.
 
+---
+
+## Resident Module Context
+
+The Resident module manages the permanent identity of individuals residing within the PG.
+
+Resident owns:
+
+- Personal Information
+- Contact Information
+- Address
+- Documents
+- Emergency Contacts
+- Registered Vehicles
+- Registered Devices
+- Medical Information
+
+Resident does not own operational residency.
+
+Operational residency belongs to the Stay domain.
+
+The Resident Workspace presents Stay information through projections only.
+
+### Resident Module Principles
+
+The Resident Module follows these constitutional principles:
+
+- One Person → One Resident.
+- One Resident → One Active Stay.
+- Admission follows the Standard Admission Workspace.
+- Admission follows Minimal Operational Admission.
+- Profile information is completed progressively.
+- Documents represent evidence.
+- Compliance records business activities.
+- Timeline presents Business Events.
+- Search is read-only.
+- Navigation is read-only.
+- Historical information is preserved.
+
+### Resident Workspace
+
+The Resident Workspace is organised into operational sections.
+
+Major components include:
+
+- Resident Header
+- Current Stay Summary
+- Operational Readiness
+- Profile Completion
+- Personal Information
+- Contact Information
+- Address
+- Emergency Contacts
+- Documents
+- Vehicles
+- Devices
+- Compliance Summary
+- Timeline
+
+The Resident Workspace acts as the operational hub for resident-related activities while preserving clear ownership boundaries between Resident, Stay, Accommodation, Compliance and Finance.
+
 ------------------------------------------------------------------------------
 Electricity Workflow
 ------------------------------------------------------------------------------

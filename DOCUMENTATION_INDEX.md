@@ -275,6 +275,23 @@ These documents define the long-term principles of RPGMS 2.0 and should be read 
 5. ENGINEERING_BASELINE.md
 6. PROJECT_RULES.md
 
+---
+
+## Resident Module
+
+### Resident Workspace V2 Specification
+
+Status:
+Near Final
+
+Purpose:
+
+Defines the constitutional architecture, business rules, operational workflows and implementation guidance for the Resident Module within RPGMS 2.0.
+
+This document is the authoritative implementation reference for the Resident Module MVP.
+
+Appendices and final editorial review remain pending before formal approval and freeze.
+
 ------------------------------------------------------------------------------
 Version History
 ------------------------------------------------------------------------------

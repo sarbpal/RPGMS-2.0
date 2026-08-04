@@ -883,6 +883,46 @@ These principles govern implementation decisions throughout the project and take
 
 ---
 
+## Resident Module MVP Implementation Strategy
+
+The Resident Module shall be implemented in accordance with the Resident Workspace V2 Specification.
+
+The specification serves as the authoritative implementation reference for all Resident-related functionality.
+
+Implementation shall prioritise delivery of the Minimum Viable Product (MVP) while preserving the constitutional architecture established for RPGMS 2.0.
+
+### MVP Implementation Scope
+
+The Resident Module MVP includes:
+
+- Residents List Workspace
+- Standard Admission Workspace
+- Resident Workspace
+- Universal Search
+- Current Stay Summary
+- Operational Readiness
+- Profile Completion
+- Documents Management
+- Compliance Summary
+- Timeline
+- Resident Quick Actions
+
+### Implementation Principles
+
+Implementation shall follow these principles:
+
+- Follow the approved Resident Workspace V2 Specification.
+- Do not introduce new business rules during implementation.
+- Preserve established Domain Ownership.
+- Preserve Clean Architecture.
+- Implement the agreed UI before adding enhancements.
+- Defer non-essential features to future versions.
+- Update documentation only where implementation changes constitutional behaviour.
+
+The objective is to deliver a complete, stable and architecturally correct Resident Module MVP.
+
+---
+
 ## 10.2 Specification-Driven Development
 
 Implementation shall always begin with the governing documentation.

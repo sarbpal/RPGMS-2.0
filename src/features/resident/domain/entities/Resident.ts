@@ -14,6 +14,19 @@ export interface IdentityDocument {
   verificationStatus: 'Verified' | 'Pending' | 'Signed';
 }
 
+export interface RegisteredVehicle {
+  id: string;
+  vehicleType: string;
+  registrationNumber: string;
+}
+
+export interface RegisteredDevice {
+  id: string;
+  deviceName: string;
+  deviceType: string;
+  macAddress: string;
+}
+
 export interface Resident {
   id: string;
   residentCode: string;
@@ -35,6 +48,8 @@ export interface Resident {
   pinCode?: string;
   documents?: IdentityDocument[];
   emergencyContact?: EmergencyContact;
+  vehicles?: RegisteredVehicle[];
+  devices?: RegisteredDevice[];
   createdAt: string;
   updatedAt: string;
 }

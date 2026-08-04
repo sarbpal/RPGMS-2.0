@@ -7,8 +7,12 @@ import type { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import type {
   CurrentStaySummaryViewModel,
+  DeviceItemViewModel,
   DocumentItemViewModel,
+  OperationalReadinessViewModel,
+  ProfileCompletionViewModel,
   ResidentWorkspaceViewModel,
+  VehicleItemViewModel,
 } from '../models/ResidentWorkspaceViewModel';
 
 export class ResidentWorkspaceCoordinator {
@@ -26,7 +30,6 @@ export class ResidentWorkspaceCoordinator {
   public createViewModel(residentId: string): ResidentWorkspaceViewModel {
     const activeResidentId = residentId || '';
 
-    // Retrieve Resident entity using ResidentRepository contract
     let resident: Resident | null = null;
     if (
       'getByIdSync' in this.repository &&
@@ -53,7 +56,6 @@ export class ResidentWorkspaceCoordinator {
       );
     }
 
-    // Retrieve active stay projection if available
     let stay: Stay | null = null;
     if (
       'getAllSync' in this.stayRepository &&
@@ -132,6 +134,34 @@ export class ResidentWorkspaceCoordinator {
       };
     }
 
+    // 1. Evaluate Profile Completion
+    const { percentage, missingItems } = this.evaluateProfileCompletion(resident);
+    const profileCompletion: ProfileCompletionViewModel = { percentage, missingItems };
+
+    // 2. Evaluate Operational Readiness
+    const operationalReadiness = this.evaluateOperationalReadiness(resident, currentStay);
+
+    // 3. Vehicles
+    const vehicles: VehicleItemViewModel[] =
+      resident.vehicles && resident.vehicles.length > 0
+        ? resident.vehicles.map((v) => ({
+            id: v.id,
+            vehicleType: v.vehicleType,
+            registrationNumber: v.registrationNumber,
+          }))
+        : [];
+
+    // 4. Devices
+    const devices: DeviceItemViewModel[] =
+      resident.devices && resident.devices.length > 0
+        ? resident.devices.map((d) => ({
+            id: d.id,
+            deviceName: d.deviceName,
+            deviceType: d.deviceType,
+            macAddress: d.macAddress,
+          }))
+        : [];
+
     return {
       header: {
         fullName: resident.fullName,
@@ -140,6 +170,8 @@ export class ResidentWorkspaceCoordinator {
         status: statusLabel,
       },
       currentStay,
+      profileCompletion,
+      operationalReadiness,
       personalInformation: {
         fullName: resident.fullName,
         residentCode: resident.residentCode,
@@ -168,6 +200,96 @@ export class ResidentWorkspaceCoordinator {
         emergencyPhone: resident.emergencyContact?.phone || 'N/A',
         motherName: resident.motherName || 'N/A',
       },
+      vehicles,
+      devices,
+    };
+  }
+
+  private evaluateProfileCompletion(resident: Resident): { percentage: number; missingItems: string[] } {
+    let score = 0;
+    const missing: string[] = [];
+
+    // Personal Info (20%)
+    if (resident.fullName && resident.gender && resident.dateOfBirth) {
+      score += 20;
+    } else {
+      missing.push('Personal Details');
+    }
+
+    // Contact Info (20%)
+    if (resident.mobileNumber && resident.email) {
+      score += 20;
+    } else {
+      missing.push('Contact Information');
+    }
+
+    // Permanent Address (20%)
+    if (resident.permanentAddress && resident.city && resident.state && resident.pinCode) {
+      score += 20;
+    } else {
+      missing.push('Address & PIN Code');
+    }
+
+    // Emergency Contact (20%)
+    if (resident.emergencyContact && resident.emergencyContact.name && resident.emergencyContact.phone) {
+      score += 20;
+    } else {
+      missing.push('Emergency Contact');
+    }
+
+    // Identity Documents (10%)
+    if (resident.documents && resident.documents.length > 0) {
+      score += 10;
+    } else {
+      missing.push('Identity Document');
+    }
+
+    // Vehicles / Devices (10%)
+    const hasVehicle = resident.vehicles && resident.vehicles.length > 0;
+    const hasDevice = resident.devices && resident.devices.length > 0;
+    if (hasVehicle || hasDevice) {
+      score += 10;
+    } else {
+      if (!hasVehicle) missing.push('Vehicle Details');
+      if (!hasDevice) missing.push('Registered Devices');
+    }
+
+    return { percentage: Math.min(100, score), missingItems: missing };
+  }
+
+  private evaluateOperationalReadiness(
+    resident: Resident,
+    stay: CurrentStaySummaryViewModel
+  ): OperationalReadinessViewModel {
+    const hasActiveStay = stay.hasActiveStay;
+    const hasGovernmentID =
+      Boolean(resident.documents) &&
+      resident.documents!.some((doc) => doc.verificationStatus === 'Verified');
+    const hasEmergencyContact = Boolean(
+      resident.emergencyContact &&
+        resident.emergencyContact.name &&
+        resident.emergencyContact.phone &&
+        resident.emergencyContact.name !== 'N/A'
+    );
+
+    const requirements = [
+      { label: 'Active Stay', isSatisfied: hasActiveStay },
+      { label: 'Government ID', isSatisfied: hasGovernmentID },
+      { label: 'Emergency Contact', isSatisfied: hasEmergencyContact },
+    ];
+
+    const missingMandatoryItems = requirements
+      .filter((r) => !r.isSatisfied)
+      .map((r) => r.label);
+
+    const isReady = missingMandatoryItems.length === 0;
+    const statusLabel = isReady ? 'Operationally Ready' : 'Attention Required';
+
+    return {
+      isReady,
+      statusLabel,
+      requirements,
+      missingMandatoryItems,
     };
   }
 

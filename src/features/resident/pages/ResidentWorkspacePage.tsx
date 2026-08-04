@@ -6,10 +6,14 @@ import { ResidentWorkspaceCoordinator } from '../application/coordinator/Residen
 import { ResidentHeader } from '../components/ResidentHeader';
 import { ResidentQuickActions } from '../components/ResidentQuickActions';
 import { CurrentStaySummaryCard } from '../components/CurrentStaySummaryCard';
+import { ProfileCompletionCard } from '../components/ProfileCompletionCard';
+import { OperationalReadinessCard } from '../components/OperationalReadinessCard';
 import { PersonalInformationCard } from '../components/PersonalInformationCard';
 import { ContactInformationCard } from '../components/ContactInformationCard';
 import { AddressCard } from '../components/AddressCard';
 import { EmergencyContactCard } from '../components/EmergencyContactCard';
+import { VehiclesCard } from '../components/VehiclesCard';
+import { DevicesCard } from '../components/DevicesCard';
 import { DocumentsCard } from '../components/DocumentsCard';
 import { ResidentIdentityForm, type ResidentIdentityFormData } from '../components/ResidentIdentityForm';
 
@@ -87,10 +91,20 @@ export default function ResidentWorkspacePage() {
           <CurrentStaySummaryCard data={viewModel.currentStay} />
         </Stack>
 
+        {/* Operational Dashboard: Side-by-side cards immediately below Current Stay Summary */}
+        <Grid container spacing={2.5}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <ProfileCompletionCard data={viewModel.profileCompletion} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <OperationalReadinessCard data={viewModel.operationalReadiness} />
+          </Grid>
+        </Grid>
+
         {/* Information Sections Grid */}
         <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <PersonalInformationCard data={viewModel.personalInformation} onEdit={handleOpenEditModal} />
+            <PersonalInformationCard data={viewModel.personalInformation} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <ContactInformationCard data={viewModel.contactInformation} />
@@ -106,6 +120,17 @@ export default function ResidentWorkspacePage() {
           </Grid>
         </Grid>
 
+        {/* Asset Sections Grid: Vehicles & Devices */}
+        <Grid container spacing={2.5}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <VehiclesCard vehicles={viewModel.vehicles} onRegisterVehicle={() => alert('Register Vehicle clicked')} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <DevicesCard devices={viewModel.devices} onRegisterDevice={() => alert('Register Device clicked')} />
+          </Grid>
+        </Grid>
+
+        {/* Documents Section */}
         <DocumentsCard documents={viewModel.documents} />
       </Stack>
 

@@ -1,32 +1,19 @@
-import { Button, Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
-import { Edit } from '@mui/icons-material';
+import { Card, CardContent, Divider, Grid, Stack, Typography } from '@mui/material';
 import type { PersonalInformationViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
 interface PersonalInformationCardProps {
   data: PersonalInformationViewModel;
-  onEdit?: () => void;
 }
 
-export function PersonalInformationCard({ data, onEdit }: PersonalInformationCardProps) {
+export function PersonalInformationCard({ data }: PersonalInformationCardProps) {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        {/* Section Header: Title & Action */}
+        {/* Section Header: Title */}
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Personal Information
           </Typography>
-          {onEdit && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Edit />}
-              onClick={onEdit}
-              sx={{ fontWeight: 600, textTransform: 'none' }}
-            >
-              Edit
-            </Button>
-          )}
         </Stack>
 
         <Stack spacing={2}>

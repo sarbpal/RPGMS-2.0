@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Container, Grid, Stack } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { Container, Grid, Link, Stack } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import { StayWorkspaceCoordinator } from '../application/coordinator/StayWorkspaceCoordinator';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { QuickActions } from '../components/QuickActions';
@@ -18,9 +19,33 @@ export default function StayWorkspacePage() {
     [coordinator, stayId]
   );
 
+  const parentResidentPath = viewModel.header.residentId
+    ? `/resident/${viewModel.header.residentId}`
+    : '/residents';
+
   return (
-    <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
-      <Stack spacing={3}>
+    <Container maxWidth="xl" sx={{ pt: 10, pb: 4 }}>
+      <Stack spacing={2.5}>
+        {/* Workspace Navigation: Lightweight Back to Resident link */}
+        <Link
+          component={RouterLink}
+          to={parentResidentPath}
+          underline="hover"
+          color="text.secondary"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            width: 'fit-content',
+            '&:hover': { color: 'primary.main' },
+          }}
+        >
+          <ArrowBack sx={{ fontSize: '1.1rem' }} />
+          Back to Resident
+        </Link>
+
         {/* 1. Stay Header */}
         <StayHeader data={viewModel.header} />
 
@@ -28,7 +53,7 @@ export default function StayWorkspacePage() {
         <QuickActions />
 
         {/* 3. Responsive Grid with Stay Summary and Financial Summary */}
-        <Grid container spacing={3}>
+        <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
             <StaySummaryCard data={viewModel.summary} />
           </Grid>

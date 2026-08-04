@@ -32,6 +32,13 @@ export const residentSeedData: Resident[] = [
       relationship: 'Father',
       phone: '+91 98765 43210',
     },
+    vehicles: [
+      { id: 'veh-1', vehicleType: 'Two-Wheeler', registrationNumber: 'KA 01 AB 1234' },
+    ],
+    devices: [
+      { id: 'dev-1', deviceName: 'MacBook Pro', deviceType: 'Laptop', macAddress: 'AA:BB:CC:DD:EE:11' },
+      { id: 'dev-2', deviceName: 'iPhone 14', deviceType: 'Mobile', macAddress: 'AA:BB:CC:DD:EE:22' },
+    ],
     createdAt: '2026-03-12T00:00:00Z',
     updatedAt: '2026-07-01T00:00:00Z',
   },
@@ -62,6 +69,10 @@ export const residentSeedData: Resident[] = [
       relationship: 'Father',
       phone: '+91 98765 43220',
     },
+    vehicles: [],
+    devices: [
+      { id: 'dev-3', deviceName: 'Dell XPS', deviceType: 'Laptop', macAddress: 'AA:BB:CC:DD:EE:33' },
+    ],
     createdAt: '2026-04-01T00:00:00Z',
     updatedAt: '2026-07-15T00:00:00Z',
   },
@@ -91,6 +102,8 @@ export const residentSeedData: Resident[] = [
       relationship: 'Father',
       phone: '+91 98765 43101',
     },
+    vehicles: [],
+    devices: [],
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-12-31T00:00:00Z',
   },

@@ -1,13 +1,16 @@
-import { useMemo, useState, useEffect } from 'react';
-import { Container, Grid, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Container, Grid, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Button, Link } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import { ResidentWorkspaceCoordinator } from '../application/coordinator/ResidentWorkspaceCoordinator';
-import { ContactInformationCard } from '../components/ContactInformationCard';
-import { DocumentsCard } from '../components/DocumentsCard';
-import { EmergencyContactCard } from '../components/EmergencyContactCard';
 import { ResidentHeader } from '../components/ResidentHeader';
 import { ResidentQuickActions } from '../components/ResidentQuickActions';
-import { ResidentSummaryCard } from '../components/ResidentSummaryCard';
+import { CurrentStaySummaryCard } from '../components/CurrentStaySummaryCard';
+import { PersonalInformationCard } from '../components/PersonalInformationCard';
+import { ContactInformationCard } from '../components/ContactInformationCard';
+import { AddressCard } from '../components/AddressCard';
+import { EmergencyContactCard } from '../components/EmergencyContactCard';
+import { DocumentsCard } from '../components/DocumentsCard';
 import { ResidentIdentityForm, type ResidentIdentityFormData } from '../components/ResidentIdentityForm';
 
 export default function ResidentWorkspacePage() {
@@ -20,7 +23,6 @@ export default function ResidentWorkspacePage() {
   );
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
 
   const [profileFormData, setProfileFormData] = useState<ResidentIdentityFormData>({
     fullName: '',
@@ -29,80 +31,85 @@ export default function ResidentWorkspacePage() {
     idProofNumber: '',
   });
 
-  const [onboardingFormData, setOnboardingFormData] = useState<ResidentIdentityFormData>({
-    fullName: '',
-    mobileNumber: '',
-    idProofType: 'Aadhaar',
-    idProofNumber: '',
-  });
-
-  useEffect(() => {
+  const handleOpenEditModal = () => {
     if (viewModel) {
       setProfileFormData({
         id: viewModel.header.residentId,
-        residentCode: viewModel.summary.residentCode,
-        fullName: viewModel.header.fullName,
+        residentCode: viewModel.personalInformation.residentCode,
+        fullName: viewModel.personalInformation.fullName,
         mobileNumber: viewModel.contactInformation.primaryMobile,
         alternateMobileNumber: viewModel.contactInformation.alternateMobile !== 'N/A' ? viewModel.contactInformation.alternateMobile : '',
         email: viewModel.contactInformation.email !== 'N/A' ? viewModel.contactInformation.email : '',
         idProofType: 'Aadhaar',
         idProofNumber: '1234-5678-9012',
-        permanentAddressLine1: viewModel.contactInformation.permanentAddress !== 'N/A' ? viewModel.contactInformation.permanentAddress : '',
+        permanentAddressLine1: viewModel.address.permanentAddress !== 'N/A' ? viewModel.address.permanentAddress : '',
         emergencyContactName: viewModel.emergencyContact.contactName !== 'N/A' ? viewModel.emergencyContact.contactName : '',
         emergencyContactRelationship: viewModel.emergencyContact.relationship !== 'N/A' ? viewModel.emergencyContact.relationship : 'Father',
         emergencyContactPhone: viewModel.emergencyContact.emergencyPhone !== 'N/A' ? viewModel.emergencyContact.emergencyPhone : '',
-        occupationType: viewModel.summary.occupation,
-        bloodGroup: viewModel.summary.bloodGroup,
+        occupationType: viewModel.personalInformation.occupation,
+        bloodGroup: viewModel.personalInformation.bloodGroup,
         status: viewModel.header.status,
       });
     }
-  }, [viewModel]);
-
-  const handleOpenEditModal = () => setIsEditModalOpen(true);
-  const handleOpenOnboardingModal = () => {
-    setOnboardingFormData({
-      fullName: '',
-      mobileNumber: '',
-      idProofType: 'Aadhaar',
-      idProofNumber: '',
-    });
-    setIsOnboardingModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
   return (
-    <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
-      <Stack spacing={3}>
-        {/* 1. Resident Header */}
-        <ResidentHeader data={viewModel.header} />
+    <Container maxWidth="xl" sx={{ pt: 10, pb: 4 }}>
+      <Stack spacing={2.5}>
+        {/* Workspace Navigation: Lightweight Back to Residents link */}
+        <Link
+          component={RouterLink}
+          to="/residents"
+          underline="hover"
+          color="text.secondary"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            width: 'fit-content',
+            '&:hover': { color: 'primary.main' },
+          }}
+        >
+          <ArrowBack sx={{ fontSize: '1.1rem' }} />
+          Back to Residents
+        </Link>
 
-        {/* 2. Quick Actions */}
-        <ResidentQuickActions
-          onEditProfile={handleOpenEditModal}
-          onNewOnboarding={handleOpenOnboardingModal}
-        />
+        {/* Operational Workspace Top Block: Resident Header -> Quick Actions -> Current Stay Summary */}
+        <Stack spacing={2}>
+          <ResidentHeader data={viewModel.header} />
+          <ResidentQuickActions
+            stayId={viewModel.currentStay.hasActiveStay ? viewModel.currentStay.stayId : undefined}
+            onEditProfile={handleOpenEditModal}
+          />
+          <CurrentStaySummaryCard data={viewModel.currentStay} />
+        </Stack>
 
-        {/* 3. Summary & Contact Grid */}
-        <Grid container spacing={3}>
+        {/* Information Sections Grid */}
+        <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <ResidentSummaryCard data={viewModel.summary} />
+            <PersonalInformationCard data={viewModel.personalInformation} onEdit={handleOpenEditModal} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <ContactInformationCard data={viewModel.contactInformation} />
           </Grid>
         </Grid>
 
-        {/* 4. Documents & Emergency Contact Grid */}
-        <Grid container spacing={3}>
+        <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <DocumentsCard documents={viewModel.documents} />
+            <AddressCard data={viewModel.address} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <EmergencyContactCard data={viewModel.emergencyContact} />
           </Grid>
         </Grid>
+
+        <DocumentsCard documents={viewModel.documents} />
       </Stack>
 
-      {/* Edit Resident Profile Modal (Complete Resident Profile Mode) */}
+      {/* Edit Resident Profile Modal */}
       <Dialog
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -111,7 +118,7 @@ export default function ResidentWorkspacePage() {
         slotProps={{ paper: { sx: { borderRadius: 3, maxHeight: '90vh' } } }}
       >
         <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
-          Edit Complete Resident Profile ({viewModel.header.fullName})
+          Edit Resident Profile ({viewModel.header.fullName})
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <ResidentIdentityForm
@@ -131,39 +138,6 @@ export default function ResidentWorkspacePage() {
             sx={{ fontWeight: 700 }}
           >
             Save Profile Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* New Resident Onboarding Modal (Onboarding Mode) */}
-      <Dialog
-        open={isOnboardingModalOpen}
-        onClose={() => setIsOnboardingModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 3 } } }}
-      >
-        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
-          New Resident Onboarding
-        </DialogTitle>
-        <DialogContent dividers sx={{ p: 3 }}>
-          <ResidentIdentityForm
-            mode="onboarding"
-            value={onboardingFormData}
-            onChange={setOnboardingFormData}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setIsOnboardingModalOpen(false)} sx={{ color: 'text.secondary', fontWeight: 600 }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setIsOnboardingModalOpen(false)}
-            sx={{ fontWeight: 700 }}
-          >
-            Complete Onboarding
           </Button>
         </DialogActions>
       </Dialog>

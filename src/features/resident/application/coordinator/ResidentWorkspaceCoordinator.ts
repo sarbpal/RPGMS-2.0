@@ -1,13 +1,26 @@
 import type { Resident } from '../../domain/entities/Resident';
 import type { ResidentRepository } from '../../domain/interfaces/ResidentRepository';
 import { InMemoryResidentRepository } from '../../infrastructure/repositories/InMemoryResidentRepository';
-import type { DocumentItemViewModel, ResidentWorkspaceViewModel } from '../models/ResidentWorkspaceViewModel';
+import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
+import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import type { Stay } from '../../../stay/domain/entities/Stay';
+import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
+import type {
+  CurrentStaySummaryViewModel,
+  DocumentItemViewModel,
+  ResidentWorkspaceViewModel,
+} from '../models/ResidentWorkspaceViewModel';
 
 export class ResidentWorkspaceCoordinator {
   private repository: ResidentRepository;
+  private stayRepository: StayRepository;
 
-  constructor(repository: ResidentRepository = new InMemoryResidentRepository()) {
+  constructor(
+    repository: ResidentRepository = new InMemoryResidentRepository(),
+    stayRepository: StayRepository = new InMemoryStayRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
   }
 
   public createViewModel(residentId: string): ResidentWorkspaceViewModel {
@@ -26,21 +39,41 @@ export class ResidentWorkspaceCoordinator {
     }
 
     if (!resident) {
-      return this.mapResidentToViewModel({
-        id: activeResidentId || 'NOT_FOUND',
-        residentCode: 'R000000',
-        fullName: 'Unknown Resident',
-        status: 'CHECKED_OUT',
-        mobileNumber: 'N/A',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      return this.mapResidentToViewModel(
+        {
+          id: activeResidentId || 'NOT_FOUND',
+          residentCode: 'R000000',
+          fullName: 'Unknown Resident',
+          status: 'CHECKED_OUT',
+          mobileNumber: 'N/A',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        null
+      );
     }
 
-    return this.mapResidentToViewModel(resident);
+    // Retrieve active stay projection if available
+    let stay: Stay | null = null;
+    if (
+      'getAllSync' in this.stayRepository &&
+      typeof (this.stayRepository as { getAllSync?: () => Stay[] }).getAllSync === 'function'
+    ) {
+      const allStays = (this.stayRepository as { getAllSync: () => Stay[] }).getAllSync();
+      stay =
+        allStays.find(
+          (s) =>
+            s.residentId === resident?.id &&
+            (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE)
+        ) ||
+        allStays.find((s) => s.residentId === resident?.id) ||
+        null;
+    }
+
+    return this.mapResidentToViewModel(resident, stay);
   }
 
-  private mapResidentToViewModel(resident: Resident): ResidentWorkspaceViewModel {
+  private mapResidentToViewModel(resident: Resident, stay: Stay | null): ResidentWorkspaceViewModel {
     const statusLabel =
       resident.status === 'ACTIVE'
         ? 'Active Resident'
@@ -50,7 +83,7 @@ export class ResidentWorkspaceCoordinator {
         ? 'Checked Out'
         : 'Alumni';
 
-    const formattedJoiningDate = this.formatDate(resident.createdAt);
+    const formattedJoiningDate = this.formatDate(stay?.checkInDate || resident.createdAt);
 
     const documentsViewModel: DocumentItemViewModel[] =
       resident.documents && resident.documents.length > 0
@@ -63,31 +96,70 @@ export class ResidentWorkspaceCoordinator {
           }))
         : [];
 
+    let currentStay: CurrentStaySummaryViewModel;
+    if (stay) {
+      const bedDisplay =
+        stay.allocatedBedIds && stay.allocatedBedIds.length > 0
+          ? stay.allocatedBedIds.map((b) => b.split('-').pop()).join(', ')
+          : 'Unassigned';
+
+      const flatDisplay = stay.flatId ? stay.flatId.replace(/^Flat\s*/i, '') : 'N/A';
+
+      currentStay = {
+        stayId: stay.id,
+        area: 'Main Wing',
+        flat: flatDisplay,
+        bed: bedDisplay,
+        doorId: stay.doorId || 'N/A',
+        joiningDate: formattedJoiningDate,
+        monthlyRent: stay.agreedRent,
+        securityDeposit: stay.agreedDeposit,
+        stayStatus: stay.status === 'ACTIVE' ? 'Active Stay' : stay.status === 'ON_NOTICE' ? 'On Notice' : stay.status,
+        hasActiveStay: stay.status === 'ACTIVE' || stay.status === 'ON_NOTICE',
+      };
+    } else {
+      currentStay = {
+        stayId: '',
+        area: 'N/A',
+        flat: 'N/A',
+        bed: 'N/A',
+        doorId: 'N/A',
+        joiningDate: formattedJoiningDate,
+        monthlyRent: 0,
+        securityDeposit: 0,
+        stayStatus: 'No Active Stay',
+        hasActiveStay: false,
+      };
+    }
+
     return {
       header: {
         fullName: resident.fullName,
         residentCode: resident.residentCode,
         residentId: resident.id,
         status: statusLabel,
-        primaryMobile: resident.mobileNumber,
-        email: resident.email || 'N/A',
       },
-      summary: {
+      currentStay,
+      personalInformation: {
+        fullName: resident.fullName,
         residentCode: resident.residentCode,
-        joiningDate: formattedJoiningDate,
+        gender: resident.gender ? this.formatGender(resident.gender) : 'N/A',
+        dateOfBirth: resident.dateOfBirth ? this.formatDate(resident.dateOfBirth) : 'N/A',
         occupation: resident.occupation || 'N/A',
-        employerOrCollege: resident.organizationName || 'N/A',
+        organizationName: resident.organizationName || 'N/A',
         bloodGroup: resident.bloodGroup || 'N/A',
       },
       contactInformation: {
         primaryMobile: resident.mobileNumber,
         alternateMobile: resident.alternateMobileNumber || 'N/A',
         email: resident.email || 'N/A',
+      },
+      address: {
+        permanentAddress: resident.permanentAddress || 'N/A',
+        correspondenceAddress: resident.correspondenceAddress || 'N/A',
         city: resident.city || 'N/A',
         state: resident.state || 'N/A',
         pinCode: resident.pinCode || 'N/A',
-        permanentAddress: resident.permanentAddress || 'N/A',
-        correspondenceAddress: resident.correspondenceAddress || 'N/A',
       },
       documents: documentsViewModel,
       emergencyContact: {
@@ -97,6 +169,19 @@ export class ResidentWorkspaceCoordinator {
         motherName: resident.motherName || 'N/A',
       },
     };
+  }
+
+  private formatGender(gender: string): string {
+    switch (gender) {
+      case 'MALE':
+        return 'Male';
+      case 'FEMALE':
+        return 'Female';
+      case 'OTHER':
+        return 'Other';
+      default:
+        return gender;
+    }
   }
 
   private formatDocumentType(type: string): string {

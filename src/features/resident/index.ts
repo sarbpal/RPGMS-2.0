@@ -8,4 +8,7 @@ export * from './components/ContactInformationCard';
 export * from './components/DocumentsCard';
 export * from './components/EmergencyContactCard';
 export * from './components/ResidentIdentityForm';
+export * from './components/ResidentsSummaryCards';
+export * from './components/ResidentCardItem';
+export { ResidentsPage } from './pages/ResidentsPage';
 export { default as ResidentWorkspacePage } from './pages/ResidentWorkspacePage';

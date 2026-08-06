@@ -1,5 +1,45 @@
 # CHANGELOG.md
 
+
+# [Unreleased]
+
+## Documentation
+
+### Documentation Capability Sprint 2 (DCS-2)
+
+#### Completed
+
+- Completed the constitutional review and consolidation of the RPGMS business architecture.
+- Frozen the Business Constitution as the authoritative architectural reference.
+- Updated the Business Model to reflect the Business Object and Business Transaction architecture.
+- Updated the Business Rules to align with the constitutional architecture.
+- Completed the Reservation Workspace Specification.
+- Completed the Admission Workspace Specification.
+- Completed the Business Events Specification.
+
+#### Architectural Decisions
+
+- Established the distinction between Business Objects and Business Transactions.
+- Formalised the Expected Truth and Business Truth model.
+- Established explicit Business Ownership principles.
+- Modelled Admission as an atomic Business Transaction.
+- Defined Reservation as the owner of Expected Truth.
+- Established Stay as the owner of Operational Truth.
+- Standardised Business Events as the immutable historical record of business activities.
+
+#### Documentation Status
+
+The following documents are now considered frozen for MVP development:
+
+- BUSINESS_CONSTITUTION.md
+- BUSINESS_MODEL.md
+- BUSINESS_RULES.md
+- BUSINESS_EVENTS_SPECIFICATION.md
+- RESERVATION_WORKSPACE_SPECIFICATION.md
+- ADMISSION_WORKSPACE_SPECIFICATION.md
+
+Future modifications to these documents shall occur only if implementation uncovers a genuine business defect, ambiguity or missing business requirement.
+
 ------------------------------------------------------------------------------
 Document Information
 ------------------------------------------------------------------------------
@@ -1657,6 +1697,37 @@ This milestone freezes the core business architecture of RPGMS 2.0, including th
 - ✅ 141/141 tests passed
 - ✅ TypeScript compilation passed
 - ✅ Production build passed
+
+
+## Resident Module MVP Completed
+
+### Added
+
+- Residents List Workspace
+- Resident Workspace
+- Current Stay Summary
+- Operational Dashboard
+- Profile Completion
+- Operational Readiness
+- Registered Vehicles
+- Registered Devices
+- Workspace Navigation
+- Stay Workspace Navigation
+- Resident Assets
+
+### Improved
+
+- Resident Workspace transformed into an operational workspace.
+- Clean separation between Resident and Stay.
+- Unified Resident Profile editing.
+- Standard workspace navigation pattern.
+
+### Technical
+
+- All tests passing.
+- TypeScript clean.
+- ESLint clean.
+- Production build successful.
 
 ------------------------------------------------------------------------------
 End of Document

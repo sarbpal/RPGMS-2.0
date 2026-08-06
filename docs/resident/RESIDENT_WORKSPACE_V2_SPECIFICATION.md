@@ -3,7 +3,7 @@
 **Project:** RPGMS 2.0 – Ritu PG Management System  
 **Module:** Resident Management  
 **Document Version:** 1.0  
-**Document Status:** Draft  
+**Document Status:** Approved
 **Prepared By:** RPGMS 2.0 Project  
 **Last Updated:** 19 July 2026
 
@@ -50,22 +50,84 @@ These responsibilities are documented separately within their respective modules
 
 ---
 
+# Applicability
+
+This specification applies to all engineering work related to the Resident module within RPGMS 2.0.
+
+It shall be followed when:
+
+- Designing new Resident module features.
+- Enhancing existing Resident functionality.
+- Implementing user interface components.
+- Developing application layer workflows.
+- Designing repositories and business projections.
+- Reviewing architectural changes.
+- Performing AI-assisted development.
+- Conducting design or code reviews.
+
+All future enhancements to the Resident module shall remain consistent with the constitutional principles defined in this specification.
+
+---
+
+# Constitutional Scope
+
+This document defines the constitutional business architecture of the Resident module.
+
+It specifies:
+
+- Business responsibilities
+- Domain ownership
+- Operational workflows
+- Information architecture
+- Business rules
+- Navigation philosophy
+- Long-term architectural principles
+
+This document intentionally does **not** prescribe implementation details such as:
+
+- React component structure
+- API design
+- Database schema
+- Repository implementation
+- DTO definitions
+- UI styling
+- Infrastructure configuration
+
+Implementation decisions shall remain consistent with the principles defined in this specification while allowing appropriate technical flexibility.
+
+---
+
 # Related Documents
 
 - ARCHITECTURE.md
 - PROJECT_RULES.md
 - BUSINESS_CONSTITUTION_RECONCILIATION.md
 - PROJECT_ENGINEERING_STANDARD.md
-- Stay Module Specification
+- Stay Workspace Specification (Future)
 - Stay Module Release Certificate
 
 ---
 
-# Revision History
+## Relationship with the Stay Workspace Specification
+
+The Resident Workspace Specification and the future Stay Workspace Specification are complementary constitutional documents.
+
+The Resident Workspace defines the permanent identity and long-term profile of a person.
+
+The Stay Workspace Specification defines the operational lifecycle of residency.
+
+Together, these specifications describe the complete lifecycle of a resident within RPGMS 2.0 while preserving clear domain ownership between permanent identity and operational residency.
+
+Neither specification supersedes the other. They should be read together when implementing functionality that spans both domains.
+
+---
+
+# Version History
 
 | Version | Date | Description |
 |----------|------|-------------|
 | 1.0 | 19-Jul-2026 | Initial Resident Workspace V2 Specification |
+| 1.1 | 05-Aug-2026 | Documentation Consolidation Sprint (DCS-1): Reviewed and refined the Resident Workspace Specification for constitutional alignment, clarified document applicability and scope, strengthened cross-document governance, and aligned the specification with the approved engineering standards and project documentation framework. |
 
 ---
 

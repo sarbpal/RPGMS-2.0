@@ -1,583 +1,671 @@
-# MODULE STATUS
+# RPGMS 2.0
 
-**Version:** 3.0  
-**Status:** Active
+# Module Status
 
----
-
-## Purpose
-
-This document provides the current implementation status of every major business and technical domain within RPGMS.
-
-It serves as a high-level project dashboard, showing the maturity of each domain, current focus, and upcoming milestones.
-
-This document is a project status snapshot and should not be used as a changelog.
+**Document Version:** 3.0  
+**Status:** Active  
+**Last Updated:** July 2026
 
 ---
 
-## Status Legend
+# Purpose
 
-| Status | Meaning |
-|---------|---------|
-| 🟢 Stable | Implemented and considered stable. |
-| 🟡 In Progress | Active development is underway. |
-| 🔵 Planned | Design completed, implementation planned. |
-| ⚪ Not Started | Not yet started. |
-| 🔴 Needs Review | Requires architectural or implementation review. |
+This document provides the current implementation status of every major RPGMS 2.0 business module.
+
+It serves as the single source of truth for module maturity, implementation progress, dependencies, and future development priorities.
+
+Unlike the project roadmap, which focuses on future planning, this document reflects the current state of implementation of each module.
 
 ---
 
-## Foundation
+# Current Project Status
 
-### Application Shell
+## Current Development Phase
 
-**Status:** 🟢 Stable
+**Business Capability Development**
 
-**Purpose**
-
-Provides the common application framework, navigation, routing, authentication boundaries, and responsive layout used by all business domains.
-
-**Completed**
-
-- Application shell
-- Header
-- Sidebar
-- Responsive layout
-- Routing
-- Main layout
-- Theme integration
-
-**Pending**
-
-- None
+The engineering foundation, application shell, accommodation model, and Resident ecosystem have been completed. Development is now focused on delivering the remaining business capabilities required for the Minimum Viable Product (MVP).
 
 ---
 
-### Dashboard
+## Current Capability Release
 
-**Status:** 🟡 In Progress
+**CR-2 — Reservation & Admission Management**
 
-**Purpose**
-
-Provides operational visibility into the current state of RPGMS through real-time metrics, alerts, and actionable information.
-
-**Completed**
-
-- Dashboard layout
-- Summary cards
-- Quick actions
-- Placeholder widgets
-
-**Pending**
-
-- Live occupancy metrics
-- Financial summary
-- Operational alerts
-- Resident activity
-- Today's tasks
-- Real-time data integration
-
-**Next Milestone**
-
-Connect dashboard components to live business data from the Accommodation, Resident, Stay, and Finance domains.
-
----
-
-## Core Business Domains
-
-### Accommodation
-
-**Status:** 🟢 Stable
-
-**Purpose**
-
-Manages the physical accommodation structure of RPGMS, including Flats, Areas, Beds, and occupancy capacity.
-
-**Completed**
-
-- Accommodation business architecture
-- Flat management
-- Area management
-- Automatic bed generation
-- Bed naming rules
-- Live Layout Preview
-- Bed status management
-- Capacity calculation
-- Occupancy summary
-
-**Pending**
-
-- Edit Flat workflow
-- Accommodation persistence
-- Advanced occupancy reporting
-
-**Next Milestone**
-
-Integrate Accommodation with the Stay domain for resident allocation and occupancy management.
-
----
-
-### Resident
-
-**Status:** 🟢 Completed Baseline (Identity Domain)
-
-**Purpose**
-
-Manages the permanent identity and profile of every Resident independently of accommodation occupancy.
-
-**Completed**
-
-- Resident Profile Specification
-- Resident Architecture & Data Ownership Separation
-- Business Rules & Data Model
-- Residents Module Audit (`RESIDENT_MODULE_AUDIT.md`)
-- Service Layer Foundation (`residentService.ts`)
-- Custom Hooks (`useResidents.ts`, `useResident.ts`)
-- Resident Profile Expansion (Sprint 7.2 - Identity, Family, Emergency Contact, Address, Occupation, Medical)
-- Section-Level Card Profile Editing UI (`ResidentProfilePage.tsx`)
-- Resident / Stay Separation (Sprint 7.3 - Identity vs Stay separation)
-
-**Pending**
-
-- Resident history timeline & Stay event log
-- Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
-
-**Next Milestone**
-
-Finance domain integration & operational lifecycle event logging.
-
----
-
-### Stay
-
-**Status:** 🟢 Completed Baseline (Stay Domain Foundation)
-
-**Purpose**
-
-Manages the operational relationship between Residents and Accommodation, including reservations, occupancy, transfers, notice periods, and checkout.
-
-**Completed**
-
-- Stay Specification
-- Business Rules & Data Model
-- Stay Migration Plan (`STAY_MIGRATION_PLAN.md`)
-- Data Ownership Matrix (`DATA_OWNERSHIP_MATRIX.md`)
-- Stay Domain Foundation Types (`Stay`, `StayStatus`, `StayEvent`) in `src/features/residents/stay/types/`
-- Stay Service Public Interface & Persistence Helpers (`stayService.ts`)
-- Storage Versioning (`rpgms_storage_version`) & Stay Storage (`rpgms_stays`)
-- Idempotent Legacy Data Migration Adapter (`migrateLegacyResidentsData()`)
-- Runtime Composite View Model (`ResidentWithActiveStay`) in `types/index.ts`
-- Service & Hook Integration (`getResidentsWithActiveStay`, `saveOnboardingTransaction` atomic creation)
-- Architectural Stabilization & Verification (Sprint 7.3.4)
-
-**Complete (Frozen)**
-
-- Stay event logging & timeline
-- Operational lifecycle dialogs (Notice, Checkout, Bed Transfer)
-
-**Next Milestone**
-
-Finance domain integration & Stay lifecycle events.
-
----
-
-## Financial Domains
-
-### Finance
-
-**Status:** 🟢 Complete
-
-**Purpose**
-
-Manages the financial records of every Stay, ensuring complete, accurate, and auditable accounting of all monetary transactions.
-
-**Completed**
-
-- Finance Specification (`FINANCE_SPECIFICATION.md` Version 2.0.0, Sealed)
-- Finance Implementation Plan (`FINANCE_IMPLEMENTATION_PLAN.md` Refined Blueprint)
-- Finance Domain Folder Structure (`src/features/finance/`)
-- Strongly Typed Domain Models (`LedgerEntry`, `Bill`, `Payment`, `Settlement`, `FinanceTimelineEvent`, `TimelineSummary`, `FinanceDashboardMetrics`, `ResidentFinancialSummaryReport`, `MonthlyCollectionsReport`, `OutstandingResidentReportItem`, `SettlementReportItem`)
-- Storage Keys Definition & Persistence Helpers (`financeStorage.ts`)
-- Immutable Ledger Core (`ledgerService.ts`: double-entry validation, append-only `postEntries`, `reverseEntries`, read APIs)
-- Balance Engine (`balanceEngine.ts`: dynamic derivation of Accounts Receivable, Advance Credit, Deposit Held, Refund Payable, Net Outstanding)
-- Billing Engine (`billingService.ts`: monthly rent generation, recurring & one-time charges, duplicate prevention, automated double-entry ledger postings)
-- Payment Processing Engine (`paymentService.ts`: Cash & Bank payments, automated ledger postings, overpayment advance credit handling, bill allocations)
-- Deposit & Checkout Settlement Engine (`settlementService.ts`: two-stage workflow - read-only `generateSettlementPreview` & transaction `confirmSettlement` with audit snapshot)
-- Financial Timeline Service (`timelineService.ts`: read-only aggregation of Stay timelines and property-wide activity streams)
-- Reports & Analytics Service (`reportingService.ts`: read-only dashboard metrics, resident summaries, monthly collection reports, outstanding resident reports, settlement audit logs)
-- React Hooks (`useStayFinanceTimeline`, `useFinanceActivity`, `useFinanceSummary`, `useStayFinance`)
-- Finance Workspace Dashboard (`FinancePage.tsx`, `FinancialSummaryCard.tsx`, activity stream, outstanding dues table, settlements audit table)
-
-**Pending**
-
-- None (Finance Module Core Complete)
-
-**Next Milestone**
-
-System Stabilization & End-to-End Audits.
-
----
-
-### Billing
-
-**Status:** 🔵 Planned
-
-**Purpose**
-
-Manages recurring charges, billing cycles, invoices, rent calculation, and bill generation.
-
-**Completed**
-
-- Business rules defined
-- Data model defined
-- Anniversary billing model established
-
-**Pending**
-
-- Billing Specification
-- Billing engine
-- Invoice generation
-- Recurring charge management
-- Due date management
-- Billing history
-- Billing reports
-
-**Next Milestone**
-
-Implement the Billing engine after the Finance foundation is complete.
-
----
-
-## Operational Domains
-
-### Compliance
-
-**Status:** 🔵 Planned
-
-**Purpose**
-
-Manages all statutory, contractual, and organizational compliance requirements associated with a Stay.
-
-**Completed**
-
-- Compliance Architecture
-- Business Rules
-- Data Model
-
-**Pending**
-
-- Compliance Specification
-- Police Intimation
-- Rent Agreement Management
-- Tenant Verification
-- Document Management
-- Compliance Dashboard
-- Compliance Reporting
-
-**Next Milestone**
-
-Complete the Compliance Specification following the Finance and Billing domains.
-
----
-
-### Door IDs
-
-**Status:** 🔵 Planned
-
-**Purpose**
-
-Manages secure access credentials assigned to Residents during an Active Stay.
-
-**Completed**
-
-- Business Rules
-- Data Model
-
-**Pending**
-
-- Door ID assignment
-- Door ID release
-- Assignment history
-- Integration with access control system
-- Door ID reporting
-
-**Next Milestone**
-
-Implement Door ID management after the Stay domain is operational.
-
----
-
-### Complaints
-
-**Status:** ⚪ Not Started
-
-**Purpose**
-
-Manages the complete lifecycle of resident complaints from reporting through resolution.
-
-**Completed**
-
-- Business Rules
-- Data Model
-
-**Pending**
-
-- Complaint Specification
-- Complaint registration
-- Complaint assignment
-- Resolution workflow
-- Complaint history
-- Complaint reporting
-
-**Next Milestone**
-
-Design and implement the Complaint domain.
-
----
-
-### Reporting
-
-**Status:** ⚪ Not Started
-
-**Purpose**
-
-Provides operational, financial, occupancy, and management reporting across all business domains.
-
-**Completed**
-
-- Reporting identified as a business domain
-
-**Pending**
-
-- Reporting Specification
-- Operational reports
-- Financial reports
-- Occupancy reports
-- Compliance reports
-- Management dashboards
-- Analytics
-
-**Next Milestone**
-
-Implement reporting after the core operational domains are complete.
-
----
-
-## Technical Foundation
-
-### Architecture
-
-**Status:** 🟢 Stable
-
-**Purpose**
-
-Establishes the long-term business and technical architecture of RPGMS.
-
-**Completed**
-
-- Business Architecture
-- Resident Specification
-- Accommodation Specification
-- Stay Specification
-- Business Rules
-- Data Model
-- Domain ownership defined
-- Logical entity relationships defined
-
-**Pending**
-
-- Finance Specification
-- Billing Specification
-- Compliance Specification
-
----
-
-### Documentation
-
-**Status:** 🟡 In Progress
-
-**Purpose**
-
-Maintains the architectural, business, and technical knowledge required for long-term project development.
-
-**Completed**
-
-- Project Rules
-- Architecture
-- Business Rules
-- Data Model
-- Resident Specification
-- Accommodation Specification
-- Stay Specification
-- Compliance Architecture
-- Development Log
-
-**Pending**
-
-- Rewrite MODULE_STATUS.md
-- Rewrite DECISIONS.md
-- Rewrite NEXT_TASK.md
-- Finance Specification
-- Billing Specification
-- Compliance Specification
-
----
-
-### Code Quality
-
-**Status:** 🟢 Stable
-
-**Purpose**
-
-Ensures the codebase remains maintainable, consistent, and suitable for long-term development.
-
-**Completed**
-
-- Feature-first project structure
-- TypeScript
-- ESLint
-- Shared business utilities
-- Reusable component architecture
-- Consistent project organization
-
-**Pending**
-
-- Unit testing
-- Integration testing
-- End-to-end testing
-
----
-
-### Deployment
-
-**Status:** 🟢 Stable
-
-**Purpose**
-
-Provides a reliable development and deployment pipeline.
-
-**Completed**
-
-- GitHub repository
-- Vercel deployment
-- Development workflow
-- Branch strategy
-
-**Pending**
-
-- Production deployment pipeline
-- Release workflow
-- Automated testing pipeline
-
----
-
-## Current Focus
-
-Complete the documentation baseline by finalizing the remaining governance documents before beginning implementation of the Finance domain.
-
----
-
-## Next Major Milestone
-
-**Finance Domain**
-
-Deliverables:
-
-- Finance Specification
-- Billing Specification
-- Compliance Specification
-- Finance implementation foundation
+Current development is focused on completing the Reservation and Admission lifecycle, which will integrate directly with the completed Resident and Stay workspaces.
 
 ---
 
 ## Overall Project Health
 
 | Area | Status |
-|------|--------|
-| Business Architecture | 🟢 Complete |
-| Technical Foundation | 🟢 Stable |
-| Documentation | 🟡 In Progress |
-| Core Domain Specifications | 🟢 Complete |
-| Implementation | 🟡 In Progress |
-| Finance Domain | 🔵 Planned |
-| Billing Domain | 🔵 Planned |
-| Compliance Domain | 🔵 Planned |
+|-------|--------|
+| Engineering Foundation | 🟢 Complete |
+| Application Shell | 🟢 Complete |
+| Accommodation Module | 🟢 MVP Complete |
+| Resident Module | 🟢 MVP Complete |
+| Stay Workspace | 🟢 MVP Complete |
+| Documentation | 🟡 Documentation Consolidation Sprint (DCS-1) |
+| Reservation & Admission | 🔵 Planned |
+| Finance | 🟢 Foundation Complete |
+| Electricity | 🟢 Foundation Complete |
+| Maintenance | 🟢 Foundation Complete |
+| Reports | 🟢 Foundation Complete |
 
 ---
 
-# Change Log
+# Module Status
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 3.0 | July 2026 | Reorganized module status around the RPGMS business architecture and project roadmap. |
-
-## Finance
-
-Status: COMPLETE
-Specification: COMPLETE
-Architecture: STABLE
-Version: 2.0
-State: SEALED
+The following sections describe the implementation maturity of each major RPGMS business module.
 
 ---
-## Finance Module
 
-### Status
+# Accommodation Module
 
-✅ Domain Layer Complete
+**Status:** 🟢 MVP Complete
 
-- Entities
-- Value Objects
-- Repository Interface
-- Domain Rules
+**State:** Frozen
 
-✅ Application Layer Complete
+## Purpose
 
-- Ledger Application Service
-- Billing Application Service
-- Payment Application Service
-- Balance Application Service
-- Settlement Application Service
+Manages the complete physical accommodation hierarchy of RPGMS, including Areas, Flats, Beds, occupancy management, and accommodation structure. This module provides the physical foundation upon which Reservations, Admissions, Residents, and Stays operate.
 
-✅ Infrastructure Layer (In-Memory)
+---
 
-- InMemoryFinanceRepository
-- Repository Pattern implemented
+## Completed
 
-### Verification
+### Workspace
 
-- TypeScript: ✅
-- ESLint: ✅
-- Production Build: ✅
+- Accommodation Workspace
+- Area Management
+- Flat Management
+- Bed Management
 
-### Next Milestones
+### Business Features
 
-- Supabase Repository Implementation
-- Finance Integration Tests
-- Checkout Workflow Integration
-- Financial Reporting Enhancements
+- Accommodation hierarchy
+- Flat capacity management
+- Bed lifecycle management
+- Bed status management
+- Occupancy summary
+- Live accommodation overview
+- Accommodation validation
 
-## Finance Module
+### User Experience
 
-### Completed
+- Modern workspace layout
+- Summary dashboard
+- Search and filtering
+- Consistent workspace navigation
+- Responsive interface
 
-* ✅ Finance Domain Layer
-* ✅ Finance Application Layer
-* ✅ Repository Abstraction
-* ✅ In-Memory Repository
-* ✅ Resident Financial Workspace
-* ✅ Financial Snapshot
-* ✅ Resident Financial Profile
-* ✅ Finance Action Panel
+### Architecture
 
-### Pending
+- Clean Architecture
+- Repository abstraction
+- Coordinator pattern
+- ViewModel pattern
+- Presentation layer separation
+- In-memory infrastructure implementation
 
-* ⏳ Generate Monthly Rent
-* ⏳ Receive Payment
-* ⏳ Laundry Billing
-* ⏳ Electricity Billing
-* ⏳ Resident Ledger
-* ⏳ Checkout & Settlement
-* ⏳ Supabase Database Schema
-* ⏳ Supabase Repository
-* ⏳ Integration Testing
+---
+
+## Future Enhancements
+
+- Supabase repository implementation
+- Accommodation analytics
+- Occupancy forecasting
+- Bulk accommodation operations
+- Advanced reporting
+
+---
+
+## Dependencies
+
+### Upstream
+
+None
+
+### Downstream
+
+- Reservation
+- Admission
+- Resident
+- Stay
+
+---
+
+# Resident Module
+
+**Status:** 🟢 MVP Complete
+
+**State:** Frozen
+
+## Purpose
+
+Manages the permanent identity of every resident and provides the primary operational workspace for resident lifecycle management.
+
+The Resident Module is independent of the Stay lifecycle and acts as the central operational hub for resident-related activities throughout RPGMS.
+
+---
+
+## Completed
+
+### Workspaces
+
+- Residents List Workspace
+- Resident Workspace
+- Current Stay Summary
+
+### Business Features
+
+- Universal resident search
+- Resident status filtering
+- Resident profile management
+- Contact information
+- Address management
+- Emergency contacts
+- Government identification
+- Document management
+- Registered vehicles
+- Registered devices
+- Resident assets management
+
+### Operational Dashboard
+
+- Profile Completion
+- Operational Readiness
+- Current Stay projection
+- Quick Actions
+- Resident summary information
+
+### User Experience
+
+- Workspace Navigation
+- Parent-child workspace navigation
+- Responsive workspace layout
+- Consistent business section cards
+- Single entry point for Resident Profile editing
+- Operational workspace design
+
+### Architecture
+
+- Clean separation between Resident and Stay
+- Coordinator pattern
+- ViewModel pattern
+- Repository abstraction
+- Read model projections
+- Clean Architecture compliance
+
+---
+
+## Future Enhancements
+
+- Resident timeline
+- Compliance summary
+- AI-assisted recommendations
+- Advanced universal search
+- Resident activity history
+- Resident communication history
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Accommodation
+
+### Downstream
+
+- Stay
+- Reservation
+- Admission
+- Finance
+- Electricity
+- Maintenance
+- Reports
+
+---
+
+# Stay Module
+
+**Status:** 🟢 MVP Complete
+
+**State:** Frozen
+
+## Purpose
+
+Manages the operational residency of a resident independently of the Resident identity.
+
+The Stay Module records where a resident is staying, the period of occupancy, accommodation allocation, and operational status. A resident may have multiple stays over time, while the Resident identity remains permanent.
+
+---
+
+## Completed
+
+### Workspaces
+
+- Stay Workspace
+- Current Stay Summary
+- Accommodation Allocation
+- Stay Information
+
+### Business Features
+
+- Stay lifecycle management
+- Area allocation
+- Flat allocation
+- Bed allocation
+- Door ID projection
+- Joining date tracking
+- Monthly rent projection
+- Security deposit projection
+- Stay status management
+
+### User Experience
+
+- Parent-child workspace navigation
+- Quick Actions
+- Operational workspace layout
+- Current Stay projection
+- Consistent workspace sections
+
+### Architecture
+
+- Independent Stay aggregate
+- Resident / Stay separation
+- Accommodation projection
+- Read model projections
+- Repository abstraction
+- Coordinator pattern
+- ViewModel pattern
+- Clean Architecture compliance
+
+---
+
+## Future Enhancements
+
+- Stay history
+- Stay transfer workflow
+- Stay extensions
+- Financial summary
+- Stay timeline
+- Operational analytics
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Accommodation
+- Resident
+
+### Downstream
+
+- Finance
+- Electricity
+- Maintenance
+- Reports
+
+---
+
+# Reservation Module
+
+**Status:** 🔵 Planned
+
+**State:** Next Capability
+
+## Purpose
+
+Manages prospective residents from initial enquiry through reservation confirmation until admission.
+
+The Reservation Module bridges the gap between enquiry and admission while maintaining reservation history, follow-ups, and booking status.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Reservations List Workspace
+- Reservation Workspace
+
+### Business Features
+
+- Reservation lifecycle
+- Reservation status management
+- Expected admission tracking
+- Reservation follow-ups
+- Reservation notes
+- Reservation search
+
+### User Experience
+
+- Workspace navigation
+- Operational dashboard
+- Reservation summary
+- Quick actions
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Accommodation
+
+### Downstream
+
+- Admission
+- Resident
+- Stay
+
+---
+
+# Admission Module
+
+**Status:** 🔵 Planned
+
+**State:** Next Capability
+
+## Purpose
+
+Converts a confirmed reservation (or direct walk-in) into an operational Resident and an active Stay.
+
+The Admission Module is responsible for validating admission readiness, allocating accommodation, collecting mandatory information, and creating the operational records required for hostel management.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Admission Workspace
+- Admission Readiness Dashboard
+
+### Business Features
+
+- Walk-in admission
+- Reservation conversion
+- Accommodation allocation
+- Resident creation
+- Stay creation
+- Document verification
+- Admission checklist
+
+### User Experience
+
+- Guided admission workflow
+- Operational readiness validation
+- Admission summary
+- Quick actions
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Reservation
+- Accommodation
+
+### Downstream
+
+- Resident
+- Stay
+- Finance
+
+---
+
+# Finance Module
+
+**Status:** 🟢 Foundation Complete
+
+**State:** Future Capability
+
+## Purpose
+
+Manages the complete financial lifecycle of residents, including rent, security deposits, electricity, laundry, split billing, payments, and resident ledger management.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Finance Dashboard
+- Resident Ledger Workspace
+- Billing Workspace
+- Payment Workspace
+
+### Business Features
+
+- Monthly rent generation
+- Security deposit management
+- Resident ledger
+- Split billing
+- Electricity billing
+- Laundry billing
+- Payment receipts
+- Outstanding dues
+- Financial reports
+
+### User Experience
+
+- Operational dashboard
+- Ledger view
+- Billing summary
+- Quick actions
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Resident
+- Stay
+
+### Downstream
+
+- Reports
+
+---
+
+# Electricity Module
+
+**Status:** 🟢 Foundation Complete
+
+**State:** Future Capability
+
+## Purpose
+
+Manages electricity meter readings, monthly consumption, shared billing, and resident electricity allocation.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Electricity Dashboard
+- Meter Reading Workspace
+- Billing Workspace
+
+### Business Features
+
+- Meter readings
+- Consumption tracking
+- Shared electricity billing
+- Electricity reports
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Accommodation
+- Stay
+
+### Downstream
+
+- Finance
+
+---
+
+# Maintenance Module
+
+**Status:** 🟢 Foundation Complete
+
+**State:** Future Capability
+
+## Purpose
+
+Manages maintenance requests, work orders, vendor coordination, asset servicing, and issue resolution across the hostel.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Maintenance Dashboard
+- Complaint Workspace
+- Work Order Workspace
+
+### Business Features
+
+- Complaint registration
+- Maintenance tracking
+- Vendor management
+- Asset maintenance
+- Resolution history
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Accommodation
+- Resident
+
+### Downstream
+
+- Reports
+
+---
+
+# Reports Module
+
+**Status:** 🟢 Foundation Complete
+
+**State:** Future Capability
+
+## Purpose
+
+Provides operational, financial, accommodation, and management reports across all RPGMS business modules.
+
+---
+
+## Planned Features
+
+### Workspaces
+
+- Reports Dashboard
+
+### Business Features
+
+- Occupancy reports
+- Resident reports
+- Financial reports
+- Electricity reports
+- Maintenance reports
+- Management dashboards
+- Export and printing
+
+---
+
+## Dependencies
+
+### Upstream
+
+All business modules
+
+---
+
+# Current Priorities
+
+The immediate focus of the project is to consolidate the completed Resident Module and establish a stable engineering baseline before beginning the next major business capability.
+
+## Documentation Consolidation Sprint (DCS-1)
+
+Current objectives:
+
+- Review and freeze the Resident Module MVP.
+- Freeze the Resident Workspace Specification.
+- Update governance and engineering documents.
+- Capture reusable workspace design patterns.
+- Establish a stable documentation baseline for future development.
+
+---
+
+# Next Capability Release
+
+## CR-2 – Reservation & Admission Management
+
+### Primary Deliverables
+
+- Reservations List Workspace
+- Reservation Workspace
+- Admission Workspace
+- Admission Readiness Dashboard
+- Reservation Search
+- Reservation Follow-up
+- Reservation to Admission conversion workflow
+- Resident and Stay integration
+
+---
+
+# Module Maturity Summary
+
+| Module | Status | State |
+|---------|--------|--------|
+| Engineering Foundation | 🟢 Complete | Stable |
+| Application Shell | 🟢 Complete | Stable |
+| Accommodation | 🟢 MVP Complete | Frozen |
+| Resident | 🟢 MVP Complete | Frozen |
+| Stay | 🟢 MVP Complete | Frozen |
+| Reservation | 🔵 Planned | Next Capability |
+| Admission | 🔵 Planned | Next Capability |
+| Finance | 🟢 Foundation Complete | Future Capability |
+| Electricity | 🟢 Foundation Complete | Future Capability |
+| Maintenance | 🟢 Foundation Complete | Future Capability |
+| Reports | 🟢 Foundation Complete | Future Capability |
+
+---
+
+# Overall Project Assessment
+
+RPGMS 2.0 has successfully completed its engineering foundation and the first two major business capabilities:
+
+- Accommodation Management
+- Resident Management
+
+The project has now transitioned from platform construction to business capability development.
+
+The completed Resident Module establishes the reference implementation for future RPGMS workspaces, introducing standardized workspace navigation, operational dashboards, consistent section layouts, and clear domain ownership between Resident and Stay.
+
+Future modules will follow these established engineering and user experience patterns to ensure architectural consistency across the application.
+
+---
+
+# Document Maintenance
+
+This document is updated whenever a business module reaches a significant implementation milestone or changes its development state.
+
+Routine feature additions within an existing module do not require updates unless they materially change the module's maturity or roadmap.
+

@@ -6,21 +6,9 @@
 
 3. Business Event Philosophy
 
-4. Characteristics of a Business Event
+4. Relationship with Business Transactions
 
-5. Business Event Categories
-
-6. Standard Business Events
-
-7. Relationship with Other Domains
-
-8. Operational Timeline
-
-9. Current Projection
-
-10. Business Event Invariants
-
-11. Future Extensions
+5. Current Projection
 
 ---
 
@@ -35,6 +23,18 @@ They preserve operational history while supporting current operational projectio
 Business Events are independent of user interfaces, databases and implementation technologies.
 
 This document defines the constitutional principles governing Business Events within RPGMS 2.0.
+
+---
+
+# Scope
+
+This specification defines the constitutional principles governing Business Events within RPGMS.
+
+It describes what Business Events represent, the characteristics they shall possess, and the role they play within the overall business architecture.
+
+This document does not define implementation details, storage mechanisms, event schemas or software architecture.
+
+Detailed Business Events for individual business capabilities shall be defined within their respective Workspace Specifications.
 
 ---
 
@@ -60,5 +60,40 @@ Business Events are immutable.
 
 Business Events provide the historical narrative of the organisation.
 
+Business Events preserve Historical Truth.
+
+They do not establish Business Truth.
+
+Business Truth is established exclusively through authorised Business Transactions.
+
+Business Events permanently record that Business Truth was established, modified or concluded.
+
 ---
+
+# Relationship with Business Transactions
+
+Business Transactions establish Business Truth.
+
+Business Events preserve the historical record of those transactions.
+
+Every successful Business Transaction shall generate one or more immutable Business Events.
+
+Business Events themselves shall never modify Business Truth.
+
+---
+
+# Current Projection
+
+The MVP is expected to generate Business Events for the following business capabilities:
+
+- Reservation
+- Admission
+- Stay
+- Accommodation
+- Finance
+- Commercial Agreements
+
+Additional Business Events may be introduced as new business capabilities are added.
+
+The constitutional principles defined in this document shall apply equally to all future Business Events.
 

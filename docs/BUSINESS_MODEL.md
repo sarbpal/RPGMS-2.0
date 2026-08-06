@@ -2,7 +2,7 @@
 
 # RPGMS Business Constitution
 
-Version: 1.0
+Version: 2.0
 Status: Approved
 Effective Date: 19 July 2026
 Owner: Ritu PG Services
@@ -168,11 +168,11 @@ Significant business changes shall be represented through events or transactions
 
 ## CP-005 Event Driven Business Model
 
-Major business operations generate Domain Events.
+Major business operations generate Business Events.
 
-Domain Events provide an immutable chronological history of significant activities performed during the lifecycle of a Stay.
+Business Events provide an immutable chronological history of significant business activities throughout the lifecycle of the relevant business capability.
 
-Domain Events support auditability, operational transparency, reporting, and future intelligent decision support.
+Business Events support auditability, operational transparency, reporting, and future intelligent decision support.
 
 ---
 
@@ -246,36 +246,140 @@ Future extensibility shall not unnecessarily complicate the MVP implementation.
 
 ---
 
-# 5. Domain Model
+# 5. Business Architecture Model
 
 ## 5.1 Introduction
 
-RPGMS models the business as a collection of independent but related business domains.
+RPGMS models the organisation through a structured Business Architecture.
 
-Each domain owns a specific part of the business and has clearly defined responsibilities.
+The Business Architecture separates long-lived Business Objects from temporary Business Transactions while maintaining explicit ownership of Business Truth throughout the resident lifecycle.
 
-This separation allows the system to evolve without tightly coupling unrelated business concepts.
+This separation ensures that organisational responsibilities remain clear, Business Truth has a single authoritative owner, and business processes remain independent of implementation technology.
 
-The core business domains are:
+Every business capability within RPGMS shall conform to this architectural model.
+
+The Business Architecture consists of:
+
+- Business Objects
+- Business Transactions
+- Business Ownership
+- Business Relationships
+- Operational Business Domains
+- Business Events
+
+Together these components describe how organisational information is created, managed, transferred and preserved throughout the lifecycle of the business.
+
+## 5.2 Business Objects
+
+Business Objects represent the long-lived entities managed by the organisation.
+
+Business Objects own Business Truth and continue to exist beyond individual business transactions.
+
+Typical Business Objects include:
+
+- Reservation
+- Resident
+- Stay
+- Accommodation
+- Finance
+
+Business Objects possess the following characteristics:
+
+- They have clearly defined business responsibilities.
+- They own Business Truth.
+- They have defined business lifecycles.
+- They support ongoing operational management.
+- They evolve throughout their lifetime while preserving business history.
+
+Business Objects represent the enduring operational state of the organisation.
+
+## 5.3 Business Transactions
+
+Business Transactions establish, modify or conclude Business Truth.
+
+Unlike Business Objects, Business Transactions do not permanently own organisational information.
+
+Their purpose is to coordinate business activities, establish organisational commitments and transfer Business Ownership to the appropriate Business Objects.
+
+Typical Business Transactions include:
+
+- Admission
+- Operational Checkout
+- Financial Settlement
+
+Additional Business Transactions may be introduced as the organisation evolves.
+
+Business Transactions possess the following characteristics:
+
+- They are temporary.
+- They execute atomically.
+- They coordinate multiple Business Objects.
+- They establish or conclude Business Truth.
+- They transfer Business Ownership.
+- They generate Business Events.
+
+Business Transactions conclude immediately after their business responsibilities have been completed.
+
+## 5.4 Business Ownership
+
+Business Truth shall always have one authoritative owner.
+
+Ownership changes only through authorised Business Transactions.
+
+Throughout the resident lifecycle, Business Ownership progresses as follows:
+
+Expected Truth
+
+↓
+
+Business Transaction
+
+↓
+
+Business Truth
+
+↓
+
+Operational Ownership
+
+↓
+
+Historical Preservation
+
+At every stage, Business Ownership shall remain explicit and unambiguous.
+
+No Business Truth shall have multiple owners simultaneously.
+
+## 5.5 Business Relationships
+
+Business Objects operate independently while participating in clearly defined business relationships.
+
+Business Transactions establish, modify or conclude these relationships without becoming their long-term owner.
+
+This separation enables the organisation to evolve individual business capabilities without compromising the integrity of the overall business architecture.
+
+Business relationships shall remain explicit, traceable and historically preserved throughout their lifecycle.
+
+## 5.6 Operational Business Domains
+
+Operational Business Domains organise related Business Objects according to their operational responsibilities.
+
+Examples include:
 
 - Accommodation
-- Accommodation Plans
-- Residents
-- Reservations
-- Stays
+- Resident
+- Stay
 - Finance
-- Operations
-- Domain Events
+- Business Events
 
-These domains collectively represent the complete lifecycle of a resident within the organisation.
+Operational Business Domains provide organisational structure while preserving the independence of each Business Object.
 
----
+Business Transactions coordinate activities across these domains without altering their individual responsibilities.
 
-## DM-001 Domain Ownership
+This separation enables independent evolution of business capabilities while maintaining a consistent constitutional architecture.
 
-Each business domain owns its own data, business rules and processes.
 
-Information shall not be duplicated across domains except where necessary to preserve historical agreements or financial records.
+
 
 ---
 
@@ -523,64 +627,110 @@ Additional information may be collected during the Resident's relationship with 
 
 ## 9.1 Purpose
 
-A Reservation represents an intention to occupy accommodation in the future.
+A Reservation records the organisation's current expectation of a future business relationship.
 
-A Reservation does not represent occupancy.
+It enables the organisation to plan future occupancy while preserving the distinction between expected information and confirmed Business Truth.
 
-It merely reserves the opportunity to begin a Stay.
-
----
-
-## 9.2 Reservation Eligibility
-
-Reservations may be created for:
-
-- New Residents
-- Alumni
-
-Reservations shall not be created for Residents who already have an Active Stay.
+A Reservation creates no operational commitment, no accommodation allocation and no financial relationship.
 
 ---
 
-## RS-001 Resident Reuse
+## 9.2 Definition
 
-If the person already exists as a Resident, the existing Resident record shall always be reused.
+A Reservation represents the organisation's current Expected Truth.
 
-Duplicate Resident records shall not be created.
+It is neither:
 
----
+- a Resident,
+- a Stay,
+- an operational commitment,
+- nor an accommodation allocation.
 
-## 9.3 Bed Reservation
-
-A Reservation may:
-
-- Reserve a specific Bed
-
-or
-
-- Reserve accommodation without assigning a Bed.
-
-This supports waiting lists and future admissions when accommodation becomes available.
+A Reservation records provisional business information that may ultimately lead to a future business transaction.
 
 ---
 
-## RS-002 Reservation Independence
+## 9.3 Business Responsibility
 
-Reservations are independent of Bed allocation.
+The Reservation domain is responsible for managing Expected Truth.
 
-A Bed may be assigned during Reservation or during Admission.
+Its responsibilities include:
+
+- Expected joining information
+- Expected commercial terms
+- Accommodation preferences
+- Reservation notes
+- Other provisional business information
+
+Reservation supports business planning without creating operational Business Truth.
 
 ---
 
-## 9.4 Reservation Outcome
+## 9.4 Business Ownership
 
-Every Reservation shall eventually result in one of the following outcomes:
+Reservation is the sole owner of Expected Truth.
 
-- Admitted
+Expected Truth remains provisional until an authorised business transaction establishes Business Truth.
+
+Reservation does not own:
+
+- Resident
+- Stay
+- Accommodation Allocation
+- Financial Relationship
+
+---
+
+## 9.5 Reservation Lifecycle
+
+Every Reservation follows one of the following lifecycle states:
+
+- Active
+- Converted
 - Cancelled
-- Expired
 
-Reservations do not become part of the operational Stay until Admission is completed.
+A Reservation remains Active until it is either:
+
+- successfully converted through an authorised business transaction, or
+- cancelled.
+
+Reservations do not expire.
+
+---
+
+## RS-001 Expected Truth
+
+Reservation shall always represent Expected Truth.
+
+---
+
+## RS-002 Ownership
+
+Reservation shall be the sole owner of Expected Truth.
+
+---
+
+## RS-003 Operational Independence
+
+Reservation shall not establish operational Business Truth.
+
+---
+
+## RS-004 Resource Independence
+
+Reservation shall not allocate operational resources.
+
+---
+
+## RS-005 Lifecycle Integrity
+
+Every Reservation shall follow the defined Reservation lifecycle.
+
+---
+
+## RS-006 Historical Preservation
+
+Reservation history shall be preserved through Business Events.
 
 ---
 
@@ -588,95 +738,113 @@ Reservations do not become part of the operational Stay until Admission is compl
 
 ## 10.1 Purpose
 
-Admission converts a Reservation or Walk-in Resident into an Active Stay.
+Admission establishes operational business relationships through an authorised Business Transaction.
 
-Admission establishes the contractual relationship between the Resident and the organisation.
+It represents the organisational commitment that transforms Expected Truth into confirmed Business Truth and establishes the operational foundation required for Residency.
 
----
-
-## 10.2 Admission Paths
-
-Admission may occur through either:
-
-Reservation
-
-↓
-
-Admission
-
-↓
-
-Stay
-
-or
-
-Walk-in
-
-↓
-
-Admission
-
-↓
-
-Stay
+Admission itself owns no continuing operational state.
 
 ---
 
-## 10.3 Minimum Information
+## 10.2 Definition
 
-Only the following information is mandatory during Admission:
+Admission is an atomic Business Transaction.
 
-- Resident Name
-- Mobile Number
-- Government Identification
-- Joining Date
-- Flat
-- Bed
+It is not a long-lived Business Object.
 
-Additional Resident information may be completed later.
+Its purpose is to establish Business Truth, create operational business relationships and transfer Business Ownership to the appropriate Business Objects.
+
+Admission concludes immediately after its business responsibilities have been completed.
 
 ---
 
-## AD-001 Progressive Admission
+## 10.3 Business Responsibility
 
-Admission shall collect only the information necessary to begin a Stay.
+The Admission Transaction is responsible for:
 
-Non-essential information shall be captured later through the Resident Profile.
+- Establishing Business Truth.
+- Creating operational business relationships.
+- Transferring Business Ownership.
+- Initialising operational residency.
+- Generating Business Events.
 
----
-
-## 10.4 Commercial Agreement
-
-During Admission the system retrieves the default commercial terms from the selected Accommodation Plan.
-
-These values become the proposed commercial agreement.
-
-The operator may modify these values where business policy permits.
-
-The agreed values become part of the Stay and remain historically preserved.
+Admission coordinates these activities but retains no continuing operational responsibility after completion.
 
 ---
 
-## AD-002 Commercial Agreement
+## 10.4 Business Ownership
 
-The Stay shall record the commercial agreement accepted at the time of Admission.
+Admission temporarily coordinates the establishment of Business Truth.
 
-Future changes to the Accommodation Plan shall not modify existing agreements.
+Upon successful completion of the transaction, Business Ownership transfers to the appropriate Business Objects.
+
+Admission retains no permanent ownership.
 
 ---
 
-## 10.5 Operational Responsibilities
+## 10.5 Business Relationships
 
-Admission shall:
+Admission establishes operational relationships between the organisation and the resident.
 
-- Create the Stay
-- Allocate the Bed(s)
-- Create the Deposit Account
-- Initialise Financial Records
-- Assign Door ID (if applicable)
-- Generate Domain Events
+These relationships include:
 
-Admission completes only when the Resident becomes operationally active.
+- Resident
+- Stay
+- Accommodation
+- Finance
+
+Admission coordinates the creation of these relationships without becoming their long-term owner.
+
+---
+
+## 10.6 Business Transaction
+
+Admission is an atomic Business Transaction.
+
+The transaction shall either:
+
+- complete successfully in its entirety, or
+- complete no business changes.
+
+Partial completion is not a valid business state.
+
+Business Truth is established only upon successful completion of the Admission Transaction.
+
+---
+
+## ADM-001 Business Transaction
+
+Admission shall always be modelled as a Business Transaction.
+
+---
+
+## ADM-002 Business Truth
+
+Admission shall establish Business Truth.
+
+---
+
+## ADM-003 Ownership Transfer
+
+Admission shall transfer Business Ownership to the appropriate Business Objects.
+
+---
+
+## ADM-004 Atomic Execution
+
+Admission shall execute atomically.
+
+---
+
+## ADM-005 Operational Relationships
+
+Admission shall establish the operational business relationships required for Residency.
+
+---
+
+## ADM-006 Historical Preservation
+
+Admission shall preserve complete business history through Business Events.
 
 ---
 
@@ -685,6 +853,10 @@ Admission completes only when the Resident becomes operationally active.
 ## 11.1 Purpose
 
 A Stay represents the contractual and operational relationship between a Resident and the organisation.
+
+A Stay owns the Operational Truth established through an authorised Business Transaction.
+
+Once established, the Stay becomes the authoritative operational record of a resident's occupancy until the residency concludes.
 
 A Stay begins at Admission and concludes only after both operational checkout and financial settlement have been completed.
 
@@ -739,12 +911,15 @@ The Stay owns:
 - Deposit Account
 - Financial Relationship
 - Door ID Assignment
-- Domain Events
+- Business Events
 - Operational Status
 - Financial Status
 
 The Stay acts as the central hub linking multiple business domains.
 
+The Stay is the authoritative owner of Operational Truth throughout the resident lifecycle.
+
+Operational Truth includes occupancy, accommodation assignment, residency status and other operational information required to manage an active or completed residency.
 ---
 
 ## ST-002 Central Business Entity
@@ -881,6 +1056,12 @@ Deposits shall never exist independently of a Stay.
 
 ---
 
+### ST-007 Operational Truth
+
+The Stay shall remain the sole owner of Operational Truth throughout the residency lifecycle.
+
+---
+
 # 11.8 Connected Business Domains
 
 A Stay acts as the central connection point for multiple business domains.
@@ -918,7 +1099,7 @@ Every connected domain contributes to the overall lifecycle of the Stay.
 
 ---
 
-## ST-007 Business Hub
+## ST-008 Business Hub
 
 The Stay functions as the operational hub of RPGMS.
 
@@ -926,9 +1107,9 @@ Business modules remain independent while interacting through the Stay.
 
 ---
 
-# 11.9 Domain Events
+# 11.9 Business Events
 
-Every significant business operation performed during a Stay generates one or more Domain Events.
+Every significant business operation performed during a Stay generates one or more Business Events.
 
 Examples include:
 
@@ -951,13 +1132,13 @@ Examples include:
 - Deposit Refunded
 - Stay Closed
 
-Domain Events provide a complete chronological history of the Stay.
+Business Events provide a complete chronological history of the Stay.
 
 ---
 
-## ST-008 Event Driven History
+## ST-009 Event Driven History
 
-Business history shall be preserved through immutable Domain Events.
+Business history shall be preserved through immutable Business Events.
 
 Significant business activities shall not overwrite historical information where event recording provides business value.
 
@@ -1004,7 +1185,7 @@ Typical operations include:
 - Change Accommodation Plan
 - Temporary Bed Blocking (Future)
 
-Every Accommodation Operation generates one or more Domain Events.
+Every Accommodation Operation generates one or more Business Events.
 
 ---
 
@@ -1023,7 +1204,7 @@ Typical operations include:
 - Manual Financial Adjustment
 - Approved Discount
 
-Financial Operations create financial transactions and corresponding Domain Events.
+Financial Operations create financial transactions and corresponding Business Events.
 
 Financial balances shall be derived from recorded transactions rather than manual updates.
 
@@ -1081,7 +1262,7 @@ Administrative Operations may contribute to future Resident Intelligence analysi
 
 Business operations shall modify a Stay through defined business processes rather than direct modification of stored values.
 
-Significant operations shall generate Domain Events.
+Significant operations shall generate Business Events.
 
 ---
 
@@ -1179,7 +1360,7 @@ A Stay is not modified by editing individual fields.
 
 A Stay evolves through Business Operations.
 
-Each Business Operation produces one or more Domain Events which collectively describe the complete history of the Stay.
+Each Business Operation produces one or more Business Events which collectively describe the complete history of the Stay.
 
 This event-driven approach preserves accountability, transparency and historical traceability throughout the Resident lifecycle.
 
@@ -1189,7 +1370,7 @@ This event-driven approach preserves accountability, transparency and historical
 
 The state of a Stay shall evolve through Business Operations.
 
-Business history shall be preserved through Domain Events rather than direct replacement of historical information.
+Business history shall be preserved through Business Events rather than direct replacement of historical information.
 
 ---
 
@@ -1379,9 +1560,9 @@ A Deposit Account shall be closed only after Financial Settlement has been compl
 
 ---
 
-# 13.9 Domain Events
+# 13.9 Business Events
 
-Every Deposit Transaction generates one or more Domain Events.
+Every Deposit Transaction generates one or more Business Events.
 
 Examples include:
 
@@ -1544,7 +1725,7 @@ Billing may occur:
 - On Demand
 - Through approved manual processes
 
-Each billing operation generates financial transactions and Domain Events.
+Each billing operation generates financial transactions and Business Events.
 
 ---
 
@@ -1630,9 +1811,9 @@ Manual modification of outstanding balances is prohibited.
 
 ---
 
-# 14.9 Domain Events
+# 14.9 Business Events
 
-Financial activities generate Domain Events.
+Financial activities generate Business Events.
 
 Examples include:
 
@@ -1649,17 +1830,17 @@ These events contribute to the complete operational history of the Stay.
 
 ## FI-008 Event-Driven Finance
 
-The Finance domain shall preserve financial history through immutable financial records and Domain Events.
+The Finance domain shall preserve financial history through immutable financial records and Business Events.
 
 Financial transparency shall take precedence over convenience.
 
 ---
 
-# 15. Domain Events & Timeline
+# 15. Business Events & Timeline
 
 ## 15.1 Purpose
 
-Domain Events record significant activities performed during the lifecycle of a Stay.
+Business Events record significant activities performed during the lifecycle of a Stay.
 
 Each Business Event represents a completed business operation and contributes to the permanent operational history of the Stay.
 
@@ -1669,15 +1850,15 @@ Collectively, these events form the Stay Timeline, providing a complete chronolo
 
 ## BE-001 Event-Driven Business Model
 
-RPGMS shall preserve business history through immutable Domain Events.
+RPGMS shall preserve business history through immutable Business Events.
 
-Significant business activities shall generate Domain Events rather than replacing or deleting historical information.
+Significant business activities shall generate Business Events rather than replacing or deleting historical information.
 
 ---
 
 # 15.2 Business Event Principles
 
-Domain Events are based on the following principles.
+Business Events are based on the following principles.
 
 - Events represent completed business activities.
 - Events are immutable.
@@ -1690,15 +1871,15 @@ Domain Events are based on the following principles.
 
 ## BE-002 Event Integrity
 
-Domain Events shall not be modified or deleted through normal business operations.
+Business Events shall not be modified or deleted through normal business operations.
 
-Where corrections are necessary, compensating Domain Events shall be created to preserve historical accuracy.
+Where corrections are necessary, compensating Business Events shall be created to preserve historical accuracy.
 
 ---
 
 # 15.3 Stay Timeline
 
-The Stay Timeline is the chronological record of all significant Domain Events associated with a Stay.
+The Stay Timeline is the chronological record of all significant Business Events associated with a Stay.
 
 The Timeline provides a single operational view of the Resident's journey from Admission through Financial Settlement.
 
@@ -1717,13 +1898,13 @@ The Timeline is intended to support:
 
 Each Stay owns one Timeline.
 
-Domain Events from all operational domains contribute to that Timeline.
+Business Events from all operational domains contribute to that Timeline.
 
 ---
 
-# 15.4 Typical Domain Events
+# 15.4 Typical Business Events
 
-Examples of Domain Events include:
+Examples of Business Events include:
 
 ### Admission
 
@@ -1806,7 +1987,7 @@ Examples of Domain Events include:
 
 ## BE-004 Cross-Domain Visibility
 
-Domain Events may originate from different business domains while contributing to a unified Stay Timeline.
+Business Events may originate from different business domains while contributing to a unified Stay Timeline.
 
 The Timeline shall present these events in chronological order regardless of their originating domain.
 
@@ -1870,7 +2051,7 @@ Descriptions should use the standard business terminology defined by RPGMS.
 
 # 15.7 Future Event Usage
 
-Domain Events provide the foundation for future capabilities including:
+Business Events provide the foundation for future capabilities including:
 
 - Resident Intelligence
 - Operational Analytics
@@ -1879,243 +2060,7 @@ Domain Events provide the foundation for future capabilities including:
 - Audit Reporting
 - Process Automation
 
-These capabilities rely on the complete and accurate recording of Domain Events.
-
----
-
-## BE-007 Future Extensibility
-
-The Business Event framework shall support future business capabilities without requiring changes to previously recorded events.
-
----
-
----
-
-# 15. Domain Events & Timeline
-
-## 15.1 Purpose
-
-Domain Events record significant activities performed during the lifecycle of a Stay.
-
-Each Business Event represents a completed business operation and contributes to the permanent operational history of the Stay.
-
-Collectively, these events form the Stay Timeline, providing a complete chronological record of the Resident's relationship with the organisation.
-
----
-
-## BE-001 Event-Driven Business Model
-
-RPGMS shall preserve business history through immutable Domain Events.
-
-Significant business activities shall generate Domain Events rather than replacing or deleting historical information.
-
----
-
-# 15.2 Business Event Principles
-
-Domain Events are based on the following principles.
-
-- Events represent completed business activities.
-- Events are immutable.
-- Events are recorded chronologically.
-- Events contribute to the Stay Timeline.
-- Events provide operational transparency and auditability.
-- Events may trigger business processes in other domains.
-
----
-
-## BE-002 Event Integrity
-
-Domain Events shall not be modified or deleted through normal business operations.
-
-Where corrections are necessary, compensating Domain Events shall be created to preserve historical accuracy.
-
----
-
-# 15.3 Stay Timeline
-
-The Stay Timeline is the chronological record of all significant Domain Events associated with a Stay.
-
-The Timeline provides a single operational view of the Resident's journey from Admission through Financial Settlement.
-
-The Timeline is intended to support:
-
-- Daily Operations
-- Management Review
-- Customer Dispute Resolution
-- Audit
-- Historical Analysis
-- Future AI-assisted Decision Support
-
----
-
-## BE-003 Timeline Ownership
-
-Each Stay owns one Timeline.
-
-Domain Events from all operational domains contribute to that Timeline.
-
----
-
-# 15.4 Typical Domain Events
-
-Examples of Domain Events include:
-
-### Admission
-
-- Resident Admitted
-- Accommodation Plan Applied
-- Stay Created
-- Deposit Account Created
-
----
-
-### Accommodation
-
-- Bed Allocated
-- Additional Bed Allocated
-- Bed Released
-- Bed Transfer
-- Flat Transfer
-
----
-
-### Commercial
-
-- Rent Revised
-- Deposit Revised
-- Accommodation Plan Changed
-- Discount Approved
-
----
-
-### Finance
-
-- Bill Generated
-- Payment Received
-- Adjustment Applied
-- Refund Issued
-
----
-
-### Deposit Account
-
-- Deposit Received
-- Deposit Advance
-- Deposit Advance Return
-- Deposit Refunded
-- Deposit Account Closed
-
----
-
-### Services
-
-- Laundry Collected
-- Laundry Returned
-- Internet Plan Changed
-- Vehicle Registered
-- Door ID Assigned
-- Door ID Returned
-
----
-
-### Administration
-
-- Notice Given
-- Notice Cancelled
-- Warning Issued
-- Rule Violation Recorded
-- Internal Note Added
-
----
-
-### Checkout
-
-- Operational Checkout Started
-- Accommodation Released
-- Financial Settlement Started
-- Financial Settlement Completed
-- Stay Closed
-- Resident Became Alumni
-
----
-
-## BE-004 Cross-Domain Visibility
-
-Domain Events may originate from different business domains while contributing to a unified Stay Timeline.
-
-The Timeline shall present these events in chronological order regardless of their originating domain.
-
----
-
-# 15.5 Event Information
-
-Each Business Event should record sufficient information to explain what occurred.
-
-Typical information includes:
-
-- Event Date and Time
-- Event Type
-- Related Stay
-- Related Resident
-- Related Business Domain
-- Operator
-- Reference Number
-- Description
-- Supporting Notes
-
-Additional attributes may be recorded where required by the originating business domain.
-
----
-
-## BE-005 Event Context
-
-Each Business Event shall contain sufficient contextual information to support operational understanding and historical review.
-
----
-
-# 15.6 Timeline Presentation
-
-The Timeline is an operational view intended for people rather than accounting systems.
-
-Timeline entries should be presented in chronological order using clear business terminology.
-
-Examples include:
-
-- Resident admitted.
-- Bed transferred from G01-B3 to G02-B1.
-- Deposit Advance of ₹2,000 issued.
-- Laundry batch collected.
-- Monthly rent billed.
-- Payment of ₹6,500 received.
-- Operational Checkout completed.
-- Final Deposit Refund issued.
-- Stay closed.
-
-The Timeline should describe business activity in language that is meaningful to operators.
-
----
-
-## BE-006 Human-Centred Timeline
-
-Timeline entries shall prioritise operational clarity over technical implementation details.
-
-Descriptions should use the standard business terminology defined by RPGMS.
-
----
-
-# 15.7 Future Event Usage
-
-Domain Events provide the foundation for future capabilities including:
-
-- Resident Intelligence
-- Operational Analytics
-- Predictive Alerts
-- AI-assisted Recommendations
-- Audit Reporting
-- Process Automation
-
-These capabilities rely on the complete and accurate recording of Domain Events.
+These capabilities rely on the complete and accurate recording of Business Events.
 
 ---
 
@@ -2127,7 +2072,7 @@ The Business Event framework shall support future business capabilities without 
 
 ## BE-008 Significant Business Activities
 
-Domain Events shall be generated only for significant business activities that have operational, commercial, financial or administrative significance.
+Business Events shall be generated only for significant business activities that have operational, commercial, financial or administrative significance.
 
 Routine maintenance of master data does not normally constitute a Business Event unless required by business policy.
 
@@ -2203,7 +2148,7 @@ Typical responsibilities include:
 - Record final accommodation condition
 - Record checkout date and time
 - Close operational access
-- Generate Domain Events
+- Generate Business Events
 
 Operational Checkout shall not perform financial settlement activities.
 
@@ -2268,9 +2213,9 @@ Financial obligations shall not affect Operational Status.
 
 ---
 
-# 16.6 Domain Events
+# 16.6 Business Events
 
-Operational Checkout generates Domain Events including:
+Operational Checkout generates Business Events including:
 
 - Notice Given
 - Notice Cancelled
@@ -2286,7 +2231,7 @@ These events become part of the Stay Timeline.
 
 ## CO-006 Operational Traceability
 
-Operational Checkout shall preserve a complete operational history through Domain Events.
+Operational Checkout shall preserve a complete operational history through Business Events.
 
 ---
 
@@ -2497,9 +2442,9 @@ Financial Status shall remain independent of Operational Status.
 
 ---
 
-# 17.8 Domain Events
+# 17.8 Business Events
 
-Financial Settlement generates Domain Events including:
+Financial Settlement generates Business Events including:
 
 - Settlement Started
 - Final Charges Applied
@@ -2515,7 +2460,7 @@ These events become part of the Stay Timeline.
 
 ## FS-008 Financial Traceability
 
-Financial Settlement shall preserve a complete audit trail through immutable financial records and Domain Events.
+Financial Settlement shall preserve a complete audit trail through immutable financial records and Business Events.
 
 ---
 
@@ -2659,9 +2604,9 @@ Completed Stays shall remain available for operational reporting, business intel
 
 ---
 
-# 18.6 Domain Events
+# 18.6 Business Events
 
-The completion of a Stay generates final Domain Events including:
+The completion of a Stay generates final Business Events including:
 
 - Stay Closed
 - Resident Transitioned to Alumni
@@ -2742,9 +2687,9 @@ Accommodation Plans define default commercial terms and are independent of physi
 
 ## Admission
 
-The business process that converts a Reservation or Walk-in Resident into an Active Stay.
+An atomic Business Transaction that establishes Business Truth.
 
-Admission establishes the commercial agreement and operational relationship between the Resident and the organisation.
+Admission creates the operational business relationships required for Residency, transfers Business Ownership to the appropriate Business Objects and concludes immediately after the transaction has been successfully completed.
 
 ---
 
@@ -2771,12 +2716,11 @@ The smallest physical accommodation unit that may be allocated to a Stay.
 A Stay may occupy one or more Beds.
 
 ---
-
 ## Business Event
 
-An immutable record representing a significant business activity performed during a Stay.
+An immutable record representing a significant business activity.
 
-Domain Events collectively form the Stay Timeline.
+Business Events preserve historical Business Truth and collectively form the Business Timeline of the relevant business capability.
 
 ---
 
@@ -2888,9 +2832,9 @@ Typical statuses include:
 
 ## Reservation
 
-An intention to occupy accommodation in the future.
+The organisation's current Expected Truth regarding a future business relationship.
 
-A Reservation does not represent occupancy.
+A Reservation records provisional business information required for future planning. It does not establish operational Business Truth, accommodation allocation or financial relationships.
 
 ---
 
@@ -2920,7 +2864,7 @@ A Stay begins with Admission and concludes only after both Operational Checkout 
 
 ## Stay Timeline
 
-The complete chronological history of Domain Events associated with a Stay.
+The complete chronological history of Business Events associated with a Stay.
 
 The Timeline provides an operational view of the Resident's journey.
 
@@ -2928,9 +2872,21 @@ The Timeline provides an operational view of the Resident's journey.
 
 ## Timeline
 
-The operational history of significant Domain Events associated with a Stay.
+The operational history of significant Business Events associated with a Stay.
 
 The Timeline is distinct from the Financial Ledger.
+
+## Business Truth
+
+Business information that has been established through an authorised Business Transaction and is owned by the appropriate Business Object.
+
+Business Truth represents the organisation's confirmed understanding of its business state.
+
+## Expected Truth
+
+Provisional business information that represents the organisation's current expectation before operational commitment has been established.
+
+Expected Truth is owned by Reservation until an authorised Business Transaction establishes Business Truth.
 
 ---
 
@@ -3010,8 +2966,9 @@ Each rule identifier is unique and may be referenced by developers, documentatio
 | ST-004 | Agreement Preservation |
 | ST-005 | Operational and Financial Independence |
 | ST-006 | Deposit Ownership |
-| ST-007 | Business Hub |
-| ST-008 | Event-Driven History |
+| ST-007 | Operational Truth |
+| ST-008 | Business Hub |
+| ST-009 | Event-Driven History |
 
 ---
 
@@ -3058,7 +3015,7 @@ Each rule identifier is unique and may be referenced by developers, documentatio
 
 ---
 
-# Domain Events & Timeline
+# Business Events & Timeline
 
 | Rule | Description |
 |------|-------------|
@@ -3375,7 +3332,7 @@ Disconnected
 Business Rules
 
 - Internet assignment belongs to a Stay.
-- Service changes generate Domain Events.
+- Service changes generate Business Events.
 - Internet charges are managed by the Finance domain.
 
 ---
@@ -3399,7 +3356,7 @@ Business Rules
 
 - Door IDs are reusable organisational assets.
 - Door IDs belong to the organisation, not the Resident.
-- Every assignment generates Domain Events.
+- Every assignment generates Business Events.
 
 ---
 
@@ -3459,7 +3416,7 @@ Closed
 Business Rules
 
 - Maintenance history remains permanent.
-- Every state transition generates Domain Events.
+- Every state transition generates Business Events.
 
 ---
 
@@ -3502,9 +3459,9 @@ Historical Record
 
 Business Rules
 
-- Domain Events are immutable.
-- Domain Events are never deleted.
-- Corrections are made through compensating Domain Events.
+- Business Events are immutable.
+- Business Events are never deleted.
+- Corrections are made through compensating Business Events.
 
 ---
 
@@ -3514,7 +3471,7 @@ Business Rules
 Stay Created
       │
       ▼
-Domain Events Recorded
+Business Events Recorded
       │
       ▼
 Operational Checkout

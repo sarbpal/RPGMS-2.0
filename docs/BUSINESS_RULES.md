@@ -3,9 +3,9 @@
 
 **Document ID:** RPGMS-BR-001
 
-**Version:** 1.0
+**Version:** 2.0
 
-**Status:** Architecture Draft
+**Status:** Approved
 
 **Document Owner:** RPGMS Architecture
 
@@ -131,7 +131,7 @@ Derived information shall always originate from its authoritative source.
 
 Historical business records shall never be modified in a manner that changes historical truth.
 
-Corrections shall create new Domain Events rather than altering historical records.
+Corrections shall create new Business Events rather than altering historical records.
 
 ---
 
@@ -144,6 +144,37 @@ Each rule shall clearly identify:
 - When the rule applies.
 
 Rules should avoid unnecessary explanation.
+
+---
+
+---
+
+## BRP-008 Business Truth
+
+Business Truth shall only be established through an authorised Business Transaction.
+
+Business Rules shall never establish Business Truth through preparation activities, configuration changes or operational planning.
+
+---
+
+## BRP-009 Expected Truth
+
+Expected Truth shall remain the responsibility of the Reservation domain until Business Truth is established through an authorised Business Transaction.
+
+Business Rules shall preserve the distinction between Expected Truth and Business Truth.
+
+---
+
+## BRP-010 Atomic Business Transactions
+
+Business Transactions shall execute atomically.
+
+Where a Business Transaction establishes Business Truth, it shall either:
+
+- complete successfully in its entirety, or
+- produce no Business Truth.
+
+Partial completion shall not be considered a valid business state.
 
 ---
 
@@ -839,7 +870,7 @@ Profile updates shall affect only current Resident information and shall not alt
 
 ### Reason
 
-Personal information may evolve over time while historical Domain Events remain unchanged.
+Personal information may evolve over time while historical Business Events remain unchanged.
 
 ### Applies To
 
@@ -1300,7 +1331,7 @@ Historical Stay records shall be immutable.
 
 Historical information shall never be modified in a manner that changes historical truth.
 
-Corrections shall be represented through new Domain Events.
+Corrections shall be represented through new Business Events.
 
 ### Reason
 
@@ -1456,302 +1487,185 @@ Historical Stay information shall remain immutable and continue to serve as the 
 
 The Reservation domain governs the process of reserving future accommodation for a prospective Resident.
 
-A Reservation represents an intention to occupy accommodation in the future.
+A Reservation represents the organisation's current Expected Truth regarding a future business relationship.
 
-A Reservation is not a Stay and does not establish occupancy.
-
----
-
-## BR-300 Reservation Creation
-
-### Rule
-
-Every Reservation shall have a unique Reservation ID.
-
-A Reservation shall identify the intended Resident and the proposed accommodation requirements.
-
-### Reason
-
-Reservations uniquely identify future occupancy requests.
-
-### Applies To
-
-- Reservation Management
+A Reservation is not a Stay and does not establish operational Business Truth, accommodation allocation or financial relationships.
 
 ---
 
-## BR-301 Reservation Independence
+# Reservation Rules
 
-### Rule
+## BR-300 Reservation Represents Expected Truth
 
-A Reservation shall exist independently of a Stay.
+A Reservation shall always represent Expected Truth.
 
-Creating a Reservation shall not create a Stay.
-
-Occupancy shall begin only after Admission.
-
-### Reason
-
-Reservation represents intent, whereas Stay represents actual occupancy.
-
-### Applies To
-
-- Reservation Management
-- Admission
+Reservation records the organisation's current expectation of a future business relationship and shall not establish operational Business Truth.
 
 ---
 
-## BR-302 Reservation Status
+## BR-301 Reservation Ownership
 
-### Rule
+Reservation shall be the sole owner of Expected Truth.
 
-Every Reservation shall have exactly one operational status.
+Expected Truth shall remain under Reservation ownership until an authorised Business Transaction establishes Business Truth.
 
-Supported statuses are:
+---
 
-- Pending
-- Confirmed
-- Cancelled
-- Expired
+## BR-302 Reservation Creates No Operational Relationships
+
+A Reservation shall not create:
+
+- Resident
+- Stay
+- Accommodation Allocation
+- Financial Relationship
+
+These operational relationships shall only be established through an authorised Business Transaction.
+
+---
+
+## BR-303 Reservation Lifecycle
+
+A Reservation shall exist in one of the following lifecycle states:
+
+- Active
 - Converted
+- Cancelled
 
-### Reason
-
-Reservation status reflects the current stage of the reservation lifecycle.
-
-### Applies To
-
-- Reservation Management
-- Reporting
+Reservations shall not expire automatically.
 
 ---
 
-## BR-303 Reservation Validity
+## BR-304 Reservation Does Not Allocate Resources
 
-### Rule
+A Reservation shall not allocate operational resources.
 
-A Reservation shall remain valid only until one of the following occurs:
-
-- Admission is completed.
-- The Reservation is cancelled.
-- The Reservation expires.
-- The Reservation is withdrawn.
-
-### Reason
-
-Reservations represent temporary business commitments.
-
-### Applies To
-
-- Reservation Management
+Accommodation preferences may be recorded for planning purposes but shall not constitute operational allocation.
 
 ---
 
-## BR-304 Reservation Conversion
+## BR-305 Reservation Conversion
 
-### Rule
+A Reservation may only transition to Converted through the successful completion of an authorised Business Transaction.
 
-Admission shall convert a Reservation into a Stay.
-
-The Reservation shall remain part of the permanent business history.
-
-Reservation history shall not be deleted.
-
-### Reason
-
-The Reservation documents the origin of the occupancy.
-
-### Applies To
-
-- Admission
-- Audit
+Preparation activities shall not change Reservation ownership or establish Business Truth.
 
 ---
 
-## BR-305 Reservation Cancellation
+## BR-306 Reservation Cancellation
 
-### Rule
+A cancelled Reservation shall preserve complete business history.
 
-Cancelled Reservations shall remain permanently recorded.
+Cancellation shall not remove historical Reservation records.
 
-Cancellation shall not remove historical Reservation information.
+---
 
-### Reason
+## BR-307 Reservation Business Events
 
-Reservation history forms part of the organisation's operational records.
+Every significant Reservation activity shall generate immutable Business Events.
 
-### Applies To
-
-- Reservation Management
-- Audit
+Business Events shall preserve the complete historical lifecycle of the Reservation.
 
 ---
 
 # Admission
 
-Admission governs the commencement of occupancy.
+# Admission Rules
 
-Admission is a business process that establishes a new Stay.
+Admission is an atomic Business Transaction.
 
-Admission does not itself become a permanent business object.
+Its purpose is to establish Business Truth, create operational business relationships and transfer Business Ownership to the appropriate Business Objects.
 
----
-
-## BR-350 Admission Eligibility
-
-### Rule
-
-Admission shall be permitted only when all mandatory business requirements have been satisfied.
-
-Mandatory requirements shall be governed by business policy.
-
-### Reason
-
-Admission shall comply with organisational operating policies.
-
-### Applies To
-
-- Admission
+Admission itself owns no continuing operational state.
 
 ---
 
-## BR-351 Stay Establishment
+## BR-350 Admission is a Business Transaction
 
-### Rule
+Admission shall always be modelled as a Business Transaction.
 
-Successful Admission shall create exactly one new Stay.
-
-The Stay shall become the authoritative operational record of occupancy.
-
-### Reason
-
-Occupancy begins only through creation of a Stay.
-
-### Applies To
-
-- Admission
+Admission shall not be modelled as a long-lived Business Object.
 
 ---
 
-## BR-352 Resident Association
+## BR-351 Business Truth
 
-### Rule
+Admission shall establish Business Truth.
 
-Admission shall associate the Stay with exactly one Resident.
-
-Resident identity shall remain unchanged throughout the Stay.
-
-### Reason
-
-Occupancy belongs to the Resident while preserving permanent identity.
-
-### Applies To
-
-- Admission
+Business Truth shall not be established through preparation activities, operator workflow or configuration changes.
 
 ---
 
-## BR-353 Accommodation Allocation
+## BR-352 Atomic Execution
 
-### Rule
+Admission shall execute atomically.
 
-Admission shall assign exactly one Flat and allocate one or more eligible Beds within that Flat to the newly created Stay.
+The transaction shall either:
 
-All Beds allocated to a single Stay must belong to the same Flat.
+- complete successfully in its entirety, or
+- produce no Business Truth.
 
-Only available Beds may be allocated.
-
-### Reason
-
-Occupancy requires accommodation assignment bounded by Flat (BCR-002).
-
-### Applies To
-
-- Admission
-- Bed Allocation
-- Accommodation Operations
+Partial completion shall not be considered a valid business state.
 
 ---
 
-## BR-354 Operational Resource Allocation
+## BR-353 Business Ownership
 
-### Rule
+Upon successful completion of Admission, Business Ownership shall transfer to the appropriate Business Objects.
 
-Admission shall allocate all required operational resources according to business policy.
-
-Operational resources may include:
-
-- Door ID
-- Parking Allocation
-- Locker Allocation
-
-### Reason
-
-Operational resources are required to support occupancy.
-
-### Applies To
-
-- Admission
+Admission shall retain no permanent ownership.
 
 ---
 
-## BR-355 Commercial Agreement Establishment
+## BR-354 Operational Business Relationships
 
-### Rule
+Admission shall establish the operational business relationships required for Residency.
 
-Admission shall establish the initial Commercial Agreement for the Stay.
+These include:
 
-Commercial terms shall become effective upon commencement of occupancy.
-
-### Reason
-
-Financial obligations begin with occupancy.
-
-### Applies To
-
-- Admission
-- Billing
+- Resident
+- Stay
+- Accommodation
+- Finance
 
 ---
 
-## BR-356 Admission Completion
+## BR-355 Preparation
 
-### Rule
+Preparation activities shall not establish Business Truth.
 
-Admission shall be considered complete only after:
-
-- Resident association has been established.
-- Stay has been created.
-- Accommodation has been allocated.
-- Commercial Agreement has been established.
-- Mandatory operational resources have been assigned.
-
-### Reason
-
-Admission is complete only when occupancy is fully established.
-
-### Applies To
-
-- Admission
+Preparation may collect, validate and organise information required for Admission but shall not create operational business relationships.
 
 ---
 
-## BR-357 Admission History
+## BR-356 Business Confirmation
 
-### Rule
+Business Truth shall only be established following explicit operator confirmation.
 
-Admission shall become part of the permanent operational history of the Stay.
+Preparation alone shall not constitute organisational commitment.
 
-Historical Admission information shall be immutable.
+---
 
-### Reason
+## BR-357 Door ID
 
-Admission represents the commencement of occupancy.
+Door ID assignment is not mandatory for successful Admission.
 
-### Applies To
+Door ID may be assigned after Admission in accordance with operational requirements.
 
-- Audit
-- Reporting
+---
+
+## BR-358 Business Events
+
+Successful Admission shall generate immutable Business Events representing the establishment of Business Truth and operational business relationships.
+
+---
+
+## BR-359 Historical Preservation
+
+Admission history shall be permanently preserved through Business Events.
+
+Admission records shall never be physically deleted.
+
 
 ---
 
@@ -1759,13 +1673,11 @@ Admission represents the commencement of occupancy.
 
 Reservation and Admission govern the transition from intended occupancy to actual occupancy.
 
-Reservation represents a future business commitment.
+Reservation represents the organisation's Expected Truth regarding a future business relationship.
 
-Admission is the business process that creates a Stay and establishes occupancy.
+Admission is an atomic Business Transaction that establishes Business Truth and transfers Business Ownership to the appropriate Business Objects.
 
-Neither Reservation nor Admission replaces the Stay.
-
-The Stay remains the authoritative operational record throughout the Resident's period of occupancy.
+The Stay remains the authoritative owner of Operational Truth throughout the resident's occupancy.
 
 ---
 
@@ -2610,7 +2522,7 @@ Historical business records shall remain unchanged.
 
 ### Reason
 
-Configuration establishes future behaviour rather than rewriting historical Domain Events.
+Configuration establishes future behaviour rather than rewriting historical Business Events.
 
 ### Applies To
 
@@ -2761,7 +2673,7 @@ Configuration supports consistency, controlled flexibility and future business e
 
 The Audit & Events domain governs the recording of significant business activities throughout RPGMS.
 
-Domain Events describe what occurred.
+Business Events describe what occurred.
 
 Audit Records describe who performed the operation, when it occurred and under what authority.
 
@@ -2775,11 +2687,11 @@ Together they provide accountability, traceability and historical integrity acro
 
 Every significant business operation shall generate a Business Event.
 
-Domain Events represent completed business activities.
+Business Events represent completed business activities.
 
 ### Reason
 
-Domain Events provide the authoritative history of organisational activity.
+Business Events provide the authoritative history of organisational activity.
 
 ### Applies To
 
@@ -2847,7 +2759,7 @@ Audit Records shall be immutable.
 
 Audit Records shall never be modified or deleted in a manner that changes historical truth.
 
-Corrections shall be represented through new Domain Events.
+Corrections shall be represented through new Business Events.
 
 ### Reason
 
@@ -2889,7 +2801,7 @@ Each business object should provide a complete history of significant events thr
 
 ### Rule
 
-Domain Events shall be classified according to their business purpose.
+Business Events shall be classified according to their business purpose.
 
 Examples include:
 
@@ -2920,7 +2832,7 @@ Classification improves reporting, searching and operational analysis.
 
 Business history shall remain fully traceable.
 
-The sequence of Domain Events shall accurately represent the order in which business activities occurred.
+The sequence of Business Events shall accurately represent the order in which business activities occurred.
 
 ### Reason
 
@@ -2937,7 +2849,7 @@ Business decisions should be understandable through their historical sequence.
 
 ### Rule
 
-Administrative Overrides shall generate Domain Events and corresponding Audit Records.
+Administrative Overrides shall generate Business Events and corresponding Audit Records.
 
 The reason for the override shall become part of the permanent audit history.
 
@@ -2956,7 +2868,7 @@ Exceptional authority shall remain fully accountable.
 
 ### Rule
 
-Visibility of Domain Events and Audit Records shall be governed by user permissions and business policy.
+Visibility of Business Events and Audit Records shall be governed by user permissions and business policy.
 
 Restricted audit information shall be available only to authorised users.
 
@@ -2975,7 +2887,7 @@ Audit transparency shall be balanced with information security.
 
 ### Rule
 
-Audit Records and Domain Events shall be retained according to organisational retention policy.
+Audit Records and Business Events shall be retained according to organisational retention policy.
 
 Where retention periods are defined, disposal shall comply with applicable legal and regulatory requirements.
 
@@ -2992,7 +2904,7 @@ Audit information supports accountability, compliance and historical reference.
 
 # Audit & Events Summary
 
-Domain Events record what occurred.
+Business Events record what occurred.
 
 Audit Records establish who performed the operation, when it occurred and under what authority.
 
@@ -3122,7 +3034,7 @@ Retention ensures compliance while supporting efficient document management.
 
 # Notifications
 
-The Notifications domain governs communication generated by Domain Events.
+The Notifications domain governs communication generated by Business Events.
 
 Notifications communicate information.
 
@@ -3134,7 +3046,7 @@ Notifications do not themselves modify business data.
 
 ### Rule
 
-Notifications shall be generated only in response to defined Domain Events or approved business processes.
+Notifications shall be generated only in response to defined Business Events or approved business processes.
 
 ### Reason
 
@@ -3324,7 +3236,7 @@ Correct business information is more important than incomplete or misleading res
 
 Documents preserve business evidence.
 
-Notifications communicate Domain Events.
+Notifications communicate Business Events.
 
 Search enables discovery of authorised business information.
 
@@ -3567,7 +3479,7 @@ Historical exceptions provide valuable operational insight and support accountab
 
 Authorised users may resolve Business Exceptions where permitted by business policy.
 
-Administrative resolution shall generate appropriate Domain Events and Audit Records.
+Administrative resolution shall generate appropriate Business Events and Audit Records.
 
 ### Reason
 
@@ -3606,7 +3518,7 @@ Historical business records shall preserve historical truth.
 
 Historical records shall not be modified in a manner that changes the facts that existed at the time they were created.
 
-Corrections shall be represented through new Domain Events rather than alteration of historical records.
+Corrections shall be represented through new Business Events rather than alteration of historical records.
 
 ### Reason
 

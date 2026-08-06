@@ -1,237 +1,360 @@
-# RPGMS 2.0 Roadmap
+# RPGMS 2.0
 
-## Document Information
+# Product Roadmap
 
-**Document ID:** ROADMAP.md
-**Version:** 2.0
-**Status:** Active
-**Owner:** RPGMS Project
-**Last Updated:** 30 July 2026
+**Document Version:** 3.0  
+**Status:** Active  
+**Last Updated:** July 2026
 
 ---
 
-# Project Status
+# Purpose
 
-**Current Milestone**
+This roadmap defines the planned evolution of RPGMS 2.0 from its current MVP implementation towards a complete hostel and PG management platform.
 
-M2 – Core Feature Development
-
-**Current Sprint**
-
-Sprint 4.4 – Accommodation Persistence & List Integration
-
-**Status**
-
-Ready to Begin
+Unlike the Module Status document, which records implementation progress, this roadmap focuses on future business capabilities, capability releases, and long-term product direction.
 
 ---
 
-# Completed
+# Product Vision
 
-## Milestone M0 – Engineering Foundation
+RPGMS 2.0 is being developed as a modern, workspace-oriented hostel and PG management platform.
 
-- Repository foundation
-- React + Vite setup
-- TypeScript
-- Material UI
-- AI engineering governance
-- Development standards
-- Documentation framework
+The primary objective is to provide hostel operators with an operational system that mirrors real-world business workflows rather than traditional CRUD-based software.
 
-**Completed ✅**
+The platform is built around independent business domains connected through clearly defined relationships while maintaining Clean Architecture and strict domain ownership.
 
 ---
 
-## Milestone A1 – Architecture Baseline
+# Current Development Phase
 
-- Business Constitution
-- Domain Model
-- Software Architecture
-- Project Rules
-- Documentation framework
-- Architectural governance
-- Architecture consistency review
-- Architecture Polish Sprint
+Business Capability Development
 
-**Completed ✅**
+The engineering foundation has been completed.
+
+The Accommodation and Resident capabilities have reached MVP completion.
+
+Development is now focused on Reservation and Admission Management.
 
 ---
 
-## Milestone M1 – Application Shell
+# Current Milestone
 
-- Application shell
-- Header
-- Sidebar
-- MainLayout
-- Dashboard foundation
-- Feature scaffolding
-- React Router integration
-- Sidebar navigation
-- Active route highlighting
+Documentation Consolidation Sprint (DCS-1)
 
-**Completed ✅**
+Objectives
+
+- Freeze Resident Module MVP.
+- Freeze Resident Workspace Specification.
+- Consolidate engineering documentation.
+- Establish reusable workspace standards.
+- Prepare for Reservation & Admission development.
 
 ---
 
-## Sprint 4.1 – Accommodation Foundation
+# Capability Release Roadmap
 
-**Completed ✅**
+Development of RPGMS 2.0 is organized into Capability Releases (CRs).
 
-Deliverables
-
-- Accommodation workspace
-- Flat cards
-- Area sections
-- Bed cards
-- Accommodation summary
-- Toolbar
-- Status filtering
+Each Capability Release delivers one complete business capability rather than a collection of unrelated technical tasks.
 
 ---
 
-## Sprint 4.2 – Accommodation UI Refinement
+## CR-1 — Resident Management
 
-**Completed ✅**
+**Status:** ✅ Completed
 
-Deliverables
+### Delivered
 
-- Typography improvements
-- Flat card refinement
-- Layout consistency
-- UI polish
-- Navigation improvements
-
----
-
-## Sprint 4.3 – Accommodation Creation Workflow
-
-**Completed ✅**
-
-Deliverables
-
-- Add Flat dialog
-- Area management
-- Smart Bed Prefix suggestions
-- Validation
-- Live Layout Preview
-- Flat Draft generation
-- Keyboard UX improvements
+- Engineering Foundation
+- Application Shell
+- Accommodation Module
+- Residents List Workspace
+- Resident Workspace
+- Stay Workspace
+- Operational Dashboard
+- Workspace Navigation
+- Resident Assets
+- Current Stay Summary
 
 ---
 
-## Sprint 4.4 – Accommodation Persistence & List Integration
+## CR-2 — Reservation & Admission Management
 
-### Objective
+**Status:** 🔄 Next Capability
 
-Complete the Accommodation module by integrating the creation workflow into the application state.
+### Planned Deliverables
 
-### Planned Work
-
-- Integrate Flat Draft with application state
-- Replace developer preview with persistence workflow
-- Refresh Accommodation list after creation
-- Prepare architecture for Supabase integration
-
----
-
-## Current Sprint
-
-## Sprint 5.1 – Resident Presentation Foundation
-
-Status
-
-Ready to Begin
+- Reservations List Workspace
+- Reservation Workspace
+- Reservation Search
+- Reservation Follow-up
+- Admission Workspace
+- Admission Readiness
+- Walk-in Admission
+- Reservation Conversion
+- Resident Creation
+- Stay Creation
 
 ---
 
-# Upcoming Milestones
+## CR-3 — Financial Operations
 
-## Milestone M3 – Resident Module
+**Status:** Planned
 
-### Sprint 5.1 – Resident Presentation
+### Planned Deliverables
 
-- Residents List
-- Resident Details
-- Search
-- Filters
-- Shared Layout
-
-### Sprint 5.2 – Resident Application
-
-### Sprint 5.3 – Resident Domain
-
-### Sprint 5.4 – Resident Infrastructure
-
-### Sprint 5.5 – Resident Workspace Integration
-
----
-
-## Milestone M4 – Finance Module
-
+- Finance Dashboard
 - Resident Ledger
-- Security Deposit
-- Payments
-- Outstanding Dues
-- Financial Summary
+- Rent Generation
+- Security Deposits
+- Payment Management
+- Split Billing
+- Laundry Billing
+- Electricity Billing
+- Financial Reports
 
 ---
 
-## Milestone M5 – Electricity Module
+## CR-4 — Operational Services
 
-- Bill Entry
-- Bill Calculation
-- Bill Distribution
-- Ledger Integration
+**Status:** Planned
+
+### Planned Deliverables
+
+- Electricity Workspace
+- Meter Reading
+- Maintenance Workspace
+- Complaint Management
+- Vendor Management
+- Operational Reports
 
 ---
 
-# Future Modules
+## CR-5 — Reporting & Analytics
 
-- Laundry
-- Maintenance
-- Complaints
-- Reports
+**Status:** Planned
+
+### Planned Deliverables
+
+- Management Dashboard
+- Occupancy Analytics
+- Financial Analytics
+- Resident Analytics
+- Electricity Analytics
+- Export & Printing
+- Business Reports
+
+---
+
+## CR-6 — Platform Enhancements
+
+**Status:** Future
+
+### Planned Deliverables
+
+- Supabase Infrastructure
 - Notifications
-- Visitor Register
-- Document Management
-- Settings
+- AI Assistance
+- Mobile Optimisation
+- Performance Improvements
+- Advanced Search
+- Timeline Views
+- Compliance Monitoring
+
+---
+
+# Business Capability Evolution
+
+RPGMS 2.0 is being developed incrementally, with each capability building upon the previous one. The objective is to deliver complete business workflows rather than isolated software features.
+
+---
+
+## Phase 1 – Platform Foundation
+
+**Status:** ✅ Completed
+
+### Objectives
+
+- Establish engineering standards.
+- Implement Clean Architecture.
+- Build the application shell.
+- Create the accommodation model.
+- Establish the Resident and Stay domains.
+
+### Outcome
+
+A stable engineering platform supporting future business capabilities.
+
+---
+
+## Phase 2 – Resident Operations
+
+**Status:** ✅ Completed
+
+### Objectives
+
+- Resident management
+- Stay management
+- Operational workspaces
+- Current Stay projection
+- Resident operational dashboard
+- Workspace navigation
+
+### Outcome
+
+Complete operational management of existing residents.
+
+---
+
+## Phase 3 – Reservation & Admission
+
+**Status:** 🔄 In Planning
+
+### Objectives
+
+- Reservation lifecycle
+- Admission workflow
+- Walk-in admissions
+- Reservation conversion
+- Admission readiness
+- Resident creation
+- Stay creation
+
+### Outcome
+
+Complete resident onboarding workflow.
+
+---
+
+## Phase 4 – Financial Operations
+
+**Status:** Planned
+
+### Objectives
+
+- Billing
+- Resident ledger
+- Payments
+- Deposits
+- Electricity allocation
+- Laundry billing
+
+### Outcome
+
+Complete financial lifecycle management.
+
+---
+
+## Phase 5 – Operational Services
+
+**Status:** Planned
+
+### Objectives
+
+- Maintenance
+- Electricity operations
+- Operational reporting
+- Vendor management
+
+### Outcome
+
+Complete day-to-day hostel operations.
+
+---
+
+## Phase 6 – Business Intelligence
+
+**Status:** Future
+
+### Objectives
+
 - Analytics
-- AI-assisted Operations
+- Dashboards
+- AI assistance
+- Forecasting
+- Advanced reporting
+
+### Outcome
+
+Data-driven hostel management.
 
 ---
 
-# Long-Term Vision
+# MVP Success Criteria
 
-- Supabase backend integration
-- Authentication & Role Management
-- Real-time updates
-- Mobile responsiveness
-- Production deployment
-- Performance optimisation
-- Automated testing
-- CI/CD pipeline
+The RPGMS 2.0 Minimum Viable Product (MVP) will be considered complete when the following business capabilities are fully implemented, tested, documented, and operational.
 
----
+## Core Business Capabilities
 
-## Current Implementation Focus
-
-### Resident Module MVP
-
-Implementation will proceed in the following order:
-
-1. Residents List Workspace
-2. Standard Admission Workspace
-3. Resident Workspace
-4. Universal Search
-5. Current Stay Summary
-6. Operational Readiness
-7. Documents Management
-8. Compliance Summary
-9. Timeline
-10. Resident Quick Actions
-
-The Resident Workspace V2 Specification shall serve as the implementation authority for this sprint.
+- Accommodation Management
+- Reservation Management
+- Admission Management
+- Resident Management
+- Stay Management
+- Finance Management
+- Electricity Management
+- Maintenance Management
+- Reports & Operational Dashboards
 
 ---
 
-End of Document
+## Engineering Goals
+
+The MVP must satisfy the following engineering objectives:
+
+- Clean Architecture throughout the application.
+- Strict business domain ownership.
+- Workspace-oriented user experience.
+- Consistent navigation patterns.
+- Responsive user interface.
+- Complete TypeScript type safety.
+- Automated testing for critical business logic.
+- Stable production builds.
+- Complete constitutional documentation.
+
+---
+
+# Long-Term Product Vision
+
+Following MVP completion, RPGMS will evolve into a comprehensive hostel and PG management platform through incremental capability releases.
+
+Future development may include:
+
+- AI-assisted operational workflows
+- Predictive analytics
+- Resident communication tools
+- Mobile applications
+- Multi-property management
+- Vendor ecosystem integration
+- Advanced business intelligence
+- Workflow automation
+- Notification services
+- External system integrations
+
+Future enhancements will build upon the stable engineering and business foundations established during the MVP.
+
+---
+
+# Roadmap Governance
+
+This roadmap is reviewed whenever a major business capability reaches MVP completion or when project priorities change.
+
+Routine implementation details, bug fixes, and minor feature additions are tracked through the project backlog and do not require roadmap updates.
+
+The roadmap should remain a strategic planning document focused on business capability evolution rather than day-to-day development activities.
+
+## Documentation Capability Sprint 2 (Completed)
+
+Status: ✅ Complete
+
+Core business architecture frozen.
+
+Outputs:
+
+- BUSINESS_CONSTITUTION.md
+- BUSINESS_MODEL.md
+- BUSINESS_RULES.md
+- BUSINESS_EVENTS_SPECIFICATION.md
+- RESERVATION_WORKSPACE_SPECIFICATION.md
+- ADMISSION_WORKSPACE_SPECIFICATION.md

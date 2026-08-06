@@ -3,7 +3,7 @@
 # RPGMS 2.0 Business Constitution
 
 **Document ID:** RPGMS-BP-001
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Approved
 **Owner:** Product Architecture
 **Classification:** Core Business Architecture
@@ -524,6 +524,112 @@ Understanding this distinction is essential because almost every other business 
 
 ---
 
+# Core Business Architecture
+
+Business Architecture defines how RPGMS models, manages and preserves organisational truth.
+
+These principles apply uniformly across every business domain and every workspace within RPGMS.
+
+They are independent of implementation technology and shall remain stable as the system evolves.
+
+All workspace specifications, engineering decisions and implementation details shall conform to these constitutional principles.
+
+The objective of these principles is to ensure that RPGMS maintains a consistent business architecture throughout its lifetime.
+
+## Business Objects
+
+Business Objects represent long-lived entities within the organisation.
+
+They own Business Truth and continue to exist beyond individual business transactions.
+
+Examples include:
+
+- Reservation
+- Resident
+- Stay
+- Accommodation
+- Finance
+
+Business Objects possess the following characteristics:
+
+- They own Business Truth.
+- They have defined business lifecycles.
+- They support ongoing operational management.
+- They are continuously updated throughout their lifetime.
+
+Business Objects represent the enduring state of the organisation.
+
+## Business Transactions
+
+Business Transactions establish, modify or conclude Business Truth.
+
+Unlike Business Objects, Business Transactions do not permanently own information.
+
+Their purpose is to coordinate the creation, transfer or conclusion of Business Truth.
+
+Examples include:
+
+- Admission
+- Checkout
+- Settlement
+- Admission Reversal
+
+Business Transactions possess the following characteristics:
+
+- They are temporary.
+- They execute atomically.
+- They coordinate multiple Business Objects.
+- They transfer Business Ownership.
+- They generate Business Events.
+
+Business Transactions conclude immediately after their business responsibilities have been completed.
+## Business Truth
+
+Business Truth represents information formally accepted by the organisation.
+
+Business Truth is established only through authorised business transactions.
+
+Business Truth shall always have one authoritative owner.
+
+Business Truth evolves through the resident lifecycle but ownership remains explicit at every stage.
+
+The transition from expectation to Business Truth follows the constitutional business model.
+
+Expected Truth
+
+↓
+
+Business Confirmation
+
+↓
+
+Business Transaction
+
+↓
+
+Business Truth
+
+↓
+
+Operational Ownership
+
+## Business Responsibility
+
+Every business capability within RPGMS shall have a clearly defined business responsibility.
+
+Business responsibility describes why a business object or business transaction exists.
+
+Responsibilities shall be:
+
+- explicit,
+- non-overlapping,
+- business-oriented,
+- independent of implementation.
+
+Where business responsibilities become unclear or overlap, the architecture shall be revised before implementation proceeds.
+
+---
+
 # Resident
 
 ## Purpose
@@ -797,100 +903,145 @@ No subsequent business object should duplicate responsibilities already owned by
 
 ## Purpose
 
-A Reservation represents a future intention to occupy accommodation.
+Reservation exists to record the organisation's current expectation of a future Admission.
 
-It allows accommodation to be planned and managed before a Resident begins a Stay.
+It provides a structured mechanism through which the organisation records proposed residency before any operational commitment has been made.
 
-Reservations are optional and not every Stay requires one.
+Reservation enables business planning while preserving the distinction between expected information and confirmed business information.
+
+Reservation creates no Residency, no operational allocation and no financial relationship.
 
 ---
 
 ## Definition
 
-A Reservation records the organisation's intention to provide accommodation to a Resident at a future date.
+A Reservation represents the organisation's current expectation of a future Admission.
 
-A Reservation does not create occupancy.
+A Reservation is neither:
 
-It only reserves the opportunity to create a Stay.
+- a Stay,
+- an Admission,
+- a contract,
+- nor an accommodation allocation.
 
----
+It records the organisation's present understanding of a prospective resident together with the expected commercial and operational information required to prepare for a future Admission.
 
-## Responsibilities
-
-A Reservation owns:
-
-- Intended Resident
-- Intended Accommodation
-- Expected Admission Date
-- Reservation Status
-- Reservation Expiry
-- Reservation Notes
-
-A Reservation does not own financial history or occupancy.
+A Reservation represents Expected Truth.
 
 ---
 
-## Relationships
+## Business Responsibility
 
-A Reservation belongs to one Resident.
+Reservation is responsible for managing Expected Truth.
 
-A Reservation may result in one Stay.
+Its responsibilities include:
 
-A Reservation may also:
+- recording expected resident information,
+- recording expected commercial terms,
+- recording expected joining information,
+- recording accommodation preferences,
+- supporting future Admission.
 
-- Expire
-- Be Cancelled
-- Be Rejected
-
-without creating a Stay.
+Reservation does not establish Business Truth.
 
 ---
 
-## Lifecycle
+## Business Ownership
 
-Typical lifecycle:
+Reservation is the sole owner of Expected Truth.
 
-Reservation Created
+Expected Truth includes:
 
-↓
+- expected joining date,
+- expected monthly rent,
+- expected security deposit,
+- accommodation preferences,
+- business notes,
+- other provisional information relating to a future Admission.
 
-Confirmed
+Expected Truth remains provisional until a successful Admission Transaction establishes Business Truth.
 
-↓
+---
 
-Admission
+## Business Relationships
 
-↓
+Reservation supports, but does not create, Residency.
 
-Reservation Closed
+Reservation may lead to:
 
-Alternative outcomes include:
+- Admission,
+- Cancellation.
 
+Reservation does not create:
+
+- Resident,
+- Stay,
+- Accommodation Allocation,
+- Financial Relationship.
+
+These are established only through the Admission Transaction.
+
+---
+
+## Reservation Lifecycle
+
+A Reservation follows one of the following constitutional states:
+
+- Active
+- Converted
 - Cancelled
-- Expired
-- Rejected
+
+A Reservation remains Active until either:
+
+- successfully converted into an Admission, or
+- cancelled by the organisation.
+
+Reservation has no Expired state.
 
 ---
 
-## Business Rules
+## Constitutional Principles
 
-- A Reservation does not create occupancy.
-- A Reservation does not create financial obligations.
-- Admission creates the Stay.
-- Expired Reservations remain part of business history.
-- Historical Reservations are never deleted.
+### RES-001
+
+Reservation shall always represent Expected Truth.
 
 ---
 
-## Future Considerations
+### RES-002
 
-The architecture supports future enhancements such as:
+Reservation shall be the sole owner of Expected Truth.
 
-- Online Reservations
-- Waiting Lists
-- Reservation Deposits
-- Automated Expiry
-- Resident Self-Service Booking
+---
+
+### RES-003
+
+Reservation shall create no operational Business Truth.
+
+---
+
+### RES-004
+
+Reservation shall never allocate operational resources.
+
+---
+
+### RES-005
+
+Reservation shall preserve Expected Truth until an authorised business transaction establishes Business Truth.
+
+---
+
+### RES-006
+
+Every Reservation shall follow a defined constitutional lifecycle.
+
+---
+
+### RES-007
+
+Reservation shall preserve complete business history through Business Events.
+
 
 ---
 
@@ -898,72 +1049,94 @@ The architecture supports future enhancements such as:
 
 ## Purpose
 
-Admission is the business process that transforms a Reservation or enquiry into an active Stay.
+Admission exists to establish operational business relationships through an authorised business transaction.
 
-Admission establishes both operational occupancy and the commercial relationship between the Resident and the organisation.
+It represents the organisational commitment that transforms provisional business understanding into confirmed Business Truth.
+
+Admission creates the organisational foundation upon which operational business activities are performed.
 
 ---
 
 ## Definition
 
-Admission is the controlled business process through which a Resident begins occupying accommodation.
+Admission is a Business Transaction.
 
-Completion of Admission creates an active Stay.
+It is not a long-lived Business Object.
 
----
+Its purpose is to establish Business Truth by creating the operational business relationships required for Residency.
 
-## Admission Activities
-
-Admission may include:
-
-- Identity Verification
-- Document Collection
-- Compliance Verification
-- Bed Allocation (which may allocate one or more Beds)
-- Commercial Agreement Creation
-- Security Deposit Collection
-- Initial Payment Collection
-- Door ID Assignment
-- Resident Orientation
-
-The exact sequence may vary according to business policy.
+Admission concludes immediately after its business responsibilities have been completed.
 
 ---
 
-## Admission Outcome
+## Business Responsibility
 
-Successful Admission results in:
+Admission is responsible for establishing Business Truth.
 
-- Active Stay
-- Allocated Bed
-- Commercial Agreement
-- Financial Relationship
-- Operational Timeline
-- Financial Timeline
+Its responsibilities include:
 
----
+- establishing Residency,
+- creating operational business relationships,
+- transferring Business Ownership,
+- generating Business Events.
 
-## Business Rules
-
-- Admission creates a Stay.
-- Admission cannot occur without a Resident.
-- Admission allocates accommodation.
-- Admission establishes the Commercial Agreement.
-- Admission records the operational start of occupancy.
+Admission creates no continuing operational responsibility.
 
 ---
 
-## Future Considerations
+## Business Ownership
 
-Future versions may support:
+Admission temporarily coordinates the transfer of Business Truth.
 
-- Online Pre-Admission
-- Digital KYC
-- Electronic Agreements
-- Self Check-In
-- Biometric Verification
+Upon successful completion of the transaction, Business Ownership transfers to the appropriate Business Objects.
 
-without changing the Admission business model.
+Admission retains no permanent ownership.
+
+---
+
+## Business Relationships
+
+Admission establishes operational business relationships.
+
+These relationships include:
+
+- Resident
+- Stay
+- Accommodation
+- Finance
+
+Admission coordinates their creation but does not become their long-term owner.
+
+---
+
+## Business Transaction
+
+Admission is an atomic Business Transaction.
+
+Every operational business relationship shall either:
+
+- be established successfully,
+
+or
+
+- not be established at all.
+
+Partial commitment is not a valid business state.
+
+Admission concludes immediately after Business Truth has been established and Business Ownership has been transferred.
+
+---
+
+## Constitutional Principles
+
+- Admission is a Business Transaction.
+- Admission establishes Business Truth.
+- Admission transfers Business Ownership.
+- Admission creates operational business relationships.
+- Admission executes atomically.
+- Admission generates Business Events.
+- Admission retains no continuing ownership.
+- Admission preserves complete business history.
 
 ---
 

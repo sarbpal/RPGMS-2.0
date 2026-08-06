@@ -5,18 +5,18 @@ Document Information
 ------------------------------------------------------------------------------
 
 Document ID     : DOC-001
-Version         : 2.0
+Version         : 3.0
 Status          : Active
 Owner           : Project Architecture
 Created         : 2026-07-16
-Last Updated    : 2026-07-18
+Last Updated    : 2026-08-05
 Applies To      : RPGMS 2.0 Repository
 
 ------------------------------------------------------------------------------
 Purpose
 ------------------------------------------------------------------------------
 
-This document is the master index for all RPGMS 2.0 project documentation.
+This document serves as the master index for all RPGMS 2.0 project documentation.
 
 It provides:
 
@@ -25,9 +25,11 @@ It provides:
 • The purpose of every major document
 • The current documentation inventory
 • Repository navigation
-• Document lifecycle information
+• Document ownership and lifecycle
 
-Every developer and AI assistant should begin here before working on the project.
+This document is the primary entry point into the RPGMS documentation ecosystem.
+
+Every developer and AI assistant should begin here before contributing to the project.
 
 ------------------------------------------------------------------------------
 Documentation Principles
@@ -45,96 +47,228 @@ Documentation Principles
 5. Constitutional documents define the business and architecture.
    Supporting documents implement and operate within that foundation.
 
+6. Governance documents should be rewritten rather than incrementally patched
+   when significant structural changes are required.
+
+7. Documentation should reflect the current architecture and product state,
+   not historical implementation details.
+
 ------------------------------------------------------------------------------
 Documentation Hierarchy
 ------------------------------------------------------------------------------
 
-RPGMS documentation is organised into four layers.
+RPGMS documentation is organised into five layers.
 
-Layer 1 — Constitutional Documents
+------------------------------------------------------------------------------
+Layer 1 - Constitutional Documentation
+------------------------------------------------------------------------------
 
-Define the permanent business and architectural foundation of the project.
+Located in /docs
 
-• BUSINESS_BLUEPRINT.md
-• BUSINESS_RULES.md
-• DOMAIN_MODEL.md
-• ARCHITECTURE.md
+| Document | Purpose | Status | Version |
+|----------|---------|--------|---------|
+| BUSINESS_BLUEPRINT.md | Business vision, objectives and scope | Active | Current |
+| BUSINESS_RULES.md | Operational business policies and rules | Active | Current |
+| DOMAIN_MODEL.md | Business domains, entities and relationships | Active | Current |
+| ARCHITECTURE.md | Software architecture and implementation principles | Active | Current |
+| PROJECT_RULES.md | Constitutional engineering and implementation rules | Active | Current |
+| ENGINEERING_BASELINE.md | Established engineering practices and implementation baseline | Active | Current |
 
-Layer 2 — AI Governance
+These documents collectively define the constitutional foundation of RPGMS 2.0.
 
-Define how AI assistants should understand and contribute to the project.
+All architectural, business, and implementation decisions must remain consistent with these documents.
+
+------------------------------------------------------------------------------
+Layer 2 — Engineering Standards
+------------------------------------------------------------------------------
+
+Define engineering practices, implementation standards and reusable design patterns.
+
+• PROJECT_ENGINEERING_STANDARD.md
+
+------------------------------------------------------------------------------
+Layer 3 — AI Governance
+------------------------------------------------------------------------------
+
+Define how AI assistants understand, contribute to and maintain the project.
 
 • AI_GOVERNANCE.md
 • AI_CONTEXT.md
 • AI_INSTRUCTIONS.md
 
-Layer 3 — Project Documentation
+------------------------------------------------------------------------------
+Layer 4 - Project Documentation
+------------------------------------------------------------------------------
 
-Describe the current state of the project.
+| Document | Purpose | Status |
+|----------|---------|--------|
+| MODULE_STATUS.md | Current implementation maturity of all business modules | Active |
+| ROADMAP.md | Product roadmap and capability releases | Active |
+| CHANGELOG.md | Project implementation history | Active |
+| SESSION.md | Current development session summary | Current |
+| NEXT_TASK.md | Immediate implementation objective | Current |
 
-• ROADMAP.md
-• CHANGELOG.md
-• DECISIONS.md
-• TECH_STACK.md
+These documents describe the current state of the project and evolve continuously throughout development.
 
-Layer 4 — Operational Documents
+------------------------------------------------------------------------------
+Layer 5 — Module Specifications
+------------------------------------------------------------------------------
 
-Support day-to-day development.
+Provide detailed functional and implementation specifications for individual business modules.
 
-• SESSION.md
-• NEXT_TASK.md
+Example:
 
-Higher-level documents always take precedence over lower-level documents if a conflict exists.
+• RESIDENT_WORKSPACE_V2_SPECIFICATION.md
+
+Additional module specifications will be introduced as new business capabilities are implemented.
+
+Higher-level documents always take precedence over lower-level documents when conflicts exist.
 
 ------------------------------------------------------------------------------
 Documentation Reading Order
 ------------------------------------------------------------------------------
 
+The documentation should be read in the following order to ensure a complete understanding of the project.
+
+------------------------------------------------------------------------------
 For AI Assistants
+------------------------------------------------------------------------------
+
+### Phase 1 – Project Foundation
 
 1. DOCUMENTATION_INDEX.md
 
-Constitutional Documents
+Understand the complete documentation ecosystem.
 
-2. BUSINESS_BLUEPRINT.md
-3. BUSINESS_RULES.md
-4. DOMAIN_MODEL.md
-5. ARCHITECTURE.md
+2. PROJECT_RULES.md
 
-AI Context
+Learn the constitutional engineering rules governing the project.
 
-6. AI_GOVERNANCE.md
-7. AI_CONTEXT.md
-8. AI_INSTRUCTIONS.md
+3. ARCHITECTURE.md
 
-Project Status
+Understand the software architecture, layering, and dependency rules.
 
-9. ROADMAP.md
-10. CHANGELOG.md
-11. SESSION.md
-12. NEXT_TASK.md
+4. ENGINEERING_BASELINE.md
 
+Understand the established engineering patterns and implementation principles.
+
+5. BUSINESS_BLUEPRINT.md
+
+Understand the overall business vision and objectives.
+
+6. BUSINESS_RULES.md
+
+Learn the operational rules of the hostel business.
+
+7. DOMAIN_MODEL.md
+
+Understand the business entities, aggregates, and domain relationships.
+
+------------------------------------------------------------------------------
+Phase 2 – AI Context
+------------------------------------------------------------------------------
+
+8. AI_GOVERNANCE.md
+
+Understand AI operating principles.
+
+9. AI_CONTEXT.md
+
+Understand business context, terminology, and project conventions.
+
+10. AI_INSTRUCTIONS.md
+
+Understand coding standards and implementation workflow.
+
+------------------------------------------------------------------------------
+Phase 3 – Project Status
+------------------------------------------------------------------------------
+
+11. MODULE_STATUS.md
+
+Understand current implementation maturity.
+
+12. ROADMAP.md
+
+Understand future business capabilities and product direction.
+
+13. CHANGELOG.md
+
+Review recent implementation history.
+
+14. SESSION.md
+
+Review the current development session.
+
+15. NEXT_TASK.md
+
+Understand the immediate implementation objective.
+
+------------------------------------------------------------------------------
+Phase 4 – Module Specifications
+------------------------------------------------------------------------------
+
+Read only the specification relevant to the current implementation task.
+
+Examples:
+
+- RESIDENT_WORKSPACE_V2_SPECIFICATION.md
+
+Future module specifications will be added as additional business capabilities are implemented.
+
+------------------------------------------------------------------------------
 For Human Developers
+------------------------------------------------------------------------------
+
+### Phase 1 – Project Orientation
 
 1. README.md
+
 2. DOCUMENTATION_INDEX.md
 
-Project Foundation
+------------------------------------------------------------------------------
+Phase 2 – Project Foundation
+------------------------------------------------------------------------------
 
-3. BUSINESS_BLUEPRINT.md
-4. BUSINESS_RULES.md
-5. DOMAIN_MODEL.md
-6. ARCHITECTURE.md
+3. PROJECT_RULES.md
 
-Developer Guidance
+4. ARCHITECTURE.md
 
-7. AI_CONTEXT.md
-8. AI_INSTRUCTIONS.md
+5. ENGINEERING_BASELINE.md
 
-Project Status
+6. BUSINESS_BLUEPRINT.md
 
-9. ROADMAP.md
-10. CHANGELOG.md
+7. BUSINESS_RULES.md
+
+8. DOMAIN_MODEL.md
+
+------------------------------------------------------------------------------
+Phase 3 – Development Guidance
+------------------------------------------------------------------------------
+
+9. AI_CONTEXT.md
+
+10. AI_INSTRUCTIONS.md
+
+------------------------------------------------------------------------------
+Phase 4 – Project Status
+------------------------------------------------------------------------------
+
+11. MODULE_STATUS.md
+
+12. ROADMAP.md
+
+13. CHANGELOG.md
+
+14. SESSION.md
+
+15. NEXT_TASK.md
+
+------------------------------------------------------------------------------
+Phase 5 – Module Specifications
+------------------------------------------------------------------------------
+
+Read only the specification relevant to the feature being implemented.
 
 ------------------------------------------------------------------------------
 Repository Structure
@@ -142,52 +276,65 @@ Repository Structure
 
 Repository Root
 
-README.md                    Project overview
-DOCUMENTATION_INDEX.md       Documentation entry point
+README.md                           Project overview
 
-AI_GOVERNANCE.md             AI operating rules
-AI_CONTEXT.md                Business context
-AI_INSTRUCTIONS.md           Coding standards
-
-SESSION.md                   Current development session
-NEXT_TASK.md                 Immediate implementation task
-
-ROADMAP.md                   Product roadmap
-CHANGELOG.md                 Development history
-
-/docs                        Constitutional and technical documentation
-/prompts                     AI prompt library
-/src                         Application source code
-/public                      Static assets
+DOCUMENTATION_INDEX.md              Documentation entry point
 
 ------------------------------------------------------------------------------
-Constitutional Documentation
+Governance Documents
 ------------------------------------------------------------------------------
 
-Located in /docs
+PROJECT_RULES.md                    Constitutional engineering rules
 
-| Document | Purpose | Status | Version |
-|----------|---------|--------|---------|
-| BUSINESS_BLUEPRINT.md | Business vision, objectives and scope | Active | 1.0 |
-| BUSINESS_RULES.md | Operational business policies and rules | Active | 1.0 |
-| DOMAIN_MODEL.md | Business domains, entities and relationships | Active | 1.0 |
-| ARCHITECTURE.md | Software architecture and implementation principles | Active | 1.0 |
+AI_GOVERNANCE.md                    AI operating principles
 
-These four documents form the constitutional foundation of RPGMS 2.0.
+AI_CONTEXT.md                       Business context and AI knowledge
+
+AI_INSTRUCTIONS.md                  AI implementation standards
+
+MODULE_STATUS.md                    Current module maturity
+
+ROADMAP.md                          Product roadmap
+
+CHANGELOG.md                        Project history
+
+SESSION.md                          Current development session
+
+NEXT_TASK.md                        Immediate implementation objective
 
 ------------------------------------------------------------------------------
-Project Documentation
+Documentation
 ------------------------------------------------------------------------------
 
-| Document | Purpose | Status |
-|----------|---------|--------|
-| AI_GOVERNANCE.md | AI operating rules | Active |
-| AI_CONTEXT.md | Business context and product vision | Active |
-| AI_INSTRUCTIONS.md | Coding standards and implementation rules | Active |
-| ROADMAP.md | Product roadmap | Active |
-| CHANGELOG.md | Development history | Active |
-| SESSION.md | Current development session | Current |
-| NEXT_TASK.md | Immediate implementation task | Current |
+/docs                              Constitutional and technical documentation
+
+------------------------------------------------------------------------------
+Engineering Assets
+------------------------------------------------------------------------------
+
+/prompts                           AI prompt library
+
+------------------------------------------------------------------------------
+Application
+------------------------------------------------------------------------------
+
+/src                               Application source code
+
+/public                            Static assets
+
+------------------------------------------------------------------------------
+Future Repository Growth
+------------------------------------------------------------------------------
+
+As RPGMS evolves, additional top-level folders may be introduced for:
+
+/scripts                           Development utilities
+
+/tests                             Integration and end-to-end testing
+
+/docs/specifications               Business module specifications
+
+These additions should preserve the existing repository organisation and maintain a clear separation between governance, implementation, and supporting assets.
 
 ------------------------------------------------------------------------------
 Supporting Technical Documentation
@@ -195,10 +342,18 @@ Supporting Technical Documentation
 
 Located in /docs
 
-DECISIONS.md
-TECH_STACK.md
+Examples include:
 
-Additional technical documents may be introduced as the project evolves.
+- DECISIONS.md
+- TECH_STACK.md
+- DEPLOYMENT.md
+- INSTALL.md
+- ENVIRONMENT.md
+
+Additional technical documentation may be introduced as the project evolves.
+
+These documents support implementation but do not supersede constitutional documents.
+
 
 ------------------------------------------------------------------------------
 AI Prompt Library
@@ -206,19 +361,25 @@ AI Prompt Library
 
 Located in /prompts
 
-00_START_SESSION.md
-01_IMPLEMENT_TASK.md
-02_CODE_REVIEW.md
-03_PRE_COMMIT.md
-04_END_SESSION.md
-05_NEW_FEATURE.md
-06_BUGFIX.md
+The prompt library contains reusable implementation workflows that promote consistent collaboration between developers and AI assistants.
 
-Additional prompts may be introduced as AI workflows evolve.
+Typical prompts include:
+
+- Session Startup
+- Feature Implementation
+- Code Review
+- Documentation Review
+- Bug Fixes
+- Pre-Commit Review
+- End-of-Session Review
+
+The prompt library evolves alongside the project's engineering workflow.
 
 ------------------------------------------------------------------------------
 Document Lifecycle
 ------------------------------------------------------------------------------
+
+Every RPGMS document progresses through a defined lifecycle to ensure quality, consistency, and controlled evolution.
 
 Draft
     ↓
@@ -226,71 +387,112 @@ Review
     ↓
 Active
     ↓
+Frozen
+    ↓
 Superseded
     ↓
 Archived
+
+Lifecycle Definitions
+
+**Draft**
+
+Initial working version under active development.
+
+**Review**
+
+Content is complete and undergoing technical, architectural, or business review.
+
+**Active**
+
+Approved for normal project use and maintained as part of the current documentation baseline.
+
+**Frozen**
+
+Approved as the authoritative reference for a completed capability or project milestone. Changes are limited to defect corrections or formally approved revisions.
+
+**Superseded**
+
+Replaced by a newer version but retained for historical reference.
+
+**Archived**
+
+No longer maintained and preserved only for project history.
+
+...
+Supporting Technical Documentation
+
+↓
+
+AI Prompt Library
+
+↓
+
+Document Lifecycle
+
+↓
+
+Single Source of Truth
+
+↓
+
+Module Specifications
+
+↓
+
+Version History
+
 
 ------------------------------------------------------------------------------
 Single Source of Truth
 ------------------------------------------------------------------------------
 
-Business Vision
-    → BUSINESS_BLUEPRINT.md
+Every major aspect of RPGMS 2.0 has one authoritative document.
 
-Business Rules
-    → BUSINESS_RULES.md
+Contributors should always consult the designated document before introducing changes.
 
-Business Concepts
-    → DOMAIN_MODEL.md
+| Topic | Authoritative Document |
+|-------|-------------------------|
+| Business Vision | BUSINESS_BLUEPRINT.md |
+| Business Rules | BUSINESS_RULES.md |
+| Business Domain Model | DOMAIN_MODEL.md |
+| Software Architecture | ARCHITECTURE.md |
+| Engineering Rules | PROJECT_RULES.md |
+| Engineering Standards | PROJECT_ENGINEERING_STANDARD.md |
+| AI Governance | AI_GOVERNANCE.md |
+| AI Context | AI_CONTEXT.md |
+| AI Implementation Standards | AI_INSTRUCTIONS.md |
+| Product Roadmap | ROADMAP.md |
+| Module Implementation Status | MODULE_STATUS.md |
+| Project History | CHANGELOG.md |
+| Current Development Session | SESSION.md |
+| Immediate Development Objective | NEXT_TASK.md |
+| Module Specifications | Individual Module Specification Documents |
 
-Software Architecture
-    → ARCHITECTURE.md
+If information appears in multiple documents, the designated Single Source of Truth always takes precedence.
 
-AI Governance
-    → AI_GOVERNANCE.md
+------------------------------------------------------------------------------
+Module Specifications
+------------------------------------------------------------------------------
 
-Coding Standards
-    → AI_INSTRUCTIONS.md
+Business module specifications provide the detailed functional, operational, and implementation guidance for individual RPGMS capabilities.
 
-Current Session
-    → SESSION.md
+Each specification serves as the authoritative reference for its respective module and must remain consistent with the constitutional documents.
 
-Next Task
-    → NEXT_TASK.md
+Current Module Specifications
 
-Roadmap
-    → ROADMAP.md
+| Specification | Status |
+|--------------|--------|
+| RESIDENT_WORKSPACE_V2_SPECIFICATION.md | MVP Complete – Pending Final Freeze |
 
-Project History
-    → CHANGELOG.md
+Additional module specifications will be added as future business capabilities are designed and implemented.
 
-    ## Constitutional Documents
+Examples include:
 
-These documents define the long-term principles of RPGMS 2.0 and should be read before making significant architectural or business changes.
-
-1. BUSINESS_BLUEPRINT.md
-2. BUSINESS_RULES.md
-3. DOMAIN_MODEL.md
-4. ARCHITECTURE.md
-5. ENGINEERING_BASELINE.md
-6. PROJECT_RULES.md
-
----
-
-## Resident Module
-
-### Resident Workspace V2 Specification
-
-Status:
-Near Final
-
-Purpose:
-
-Defines the constitutional architecture, business rules, operational workflows and implementation guidance for the Resident Module within RPGMS 2.0.
-
-This document is the authoritative implementation reference for the Resident Module MVP.
-
-Appendices and final editorial review remain pending before formal approval and freeze.
+- RESERVATION_WORKSPACE_SPECIFICATION.md
+- ADMISSION_WORKSPACE_SPECIFICATION.md
+- FINANCE_WORKSPACE_SPECIFICATION.md
+- ELECTRICITY_WORKSPACE_SPECIFICATION.md
 
 ------------------------------------------------------------------------------
 Version History
@@ -298,18 +500,9 @@ Version History
 
 | Version | Date | Description |
 |---------|------------|------------------------------------------------|
-| 1.0 | 2026-07-16 | Initial documentation index established. |
+| 3.0 | 2026-08-05 | Documentation Consolidation Sprint (DCS-1): Updated documentation hierarchy, reading order, project governance, repository structure, module specifications, document lifecycle and Single Source of Truth. |
 | 2.0 | 2026-07-18 | Reorganised documentation architecture, introduced constitutional documentation hierarchy and updated reading order. |
-
-------------------------------------------------------------------------------
-Approval
-------------------------------------------------------------------------------
-
-Status          : Active
-
-Approved By     : Project Owner
-
-Approval Date   : 2026-07-18
+| 1.0 | 2026-07-16 | Initial documentation index established. |
 
 ------------------------------------------------------------------------------
 End of Document

@@ -10,7 +10,7 @@ import { ReportsPage } from '../features/reports';
 import { ResidentsPage, ResidentWorkspacePage } from '../features/resident';
 import { SettingsPage } from '../features/settings';
 import { StayWorkspacePage } from '../features/stay';
-import { ReservationsPage } from '../features/reservation';
+import { ReservationsPage, ReservationWorkspacePage } from '../features/reservation';
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +27,7 @@ export const router = createBrowserRouter([
       { path: 'stay/:stayId', element: <StayWorkspacePage /> },
       { path: 'accommodation', element: <AccommodationWorkspacePage /> },
       { path: 'reservations', element: <ReservationsPage /> },
+      { path: 'reservations/:id', element: <ReservationWorkspacePage /> },
       { path: 'finance', element: <FinanceWorkspacePage /> },
       { path: 'electricity', element: <ElectricityPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },

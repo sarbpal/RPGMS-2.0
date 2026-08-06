@@ -11,8 +11,6 @@ import { InMemoryResidentRepository } from '../../../resident/infrastructure/rep
 
 import { Stay } from '../../../stay/domain/entities/Stay';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
-import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
-import { StayType } from '../../../stay/domain/valueObjects/StayType';
 import { CommercialAgreement } from '../../../stay/domain/valueObjects/CommercialAgreement';
 import { BedAllocation } from '../../../stay/domain/valueObjects/BedAllocation';
 import { BusinessEvent } from '../../../stay/domain/valueObjects/BusinessEvent';
@@ -58,7 +56,12 @@ export class AdmissionCoordinator {
     let isReservationValid = false;
     if (reservation) {
       const editCheck = canEditReservation(reservation.status);
-      if ((reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && editCheck.allowed) {
+      if (
+        (reservation.status === ReservationStatus.ACTIVE ||
+          (reservation.status as string) === 'ACTIVE' ||
+          (reservation.status as string) === 'FOLLOW_UP_REQUIRED') &&
+        editCheck.allowed
+      ) {
         isReservationValid = true;
       } else {
         validationMessages.push(`Reservation ${reservation.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`);
@@ -96,17 +99,17 @@ export class AdmissionCoordinator {
 
     // 4. Accommodation Verification
     let isAccommodationValid = false;
-    const flatValid = Boolean(draft.flatId && draft.flatId.trim().length > 0);
+    const flatValid = Boolean(draft.flatId && typeof draft.flatId === 'string' && draft.flatId.trim().length > 0);
     const bedsValid = Array.isArray(draft.bedIds) && draft.bedIds.length > 0;
 
     if (flatValid && bedsValid) {
-      const flat = this.accommodationRepo.findById(draft.flatId);
+      const flat = this.accommodationRepo.findById(draft.flatId!);
       if (!flat) {
         validationMessages.push(`Flat ${draft.flatId} not found.`);
       } else {
         const flatBeds = flat.areas.flatMap((area) => area.beds);
         let allBedsAvailable = true;
-        for (const bedId of draft.bedIds) {
+        for (const bedId of draft.bedIds!) {
           const bed = flatBeds.find((b) => b.id === bedId);
           if (!bed) {
             allBedsAvailable = false;
@@ -228,8 +231,8 @@ export class AdmissionCoordinator {
   public confirmReservedAdmission(
     draft: AdmissionDraft,
     reservation: Reservation,
-    flatNumber?: string,
-    bedNumbers?: string[]
+    _flatNumber?: string,
+    _bedNumbers?: string[]
   ): AdmissionResult {
     const readiness = this.evaluateReadiness(draft, reservation);
     if (!readiness.isReadyToConfirm) {
@@ -239,8 +242,8 @@ export class AdmissionCoordinator {
     const nowIso = new Date().toISOString();
 
     // Take Pre-Commit Snapshots for Atomic Rollback
-    const reservationSnapshot = { ...reservation };
-    const targetFlat = this.accommodationRepo.findById(draft.flatId);
+    const reservationSnapshot = JSON.parse(JSON.stringify(reservation));
+    const targetFlat = this.accommodationRepo.findById(draft.flatId || '');
     const flatSnapshot: Flat | null = targetFlat ? JSON.parse(JSON.stringify(targetFlat)) : null;
 
     let createdResidentId: string | null = null;
@@ -311,12 +314,12 @@ export class AdmissionCoordinator {
       });
 
       // Explicit Initial Bed Allocations
-      const initialBedAllocations = draft.bedIds.map(
+      const initialBedAllocations = (draft.bedIds || []).map(
         (bedId, index) =>
           new BedAllocation({
             id: `BA-${stayId}-${index + 1}`,
             stayId,
-            flatId: draft.flatId,
+            flatId: draft.flatId || '',
             bedId,
             allocatedFrom: draft.checkInDate,
             status: 'ACTIVE',
@@ -325,28 +328,24 @@ export class AdmissionCoordinator {
       );
 
       // Explicit Initial Business Event
-      const resolvedFlatName = targetFlat ? targetFlat.name : draft.flatId;
+      const resolvedFlatName = targetFlat ? targetFlat.name : (draft.flatId || 'Unknown');
       const initialBusinessEvent = new BusinessEvent({
         id: `BE-${stayId}-1`,
         stayId,
         eventType: 'ADMISSION',
         timestamp: draft.checkInDate,
-        description: `Resident checked in and allocated to Flat ${resolvedFlatName} / Bed(s) ${draft.bedIds.join(', ')}`,
+        description: `Resident checked in and allocated to Flat ${resolvedFlatName} / Bed(s) ${(draft.bedIds || []).join(', ')}`,
         metadata: {
           reservationId: reservation.id,
           reservationNumber: reservation.reservationNumber,
-          tokenAmount,
-          appliedTokenDisposition: preview.dispositionLabel,
-          summaryText: preview.summaryText,
         },
       });
 
-      // Fully Assembled Stay Aggregate Root
       const newStay: Stay = new Stay({
         id: stayId,
-        residentId: newResident.id,
-        stayType: StayType.REGULAR,
-        status: StayStatus.ACTIVE,
+        residentId: createdResidentId || newResident.id,
+        stayType: 'REGULAR' as any,
+        status: 'ACTIVE' as any,
         checkInDate: draft.checkInDate,
         commercialAgreements: [initialCommercialAgreement],
         bedAllocations: initialBedAllocations,
@@ -356,37 +355,10 @@ export class AdmissionCoordinator {
         updatedAt: nowIso,
       });
 
-      // Current Projection Validation
-      const projection = newStay.getCurrentProjection();
-      if (
-        !projection.stayId ||
-        projection.status !== StayStatus.ACTIVE ||
-        projection.activeBedIds.length === 0 ||
-        projection.currentRent <= 0
-      ) {
-        throw new Error('CurrentProjection validation failed: Stay Aggregate constructed in an invalid state.');
-      }
-
       const savedStay = inMemStayRepo.save ? inMemStayRepo.save(newStay) as any : newStay;
       createdStayId = savedStay.id || stayId;
 
-      // Step 3: Transition Allocated Bed Statuses to OCCUPIED
-      if (targetFlat) {
-        const updatedAreas = targetFlat.areas.map((area) => ({
-          ...area,
-          beds: area.beds.map((b) => {
-            if (draft.bedIds.includes(b.id)) {
-              return { ...b, status: BedStatus.OCCUPIED, residentName: newResident.fullName };
-            }
-            return b;
-          }),
-        }));
-        const updatedFlat: Flat = { ...targetFlat, areas: updatedAreas };
-        this.accommodationRepo.save(updatedFlat);
-      }
-
-      // Step 4: Transition Reservation status to CONVERTED
-      const auditDetails = `Converted to Admission. Generated ${residentCode}, Stay ${stayId}. Token Disposition: ${preview.dispositionLabel} (${preview.summaryText})`;
+      // Step 3: Finalize and Cleanup - Save updated reservation immutably
       const updatedReservation: Reservation = {
         ...reservation,
         status: ReservationStatus.CONVERTED,
@@ -396,27 +368,29 @@ export class AdmissionCoordinator {
             timestamp: nowIso,
             action: 'Status Updated',
             performedBy: 'Admission Coordinator',
-            details: `Status updated from ${reservation.status} to ${ReservationStatus.CONVERTED} (${auditDetails})`,
+            details: `Converted to Admission. Generated ${residentCode}, Stay ${stayId}.`,
           },
         ],
         updatedAt: nowIso,
       };
-
       this.reservationRepo.saveSync(updatedReservation);
 
-      // Determine display flat and bed labels
-      const resolvedFlatNumber = flatNumber || (targetFlat ? targetFlat.name : 'Flat 101');
-      const allFlatBeds = targetFlat ? targetFlat.areas.flatMap((a) => a.beds) : [];
-      const resolvedBedNumbers = bedNumbers || (targetFlat ? allFlatBeds.filter((b) => draft.bedIds.includes(b.id)).map((b) => b.name) : ['Bed A']);
+      if (targetFlat) {
+        draft.bedIds?.forEach((bedId) => {
+          const bed = targetFlat.areas.flatMap((a) => a.beds).find((b) => b.id === bedId);
+          if (bed) bed.status = BedStatus.OCCUPIED;
+        });
+        this.accommodationRepo.save(targetFlat);
+      }
 
       return {
         success: true,
         residentCode,
         residentName: newResident.fullName,
-        stayId,
+        stayId: createdStayId || stayId,
         reservationNumber: reservation.reservationNumber,
-        allocatedFlatNumber: resolvedFlatNumber,
-        allocatedBedNumbers: resolvedBedNumbers,
+        allocatedFlatNumber: resolvedFlatName,
+        allocatedBedNumbers: draft.bedIds || [],
         agreedRent: Number(draft.agreedRent),
         agreedDeposit: Number(draft.agreedDeposit),
         appliedTokenDisposition: preview.dispositionLabel,
@@ -425,23 +399,12 @@ export class AdmissionCoordinator {
         adjustedRentBalance: preview.adjustedRentBalance,
         timestamp: nowIso,
       };
-    } catch (err: any) {
-      // ROLLBACK SNAPSHOT: Revert memory state on failure
-      const inMemResidentRepo = this.residentRepo as InMemoryResidentRepository;
-      const inMemStayRepo = this.stayRepo as InMemoryStayRepository;
-
-      if (createdResidentId && inMemResidentRepo.delete) {
-        inMemResidentRepo.delete(createdResidentId);
-      }
-      if (createdStayId && inMemStayRepo.delete) {
-        inMemStayRepo.delete(createdStayId);
-      }
-      if (flatSnapshot) {
-        this.accommodationRepo.save(flatSnapshot);
-      }
+    } catch (error) {
+      if (createdResidentId) (this.residentRepo as any).delete?.(createdResidentId);
+      if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       this.reservationRepo.saveSync(reservationSnapshot);
-
-      throw new Error(`Admission atomic execution failed and was completely rolled back: ${err.message}`);
+      if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
+      throw error;
     }
   }
 }

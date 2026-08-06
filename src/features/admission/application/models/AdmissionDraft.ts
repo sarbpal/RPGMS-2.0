@@ -1,13 +1,13 @@
 import type { TokenDisposition } from '../../domain/valueObjects/TokenDisposition';
 
 export interface AdmissionDraft {
-  reservationId: string;
+  reservationId?: string;
   // Section 2: Resident Identity Details
   residentName: string;
   mobileNumber: string;
-  emergencyContactName: string;
-  emergencyContactRelationship: string;
-  emergencyContactPhone: string;
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
   idProofType?: string;
   idProofNumber?: string;
   permanentAddress?: string;
@@ -20,8 +20,8 @@ export interface AdmissionDraft {
   noticePeriodDays?: number;
 
   // Section 4: Accommodation Selection
-  flatId: string;
-  bedIds: string[];
+  flatId?: string;
+  bedIds?: string[];
 
   // Section 5: Token Decision
   tokenDisposition?: TokenDisposition;

@@ -11,6 +11,9 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
   }
 
   private loadFromStorage(seed: Flat[]): Flat[] {
+    if (seed !== accommodationSeedData) {
+      return seed.map((f) => JSON.parse(JSON.stringify(f)));
+    }
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const saved = localStorage.getItem(this.STORAGE_KEY);
@@ -24,7 +27,7 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     } catch {
       // Fallback to seed data if localStorage is corrupted or inaccessible
     }
-    return [...seed];
+    return seed.map((f) => JSON.parse(JSON.stringify(f)));
   }
 
   private persist(): void {
@@ -38,27 +41,27 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
   }
 
   public findAll(): Flat[] {
-    return this.flats.map((f) => ({ ...f }));
+    return JSON.parse(JSON.stringify(this.flats));
   }
 
   public findById(id: string): Flat | null {
     const flat = this.flats.find((f) => f.id === id || f.name === id);
-    return flat ? { ...flat } : null;
+    return flat ? JSON.parse(JSON.stringify(flat)) : null;
   }
 
   public save(flat: Flat): Flat {
     const existingIndex = this.flats.findIndex((f) => f.id === flat.id);
     if (existingIndex >= 0) {
-      this.flats[existingIndex] = { ...flat };
+      this.flats[existingIndex] = JSON.parse(JSON.stringify(flat));
     } else {
-      this.flats.push({ ...flat });
+      this.flats.push(JSON.parse(JSON.stringify(flat)));
     }
     this.persist();
-    return { ...flat };
+    return JSON.parse(JSON.stringify(flat));
   }
 
   public saveAll(flats: Flat[]): Flat[] {
-    this.flats = [...flats];
+    this.flats = JSON.parse(JSON.stringify(flats));
     this.persist();
     return this.findAll();
   }

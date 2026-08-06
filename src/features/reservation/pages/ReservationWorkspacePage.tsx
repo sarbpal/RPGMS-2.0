@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Container, Stack, Grid, Link, Paper, Typography, Button, Box } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -7,23 +7,62 @@ import { ReservationUseCases } from '../application/useCases/ReservationUseCases
 import { InMemoryReservationRepository } from '../infrastructure/repositories/InMemoryReservationRepository';
 import { ReservationHeader } from '../components/ReservationHeader';
 import { ReservationSummaryCard } from '../components/ReservationSummaryCard';
+import { ReservationActionsCard } from '../components/ReservationActionsCard';
 import { ProspectInformationCard } from '../components/ProspectInformationCard';
 import { ReservationDetailsCard } from '../components/ReservationDetailsCard';
 import { TokenInformationCard } from '../components/TokenInformationCard';
 import { ReservationNotesCard } from '../components/ReservationNotesCard';
+import { EditReservationDialog } from '../components/EditReservationDialog';
+import { CancelReservationModal } from '../components/CancelReservationModal';
+import type { UpdateReservationDTO } from '../application/dtos/UpdateReservationDTO';
+import type { Reservation } from '../domain/entities/Reservation';
+import { canConvertReservation } from '../domain/rules/reservationRules';
 
 export const ReservationWorkspacePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const useCases = useMemo(
     () => new ReservationUseCases(new InMemoryReservationRepository()),
     []
   );
 
-  const reservation = useMemo(() => {
+  // Modals state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+
+  // Key state trigger to force re-fetch when reservation updates
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const reservation: Reservation | null = useMemo(() => {
     if (!id) return null;
     return useCases.getReservationByIdSync(id);
-  }, [id, useCases]);
+  }, [id, useCases, refreshKey]);
+
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleSaveEdit = (resId: string, dto: UpdateReservationDTO) => {
+    useCases.updateReservationSync(resId, dto);
+    handleRefresh();
+  };
+
+  const handleConfirmCancel = (resId: string, reason?: string) => {
+    useCases.cancelReservationSync(resId, { reason });
+    handleRefresh();
+  };
+
+  const handleConvertAdmission = () => {
+    if (!reservation) return;
+    const convertCheck = canConvertReservation(reservation.status);
+    if (!convertCheck.allowed) {
+      alert(convertCheck.reason || 'Reservation cannot be converted.');
+      return;
+    }
+    // Mandatory Revision 2 & 3: Navigate to Admission Workspace (Hand-off only)
+    navigate(`/admission/from-reservation/${reservation.id}`);
+  };
 
   if (!reservation) {
     return (
@@ -100,6 +139,13 @@ export const ReservationWorkspacePage: React.FC = () => {
         <Stack spacing={2}>
           <ReservationHeader reservation={reservation} />
           <ReservationSummaryCard reservation={reservation} />
+          {/* RA-4 Operational Action Panel */}
+          <ReservationActionsCard
+            reservation={reservation}
+            onEdit={() => setIsEditOpen(true)}
+            onCancel={() => setIsCancelOpen(true)}
+            onConvert={handleConvertAdmission}
+          />
         </Stack>
 
         {/* Information Cards Grid */}
@@ -117,6 +163,21 @@ export const ReservationWorkspacePage: React.FC = () => {
             <ReservationNotesCard reservation={reservation} />
           </Grid>
         </Grid>
+
+        {/* Action Modals */}
+        <EditReservationDialog
+          open={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          reservation={reservation}
+          onSave={handleSaveEdit}
+        />
+
+        <CancelReservationModal
+          open={isCancelOpen}
+          onClose={() => setIsCancelOpen(false)}
+          reservation={reservation}
+          onConfirmCancel={handleConfirmCancel}
+        />
       </Stack>
     </Container>
   );

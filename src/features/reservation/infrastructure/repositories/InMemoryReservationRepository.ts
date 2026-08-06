@@ -7,7 +7,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
   private reservations: Reservation[];
 
   constructor(initialData: Reservation[] = reservationSeedData) {
-    this.reservations = [...initialData];
+    this.reservations = initialData.map((r) => ({ ...r }));
   }
 
   public findByIdSync(id: string): Reservation | null {
@@ -35,7 +35,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const found = this.reservations.find(
       (r) =>
         r.mobileNumber.replace(/\D/g, '') === cleanedMobile &&
-        (r.status === ReservationStatus.ACTIVE || r.status === ReservationStatus.FOLLOW_UP_REQUIRED)
+        r.status === ReservationStatus.ACTIVE
     );
     return found ? { ...found } : null;
   }
@@ -66,7 +66,11 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return this.saveSync(reservation);
   }
 
-  public async delete(id: string): Promise<void> {
+  public deleteSync(id: string): void {
     this.reservations = this.reservations.filter((r) => r.id !== id);
+  }
+
+  public async delete(id: string): Promise<void> {
+    this.deleteSync(id);
   }
 }

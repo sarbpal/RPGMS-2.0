@@ -4,7 +4,7 @@
 
 **Document Version:** 3.0  
 **Status:** Active  
-**Last Updated:** July 2026
+**Last Updated:** 07 Aug 2026
 
 ---
 
@@ -28,7 +28,7 @@ The platform is built around independent business domains connected through clea
 
 # Current Development Phase
 
-Business Capability Development
+MVP Engineering
 
 The engineering foundation has been completed.
 
@@ -40,15 +40,25 @@ Development is now focused on Reservation and Admission Management.
 
 # Current Milestone
 
-Documentation Consolidation Sprint (DCS-1)
+## Capability Release 2 (CR-2)
 
-Objectives
+**Status:** 🚧 In Progress
 
-- Freeze Resident Module MVP.
-- Freeze Resident Workspace Specification.
-- Consolidate engineering documentation.
-- Establish reusable workspace standards.
-- Prepare for Reservation & Admission development.
+### Current Objective
+
+Implement the Reservation and Admission Management capabilities using the frozen business architecture established during Documentation Capability Sprint 2 (DCS-2).
+
+### Current Focus
+
+- Reservation Workspace
+- Reservations List
+- Admission Workspace
+- Walk-in Admission
+- Reservation Conversion
+- Resident Creation
+- Stay Creation
+
+Business documentation is considered frozen for MVP implementation.
 
 ---
 
@@ -81,7 +91,7 @@ Each Capability Release delivers one complete business capability rather than a 
 
 ## CR-2 — Reservation & Admission Management
 
-**Status:** 🔄 Next Capability
+**Status:** 🔄 In Progress
 
 ### Planned Deliverables
 
@@ -209,7 +219,7 @@ Complete operational management of existing residents.
 
 ## Phase 3 – Reservation & Admission
 
-**Status:** 🔄 In Planning
+**Status:** 🔄 In Progress
 
 ### Objectives
 

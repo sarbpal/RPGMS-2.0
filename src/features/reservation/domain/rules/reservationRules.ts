@@ -1,5 +1,5 @@
-import type { Reservation } from '../entities/Reservation';
-import { ReservationStatus } from '../valueObjects/ReservationStatus';
+import type { ReservationStatus } from '../valueObjects/ReservationStatus';
+import { ReservationStatus as StatusEnum } from '../valueObjects/ReservationStatus';
 
 export interface ReservationValidationResult {
   isValid: boolean;
@@ -19,7 +19,7 @@ export function formatReservationNumber(sequenceNumber: number): string {
 }
 
 /**
- * Domain Rule: Validates lightweight reservation creation input.
+ * Domain Rule: Validates lightweight reservation creation/update input.
  */
 export function validateReservationDraft(
   prospectName: string,
@@ -49,11 +49,10 @@ export function validateReservationDraft(
 }
 
 /**
- * Domain Rule: Decision Support check for duplicate active reservations on same mobile number.
- * Returns warning prompt information without blocking operator judgement (BR-RESV-006).
+ * Domain Rule: Decision Support check for duplicate active reservation format.
  */
 export function checkDuplicateMobile(
-  existingActiveReservation: Reservation | null
+  existingActiveReservation: { reservationNumber: string; prospectName: string; mobileNumber: string } | null
 ): { hasDuplicate: boolean; warning?: string; existingReservationNumber?: string } {
   if (existingActiveReservation) {
     return {
@@ -67,7 +66,6 @@ export function checkDuplicateMobile(
 
 /**
  * Domain Rule: Calculates whether a reservation is overdue and by how many days.
- * Surfaces "Overdue by X days" for Decision Support.
  */
 export function calculateOverdueDays(
   expectedJoiningDate: string,
@@ -89,7 +87,23 @@ export function calculateOverdueDays(
 }
 
 /**
- * Domain Rule: Validates permitted reservation status transitions.
+ * Domain Rule: Determines automatic status recovery when updating joining date.
+ */
+export function determineStatusRecovery(
+  currentStatus: ReservationStatus,
+  newJoiningDate: string,
+  referenceDate: string = new Date().toISOString().split('T')[0]
+): ReservationStatus {
+  if ((currentStatus as string) === 'FOLLOW_UP_REQUIRED' && newJoiningDate >= referenceDate) {
+    return StatusEnum.ACTIVE;
+  }
+  return currentStatus;
+}
+
+/**
+ * Domain Rule: Validates permitted reservation status state transitions.
+ * States: ACTIVE -> CONVERTED, ACTIVE -> CANCELLED.
+ * CONVERTED and CANCELLED are permanent terminal states.
  */
 export function canTransitionStatus(
   currentStatus: ReservationStatus,
@@ -99,21 +113,26 @@ export function canTransitionStatus(
     return { allowed: true };
   }
 
-  if (currentStatus === ReservationStatus.CONVERTED) {
-    return { allowed: false, reason: 'CONVERTED reservations are read-only and cannot be modified.' };
+  if (currentStatus === StatusEnum.CONVERTED) {
+    return { allowed: false, reason: 'CONVERTED reservations are permanent read-only records and cannot be modified.' };
   }
 
-  if (currentStatus === ReservationStatus.CANCELLED) {
-    return { allowed: false, reason: 'CANCELLED reservations are read-only and cannot be modified.' };
+  if (currentStatus === StatusEnum.CANCELLED) {
+    return { allowed: false, reason: 'CANCELLED reservations are permanent read-only records and cannot be modified.' };
   }
 
   if (
-    targetStatus === ReservationStatus.ACTIVE ||
-    targetStatus === ReservationStatus.FOLLOW_UP_REQUIRED ||
-    targetStatus === ReservationStatus.CONVERTED ||
-    targetStatus === ReservationStatus.CANCELLED
+    currentStatus === StatusEnum.ACTIVE ||
+    (currentStatus as string) === 'FOLLOW_UP_REQUIRED'
   ) {
-    return { allowed: true };
+    if (
+      targetStatus === StatusEnum.ACTIVE ||
+      targetStatus === StatusEnum.CONVERTED ||
+      targetStatus === StatusEnum.CANCELLED ||
+      (targetStatus as string) === 'FOLLOW_UP_REQUIRED'
+    ) {
+      return { allowed: true };
+    }
   }
 
   return { allowed: false, reason: `Transition from ${currentStatus} to ${targetStatus} is forbidden.` };
@@ -121,13 +140,13 @@ export function canTransitionStatus(
 
 /**
  * Domain Guard: Determines whether a reservation can be edited based on its status.
- * ACTIVE and FOLLOW_UP_REQUIRED are editable; CONVERTED and CANCELLED are read-only.
+ * ACTIVE is editable; CONVERTED and CANCELLED are immutable read-only records.
  */
 export function canEditReservation(status: ReservationStatus): { allowed: boolean; reason?: string } {
-  if (status === ReservationStatus.CONVERTED) {
+  if (status === StatusEnum.CONVERTED) {
     return { allowed: false, reason: 'Reservation is CONVERTED and is read-only.' };
   }
-  if (status === ReservationStatus.CANCELLED) {
+  if (status === StatusEnum.CANCELLED) {
     return { allowed: false, reason: 'Reservation is CANCELLED and is read-only.' };
   }
   return { allowed: true };
@@ -135,29 +154,26 @@ export function canEditReservation(status: ReservationStatus): { allowed: boolea
 
 /**
  * Domain Guard: Determines whether a reservation can be cancelled.
- * ACTIVE and FOLLOW_UP_REQUIRED can be cancelled; CONVERTED and CANCELLED cannot.
  */
 export function canCancelReservation(status: ReservationStatus): { allowed: boolean; reason?: string } {
-  if (status === ReservationStatus.CONVERTED) {
+  if (status === StatusEnum.CONVERTED) {
     return { allowed: false, reason: 'Converted reservations cannot be cancelled.' };
   }
-  if (status === ReservationStatus.CANCELLED) {
+  if (status === StatusEnum.CANCELLED) {
     return { allowed: false, reason: 'Reservation is already cancelled.' };
   }
   return { allowed: true };
 }
 
 /**
- * Domain Rule: Determines automatic status recovery when updating joining date (BR-RESV-005).
- * If status is FOLLOW_UP_REQUIRED and newJoiningDate >= referenceDate, recovers status to ACTIVE.
+ * Domain Guard: Determines whether a reservation can be converted upon admission.
  */
-export function determineStatusRecovery(
-  currentStatus: ReservationStatus,
-  newJoiningDate: string,
-  referenceDate: string = new Date().toISOString().split('T')[0]
-): ReservationStatus {
-  if (currentStatus === ReservationStatus.FOLLOW_UP_REQUIRED && newJoiningDate >= referenceDate) {
-    return ReservationStatus.ACTIVE;
+export function canConvertReservation(status: ReservationStatus): { allowed: boolean; reason?: string } {
+  if (status === StatusEnum.CONVERTED) {
+    return { allowed: false, reason: 'Reservation is already converted.' };
   }
-  return currentStatus;
+  if (status === StatusEnum.CANCELLED) {
+    return { allowed: false, reason: 'Cancelled reservations cannot be converted.' };
+  }
+  return { allowed: true };
 }

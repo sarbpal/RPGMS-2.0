@@ -20,7 +20,7 @@ Core reference modules have been established and should serve as implementation 
 
 - ✅ Business Constitution
 - ✅ Business Rules
-- ✅ Domain Model
+- ✅ Business Model
 - ✅ Resident Specification
 - ✅ Stay Specification
 - ✅ Accommodation Specification
@@ -136,7 +136,7 @@ Documentation should be updated only when the implementation changes business be
 | Area | Status |
 |------|--------|
 | Business Architecture | ✅ Complete |
-| Domain Model | ✅ Complete |
+| Business Model | ✅ Complete |
 | Business Rules | ✅ Complete |
 | Engineering Baseline | ✅ Complete |
 | Governance | ✅ Complete |

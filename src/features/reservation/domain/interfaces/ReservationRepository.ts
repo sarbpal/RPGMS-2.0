@@ -4,6 +4,7 @@ export interface ReservationRepository {
   findById(id: string): Promise<Reservation | null>;
   findByIdSync(id: string): Reservation | null;
   findByReservationNumber(reservationNumber: string): Promise<Reservation | null>;
+  findByReservationNumberSync(reservationNumber: string): Reservation | null;
   findActiveByMobile(mobileNumber: string): Promise<Reservation | null>;
   findActiveByMobileSync(mobileNumber: string): Reservation | null;
   findAll(): Promise<Reservation[]>;
@@ -11,4 +12,5 @@ export interface ReservationRepository {
   save(reservation: Reservation): Promise<Reservation>;
   saveSync(reservation: Reservation): Reservation;
   delete(id: string): Promise<void>;
+  deleteSync(id: string): void;
 }

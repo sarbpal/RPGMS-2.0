@@ -13,12 +13,15 @@ export interface Reservation {
   prospectName: string;
   mobileNumber: string;
   expectedJoiningDate: string; // ISO format: YYYY-MM-DD
-  accommodationPreference?: string; // Free-text preference (e.g. 'Double Sharing, 1st Floor')
-  tokenAmount?: number; // Simplified token amount
+  expectedMonthlyRent?: number;
+  expectedSecurityDeposit?: number;
+  accommodationPreference?: string;
+  tokenAmount?: number;
   tokenReceivedOn?: string; // YYYY-MM-DD
-  tokenRemarks?: string; // Remarks for token
+  tokenRemarks?: string;
   status: ReservationStatus;
   notes?: string;
+  cancellationReason?: string;
   auditLog: ReservationAuditEntry[];
   createdAt: string;
   updatedAt: string;

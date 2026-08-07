@@ -225,8 +225,8 @@ export class AdmissionCoordinator {
   }
 
   /**
-   * Executes atomic Reserved Admission conversion with complete rollback on failure.
-   * Reusable core architecture for future Walk-in Admission (Refinement #7).
+   * Executes atomic Reserved Admission conversion with Compensating Cleanup Strategy (MVP).
+   * Note: Compensating cleanup is an MVP in-memory strategy. Real DB transactions will replace this when migrating to Supabase/PostgreSQL.
    */
   public confirmReservedAdmission(
     draft: AdmissionDraft,
@@ -241,7 +241,7 @@ export class AdmissionCoordinator {
 
     const nowIso = new Date().toISOString();
 
-    // Take Pre-Commit Snapshots for Atomic Rollback
+    // Compensating Cleanup Strategy (MVP): Take Pre-Commit Snapshots
     const reservationSnapshot = JSON.parse(JSON.stringify(reservation));
     const targetFlat = this.accommodationRepo.findById(draft.flatId || '');
     const flatSnapshot: Flat | null = targetFlat ? JSON.parse(JSON.stringify(targetFlat)) : null;
@@ -358,10 +358,12 @@ export class AdmissionCoordinator {
       const savedStay = inMemStayRepo.save ? inMemStayRepo.save(newStay) as any : newStay;
       createdStayId = savedStay.id || stayId;
 
-      // Step 3: Finalize and Cleanup - Save updated reservation immutably
+      // Step 3: Finalize and Cleanup - Save updated reservation immutably with traceability references
       const updatedReservation: Reservation = {
         ...reservation,
         status: ReservationStatus.CONVERTED,
+        convertedResidentId: createdResidentId || newResident.id,
+        convertedStayId: createdStayId || stayId,
         auditLog: [
           ...reservation.auditLog,
           {
@@ -375,6 +377,7 @@ export class AdmissionCoordinator {
       };
       this.reservationRepo.saveSync(updatedReservation);
 
+      // Step 4: Update Bed Status in Accommodation Aggregate
       if (targetFlat) {
         draft.bedIds?.forEach((bedId) => {
           const bed = targetFlat.areas.flatMap((a) => a.beds).find((b) => b.id === bedId);
@@ -387,6 +390,7 @@ export class AdmissionCoordinator {
         success: true,
         residentCode,
         residentName: newResident.fullName,
+        residentId: createdResidentId || newResident.id,
         stayId: createdStayId || stayId,
         reservationNumber: reservation.reservationNumber,
         allocatedFlatNumber: resolvedFlatName,
@@ -400,6 +404,7 @@ export class AdmissionCoordinator {
         timestamp: nowIso,
       };
     } catch (error) {
+      // Compensating Cleanup Strategy (MVP)
       if (createdResidentId) (this.residentRepo as any).delete?.(createdResidentId);
       if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       this.reservationRepo.saveSync(reservationSnapshot);

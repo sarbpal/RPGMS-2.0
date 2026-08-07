@@ -22,6 +22,8 @@ export interface Reservation {
   status: ReservationStatus;
   notes?: string;
   cancellationReason?: string;
+  convertedResidentId?: string;
+  convertedStayId?: string;
   auditLog: ReservationAuditEntry[];
   createdAt: string;
   updatedAt: string;

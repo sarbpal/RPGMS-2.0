@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Container, Stack, Grid, Link, Paper, Typography, Button, Box } from '@mui/material';
+import { Container, Stack, Grid, Link, Paper, Typography, Button, Box, Alert, Snackbar } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { ReservationUseCases } from '../../reservation/application/useCases/ReservationUseCases';
@@ -19,24 +19,26 @@ import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordi
 import type { AdmissionDraft } from '../application/models/AdmissionDraft';
 import type { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
 import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 export const AdmissionWorkspacePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const reservationRepo = useMemo(() => new InMemoryReservationRepository(), []);
+  const residentRepo = useMemo(() => new InMemoryResidentRepository(), []);
+  const stayRepo = useMemo(() => new InMemoryStayRepository(), []);
+  const accommodationRepo = useMemo(() => new InMemoryAccommodationRepository(), []);
+
   const reservationUseCases = useMemo(
-    () => new ReservationUseCases(new InMemoryReservationRepository()),
-    []
+    () => new ReservationUseCases(reservationRepo),
+    [reservationRepo]
   );
 
   const admissionCoordinator = useMemo(
-    () => new AdmissionCoordinator(new InMemoryReservationRepository()),
-    []
-  );
-
-  const accommodationRepo = useMemo(
-    () => new InMemoryAccommodationRepository(),
-    []
+    () => new AdmissionCoordinator(reservationRepo, residentRepo, stayRepo, accommodationRepo),
+    [reservationRepo, residentRepo, stayRepo, accommodationRepo]
   );
 
   const reservation: Reservation | null = useMemo(() => {
@@ -44,7 +46,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
     return reservationUseCases.getReservationByIdSync(id);
   }, [id, reservationUseCases]);
 
-  // Temporary Workspace Preparation State ONLY (No DB Persistence per Refinement #2 & #3)
+  // Temporary Workspace Preparation State ONLY
   const [fullName, setFullName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
@@ -54,6 +56,9 @@ export const AdmissionWorkspacePage: React.FC = () => {
   const [bedIds, setBedIds] = useState<string[]>([]);
   const [tokenDisposition, setTokenDisposition] = useState<TokenDisposition | undefined>(undefined);
   const [isValidated, setIsValidated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (reservation) {
@@ -99,6 +104,26 @@ export const AdmissionWorkspacePage: React.FC = () => {
 
   const handleValidateReadiness = () => {
     setIsValidated(true);
+    setErrorMessage(null);
+  };
+
+  const handleCompleteAdmission = () => {
+    if (!reservation) return;
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const result = admissionCoordinator.confirmReservedAdmission(draft, reservation);
+      setSuccessToast(`Admission Completed! Created ${result.residentCode}. Redirecting...`);
+      
+      // Lightweight uninterrupted hand-off to Resident Workspace (Refinement #4)
+      setTimeout(() => {
+        navigate(`/resident/${result.residentId}`);
+      }, 750);
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to complete admission.');
+    }
   };
 
   const handleCancelReturn = () => {
@@ -180,6 +205,24 @@ export const AdmissionWorkspacePage: React.FC = () => {
           Back to Reservation ({reservation.reservationNumber})
         </Link>
 
+        {/* Lightweight Success Toast */}
+        <Snackbar
+          open={Boolean(successToast)}
+          autoHideDuration={3000}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert severity="success" variant="filled" sx={{ width: '100%', fontWeight: 700 }}>
+            {successToast}
+          </Alert>
+        </Snackbar>
+
+        {/* Inline Error Alert */}
+        {errorMessage && (
+          <Alert severity="error" onClose={() => setErrorMessage(null)} sx={{ borderRadius: 2 }}>
+            {errorMessage}
+          </Alert>
+        )}
+
         {/* Operational Workspace Top Block */}
         <Stack spacing={2}>
           <AdmissionHeader reservation={reservation} isReady={readiness.isReadyToConfirm} />
@@ -244,7 +287,9 @@ export const AdmissionWorkspacePage: React.FC = () => {
         <AdmissionActionsCard
           readiness={readiness}
           isValidated={isValidated}
+          isSubmitting={isSubmitting}
           onValidateReadiness={handleValidateReadiness}
+          onCompleteAdmission={handleCompleteAdmission}
           onCancelReturn={handleCancelReturn}
         />
       </Stack>

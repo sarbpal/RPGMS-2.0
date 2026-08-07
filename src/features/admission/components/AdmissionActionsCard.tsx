@@ -1,27 +1,32 @@
 import React from 'react';
-import { Card, CardContent, Grid, Stack, Typography, Button, Box, Alert } from '@mui/material';
+import { Card, CardContent, Grid, Stack, Typography, Button, Box, Alert, CircularProgress } from '@mui/material';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { AdmissionReadiness } from '../application/models/AdmissionReadiness';
 
 interface AdmissionActionsCardProps {
   readiness: AdmissionReadiness;
   isValidated: boolean;
+  isSubmitting?: boolean;
   onValidateReadiness: () => void;
+  onCompleteAdmission: () => void;
   onCancelReturn: () => void;
 }
 
 export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
   readiness,
   isValidated,
+  isSubmitting = false,
   onValidateReadiness,
+  onCompleteAdmission,
   onCancelReturn,
 }) => {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-          Admission Preparation Actions
+          Admission Actions
         </Typography>
 
         {isValidated && (
@@ -29,24 +34,24 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
             {readiness.isReadyToConfirm ? (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Admission Prepared & Validated (100% Ready)
+                  Admission Checklist Validated (100% Ready)
                 </Typography>
-                All 5 business preparation criteria have been satisfied. The admission draft is ready for execution in Sprint RA-6.
+                All preparation criteria satisfied. Click Complete Admission to finalize resident admission.
               </Alert>
             ) : (
               <Alert severity="warning" sx={{ borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   Admission Preparation Incomplete
                 </Typography>
-                Please complete all 5 readiness checklist criteria before validating admission.
+                Please complete all Admission Checklist criteria before attempting to Complete Admission.
               </Alert>
             )}
           </Box>
         )}
 
         <Grid container spacing={2.5}>
-          {/* Action 1: Validate Admission Readiness */}
-          <Grid size={{ xs: 12, sm: 6 }}>
+          {/* Action 1: Validate Admission */}
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box
               sx={{
                 p: 2,
@@ -56,35 +61,75 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
               }}
             >
               <Box>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
                   <FactCheckIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Validate Admission Readiness
+                    Validate Admission
                   </Typography>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  Evaluate all 5 preparation criteria and verify readiness status for RA-6 execution.
+                  Evaluate all Admission Checklist criteria and check readiness.
                 </Typography>
               </Box>
               <Button
-                variant="contained"
+                variant="outlined"
                 color="primary"
                 fullWidth
                 startIcon={<FactCheckIcon />}
                 onClick={onValidateReadiness}
+                disabled={isSubmitting}
                 sx={{ fontWeight: 700, textTransform: 'none' }}
               >
-                Validate Readiness
+                Validate Admission
               </Button>
             </Box>
           </Grid>
 
-          {/* Action 2: Cancel & Return */}
-          <Grid size={{ xs: 12, sm: 6 }}>
+          {/* Action 2: Complete Admission */}
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                border: '1px solid #2e7d32',
+                bgcolor: 'success.50',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Box>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+                  <CheckCircleIcon color="success" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                    Complete Admission
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  Execute atomic resident creation, stay allocation, bed occupancy, and reservation conversion.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth
+                startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <CheckCircleIcon />}
+                onClick={onCompleteAdmission}
+                disabled={!readiness.isReadyToConfirm || isSubmitting}
+                sx={{ fontWeight: 700, textTransform: 'none' }}
+              >
+                {isSubmitting ? 'Completing Admission...' : 'Complete Admission'}
+              </Button>
+            </Box>
+          </Grid>
+
+          {/* Action 3: Cancel & Return */}
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box
               sx={{
                 p: 2,
@@ -94,7 +139,7 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
               }}
             >
               <Box>
@@ -114,6 +159,7 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
                 fullWidth
                 startIcon={<ArrowBackIcon />}
                 onClick={onCancelReturn}
+                disabled={isSubmitting}
                 sx={{ fontWeight: 700, textTransform: 'none' }}
               >
                 Cancel & Return

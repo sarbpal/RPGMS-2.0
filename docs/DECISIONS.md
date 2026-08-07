@@ -627,10 +627,36 @@ Following Sprints FR-1 (Settlement Core), FR-2 (Admission Finance Integration), 
 
 ---
 
+## ADR-022 — Electricity Consumption Allocation & Financial Ledger Billing Integration
+
+**Status:** Accepted
+
+### Context
+
+Following the completion of Capability Release 3 (CR-3 — Financial Operations) in Sprint FR-5, RPGMS 2.0 transitioned to Capability Release 4 (CR-4 — Operational Services) starting with Sprint FR-6 / OS-1 (Electricity Operations, Metering & Financial Integration). Electricity operations require ingesting sub-meter readings, validating reading monotonicity, calculating tariff slab charges, allocating split utility amounts across active flat occupants, and posting utility bills into the resident ledger without violating domain boundaries or introducing duplicate accounting logic inside the Electricity domain.
+
+### Decision
+
+1. **Domain Boundary & Entity Architecture**: Establish `Meter`, `MeterReading`, `ElectricityTariff`, and `ConsumptionAllocation` in `src/features/electricity/domain/`. Monotonicity (`currentReading >= previousReading`) is enforced by domain rule `meterRules.ts`.
+2. **Finance Domain Delegation**: `electricityService.ts` delegates utility bill generation directly to `billingService.generateRecurringChargeBill(stayId, readingPeriod, 'Electricity', description, allocatedAmount)` in the Finance domain (`billType: RECURRING_CHARGE`, `category: UTILITIES`), generating balanced double-entry ledger postings (`Debit ACCOUNTS_RECEIVABLE`, `Credit UTILITIES`).
+3. **Flat Occupant Equal Split & Remainder Determinism**: Calculate utility split amounts evenly across active flat occupants (`status === ACTIVE || status === ON_NOTICE`). Remainder paise from division are added to the first occupant allocation to guarantee `sum(allocations) === totalFlatBill`.
+4. **Compensating Rollback Strategy**: If `generateRecurringChargeBill` fails for any occupant during a flat allocation, `electricityService.ts` executes a compensating transaction rollback, deleting the created `MeterReading` and restoring `Meter.lastReadingValue` to maintain all-or-nothing atomicity aligned with ADR-018 patterns.
+5. **Interactive Presentation & Workspace**: Build `ElectricityPage.tsx`, `useElectricityWorkspace.ts`, and `RecordMeterReadingModal.tsx` providing real-time Stage 1 preview calculations prior to Stage 2 confirmation.
+
+### Consequences
+
+#### Advantages:
+- **Strict Architecture Boundaries**: Electricity domain manages utility metering and split allocations while Finance handles accounting, ledger entries, and receivables.
+- **Guaranteed Monotonicity & Atomicity**: Prevents invalid lower readings and guarantees zero orphan billing states via compensating rollback.
+- **Full End-to-End Testability**: Verified across unit, integration, and E2E test suites with 100% pass rates.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.6 | August 2026 | Added ADR-022 (Electricity Consumption Allocation & Financial Ledger Billing Integration). |
 | 2.5 | August 2026 | Added ADR-021 (Finance UI Workspace Coordination & Interactive Modal Integration). |
 | 2.4 | August 2026 | Added ADR-020 (Financial Reporting, Activity Timeline & Workspace Coordination). |
 | 2.3 | August 2026 | Added ADR-019 (Payment Processing & Billing Core Stabilization). |

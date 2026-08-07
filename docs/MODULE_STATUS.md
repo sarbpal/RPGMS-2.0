@@ -31,9 +31,9 @@ The engineering foundation, application shell, accommodation model, and Resident
 
 ## Current Capability Release
 
-**CR-3 — Financial Operations**
+**CR-4 — Operational Services**
 
-Current development is focused on delivering the Financial Operations capability release (CR-3), including double-entry ledger stabilization, monthly billing engine, payment processing, checkout settlement, and financial reporting.
+Current development is focused on delivering the Operational Services capability release (CR-4), including electricity metering, consumption allocation, utility billing, and maintenance management.
 
 ---
 
@@ -48,7 +48,7 @@ Current development is focused on delivering the Financial Operations capability
 | Stay Workspace | 🟢 MVP Complete |
 | Reservation & Admission | 🟢 Complete |
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
-| Electricity | 🟢 Foundation Complete |
+| Electricity | 🟢 MVP Complete (CR-4 / Sprint OS-1) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
 

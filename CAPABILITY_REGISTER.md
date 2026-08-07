@@ -154,7 +154,7 @@ This register serves as the authoritative operational view of implementation pro
 | Accommodation Management | CR-1 | Critical | Functional | Level 3 | Substantially Implemented | Production Ready |
 | Reservation & Admission Management | CR-2 | Critical | Functional | Level 3 | Completed & Tested | Production Ready |
 | Financial Operations | CR-3 | Critical | Functional | Level 3 | Completed & Tested | Production Ready |
-| Operational Services | CR-4 | High | Planned | Level 1 | Not Started | Production Ready |
+| Operational Services | CR-4 | High | In Progress | Level 2 | Sprint OS-1 In Progress | Production Ready |
 | Reporting & Analytics | CR-5 | Medium | Planned | Level 1 | Not Started | Production Ready |
 | Platform Enhancements | CR-6 | Low | Planned | Level 1 | Not Started | Production Ready |
 

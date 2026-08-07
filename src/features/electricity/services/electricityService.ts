@@ -18,7 +18,7 @@ export interface MeterReadingPreviewResult {
   currentReading: number;
   unitsConsumed: number;
   totalBillAmount: number;
-  eligibleStays: Array<{ stayId: string; residentName: string; allocatedAmount: number; allocatedUnits: number }>;
+  eligibleStays: Array<{ stayId: string; residentId?: string; residentName: string; allocatedAmount: number; allocatedUnits: number }>;
   errors: string[];
 }
 
@@ -112,6 +112,7 @@ export class ElectricityApplicationService {
       const stayObj = activeStays.find((s: Stay) => s.id === sp.stayId);
       return {
         stayId: sp.stayId,
+        residentId: stayObj ? stayObj.residentId : undefined,
         residentName: stayObj ? `Resident (${stayObj.residentId})` : 'Flat Resident',
         allocatedAmount: sp.allocatedAmount,
         allocatedUnits: sp.allocatedUnits,
@@ -210,11 +211,13 @@ export class ElectricityApplicationService {
 
       if (billResult.success) {
         billedStayIds.push(stayItem.stayId);
+        const residentId = stayItem.residentId || stayItem.stayId;
+
         allocations.push(
           new ConsumptionAllocation({
             flatId: preview.meter.flatId,
             stayId: stayItem.stayId,
-            residentId: stayItem.stayId,
+            residentId,
             readingPeriod,
             allocatedUnits: stayItem.allocatedUnits,
             allocatedAmount: stayItem.allocatedAmount,

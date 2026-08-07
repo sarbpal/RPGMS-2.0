@@ -177,4 +177,40 @@ describe('Sprint FR-6 / OS-1 — ElectricityApplicationService Unit Tests', () =
     const restoredMeter = electricityRepo.getMeterById('meter-test-01');
     expect(restoredMeter?.lastReadingValue).toBe(1000);
   });
+
+  it('preserves stayId and residentId identities independently in ConsumptionAllocation', () => {
+    // Regression Test: Ensures residentId is populated with stay.residentId instead of stay.id
+    const distinctStay = new Stay({
+      id: 'stay-distinct-999',
+      residentId: 'res-distinct-555',
+      stayType: 'REGULAR',
+      status: StayStatus.ACTIVE,
+      checkInDate: '2026-06-01',
+      agreedRent: 10000,
+      agreedDeposit: 10000,
+      flatId: 'flat-101',
+      allocatedBedIds: ['bed-distinct-01'],
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    });
+
+    const customStayRepo = new InMemoryStayRepository([distinctStay]);
+    const customBillingService = new BillingApplicationService(defaultFinanceRepository, customStayRepo);
+    const customService = new ElectricityApplicationService(
+      electricityRepo,
+      customStayRepo,
+      accomRepo,
+      customBillingService
+    );
+
+    const result = customService.recordMeterReading('meter-test-01', 1100, '2026-08');
+
+    expect(result.success).toBe(true);
+    expect(result.allocations.length).toBe(1);
+
+    const allocation = result.allocations[0];
+    expect(allocation.stayId).toBe('stay-distinct-999');
+    expect(allocation.residentId).toBe('res-distinct-555');
+    expect(allocation.stayId).not.toBe(allocation.residentId);
+  });
 });

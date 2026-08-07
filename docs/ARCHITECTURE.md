@@ -4539,6 +4539,18 @@ This architectural pattern enables complex cross-domain business processes to ap
 
 ---
 
+### Workspace Dashboard Principles
+
+All operational and domain workspaces shall adhere to universal workspace dashboard principles:
+
+- **Principle 1 — Decisions Before Transactions**: A workspace dashboard exists primarily to identify where organizational decisions are required rather than merely listing static records or accelerating raw transaction execution.
+- **Principle 2 — Business Awareness Before Action**: Operators must understand overall operational workload, pending items, and business context before reviewing or acting on individual operational items.
+- **Principle 3 — Readiness Supports Prioritisation**: Visual indicators, summary metrics, and status badges assist operators in deciding which operational items or domain workflows require immediate attention.
+- **Principle 4 — Contextual Focus**: The workspace dashboard focuses on operational decision-making, active commitments, and current state rather than low-level technical execution or routine data entry.
+- **Principle 5 — Supporting Business Judgment**: Every workspace dashboard exists to improve organizational judgment, situational awareness, and operational accuracy.
+
+---
+
 ## Component Architecture
 
 User Interface components shall be organised according to responsibility.

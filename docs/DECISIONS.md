@@ -532,12 +532,37 @@ When `AdmissionCoordinator.confirmReservedAdmission()` executes a Reserved Admis
 
 ---
 
+## ADR-018 — Synchronous Admission Finance Initialization & Compensating Rollback
+
+**Status:** Accepted
+
+### Context
+
+Sprint FR-2 introduces the integration between the Admission workflow (`AdmissionCoordinator`) and the Finance domain (`billingService`, `ledgerService`). When an admission is committed (either via Reservation Conversion or Direct Walk-in), initial financial records (Security Deposit Liability, First Month Rent Bill, and optional Token Advance Credit) must be created.
+
+Because RPGMS 2.0 MVP operates using an in-memory repository architecture without multi-repository database transactions, financial initialization must be executed synchronously within the admission confirmation boundary, and any financial failure must cleanly roll back all created admission state.
+
+### Decision
+
+1. **Synchronous Execution**: `AdmissionCoordinator` invokes a dedicated `AdmissionFinanceService` synchronously after `Stay` and `Resident` aggregates are created, before returning `AdmissionResult`.
+2. **Dedicated Application Service**: `AdmissionFinanceService` encapsulates all admission-related financial initialization logic (Security Deposit posting: `Debit ACCOUNTS_RECEIVABLE`, `Credit SECURITY_DEPOSIT_LIABILITY`; First Month Rent Bill: `billingService.createBill()`; Token Disposition).
+3. **Compensating Rollback Strategy**: If `AdmissionFinanceService` fails or throws an exception, `AdmissionCoordinator` executes a rollback sequence that deletes created `Bill` and `LedgerEntry` records, deletes the created `Stay`, deletes/reverts `Resident`, and restores pre-admission snapshots of `Reservation` and `Flat`.
+
+### Consequences
+
+#### Advantages:
+- **Strict Financial Consistency**: Prevents operational check-in without immediate accounting recognition.
+- **Clean Domain Boundaries**: Prevents `AdmissionCoordinator` from becoming a Finance God-class.
+- **All-or-Nothing Atomicity**: Enforces zero orphan records across Resident, Stay, Bed, and Finance domains.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2 | August 2026 | Added ADR-018 (Synchronous Admission Finance Initialization & Compensating Rollback). |
 | 2.1 | August 2026 | Added proposed ADR-015 (Bidirectional Resident to Reservation Traceability). |
 | 2.0 | July 2026 | Rewritten using a structured ADR format aligned with the RPGMS business architecture. |
 
 ---
-

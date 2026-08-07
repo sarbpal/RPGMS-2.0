@@ -26,22 +26,27 @@ import type { AdmissionDraft } from '../models/AdmissionDraft';
 import type { AdmissionReadiness } from '../models/AdmissionReadiness';
 import type { AdmissionResult } from '../models/AdmissionResult';
 
+import { AdmissionFinanceService, admissionFinanceService as defaultAdmissionFinanceService } from '../services/admissionFinanceService';
+
 export class AdmissionCoordinator {
   private reservationRepo: ReservationRepository;
   private residentRepo: ResidentRepository;
   private stayRepo: StayRepository;
   private accommodationRepo: AccommodationRepository;
+  private financeService: AdmissionFinanceService;
 
   constructor(
     reservationRepo: ReservationRepository = new InMemoryReservationRepository(),
     residentRepo: ResidentRepository = new InMemoryResidentRepository(),
     stayRepo: StayRepository = new InMemoryStayRepository(),
-    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository()
+    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
+    financeService: AdmissionFinanceService = defaultAdmissionFinanceService
   ) {
     this.reservationRepo = reservationRepo;
     this.residentRepo = residentRepo;
     this.stayRepo = stayRepo;
     this.accommodationRepo = accommodationRepo;
+    this.financeService = financeService;
   }
 
   /**
@@ -450,7 +455,7 @@ export class AdmissionCoordinator {
         this.accommodationRepo.save(targetFlat);
       }
 
-      return {
+      const admissionResult: AdmissionResult = {
         success: true,
         residentCode,
         residentName: newResident.fullName,
@@ -467,10 +472,21 @@ export class AdmissionCoordinator {
         adjustedRentBalance: preview.adjustedRentBalance,
         timestamp: nowIso,
       };
+
+      // Step 5 (FR-2): Synchronous Admission -> Finance Initialization
+      const financeInitResult = this.financeService.initializeAdmissionFinance(admissionResult, draft);
+      if (!financeInitResult.success) {
+        throw new Error(`Admission financial initialization failed: ${financeInitResult.errors.join(' ')}`);
+      }
+
+      return admissionResult;
     } catch (error) {
       // Compensating Cleanup Strategy (MVP)
+      if (createdStayId) {
+        this.financeService.rollbackAdmissionFinance(createdStayId);
+        (this.stayRepo as any).delete?.(createdStayId);
+      }
       if (createdResidentId) (this.residentRepo as any).delete?.(createdResidentId);
-      if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       this.reservationRepo.saveSync(reservationSnapshot);
       if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
       throw error;
@@ -620,7 +636,7 @@ export class AdmissionCoordinator {
         this.accommodationRepo.save(targetFlat);
       }
 
-      return {
+      const admissionResult: AdmissionResult = {
         success: true,
         residentCode: resident.residentCode,
         residentName: resident.fullName,
@@ -637,8 +653,20 @@ export class AdmissionCoordinator {
         adjustedRentBalance: Number(draft.agreedRent),
         timestamp: nowIso,
       };
+
+      // Step 4 (FR-2): Synchronous Admission -> Finance Initialization
+      const financeInitResult = this.financeService.initializeAdmissionFinance(admissionResult, draft);
+      if (!financeInitResult.success) {
+        throw new Error(`Walk-in admission financial initialization failed: ${financeInitResult.errors.join(' ')}`);
+      }
+
+      return admissionResult;
     } catch (error) {
       // Compensating Cleanup Strategy (MVP)
+      if (createdStayId) {
+        this.financeService.rollbackAdmissionFinance(createdStayId);
+        (this.stayRepo as any).delete?.(createdStayId);
+      }
       if (createdResidentId) {
         if (isResidentReused && residentSnapshot) {
           (this.residentRepo as any).save?.(residentSnapshot);
@@ -646,7 +674,6 @@ export class AdmissionCoordinator {
           (this.residentRepo as any).delete?.(createdResidentId);
         }
       }
-      if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
       throw error;
     }

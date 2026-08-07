@@ -603,10 +603,35 @@ Following Sprint FR-1 (Settlement Core), Sprint FR-2 (Admission Finance Integrat
 
 ---
 
+## ADR-021 — Finance UI Workspace Coordination & Interactive Modal Integration
+
+**Status:** Accepted
+
+### Context
+
+Following Sprints FR-1 (Settlement Core), FR-2 (Admission Finance Integration), FR-3 (Payment & Billing Core Stabilization), and FR-4 (Financial Reporting & Timeline Coordination), the core domain engines and application services of the Finance domain were fully stabilized with constructor dependency injection. However, presentation components (`FinanceWorkspacePage.tsx`, `ResidentFinancialProfile.tsx`) rendered static or read-only metrics, and draft UI modal components (`ReceivePaymentModal`, `GenerateRentModal`, `AddLaundryModal`) were unwired to application services. Furthermore, a dedicated checkout settlement modal (`SettlementDialog.tsx`) and a reactive presentation state hook (`useFinanceWorkspace.ts`) were required to complete Capability Release 3 (CR-3 — Financial Operations).
+
+### Decision
+
+1. **Reactive Workspace Coordination Hook (`useFinanceWorkspace`)**: Implement a dedicated presentation hook encapsulating property-wide ViewModels (`createViewModel`), active modal visibility (`'RECEIVE_PAYMENT' | 'GENERATE_RENT' | 'ADD_LAUNDRY' | 'PROCESS_SETTLEMENT' | null`), selected context (`resident`, `stayId`, `flat`), and reactive re-fetching via an internal state refresh counter (`refreshCount`).
+2. **Two-Stage Checkout Settlement Dialog (`SettlementDialog`)**: Implement `SettlementDialog.tsx` rendering Stage 1 settlement preview calculations (unpaid debits, deposit held, advance credit, damage recovery deduction, net refund/payable, outcome) via `settlementService.generateSettlementPreview()`, and executing Stage 2 settlement commitment via `settlementService.confirmSettlement()`.
+3. **Application Service Delegation**: UI modals and presentation components delegate all monetary transactions, double-entry ledger postings, payment allocations, and settlement rules directly to application services (`paymentService`, `billingService`, `settlementService`). UI components do not compute financial balances or construct double-entry ledger postings.
+4. **Comprehensive UI & E2E Test Suite**: Establish Vitest unit test coverage for `FinanceWorkspacePage.test.tsx`, `ResidentFinancialProfile.test.tsx`, and a 7-step end-to-end integration test (`FinanceE2EJourney.test.ts`) verifying the complete financial lifecycle.
+
+### Consequences
+
+#### Advantages:
+- **Clean Layered Architecture**: Preserves strict separation between presentation components and domain business logic.
+- **Interactive Financial Operations**: Operators can record payments, issue rent bills, add extra charges, and execute checkout settlements with immediate, real-time UI state updates.
+- **Verified End-to-End Financial Integrity**: Guarantees zero balance discrepancies from admission through checkout settlement and final financial closure.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.5 | August 2026 | Added ADR-021 (Finance UI Workspace Coordination & Interactive Modal Integration). |
 | 2.4 | August 2026 | Added ADR-020 (Financial Reporting, Activity Timeline & Workspace Coordination). |
 | 2.3 | August 2026 | Added ADR-019 (Payment Processing & Billing Core Stabilization). |
 | 2.2 | August 2026 | Added ADR-018 (Synchronous Admission Finance Initialization & Compensating Rollback). |

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import {
   Stack,
   Typography,
@@ -16,19 +16,53 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Button,
+  Snackbar,
+  Alert,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { FinanceWorkspaceCoordinator } from '../application/coordinator/FinanceWorkspaceCoordinator';
-import { useFinanceActivity } from '../hooks/useFinanceActivity';
+import {
+  Payments,
+  MonetizationOn,
+  LocalLaundryService,
+  ExitToApp,
+} from '@mui/icons-material';
+
+import { useFinanceWorkspace } from '../hooks/useFinanceWorkspace';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
+import { ReceivePaymentModal } from '../components/ReceivePaymentModal';
+import { GenerateRentModal } from '../components/GenerateRentModal';
+import { AddLaundryModal } from '../components/AddLaundryModal';
+import { SettlementDialog } from '../components/SettlementDialog';
 import { formatCurrency } from '../utils/currencyFormatters';
+import type { Resident } from '../../resident';
+import type { StayBalance } from '../domain';
+import type { OutstandingResidentReportItem, SettlementReportItem } from '../types';
 
 export default function FinanceWorkspacePage() {
-  const coordinator = useMemo(() => new FinanceWorkspaceCoordinator(), []);
-  const viewModel = useMemo(() => coordinator.createViewModel(8), [coordinator]);
-  const { activity } = useFinanceActivity(8);
+  const {
+    viewModel,
+    activity,
+    activeModal,
+    selectedResident,
+    selectedStayId,
+    selectedFlat,
+    openModal,
+    closeModal,
+    refresh,
+  } = useFinanceWorkspace();
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const { metrics, outstandingResidents, settlementsReport } = viewModel;
 
+  const handleSuccess = (message: string) => {
+    refresh();
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
 
   const getEventChipColor = (type: string) => {
     switch (type) {
@@ -43,16 +77,80 @@ export default function FinanceWorkspacePage() {
     }
   };
 
+  // Construct dummy / target resident object when triggered globally without a specific row selection
+  const targetResident: Resident = selectedResident || {
+    id: selectedStayId || 'res_global',
+    residentCode: 'RES-GLOBAL',
+    fullName: 'Global Finance Account',
+    status: 'ACTIVE' as const,
+    mobileNumber: '9999999999',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const dummyBalances: StayBalance = {
+    receivableBalance: metrics.outstandingReceivables,
+    securityDepositHeld: 0,
+    advanceCreditBalance: 0,
+    refundPayable: 0,
+    netBalance: metrics.outstandingReceivables,
+  };
+
   return (
     <Stack spacing={3}>
-      <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
-          Finance & Accounting Dashboard
-        </Typography>
-        <Typography color="text.secondary">
-          Property-wide financial ledger, monthly billing, payment tracking, checkout settlements, and audit reports.
-        </Typography>
-      </Box>
+      {/* Top Header & Actions Bar */}
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
+              Finance & Accounting Dashboard
+            </Typography>
+            <Typography color="text.secondary">
+              Property-wide financial ledger, monthly billing, payment tracking, checkout settlements, and audit reports.
+            </Typography>
+          </Box>
+
+          {/* Header Action Buttons */}
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<Payments />}
+              onClick={() => openModal('RECEIVE_PAYMENT')}
+              sx={{ fontWeight: 700 }}
+            >
+              Receive Payment
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<MonetizationOn />}
+              onClick={() => openModal('GENERATE_RENT')}
+              sx={{ fontWeight: 600 }}
+            >
+              Generate Rent
+            </Button>
+            <Button
+              variant="outlined"
+              color="info"
+              startIcon={<LocalLaundryService />}
+              onClick={() => openModal('ADD_LAUNDRY')}
+              sx={{ fontWeight: 600 }}
+            >
+              Add Extra Charge
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<ExitToApp />}
+              onClick={() => openModal('PROCESS_SETTLEMENT')}
+              sx={{ fontWeight: 600 }}
+            >
+              Process Settlement
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Dashboard Cards Grid */}
       <Grid container spacing={2}>
@@ -186,33 +284,58 @@ export default function FinanceWorkspacePage() {
                       <TableCell align="right" sx={{ fontWeight: 700 }}>
                         Outstanding Dues
                       </TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>
+                        Action
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {outstandingResidents.map((row) => (
-                      <TableRow key={row.stayId} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {row.residentName}
-                          </Typography>
-                          {row.phone && (
-                            <Typography variant="caption" color="text.secondary">
-                              {row.phone}
+                    {outstandingResidents.map((row: OutstandingResidentReportItem) => {
+                      const rowResident: Resident = {
+                        id: row.stayId,
+                        residentCode: row.stayId.toUpperCase(),
+                        fullName: row.residentName,
+                        status: 'ACTIVE' as const,
+                        mobileNumber: row.phone || '9999999999',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                      };
+                      return (
+                        <TableRow key={row.stayId} hover>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {row.residentName}
                             </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {row.roomBedLabel || 'Assigned'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>
-                            {formatCurrency(row.outstandingAmount)}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            {row.phone && (
+                              <Typography variant="caption" color="text.secondary">
+                                {row.phone}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              {row.roomBedLabel || 'Assigned'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>
+                              {formatCurrency(row.outstandingAmount)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="Receive Payment for Resident">
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => openModal('RECEIVE_PAYMENT', rowResident, row.stayId)}
+                              >
+                                <Payments fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -254,7 +377,7 @@ export default function FinanceWorkspacePage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {settlementsReport.map((row) => (
+                {settlementsReport.map((row: SettlementReportItem) => (
                   <TableRow key={row.settlementId} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -286,6 +409,66 @@ export default function FinanceWorkspacePage() {
           </TableContainer>
         )}
       </Paper>
+
+      {/* Modal Dialogs */}
+      {activeModal === 'RECEIVE_PAYMENT' && (
+        <ReceivePaymentModal
+          open={activeModal === 'RECEIVE_PAYMENT'}
+          onClose={closeModal}
+          resident={targetResident}
+          selectedFlat={selectedFlat}
+          stayId={selectedStayId}
+          balances={dummyBalances}
+          currentMonthCharges={metrics.totalMonthlyBilling}
+          lastPaymentDateText="Active Account"
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {activeModal === 'GENERATE_RENT' && (
+        <GenerateRentModal
+          open={activeModal === 'GENERATE_RENT'}
+          onClose={closeModal}
+          resident={targetResident}
+          selectedFlat={selectedFlat}
+          stayId={selectedStayId}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {activeModal === 'ADD_LAUNDRY' && (
+        <AddLaundryModal
+          open={activeModal === 'ADD_LAUNDRY'}
+          onClose={closeModal}
+          resident={targetResident}
+          selectedFlat={selectedFlat}
+          stayId={selectedStayId}
+          balances={dummyBalances}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {activeModal === 'PROCESS_SETTLEMENT' && (
+        <SettlementDialog
+          open={activeModal === 'PROCESS_SETTLEMENT'}
+          onClose={closeModal}
+          resident={selectedResident}
+          stayId={selectedStayId}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {/* Snackbar Alert for Success Notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Stack>
   );
 }

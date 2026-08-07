@@ -47,7 +47,7 @@ Current development is focused on delivering the Financial Operations capability
 | Resident Module | 🟢 MVP Complete |
 | Stay Workspace | 🟢 MVP Complete |
 | Reservation & Admission | 🟢 Complete |
-| Finance | 🔵 Active Development (CR-3) |
+| Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
 | Electricity | 🟢 Foundation Complete |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
@@ -421,9 +421,9 @@ The Admission Module is responsible for validating admission readiness, allocati
 
 # Finance Module
 
-**Status:** 🔵 Active Development
+**Status:** 🟢 Complete
 
-**State:** Active Capability (CR-3 / Sprint FR-4)
+**State:** Frozen (CR-3 / Sprint FR-5 Completed)
 
 ## Purpose
 

@@ -22,6 +22,7 @@ import { GenerateRentModal } from './GenerateRentModal';
 import { ReceivePaymentModal } from './ReceivePaymentModal';
 import { AddLaundryModal } from './AddLaundryModal';
 import { ResidentLedgerModal } from './ResidentLedgerModal';
+import { SettlementDialog } from './SettlementDialog';
 
 
 
@@ -106,6 +107,12 @@ export function ResidentFinancialProfile({
   };
 
   const handleLaundryChargeSuccess = (message: string) => {
+    refresh();
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
+  };
+
+  const handleSettlementSuccess = (message: string) => {
     refresh();
     setSnackbarMessage(message);
     setSnackbarOpen(true);
@@ -702,6 +709,17 @@ export function ResidentFinancialProfile({
         />
       )}
 
+      {/* Checkout Settlement Modal */}
+      {activeAction === 'CHECKOUT' && (
+        <SettlementDialog
+          open={activeAction === 'CHECKOUT'}
+          onClose={() => setActiveAction(null)}
+          resident={resident}
+          stayId={stayId}
+          onSuccess={handleSettlementSuccess}
+        />
+      )}
+
       {/* Action Placeholder Dialog for Other Ancillary Workflows */}
       <Dialog
         open={Boolean(
@@ -709,7 +727,8 @@ export function ResidentFinancialProfile({
             activeAction !== 'GENERATE_RENT' &&
             activeAction !== 'RECEIVE_PAYMENT' &&
             activeAction !== 'ADD_LAUNDRY' &&
-            activeAction !== 'VIEW_LEDGER'
+            activeAction !== 'VIEW_LEDGER' &&
+            activeAction !== 'CHECKOUT'
         )}
 
 

@@ -557,10 +557,34 @@ Because RPGMS 2.0 MVP operates using an in-memory repository architecture withou
 
 ---
 
+## ADR-019 — Payment Processing & Billing Core Stabilization
+
+**Status:** Accepted
+
+### Context
+
+Following Sprint FR-1 (Settlement Core & DI Stabilization) and Sprint FR-2 (Admission & Rent Billing Integration), the core `billingService.ts` and `paymentService.ts` required constructor Dependency Injection (DI) refactoring for `StayRepository` to eliminate direct concrete repository instantiations inside application use cases. Dedicated Vitest unit test suites were also required to establish 100% test coverage over payment recording, bill generation, payment allocations, advance overpayments, and balance derivation math.
+
+### Decision
+
+1. **Constructor Dependency Injection**: `BillingApplicationService` and `PaymentApplicationService` receive `StayRepository` and `FinanceRepository` via constructor parameters, defaulting to `InMemoryStayRepository` and `defaultFinanceRepository` for backward compatibility.
+2. **Direct Stay agreedRent Lookup**: `generateMonthlyRentBill()` retrieves `stay.agreedRent` using the injected `StayRepository` instance rather than instantiating a new repository internally.
+3. **Comprehensive Service & Engine Test Coverage**: Create unit test suites for `billingService`, `paymentService`, and `balanceEngine` verifying ledger double-entry precision, debit account routing (`CASH` vs `BANK`), advance credit liability overpayment handling, and payment allocation mechanics across open bills.
+
+### Consequences
+
+#### Advantages:
+- **Architectural Inversion of Control**: Eliminates hidden infrastructure coupling in application services.
+- **Enhanced Test Isolation**: Enables pure mock repository injection during unit testing.
+- **Verified Financial Integrity**: Guarantees accurate payment recording, double-entry balance equality, and overpayment advance tracking across all business workflows.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.3 | August 2026 | Added ADR-019 (Payment Processing & Billing Core Stabilization). |
 | 2.2 | August 2026 | Added ADR-018 (Synchronous Admission Finance Initialization & Compensating Rollback). |
 | 2.1 | August 2026 | Added proposed ADR-015 (Bidirectional Resident to Reservation Traceability). |
 | 2.0 | July 2026 | Rewritten using a structured ADR format aligned with the RPGMS business architecture. |

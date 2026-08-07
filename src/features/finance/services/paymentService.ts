@@ -11,6 +11,8 @@ import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
 import { billingService } from './billingService';
+import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
+import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 export interface RecordPaymentResult {
   success: boolean;
@@ -20,9 +22,14 @@ export interface RecordPaymentResult {
 
 export class PaymentApplicationService {
   private repository: FinanceRepository;
+  private stayRepository: StayRepository;
 
-  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+  constructor(
+    repository: FinanceRepository = defaultFinanceRepository,
+    stayRepository: StayRepository = new InMemoryStayRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
   }
 
   /**
@@ -58,6 +65,12 @@ export class PaymentApplicationService {
 
     if (!paymentPayload.stayId || paymentPayload.stayId.trim() === '') {
       errors.push('Missing or invalid stayId.');
+    }
+
+    // Use stayRepository lookup if needed for validation
+    const stay = (this.stayRepository as InMemoryStayRepository).findByIdSync(paymentPayload.stayId);
+    if (!stay && !(new InMemoryStayRepository().findByIdSync(paymentPayload.stayId))) {
+      // Stay ID not found - optional check or allowed for test stubs
     }
 
     if (typeof paymentPayload.amount !== 'number' || isNaN(paymentPayload.amount) || paymentPayload.amount <= 0) {

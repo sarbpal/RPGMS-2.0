@@ -457,7 +457,9 @@ Routine implementation activities shall not be recorded here.
 
 | Date | Capability | Change | Updated By |
 |------|------------|--------|------------|
+| August 2026 | Financial Operations (FR-3) | FR-1 & FR-2 completed; Sprint FR-3 (Payment & Billing Core) active. | Project Architect |
 | July 2026 | Initial Register | Capability Register established. | Project Architect |
+
 
 ---
 

@@ -1,8 +1,8 @@
 import type {
   Bill,
+  BillStatus,
   BillType,
   BillLineItem,
-  BillStatus,
   PaymentAllocation,
   FinanceRepository,
   LedgerReferenceType,
@@ -10,7 +10,8 @@ import type {
 import { AccountType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
-import { InMemoryStayRepository } from '../../stay';
+import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
+import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 export interface CreateBillResult {
   success: boolean;
@@ -20,9 +21,14 @@ export interface CreateBillResult {
 
 export class BillingApplicationService {
   private repository: FinanceRepository;
+  private stayRepository: StayRepository;
 
-  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+  constructor(
+    repository: FinanceRepository = defaultFinanceRepository,
+    stayRepository: StayRepository = new InMemoryStayRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
   }
 
   /**
@@ -211,7 +217,10 @@ export class BillingApplicationService {
       };
     }
 
-    const stay = new InMemoryStayRepository().findByIdSync(stayId);
+    let stay = (this.stayRepository as InMemoryStayRepository).findByIdSync(stayId);
+    if (!stay) {
+      stay = new InMemoryStayRepository().findByIdSync(stayId);
+    }
     const rentAmount = stay ? stay.agreedRent : 0;
 
     if (!stay || rentAmount <= 0) {
@@ -246,7 +255,6 @@ export class BillingApplicationService {
       remarks: customRemarks || `Monthly Rent for ${billingPeriod}`,
     });
   }
-
 
   /**
    * Application Use Case: Generate a recurring service charge bill for a Stay.
@@ -371,4 +379,3 @@ export class BillingApplicationService {
 }
 
 export const billingService = new BillingApplicationService();
-

@@ -30,9 +30,9 @@ The engineering foundation, application shell, accommodation model, and Resident
 
 ## Current Capability Release
 
-**CR-2 — Reservation & Admission Management**
+**CR-3 — Financial Operations**
 
-Current development is focused on completing the Reservation and Admission lifecycle, which will integrate directly with the completed Resident and Stay workspaces.
+Current development is focused on delivering the Financial Operations capability release (CR-3), including double-entry ledger stabilization, monthly billing engine, payment processing, checkout settlement, and financial reporting.
 
 ---
 
@@ -45,9 +45,8 @@ Current development is focused on completing the Reservation and Admission lifec
 | Accommodation Module | 🟢 MVP Complete |
 | Resident Module | 🟢 MVP Complete |
 | Stay Workspace | 🟢 MVP Complete |
-| Documentation | 🟡 Documentation Consolidation Sprint (DCS-1) |
-| Reservation & Admission | 🔵 Planned |
-| Finance | 🟢 Foundation Complete |
+| Reservation & Admission | 🟢 Complete |
+| Finance | 🔵 Active Development (CR-3) |
 | Electricity | 🟢 Foundation Complete |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
@@ -313,9 +312,9 @@ The Stay Module records where a resident is staying, the period of occupancy, ac
 
 # Reservation Module
 
-**Status:** 🔵 Planned
+**Status:** 🟢 Complete
 
-**State:** Next Capability
+**State:** Frozen
 
 ## Purpose
 
@@ -366,9 +365,9 @@ The Reservation Module bridges the gap between enquiry and admission while maint
 
 # Admission Module
 
-**Status:** 🔵 Planned
+**Status:** 🟢 Complete
 
-**State:** Next Capability
+**State:** Frozen
 
 ## Purpose
 
@@ -421,9 +420,9 @@ The Admission Module is responsible for validating admission readiness, allocati
 
 # Finance Module
 
-**Status:** 🟢 Foundation Complete
+**Status:** 🔵 Active Development
 
-**State:** Future Capability
+**State:** Active Capability (CR-3)
 
 ## Purpose
 
@@ -639,9 +638,9 @@ Current objectives:
 | Accommodation | 🟢 MVP Complete | Frozen |
 | Resident | 🟢 MVP Complete | Frozen |
 | Stay | 🟢 MVP Complete | Frozen |
-| Reservation | 🔵 Planned | Next Capability |
-| Admission | 🔵 Planned | Next Capability |
-| Finance | 🟢 Foundation Complete | Future Capability |
+| Reservation | 🟢 Complete | Frozen |
+| Admission | 🟢 Complete | Frozen |
+| Finance | 🔵 Active Development | Active (CR-3) |
 | Electricity | 🟢 Foundation Complete | Future Capability |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |

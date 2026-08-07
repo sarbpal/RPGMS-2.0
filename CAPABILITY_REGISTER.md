@@ -152,13 +152,11 @@ This register serves as the authoritative operational view of implementation pro
 | Capability | Release | Priority | Status | Maturity | Current State | Target State |
 |------------|---------|----------|--------|----------|---------------|--------------|
 | Accommodation Management | CR-1 | Critical | Functional | Level 3 | Substantially Implemented | Production Ready |
-| Reservation Management | CR-2 | Critical | Planned | Level 1 | Not Started | Production Ready |
-| Resident Admission | CR-3 | Critical | In Progress | Level 2 | Partial Implementation | Production Ready |
-| Stay Management | CR-4 | Critical | Functional | Level 3 | Substantially Implemented | Production Ready |
-| Monthly Billing | CR-5 | Critical | In Progress | Level 2 | Partial Implementation | Production Ready |
-| Payment Management | CR-6 | Critical | Functional | Level 3 | Substantially Implemented | Production Ready |
-| Checkout & Settlement | CR-7 | Critical | In Progress | Level 2 | Partial Implementation | Production Ready |
-| Resident History | CR-8 | High | In Progress | Level 2 | Partial Implementation | Production Ready |
+| Reservation & Admission Management | CR-2 | Critical | Functional | Level 3 | Completed & Tested | Production Ready |
+| Financial Operations | CR-3 | Critical | In Progress | Level 2 | Active Development | Production Ready |
+| Operational Services | CR-4 | High | Planned | Level 1 | Not Started | Production Ready |
+| Reporting & Analytics | CR-5 | Medium | Planned | Level 1 | Not Started | Production Ready |
+| Platform Enhancements | CR-6 | Low | Planned | Level 1 | Not Started | Production Ready |
 
 ---
 
@@ -240,24 +238,24 @@ A Capability Release shall only be considered complete when all planned delivera
 
 ---
 
-## CR-2 — Reservation Management
+## CR-2 — Reservation & Admission Management
 
 | Activity | Status |
 |----------|:------:|
 | Planning | ✓ |
 | Domain Model | ✓ |
-| Application Services | ☐ |
-| Infrastructure | ☐ |
-| User Interface | ☐ |
+| Application Services | ✓ |
+| Infrastructure | ✓ |
+| User Interface | ✓ |
 | Business Rules | ✓ |
-| Integration | ☐ |
-| Testing | ☐ |
+| Integration | ✓ |
+| Testing | ✓ |
 | Documentation | ✓ |
-| Production Ready | ☐ |
+| Production Ready | ◐ |
 
 ---
 
-## CR-3 — Resident Admission
+## CR-3 — Financial Operations
 
 | Activity | Status |
 |----------|:------:|
@@ -267,8 +265,8 @@ A Capability Release shall only be considered complete when all planned delivera
 | Infrastructure | ◐ |
 | User Interface | ◐ |
 | Business Rules | ✓ |
-| Integration | ☐ |
-| Testing | ☐ |
+| Integration | ◐ |
+| Testing | ◐ |
 | Documentation | ✓ |
 | Production Ready | ☐ |
 
@@ -391,13 +389,13 @@ Upon completion of a Capability Release, this section shall be updated to reflec
 
 ## Active Capability Release
 
-**Capability Release:** CR-1 — Accommodation Management
+**Capability Release:** CR-3 — Financial Operations
 
 **Implementation Status:** In Progress
 
 **Current Objective**
 
-Complete the remaining implementation work required to achieve Production Ready status for the Accommodation Management capability.
+Establish core financial architecture, double-entry ledger stabilization, dependency injection refactoring, unit test suites, and event integration for Financial Operations.
 
 ---
 
@@ -443,13 +441,11 @@ Following completion of the current Capability Release, implementation shall pro
 
 | Priority | Capability Release | Business Capability | Status |
 |----------|--------------------|---------------------|--------|
-| 1 | CR-2 | Reservation Management | Planned |
-| 2 | CR-3 | Resident Admission | Planned |
-| 3 | CR-4 | Stay Management | Functional Enhancement |
-| 4 | CR-5 | Monthly Billing | Partial |
-| 5 | CR-6 | Payment Management | Functional Enhancement |
-| 6 | CR-7 | Checkout & Settlement | Partial |
-| 7 | CR-8 | Resident History | Partial |
+| 1 | CR-2 | Reservation & Admission Management | Functional |
+| 2 | CR-3 | Financial Operations | Active Development |
+| 3 | CR-4 | Operational Services | Planned |
+| 4 | CR-5 | Reporting & Analytics | Planned |
+| 5 | CR-6 | Platform Enhancements | Planned |
 
 Implementation priorities may only change following a significant architectural or business decision.
 

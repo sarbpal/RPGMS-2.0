@@ -11,6 +11,7 @@ import { AccountType, SettlementOutcome, deriveSettlementPreview } from '../doma
 import { defaultFinanceRepository } from '../infrastructure';
 import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
+import type { StayRepository } from '../../stay';
 import { InMemoryStayRepository, StayStatus } from '../../stay';
 
 export interface GeneratePreviewResult {
@@ -27,9 +28,14 @@ export interface ConfirmSettlementResult {
 
 export class SettlementApplicationService {
   private repository: FinanceRepository;
+  private stayRepository: StayRepository;
 
-  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+  constructor(
+    repository: FinanceRepository = defaultFinanceRepository,
+    stayRepository: StayRepository = new InMemoryStayRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
   }
 
   /**
@@ -68,7 +74,7 @@ export class SettlementApplicationService {
       return { success: false, preview: null, errors };
     }
 
-    const stay = new InMemoryStayRepository().findByIdSync(stayId);
+    const stay = (this.stayRepository as InMemoryStayRepository).findByIdSync(stayId);
     if (!stay) {
       errors.push(`Stay '${stayId}' not found in system.`);
       return { success: false, preview: null, errors };
@@ -270,8 +276,7 @@ export class SettlementApplicationService {
     this.repository.saveSettlement(finalizedSettlement);
 
     // Ensure Stay operational checkout is reflected cleanly if not already checked out
-    const stayRepo = new InMemoryStayRepository();
-    const currentStay = stayRepo.findByIdSync(stayId);
+    const currentStay = (this.stayRepository as InMemoryStayRepository).findByIdSync(stayId);
     if (currentStay && currentStay.status !== StayStatus.CHECKED_OUT) {
       if (currentStay.status === StayStatus.ACTIVE) {
         currentStay.giveNotice({
@@ -284,7 +289,7 @@ export class SettlementApplicationService {
         actualCheckoutDate: new Date().toISOString().split('T')[0],
         reason: 'Settlement finalized',
       });
-      stayRepo.saveSync(currentStay);
+      (this.stayRepository as InMemoryStayRepository).saveSync(currentStay);
     }
 
 

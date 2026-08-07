@@ -23,10 +23,11 @@ import type { Flat } from '../../../accommodation/domain/entities/Flat';
 
 import { TokenDisposition, formatTokenDispositionLabel } from '../../domain/valueObjects/TokenDisposition';
 import type { AdmissionDraft } from '../models/AdmissionDraft';
+import { defaultFinanceRepository } from '../../../finance/infrastructure';
 import type { AdmissionReadiness } from '../models/AdmissionReadiness';
 import type { AdmissionResult } from '../models/AdmissionResult';
 
-import { AdmissionFinanceService, admissionFinanceService as defaultAdmissionFinanceService } from '../services/admissionFinanceService';
+import { AdmissionFinanceService } from '../services/admissionFinanceService';
 
 export class AdmissionCoordinator {
   private reservationRepo: ReservationRepository;
@@ -40,13 +41,13 @@ export class AdmissionCoordinator {
     residentRepo: ResidentRepository = new InMemoryResidentRepository(),
     stayRepo: StayRepository = new InMemoryStayRepository(),
     accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
-    financeService: AdmissionFinanceService = defaultAdmissionFinanceService
+    financeService?: AdmissionFinanceService
   ) {
     this.reservationRepo = reservationRepo;
     this.residentRepo = residentRepo;
     this.stayRepo = stayRepo;
     this.accommodationRepo = accommodationRepo;
-    this.financeService = financeService;
+    this.financeService = financeService ?? new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
   }
 
   /**

@@ -8,6 +8,7 @@ import { ReservationStatus } from '../../../../reservation/domain/valueObjects/R
 import { BedStatus } from '../../../../accommodation/domain/valueObjects/BedStatus';
 import { TokenDisposition } from '../../../domain/valueObjects/TokenDisposition';
 import type { Reservation } from '../../../../reservation/domain/entities/Reservation';
+import { financeStorage } from '../../../../finance/storage/financeStorage';
 import type { AdmissionDraft } from '../../models/AdmissionDraft';
 import type { Flat } from '../../../../accommodation/domain/entities/Flat';
 
@@ -81,6 +82,11 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
   };
 
   beforeEach(() => {
+    financeStorage.saveStoredLedgerEntries([]);
+    financeStorage.saveStoredBills([]);
+    financeStorage.saveStoredPayments([]);
+    financeStorage.saveStoredSettlements([]);
+
     reservationRepo = new InMemoryReservationRepository([sampleActiveReservation]);
     residentRepo = new InMemoryResidentRepository([]);
     stayRepo = new InMemoryStayRepository([]);

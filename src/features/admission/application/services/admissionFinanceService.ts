@@ -1,11 +1,13 @@
 import type { Bill, LedgerEntry, FinanceRepository } from '../../../finance/domain';
 import { AccountType, LedgerReferenceType } from '../../../finance/domain';
 import { defaultFinanceRepository } from '../../../finance/infrastructure';
-import { ledgerService } from '../../../finance/services/ledgerService';
-import { billingService } from '../../../finance/services/billingService';
 import { TokenDisposition } from '../../domain/valueObjects/TokenDisposition';
 import type { AdmissionDraft } from '../models/AdmissionDraft';
 import type { AdmissionResult } from '../models/AdmissionResult';
+import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
+import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { BillingApplicationService } from '../../../finance/services/billingService';
+import { LedgerApplicationService } from '../../../finance/services/ledgerService';
 
 export interface AdmissionFinanceResult {
   success: boolean;
@@ -17,9 +19,24 @@ export interface AdmissionFinanceResult {
 
 export class AdmissionFinanceService {
   private repository: FinanceRepository;
+  private stayRepository: StayRepository;
+  private billingService: BillingApplicationService;
+  private ledgerService: LedgerApplicationService;
 
-  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+  constructor(
+    repository: FinanceRepository = defaultFinanceRepository,
+    stayRepository: StayRepository = new InMemoryStayRepository(),
+    billingService?: BillingApplicationService,
+    ledgerService?: LedgerApplicationService
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
+    this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
+    this.billingService = billingService ?? new BillingApplicationService(repository, stayRepository, this.ledgerService);
+  }
+
+  public getStayRepository(): StayRepository {
+    return this.stayRepository;
   }
 
   /**
@@ -71,7 +88,7 @@ export class AdmissionFinanceService {
           : Number(admissionResult.agreedDeposit || 0);
 
       if (depositAmount > 0) {
-        const depositPostResult = ledgerService.postEntries([
+        const depositPostResult = this.ledgerService.postEntries([
           {
             stayId,
             postingDate: checkInDate,
@@ -134,7 +151,7 @@ export class AdmissionFinanceService {
             ? `Reservation ${admissionResult.reservationNumber}`
             : 'Walk-in';
 
-        const billResult = billingService.createBill({
+        const billResult = this.billingService.createBill({
           stayId,
           billType: 'MONTHLY_RENT',
           period: billingPeriod,
@@ -156,7 +173,7 @@ export class AdmissionFinanceService {
         if (!billResult.success || !billResult.bill) {
           // Compensate partial deposit posting if rent creation fails
           if (depositEntries.length > 0) {
-            ledgerService.reverseEntries('BILL', stayId, 'Rollback failed admission rent bill');
+            this.ledgerService.reverseEntries('BILL', stayId, 'Rollback failed admission rent bill');
           }
 
           return {
@@ -174,7 +191,7 @@ export class AdmissionFinanceService {
       // Step C: Handle Token LEAVE_PENDING Advance Credit Posting
       const tokenAmount = admissionResult.tokenAmount || 0;
       if (tokenAmount > 0 && draft.tokenDisposition === TokenDisposition.LEAVE_PENDING) {
-        const advancePostResult = ledgerService.postEntries([
+        const advancePostResult = this.ledgerService.postEntries([
           {
             stayId,
             postingDate: checkInDate,
@@ -216,7 +233,7 @@ export class AdmissionFinanceService {
     } catch (error: any) {
       // Compensate partial postings on unexpected exception
       if (depositEntries.length > 0) {
-        ledgerService.reverseEntries('BILL', stayId, 'Rollback exception in admission finance');
+        this.ledgerService.reverseEntries('BILL', stayId, 'Rollback exception in admission finance');
       }
       return {
         success: false,

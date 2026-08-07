@@ -580,10 +580,34 @@ Following Sprint FR-1 (Settlement Core & DI Stabilization) and Sprint FR-2 (Admi
 
 ---
 
+## ADR-020 — Financial Reporting, Activity Timeline & Workspace Coordination
+
+**Status:** Accepted
+
+### Context
+
+Following Sprint FR-1 (Settlement Core), Sprint FR-2 (Admission Finance Integration), and Sprint FR-3 (Payment & Billing Core), the remaining reporting and presentation services (`reportingService.ts`, `timelineService.ts`, `FinanceWorkspaceCoordinator.ts`) required constructor Dependency Injection (DI) refactoring for `StayRepository`, `ResidentRepository`, and `FinanceRepository`. Dedicated Vitest unit test suites were also required to establish 100% test coverage over property-wide dashboard aggregation, resident financial summaries, collections reporting, chronological activity streams, and workspace ViewModels.
+
+### Decision
+
+1. **Constructor Dependency Injection**: `ReportingApplicationService`, `TimelineApplicationService`, and `FinanceWorkspaceCoordinator` receive repository and child service instances via constructor parameters, defaulting to in-memory singleton instances for backward compatibility.
+2. **Read-Only Reporting Guarantees**: Reporting and timeline services operate strictly read-only, deriving dashboard metrics, outstanding dues, collections, and activity streams on demand from authoritative repositories without mutating state.
+3. **Comprehensive Application & Reporting Test Coverage**: Create unit test suites for `reportingService`, `timelineService`, and `FinanceWorkspaceCoordinator` verifying property-wide metric aggregation, chronological event sorting (newest first), resident dues sorting (highest first), and complete workspace ViewModel assembly.
+
+### Consequences
+
+#### Advantages:
+- **Architectural Inversion of Control**: Complete inversion of control across all Finance application services and coordinators.
+- **Pure Test Isolation**: Enables mock repository injection without reliance on global state or `localStorage`.
+- **Verified Reporting Integrity**: Ensures financial dashboards, activity streams, and audit reports reflect authoritative financial data accurately.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.4 | August 2026 | Added ADR-020 (Financial Reporting, Activity Timeline & Workspace Coordination). |
 | 2.3 | August 2026 | Added ADR-019 (Payment Processing & Billing Core Stabilization). |
 | 2.2 | August 2026 | Added ADR-018 (Synchronous Admission Finance Initialization & Compensating Rollback). |
 | 2.1 | August 2026 | Added proposed ADR-015 (Bidirectional Resident to Reservation Traceability). |

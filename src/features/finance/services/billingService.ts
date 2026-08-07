@@ -9,9 +9,9 @@ import type {
 } from '../domain';
 import { AccountType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
-import { ledgerService } from './ledgerService';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { LedgerApplicationService } from './ledgerService';
 
 export interface CreateBillResult {
   success: boolean;
@@ -22,13 +22,16 @@ export interface CreateBillResult {
 export class BillingApplicationService {
   private repository: FinanceRepository;
   private stayRepository: StayRepository;
+  private ledgerService: LedgerApplicationService;
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository()
+    stayRepository: StayRepository = new InMemoryStayRepository(),
+    ledgerService?: LedgerApplicationService
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
+    this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
   }
 
   /**
@@ -106,7 +109,7 @@ export class BillingApplicationService {
     const billId = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE
-    const ledgerResult = ledgerService.postEntries([
+    const ledgerResult = this.ledgerService.postEntries([
       {
         stayId: billPayload.stayId,
         postingDate: now.split('T')[0],
@@ -217,10 +220,7 @@ export class BillingApplicationService {
       };
     }
 
-    let stay = (this.stayRepository as InMemoryStayRepository).findByIdSync(stayId);
-    if (!stay) {
-      stay = new InMemoryStayRepository().findByIdSync(stayId);
-    }
+    const stay = this.stayRepository.findByIdSync(stayId);
     const rentAmount = stay ? stay.agreedRent : 0;
 
     if (!stay || rentAmount <= 0) {

@@ -7,23 +7,47 @@ export const STORAGE_KEYS = {
   SETTLEMENTS: 'rpgms_settlements',
 } as const;
 
+const memoryStore = new Map<string, string>();
+
+function getItem(key: string): string | null {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      // fallback
+    }
+  }
+  return memoryStore.get(key) ?? null;
+}
+
+function setItem(key: string, value: string): void {
+  memoryStore.set(key, value);
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // fallback
+    }
+  }
+}
+
 export const financeStorage = {
   /**
-   * Initialize finance storage keys if not present in localStorage.
+   * Initialize finance storage keys if not present in storage.
    */
   initializeFinanceStorage(): void {
     try {
-      if (!localStorage.getItem(STORAGE_KEYS.LEDGER_ENTRIES)) {
-        localStorage.setItem(STORAGE_KEYS.LEDGER_ENTRIES, JSON.stringify([]));
+      if (!getItem(STORAGE_KEYS.LEDGER_ENTRIES)) {
+        setItem(STORAGE_KEYS.LEDGER_ENTRIES, JSON.stringify([]));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.BILLS)) {
-        localStorage.setItem(STORAGE_KEYS.BILLS, JSON.stringify([]));
+      if (!getItem(STORAGE_KEYS.BILLS)) {
+        setItem(STORAGE_KEYS.BILLS, JSON.stringify([]));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.PAYMENTS)) {
-        localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+      if (!getItem(STORAGE_KEYS.PAYMENTS)) {
+        setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.SETTLEMENTS)) {
-        localStorage.setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify([]));
+      if (!getItem(STORAGE_KEYS.SETTLEMENTS)) {
+        setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify([]));
       }
     } catch (error) {
       console.error('Failed to initialize finance storage:', error);
@@ -31,11 +55,11 @@ export const financeStorage = {
   },
 
   /**
-   * Read raw ledger entries array from localStorage.
+   * Read raw ledger entries array from storage.
    */
   getStoredLedgerEntries(): LedgerEntry[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LEDGER_ENTRIES);
+      const saved = getItem(STORAGE_KEYS.LEDGER_ENTRIES);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -43,22 +67,22 @@ export const financeStorage = {
   },
 
   /**
-   * Persist ledger entries array to localStorage.
+   * Persist ledger entries array to storage.
    */
   saveStoredLedgerEntries(entries: LedgerEntry[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.LEDGER_ENTRIES, JSON.stringify(entries));
+      setItem(STORAGE_KEYS.LEDGER_ENTRIES, JSON.stringify(entries));
     } catch (error) {
       console.error('Failed to save ledger entries:', error);
     }
   },
 
   /**
-   * Read raw bills array from localStorage.
+   * Read raw bills array from storage.
    */
   getStoredBills(): Bill[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.BILLS);
+      const saved = getItem(STORAGE_KEYS.BILLS);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -66,22 +90,22 @@ export const financeStorage = {
   },
 
   /**
-   * Persist bills array to localStorage.
+   * Persist bills array to storage.
    */
   saveStoredBills(bills: Bill[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.BILLS, JSON.stringify(bills));
+      setItem(STORAGE_KEYS.BILLS, JSON.stringify(bills));
     } catch (error) {
       console.error('Failed to save bills:', error);
     }
   },
 
   /**
-   * Read raw payments array from localStorage.
+   * Read raw payments array from storage.
    */
   getStoredPayments(): Payment[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PAYMENTS);
+      const saved = getItem(STORAGE_KEYS.PAYMENTS);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -89,22 +113,22 @@ export const financeStorage = {
   },
 
   /**
-   * Persist payments array to localStorage.
+   * Persist payments array to storage.
    */
   saveStoredPayments(payments: Payment[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+      setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
     } catch (error) {
       console.error('Failed to save payments:', error);
     }
   },
 
   /**
-   * Read raw settlements array from localStorage.
+   * Read raw settlements array from storage.
    */
   getStoredSettlements(): Settlement[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SETTLEMENTS);
+      const saved = getItem(STORAGE_KEYS.SETTLEMENTS);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -112,11 +136,11 @@ export const financeStorage = {
   },
 
   /**
-   * Persist settlements array to localStorage.
+   * Persist settlements array to storage.
    */
   saveStoredSettlements(settlements: Settlement[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify(settlements));
+      setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify(settlements));
     } catch (error) {
       console.error('Failed to save settlements:', error);
     }

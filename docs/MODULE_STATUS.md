@@ -2,7 +2,7 @@
 
 # Module Status
 
-**Document Version:** 3.0  
+**Document Version:** 3.1
 **Status:** Active  
 **Last Updated:** August 2026
 
@@ -423,7 +423,7 @@ The Admission Module is responsible for validating admission readiness, allocati
 
 **Status:** 🔵 Active Development
 
-**State:** Active Capability (CR-3)
+**State:** Active Capability (CR-3 / Sprint FR-4)
 
 ## Purpose
 

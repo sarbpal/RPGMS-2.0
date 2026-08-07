@@ -1,10 +1,24 @@
 import type { FinanceTimelineEvent, TimelineSummary } from '../types';
-import { billingService } from './billingService';
-import { paymentService } from './paymentService';
-import { settlementService } from './settlementService';
+import { billingService as defaultBillingService, BillingApplicationService } from './billingService';
+import { paymentService as defaultPaymentService, PaymentApplicationService } from './paymentService';
+import { settlementService as defaultSettlementService, SettlementApplicationService } from './settlementService';
 import { balanceEngine } from './balanceEngine';
 
-export const timelineService = {
+export class TimelineApplicationService {
+  private billingService: BillingApplicationService;
+  private paymentService: PaymentApplicationService;
+  private settlementService: SettlementApplicationService;
+
+  constructor(
+    billingService: BillingApplicationService = defaultBillingService,
+    paymentService: PaymentApplicationService = defaultPaymentService,
+    settlementService: SettlementApplicationService = defaultSettlementService
+  ) {
+    this.billingService = billingService;
+    this.paymentService = paymentService;
+    this.settlementService = settlementService;
+  }
+
   /**
    * Return a single chronological list of financial events (Bills, Payments, Settlements) for a Stay.
    * Sorted newest first.
@@ -13,13 +27,13 @@ export const timelineService = {
    * @param stayId Target Stay ID
    * @returns Array of FinanceTimelineEvent objects
    */
-  getTimelineForStay(stayId: string): FinanceTimelineEvent[] {
+  public getTimelineForStay(stayId: string): FinanceTimelineEvent[] {
     if (!stayId || stayId.trim() === '') return [];
 
     const events: FinanceTimelineEvent[] = [];
 
     // 1. Bills
-    const bills = billingService.getBillsByStayId(stayId);
+    const bills = this.billingService.getBillsByStayId(stayId);
     bills.forEach((b) => {
       events.push({
         id: `evt_bill_${b.id}`,
@@ -40,7 +54,7 @@ export const timelineService = {
     });
 
     // 2. Payments
-    const payments = paymentService.getPaymentsByStayId(stayId);
+    const payments = this.paymentService.getPaymentsByStayId(stayId);
     payments.forEach((p) => {
       events.push({
         id: `evt_pay_${p.id}`,
@@ -60,7 +74,7 @@ export const timelineService = {
     });
 
     // 3. Settlement
-    const settlement = settlementService.getSettlementByStayId(stayId);
+    const settlement = this.settlementService.getSettlementByStayId(stayId);
     if (settlement) {
       events.push({
         id: `evt_stl_${settlement.id}`,
@@ -81,7 +95,7 @@ export const timelineService = {
 
     // Sort newest first
     return events.sort((a, b) => b.date.getTime() - a.date.getTime());
-  },
+  }
 
   /**
    * Return latest financial events across all stays.
@@ -90,10 +104,10 @@ export const timelineService = {
    * @param limit Maximum number of activity events to return (default: 10)
    * @returns Array of recent FinanceTimelineEvent objects
    */
-  getRecentFinanceActivity(limit = 10): FinanceTimelineEvent[] {
+  public getRecentFinanceActivity(limit = 10): FinanceTimelineEvent[] {
     const events: FinanceTimelineEvent[] = [];
 
-    const bills = billingService.getAllBills();
+    const bills = this.billingService.getAllBills();
     bills.forEach((b) => {
       events.push({
         id: `evt_bill_${b.id}`,
@@ -108,7 +122,7 @@ export const timelineService = {
       });
     });
 
-    const payments = paymentService.getAllPayments();
+    const payments = this.paymentService.getAllPayments();
     payments.forEach((p) => {
       events.push({
         id: `evt_pay_${p.id}`,
@@ -123,7 +137,7 @@ export const timelineService = {
       });
     });
 
-    const settlements = settlementService.getAllSettlements();
+    const settlements = this.settlementService.getAllSettlements();
     settlements.forEach((s) => {
       events.push({
         id: `evt_stl_${s.id}`,
@@ -139,7 +153,7 @@ export const timelineService = {
     });
 
     return events.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, limit);
-  },
+  }
 
   /**
    * Return a summary of financial metrics and counts for a Stay.
@@ -148,7 +162,7 @@ export const timelineService = {
    * @param stayId Target Stay ID
    * @returns TimelineSummary object
    */
-  getTimelineSummary(stayId: string): TimelineSummary {
+  public getTimelineSummary(stayId: string): TimelineSummary {
     if (!stayId || stayId.trim() === '') {
       return {
         totalBillsCount: 0,
@@ -161,9 +175,9 @@ export const timelineService = {
     }
 
     const balances = balanceEngine.calculateStayBalances(stayId);
-    const bills = billingService.getBillsByStayId(stayId);
-    const payments = paymentService.getPaymentsByStayId(stayId);
-    const settlement = settlementService.getSettlementByStayId(stayId);
+    const bills = this.billingService.getBillsByStayId(stayId);
+    const payments = this.paymentService.getPaymentsByStayId(stayId);
+    const settlement = this.settlementService.getSettlementByStayId(stayId);
 
     return {
       totalBillsCount: bills.length,
@@ -173,5 +187,7 @@ export const timelineService = {
       securityDepositHeld: balances.securityDepositHeld,
       settlementStatus: settlement ? 'SETTLED' : 'NONE',
     };
-  },
-};
+  }
+}
+
+export const timelineService = new TimelineApplicationService();

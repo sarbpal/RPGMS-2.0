@@ -2,8 +2,6 @@ import type { LedgerEntry, LedgerReferenceType, FinanceRepository } from '../dom
 import { AccountType, validateDoubleEntry } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
-import { billingService } from './billingService';
-import { paymentService } from './paymentService';
 
 export interface PostEntriesResult {
   success: boolean;
@@ -35,11 +33,23 @@ export interface ResidentLedgerViewModel {
   totalCredits: number;
 }
 
+import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
+import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+
 export class LedgerApplicationService {
   private repository: FinanceRepository;
+  private stayRepository: StayRepository;
 
-  constructor(repository: FinanceRepository = defaultFinanceRepository) {
+  constructor(
+    repository: FinanceRepository = defaultFinanceRepository,
+    stayRepository: StayRepository = new InMemoryStayRepository()
+  ) {
     this.repository = repository;
+    this.stayRepository = stayRepository;
+  }
+
+  public getStayRepository(): StayRepository {
+    return this.stayRepository;
   }
 
 
@@ -233,8 +243,8 @@ export class LedgerApplicationService {
       };
     }
 
-    const bills = billingService.getBillsByStayId(stayId);
-    const payments = paymentService.getPaymentsByStayId(stayId);
+    const bills = this.repository.getBillsByStayId(stayId);
+    const payments = this.repository.getPaymentsByStayId(stayId);
     const balances = balanceEngine.calculateStayBalances(stayId);
 
     const rawRows: Omit<ResidentLedgerRow, 'runningBalance'>[] = [];

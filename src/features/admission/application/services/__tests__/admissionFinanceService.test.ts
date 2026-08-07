@@ -82,13 +82,13 @@ describe('Sprint FR-2 — Admission & Rent Billing Integration Test Suite', () =
     financeStorage.saveStoredPayments([]);
     financeStorage.saveStoredSettlements([]);
 
-    reservationRepo = new InMemoryReservationRepository();
-    residentRepo = new InMemoryResidentRepository();
-    stayRepo = new InMemoryStayRepository();
+    reservationRepo = new InMemoryReservationRepository([]);
+    residentRepo = new InMemoryResidentRepository([]);
+    stayRepo = new InMemoryStayRepository([]);
     accommodationRepo = new InMemoryAccommodationRepository([sampleFlat]);
     accommodationRepo.save(sampleFlat);
 
-    financeService = new AdmissionFinanceService(defaultFinanceRepository);
+    financeService = new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
     coordinator = new AdmissionCoordinator(
       reservationRepo,
       residentRepo,

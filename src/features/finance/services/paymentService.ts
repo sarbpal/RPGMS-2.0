@@ -8,11 +8,11 @@ import type {
 } from '../domain';
 import { AccountType } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
-import { ledgerService } from './ledgerService';
 import { balanceEngine } from './balanceEngine';
-import { billingService } from './billingService';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { BillingApplicationService } from './billingService';
+import { LedgerApplicationService } from './ledgerService';
 
 export interface RecordPaymentResult {
   success: boolean;
@@ -23,13 +23,23 @@ export interface RecordPaymentResult {
 export class PaymentApplicationService {
   private repository: FinanceRepository;
   private stayRepository: StayRepository;
+  private billingService: BillingApplicationService;
+  private ledgerService: LedgerApplicationService;
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository()
+    stayRepository: StayRepository = new InMemoryStayRepository(),
+    billingService?: BillingApplicationService,
+    ledgerService?: LedgerApplicationService
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
+    this.billingService = billingService ?? new BillingApplicationService(repository, stayRepository);
+    this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
+  }
+
+  public getStayRepository(): StayRepository {
+    return this.stayRepository;
   }
 
   /**
@@ -65,12 +75,6 @@ export class PaymentApplicationService {
 
     if (!paymentPayload.stayId || paymentPayload.stayId.trim() === '') {
       errors.push('Missing or invalid stayId.');
-    }
-
-    // Use stayRepository lookup if needed for validation
-    const stay = (this.stayRepository as InMemoryStayRepository).findByIdSync(paymentPayload.stayId);
-    if (!stay && !(new InMemoryStayRepository().findByIdSync(paymentPayload.stayId))) {
-      // Stay ID not found - optional check or allowed for test stubs
     }
 
     if (typeof paymentPayload.amount !== 'number' || isNaN(paymentPayload.amount) || paymentPayload.amount <= 0) {
@@ -158,7 +162,7 @@ export class PaymentApplicationService {
     }
 
     // 4. Post balanced ledger entries via ledgerService
-    const postingResult = ledgerService.postEntries(ledgerEntriesData);
+    const postingResult = this.ledgerService.postEntries(ledgerEntriesData);
     if (!postingResult.success) {
       return {
         success: false,
@@ -170,7 +174,7 @@ export class PaymentApplicationService {
     // 5. Allocate receivable portion across open bills via billingService
     let allocations: PaymentAllocation[] = [];
     if (receivablePortion > 0) {
-      allocations = billingService.allocatePaymentToBills(
+      allocations = this.billingService.allocatePaymentToBills(
         paymentPayload.stayId,
         receivablePortion
       );

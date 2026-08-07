@@ -9,6 +9,7 @@ import { ResidentStatus } from '../../../../resident/domain/valueObjects/Residen
 import type { AdmissionDraft } from '../../models/AdmissionDraft';
 import type { Flat } from '../../../../accommodation/domain/entities/Flat';
 import type { Resident } from '../../../../resident/domain/entities/Resident';
+import { financeStorage } from '../../../../finance/storage/financeStorage';
 
 describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
   let reservationRepo: InMemoryReservationRepository;
@@ -56,6 +57,11 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
   };
 
   beforeEach(() => {
+    financeStorage.saveStoredLedgerEntries([]);
+    financeStorage.saveStoredBills([]);
+    financeStorage.saveStoredPayments([]);
+    financeStorage.saveStoredSettlements([]);
+
     reservationRepo = new InMemoryReservationRepository([]);
     residentRepo = new InMemoryResidentRepository([]);
     stayRepo = new InMemoryStayRepository([]);

@@ -616,6 +616,45 @@ or
   
 ---
 
+## Application Layer Patterns
+
+The Application Layer establishes three explicit architectural patterns based on operational scope and transactional responsibilities:
+
+### 1. Single-Domain Use Case
+
+Use when:
+- Executing a focused business operation within a single bounded context.
+- Operating primarily through a single domain or application repository.
+- Examples include creating, updating, cancelling, or fetching a reservation (`ReservationUseCases`).
+
+### 2. Workspace Coordinator
+
+Use when:
+- Preparing aggregated read and View Model presentation data for complex UI pages.
+- Coordinating read-heavy presentation state across UI components.
+- Combining information for workspace rendering without executing cross-domain business transactions (e.g. `ReservationWorkspaceCoordinator`, `ResidentWorkspaceCoordinator`).
+
+### 3. Cross-Domain Workflow Coordinator
+
+Use when:
+- Orchestrating state-changing business workflows across multiple bounded contexts.
+- Coordinating multiple repositories across aggregate boundaries.
+- Maintaining workflow sequencing, prerequisite validation, and failure handling.
+
+`AdmissionCoordinator` is the canonical example, orchestrating `Reservation`, `Resident`, `Stay`, and `Accommodation`.
+
+---
+
+## Application Transactional Boundaries & MVP Execution
+
+Cross-domain workflow execution managed by Coordinators enforces atomic transactional boundaries:
+
+- **MVP Implementation Strategy**: In-memory repositories utilize snapshot pre-commit recording and compensating cleanup (reverting snapshots and deleting transiently generated entities) upon mid-workflow failure.
+- **Production Backend Evolution**: Future Supabase/PostgreSQL persistence shall replace in-memory compensating cleanup with database transaction semantics (PostgreSQL ACID transaction blocks) where appropriate.
+- **Architectural Stability**: Regardless of underlying persistence mechanisms, the Coordinator remains the authoritative Application Layer orchestration boundary.
+
+---
+
 ## Coordinators
 
 Where a workflow spans multiple business domains, the Application Layer may define a Coordinator.

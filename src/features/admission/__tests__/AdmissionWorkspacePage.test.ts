@@ -152,4 +152,90 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
     expect(updatedReservation.convertedResidentId).toBe(result.residentId);
     expect(updatedReservation.convertedStayId).toBe(result.stayId);
   });
+
+  describe('Sprint RA-6.1 — Converted Reservation Operational Guard', () => {
+    it('evaluates isReservationValid: false and isReadyToConfirm: false when reservation status is CONVERTED', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const coordinator = new AdmissionCoordinator(resRepo);
+
+      const convertedRes: Reservation = {
+        ...mockReservations[0],
+        status: ReservationStatus.CONVERTED,
+        convertedResidentId: 'res-000001',
+        convertedStayId: 'stay-000001',
+      };
+
+      const draft: AdmissionDraft = {
+        reservationId: convertedRes.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: 'flat-101',
+        bedIds: ['bed-101-a'],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      const readiness = coordinator.evaluateReadiness(draft, convertedRes);
+      expect(readiness.isReservationValid).toBe(false);
+      expect(readiness.isReadyToConfirm).toBe(false);
+      expect(readiness.validationMessages).toContain(
+        `Reservation ${convertedRes.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`
+      );
+    });
+
+    it('rejects confirmReservedAdmission() when reservation status is CONVERTED', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const coordinator = new AdmissionCoordinator(resRepo);
+
+      const convertedRes: Reservation = {
+        ...mockReservations[0],
+        status: ReservationStatus.CONVERTED,
+        convertedResidentId: 'res-000001',
+        convertedStayId: 'stay-000001',
+      };
+
+      const draft: AdmissionDraft = {
+        reservationId: convertedRes.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+      };
+
+      expect(() => coordinator.confirmReservedAdmission(draft, convertedRes)).toThrow(
+        'Admission readiness check failed'
+      );
+    });
+
+    it('validates traceability path construction for valid convertedResidentId vs safely missing convertedResidentId', () => {
+      const validConverted: Reservation = {
+        ...mockReservations[0],
+        status: ReservationStatus.CONVERTED,
+        convertedResidentId: 'res-000001',
+        convertedStayId: 'stay-000001',
+      };
+
+      const missingConvertedId: Reservation = {
+        ...mockReservations[0],
+        status: ReservationStatus.CONVERTED,
+        convertedResidentId: undefined,
+        convertedStayId: undefined,
+      };
+
+      // 1. Valid convertedResidentId produces correct path string
+      const validNavPath = validConverted.convertedResidentId
+        ? `/resident/${validConverted.convertedResidentId}`
+        : null;
+      expect(validNavPath).toBe('/resident/res-000001');
+
+      // 2. Missing convertedResidentId produces null path without invalid /resident/undefined string
+      const safeNavPath = missingConvertedId.convertedResidentId
+        ? `/resident/${missingConvertedId.convertedResidentId}`
+        : null;
+      expect(safeNavPath).toBeNull();
+    });
+  });
 });

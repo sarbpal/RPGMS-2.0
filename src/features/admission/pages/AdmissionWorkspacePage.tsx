@@ -3,9 +3,12 @@ import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Container, Stack, Grid, Link, Paper, Typography, Button, Box, Alert, Snackbar } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PersonIcon from '@mui/icons-material/Person';
 import { ReservationUseCases } from '../../reservation/application/useCases/ReservationUseCases';
 import { InMemoryReservationRepository } from '../../reservation/infrastructure/repositories/InMemoryReservationRepository';
 import type { Reservation } from '../../reservation/domain/entities/Reservation';
+import { ReservationStatus } from '../../reservation/domain/valueObjects/ReservationStatus';
 import { AdmissionHeader } from '../components/AdmissionHeader';
 import { AdmissionSummaryCard } from '../components/AdmissionSummaryCard';
 import { AdmissionReadinessPanel } from '../components/AdmissionReadinessPanel';
@@ -204,6 +207,48 @@ export const AdmissionWorkspacePage: React.FC = () => {
           <ArrowBackIcon sx={{ fontSize: '1.1rem' }} />
           Back to Reservation ({reservation.reservationNumber})
         </Link>
+
+        {/* Operational Guard for Already Converted Reservation */}
+        {reservation.status === ReservationStatus.CONVERTED && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 2,
+              border: '1px solid #0284c7',
+              bgcolor: '#f0f9ff',
+            }}
+          >
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <CheckCircleIcon sx={{ color: '#0284c7' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#0369a1' }}>
+                  Reservation Already Converted
+                </Typography>
+              </Stack>
+              <Typography variant="body2" sx={{ color: '#0c4a6e' }}>
+                This reservation ({reservation.reservationNumber}) has already been converted into an active Resident Admission and cannot be admitted again.
+              </Typography>
+              <Box sx={{ pt: 0.5 }}>
+                {reservation.convertedResidentId ? (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate(`/resident/${reservation.convertedResidentId}`)}
+                    startIcon={<PersonIcon />}
+                    sx={{ fontWeight: 700, textTransform: 'none' }}
+                  >
+                    View Created Resident Workspace
+                  </Button>
+                ) : (
+                  <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
+                    Associated Resident ID is not available on this converted reservation record.
+                  </Alert>
+                )}
+              </Box>
+            </Stack>
+          </Paper>
+        )}
 
         {/* Lightweight Success Toast */}
         <Snackbar

@@ -1,5 +1,7 @@
-import { Box, Chip, Paper, Typography } from '@mui/material';
+import { Box, Chip, Paper, Typography, Button } from '@mui/material';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import { useNavigate } from 'react-router-dom';
 
 interface ReservationsToolbarProps {
   totalCount: number;
@@ -10,6 +12,8 @@ export function ReservationsToolbar({
   totalCount,
   activeCount,
 }: ReservationsToolbarProps) {
+  const navigate = useNavigate();
+
   return (
     <Paper
       elevation={0}
@@ -45,6 +49,15 @@ export function ReservationsToolbar({
           size="small"
           variant="outlined"
         />
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PersonAddIcon />}
+          onClick={() => navigate('/admission/walk-in')}
+          sx={{ fontWeight: 700, textTransform: 'none', ml: 1 }}
+        >
+          Walk-in Admission
+        </Button>
       </Box>
     </Paper>
   );

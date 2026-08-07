@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { Container, Stack, Grid, Link, Paper, Typography, Button, Box, Alert, Snackbar } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -13,6 +13,7 @@ import { AdmissionHeader } from '../components/AdmissionHeader';
 import { AdmissionSummaryCard } from '../components/AdmissionSummaryCard';
 import { AdmissionReadinessPanel } from '../components/AdmissionReadinessPanel';
 import { SourceReservationCard } from '../components/SourceReservationCard';
+import { WalkInSourceCard } from '../components/WalkInSourceCard';
 import { ProspectDetailsCard } from '../components/ProspectDetailsCard';
 import { CommercialTermsCard } from '../components/CommercialTermsCard';
 import { AccommodationSelectionCard } from '../components/AccommodationSelectionCard';
@@ -27,7 +28,10 @@ import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/I
 
 export const AdmissionWorkspacePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const isWalkIn = !id;
 
   const reservationRepo = useMemo(() => new InMemoryReservationRepository(), []);
   const residentRepo = useMemo(() => new InMemoryResidentRepository(), []);
@@ -49,10 +53,10 @@ export const AdmissionWorkspacePage: React.FC = () => {
     return reservationUseCases.getReservationByIdSync(id);
   }, [id, reservationUseCases]);
 
-  // Temporary Workspace Preparation State ONLY
+  // Workspace Preparation State
   const [fullName, setFullName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [checkInDate, setCheckInDate] = useState('');
+  const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [agreedRent, setAgreedRent] = useState<number>(0);
   const [agreedDeposit, setAgreedDeposit] = useState<number>(0);
   const [flatId, setFlatId] = useState<string | undefined>(undefined);
@@ -63,18 +67,32 @@ export const AdmissionWorkspacePage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  // Pre-populate state from reservation or query params
   useEffect(() => {
     if (reservation) {
       setFullName(reservation.prospectName || '');
       setMobileNumber(reservation.mobileNumber || '');
-      setCheckInDate(reservation.expectedJoiningDate || '');
+      setCheckInDate(reservation.expectedJoiningDate || new Date().toISOString().split('T')[0]);
       setAgreedRent(reservation.expectedMonthlyRent || 0);
       setAgreedDeposit(reservation.expectedSecurityDeposit || 0);
     }
   }, [reservation]);
 
+  // Pre-populate accommodation from query parameters (Direct Admission from Vacant Bed Context)
+  useEffect(() => {
+    const flatIdParam = searchParams.get('flatId');
+    const bedIdParam = searchParams.get('bedId');
+    if (flatIdParam) {
+      setFlatId(flatIdParam);
+    }
+    if (bedIdParam) {
+      setBedIds([bedIdParam]);
+    }
+  }, [searchParams]);
+
   const draft: AdmissionDraft = useMemo(
     () => ({
+      sourceType: isWalkIn ? 'WALK_IN' : 'RESERVATION',
       reservationId: reservation?.id,
       residentName: fullName,
       mobileNumber,
@@ -85,12 +103,17 @@ export const AdmissionWorkspacePage: React.FC = () => {
       bedIds,
       tokenDisposition,
     }),
-    [reservation?.id, fullName, mobileNumber, checkInDate, agreedRent, agreedDeposit, flatId, bedIds, tokenDisposition]
+    [isWalkIn, reservation?.id, fullName, mobileNumber, checkInDate, agreedRent, agreedDeposit, flatId, bedIds, tokenDisposition]
   );
 
+  const duplicateCheckStatus = useMemo(() => {
+    if (!mobileNumber) return undefined;
+    return admissionCoordinator.checkDuplicateResidentMobile(mobileNumber);
+  }, [admissionCoordinator, mobileNumber]);
+
   const readiness = useMemo(() => {
-    return admissionCoordinator.evaluateReadiness(draft, reservation);
-  }, [admissionCoordinator, draft, reservation]);
+    return admissionCoordinator.evaluateReadiness(draft, reservation, isWalkIn ? 'WALK_IN' : 'RESERVATION');
+  }, [admissionCoordinator, draft, reservation, isWalkIn]);
 
   const selectedFlat = useMemo(() => {
     if (!flatId) return null;
@@ -111,15 +134,16 @@ export const AdmissionWorkspacePage: React.FC = () => {
   };
 
   const handleCompleteAdmission = () => {
-    if (!reservation) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const result = admissionCoordinator.confirmReservedAdmission(draft, reservation);
+      const result = isWalkIn
+        ? admissionCoordinator.confirmWalkInAdmission(draft)
+        : admissionCoordinator.confirmReservedAdmission(draft, reservation!);
+
       setSuccessToast(`Admission Completed! Created ${result.residentCode}. Redirecting...`);
       
-      // Lightweight uninterrupted hand-off to Resident Workspace (Refinement #4)
       setTimeout(() => {
         navigate(`/resident/${result.residentId}`);
       }, 750);
@@ -137,7 +161,8 @@ export const AdmissionWorkspacePage: React.FC = () => {
     }
   };
 
-  if (!reservation) {
+  // If loading a non-existent reservation ID in reservation-based mode
+  if (!isWalkIn && !reservation) {
     return (
       <Container maxWidth="xl" sx={{ pt: 10, pb: 4 }}>
         <Stack spacing={2.5}>
@@ -191,7 +216,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
         {/* Navigation Link */}
         <Link
           component={RouterLink}
-          to={`/reservations/${reservation.id}`}
+          to={isWalkIn ? '/reservations' : `/reservations/${reservation?.id}`}
           underline="hover"
           color="text.secondary"
           sx={{
@@ -205,11 +230,11 @@ export const AdmissionWorkspacePage: React.FC = () => {
           }}
         >
           <ArrowBackIcon sx={{ fontSize: '1.1rem' }} />
-          Back to Reservation ({reservation.reservationNumber})
+          {isWalkIn ? 'Back to Reservations' : `Back to Reservation (${reservation?.reservationNumber})`}
         </Link>
 
         {/* Operational Guard for Already Converted Reservation */}
-        {reservation.status === ReservationStatus.CONVERTED && (
+        {reservation && reservation.status === ReservationStatus.CONVERTED && (
           <Paper
             elevation={0}
             sx={{
@@ -270,7 +295,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
 
         {/* Operational Workspace Top Block */}
         <Stack spacing={2}>
-          <AdmissionHeader reservation={reservation} isReady={readiness.isReadyToConfirm} />
+          <AdmissionHeader reservation={reservation} isReady={readiness.isReadyToConfirm} isWalkIn={isWalkIn} />
           <AdmissionSummaryCard
             reservation={reservation}
             readiness={readiness}
@@ -280,14 +305,16 @@ export const AdmissionWorkspacePage: React.FC = () => {
             agreedDeposit={agreedDeposit}
             checkInDate={checkInDate}
             tokenDisposition={tokenDisposition}
+            prospectName={fullName}
+            isWalkIn={isWalkIn}
           />
-          <AdmissionReadinessPanel readiness={readiness} />
+          <AdmissionReadinessPanel readiness={readiness} isWalkIn={isWalkIn} />
         </Stack>
 
         {/* Information Cards Grid */}
         <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <SourceReservationCard reservation={reservation} />
+            {isWalkIn ? <WalkInSourceCard /> : <SourceReservationCard reservation={reservation!} />}
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <ProspectDetailsCard
@@ -295,6 +322,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
               mobileNumber={mobileNumber}
               onChangeFullName={setFullName}
               onChangeMobileNumber={setMobileNumber}
+              duplicateCheckStatus={duplicateCheckStatus}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -315,17 +343,20 @@ export const AdmissionWorkspacePage: React.FC = () => {
               onChangeBedIds={setBedIds}
             />
           </Grid>
-          <Grid size={{ xs: 12 }}>
-            <TokenReviewCard
-              tokenAmount={reservation.tokenAmount}
-              tokenReceivedOn={reservation.tokenReceivedOn}
-              tokenRemarks={reservation.tokenRemarks}
-              disposition={tokenDisposition}
-              agreedRent={agreedRent}
-              agreedDeposit={agreedDeposit}
-              onChangeDisposition={setTokenDisposition}
-            />
-          </Grid>
+
+          {!isWalkIn && reservation && (
+            <Grid size={{ xs: 12 }}>
+              <TokenReviewCard
+                tokenAmount={reservation.tokenAmount}
+                tokenReceivedOn={reservation.tokenReceivedOn}
+                tokenRemarks={reservation.tokenRemarks}
+                disposition={tokenDisposition}
+                agreedRent={agreedRent}
+                agreedDeposit={agreedDeposit}
+                onChangeDisposition={setTokenDisposition}
+              />
+            </Grid>
+          )}
         </Grid>
 
         {/* Operational Action Panel */}

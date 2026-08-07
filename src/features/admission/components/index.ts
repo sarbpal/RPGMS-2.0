@@ -8,3 +8,5 @@ export * from './AccommodationSelectionCard';
 export * from './TokenReviewCard';
 export * from './TokenAdjustmentPreview';
 export * from './AdmissionActionsCard';
+export * from './WalkInSourceCard';
+

@@ -8,7 +8,7 @@ import { formatTokenDispositionLabel } from '../domain/valueObjects/TokenDisposi
 import type { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
 
 interface AdmissionSummaryCardProps {
-  reservation: Reservation;
+  reservation?: Reservation | null;
   readiness: AdmissionReadiness;
   selectedFlatName?: string;
   selectedBedNames?: string[];
@@ -16,6 +16,8 @@ interface AdmissionSummaryCardProps {
   agreedDeposit: number;
   checkInDate: string;
   tokenDisposition?: TokenDisposition;
+  prospectName?: string;
+  isWalkIn?: boolean;
 }
 
 export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
@@ -27,6 +29,8 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
   agreedDeposit,
   checkInDate,
   tokenDisposition,
+  prospectName,
+  isWalkIn,
 }) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Not Specified';
@@ -52,9 +56,13 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
     ? `${selectedFlatName} (${selectedBedNames.join(', ')})`
     : 'Pending Selection';
 
-  const tokenChoiceDisplay = reservation.tokenAmount && reservation.tokenAmount > 0
-    ? (tokenDisposition ? formatTokenDispositionLabel(tokenDisposition) : 'Pending Choice')
-    : 'No Token';
+  const displayName = prospectName || reservation?.prospectName || 'Walk-in Prospect';
+
+  const tokenChoiceDisplay = isWalkIn || !reservation
+    ? 'N/A (Walk-in)'
+    : (reservation.tokenAmount && reservation.tokenAmount > 0
+        ? (tokenDisposition ? formatTokenDispositionLabel(tokenDisposition) : 'Pending Choice')
+        : 'No Token');
 
   return (
     <Card
@@ -77,7 +85,7 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
               Prospect Name
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5, color: '#0f172a' }}>
-              {reservation.prospectName}
+              {displayName}
             </Typography>
           </Grid>
 
@@ -86,7 +94,7 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
               Target Check-in Date
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5, color: '#0f172a' }}>
-              {formatDate(checkInDate || reservation.expectedJoiningDate)}
+              {formatDate(checkInDate || reservation?.expectedJoiningDate || '')}
             </Typography>
           </Grid>
 

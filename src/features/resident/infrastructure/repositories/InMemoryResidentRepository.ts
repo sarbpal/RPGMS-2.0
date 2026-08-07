@@ -40,7 +40,7 @@ export class InMemoryResidentRepository implements ResidentRepository {
       .map((r) => ({ ...r }));
   }
 
-  public async save(resident: Resident): Promise<Resident> {
+  public saveSync(resident: Resident): Resident {
     const existingIndex = this.residents.findIndex((r) => r.id === resident.id);
     if (existingIndex >= 0) {
       this.residents[existingIndex] = { ...resident };
@@ -48,6 +48,10 @@ export class InMemoryResidentRepository implements ResidentRepository {
       this.residents.push({ ...resident });
     }
     return { ...resident };
+  }
+
+  public async save(resident: Resident): Promise<Resident> {
+    return this.saveSync(resident);
   }
 
   public async update(resident: Resident): Promise<Resident> {

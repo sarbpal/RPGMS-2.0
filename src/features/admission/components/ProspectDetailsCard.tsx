@@ -1,5 +1,4 @@
-import React from 'react';
-import { Card, CardContent, Divider, Grid, Stack, Typography, TextField } from '@mui/material';
+import { Card, CardContent, Divider, Grid, Stack, Typography, TextField, Alert } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 
 interface ProspectDetailsCardProps {
@@ -7,6 +6,11 @@ interface ProspectDetailsCardProps {
   mobileNumber: string;
   onChangeFullName: (name: string) => void;
   onChangeMobileNumber: (mobile: string) => void;
+  duplicateCheckStatus?: {
+    status: 'ACTIVE_BLOCK' | 'ON_NOTICE_BLOCK' | 'REUSE_ALLOW' | 'NEW';
+    existingResident?: { residentCode: string; fullName: string };
+    message?: string;
+  };
 }
 
 export const ProspectDetailsCard: React.FC<ProspectDetailsCardProps> = ({
@@ -14,6 +18,7 @@ export const ProspectDetailsCard: React.FC<ProspectDetailsCardProps> = ({
   mobileNumber,
   onChangeFullName,
   onChangeMobileNumber,
+  duplicateCheckStatus,
 }) => {
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, height: '100%' }}>
@@ -48,6 +53,19 @@ export const ProspectDetailsCard: React.FC<ProspectDetailsCardProps> = ({
               />
             </Grid>
           </Grid>
+
+          {duplicateCheckStatus && duplicateCheckStatus.status !== 'NEW' && (
+            <Alert
+              severity={
+                duplicateCheckStatus.status === 'ACTIVE_BLOCK' || duplicateCheckStatus.status === 'ON_NOTICE_BLOCK'
+                  ? 'error'
+                  : 'info'
+              }
+              sx={{ borderRadius: 1.5, py: 0.5, fontSize: '0.8125rem' }}
+            >
+              {duplicateCheckStatus.message}
+            </Alert>
+          )}
 
           <Divider />
 

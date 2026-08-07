@@ -18,7 +18,9 @@ import {
   Hotel as HotelIcon,
   Lock as LockIcon,
   LockOpen as UnlockIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 import type { Bed } from '../domain';
 import { BedStatus, canBlockBed, canCompleteMaintenance, canStartMaintenance, canUnblockBed } from '../domain';
@@ -48,6 +50,7 @@ export function BedDetailsDialog({
   onStartMaintenance,
   onCompleteMaintenance,
 }: BedDetailsDialogProps) {
+  const navigate = useNavigate();
   if (!bed) return null;
 
   const getStatusChip = (status: BedStatus) => {
@@ -164,6 +167,19 @@ export function BedDetailsDialog({
               </Alert>
             ) : (
               <Stack spacing={1.5}>
+                {bed.status === BedStatus.VACANT && flatId && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => handleAction(() => navigate(`/admission/walk-in?flatId=${flatId}&bedId=${bed.id}`))}
+                    fullWidth
+                    sx={{ justifyContent: 'flex-start', fontWeight: 700 }}
+                  >
+                    Direct Admission (Walk-in)
+                  </Button>
+                )}
+
                 {blockCheck.allowed && flatId && (
                   <Button
                     variant="outlined"

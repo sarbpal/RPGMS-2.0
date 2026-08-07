@@ -488,10 +488,55 @@ Examples include:
 
 This ensures a consistent Application Layer architecture throughout the system.
 
+## ADR-015 — Bidirectional Resident to Reservation Traceability
+
+**Status:** Proposed
+
+### Context
+
+During Sprint RA-6 (Complete Admission Execution), forward traceability from a Reservation to its resulting entities was established via the optional properties `convertedResidentId?: string` and `convertedStayId?: string` on the `Reservation` domain entity.
+
+Additionally, the `Stay` aggregate records backward traceability to the originating reservation via `BusinessEvent` metadata (`eventType: 'ADMISSION'`, `metadata: { reservationId, reservationNumber }`).
+
+However, the `Resident` domain entity (`src/features/resident/domain/entities/Resident.ts`) currently has no explicit top-level field linking it back to its originating `sourceReservationId?: string`. To trace which reservation originated a specific `Resident`, the system must currently query `Reservation.convertedResidentId` on `ReservationRepository` or parse `Stay.businessEvents`.
+
+### Decision
+
+Add an optional explicit domain property `sourceReservationId?: string` to the `Resident` domain entity interface:
+
+```typescript
+export interface Resident {
+  id: string;
+  residentCode: string;
+  fullName: string;
+  status: ResidentStatus;
+  mobileNumber: string;
+  sourceReservationId?: string; // Explicit backward traceability link to originating Reservation
+  ...
+}
+```
+
+When `AdmissionCoordinator.confirmReservedAdmission()` executes a Reserved Admission conversion:
+1. It shall pass `sourceReservationId: reservation.id` when constructing the new `Resident` entity.
+2. It sets `convertedResidentId` and `convertedStayId` on the `Reservation` entity.
+
+### Consequences
+
+#### Advantages:
+- **Direct Bidirectional Traceability**: Allows immediate backward querying from a `Resident` entity to its originating `Reservation` without parsing unindexed JSON arrays or querying cross-repository associations.
+- **Audit & Compliance Support**: Preserves clear constitutional lineage showing whether a resident entered via Reservation (`sourceReservationId` populated) or via Walk-in Admission (`sourceReservationId` undefined).
+- **Zero Breaking Changes**: Making `sourceReservationId` an optional field (`string | undefined`) preserves complete backward compatibility with existing resident seed datasets and non-reservation admissions.
+
+#### Trade-offs:
+- Minor extension to the `Resident` domain interface requiring update in `AdmissionCoordinator` resident creation logic and `InMemoryResidentRepository` mapping.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.1 | August 2026 | Added proposed ADR-015 (Bidirectional Resident to Reservation Traceability). |
 | 2.0 | July 2026 | Rewritten using a structured ADR format aligned with the RPGMS business architecture. |
 
 ---

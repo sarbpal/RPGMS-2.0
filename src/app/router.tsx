@@ -30,6 +30,7 @@ export const router = createBrowserRouter([
       { path: 'reservations', element: <ReservationsPage /> },
       { path: 'reservations/:id', element: <ReservationWorkspacePage /> },
       { path: 'admission/from-reservation/:id', element: <AdmissionWorkspacePage /> },
+      { path: 'admission/walk-in', element: <AdmissionWorkspacePage /> },
       { path: 'finance', element: <FinanceWorkspacePage /> },
       { path: 'electricity', element: <ElectricityPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },

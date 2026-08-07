@@ -6,15 +6,16 @@ import type { AdmissionReadiness } from '../application/models/AdmissionReadines
 
 interface AdmissionReadinessPanelProps {
   readiness: AdmissionReadiness;
+  isWalkIn?: boolean;
 }
 
-export const AdmissionReadinessPanel: React.FC<AdmissionReadinessPanelProps> = ({ readiness }) => {
+export const AdmissionReadinessPanel: React.FC<AdmissionReadinessPanelProps> = ({ readiness, isWalkIn }) => {
   const steps = [
-    { label: '1. Reservation Status', isValid: readiness.isReservationValid },
+    { label: isWalkIn ? '1. Admission Source (Direct Walk-in Entry)' : '1. Reservation Status', isValid: readiness.isReservationValid },
     { label: '2. Resident Details', isValid: readiness.isResidentDetailsValid },
     { label: '3. Commercial Terms', isValid: readiness.isCommercialTermsValid },
     { label: '4. Accommodation Selection', isValid: readiness.isAccommodationValid },
-    { label: '5. Token Disposition Decision', isValid: readiness.isTokenDecisionValid },
+    { label: isWalkIn ? '5. Token Disposition (N/A — Walk-in)' : '5. Token Disposition Decision', isValid: readiness.isTokenDecisionValid },
   ];
 
   return (

@@ -45,16 +45,70 @@ export class AdmissionCoordinator {
   }
 
   /**
-   * Reordered Readiness Evaluation Pipeline (Refinement #6)
-   * Evaluates readiness across 5 sequential sections:
-   * Reservation -> Resident Details -> Commercial Terms -> Accommodation -> Token Decision
+   * Decision Support / Governance: Checks if mobile number exists in Resident repository
+   * according to mandatory duplicate resident rules:
+   * - ACTIVE resident -> BLOCK
+   * - ON_NOTICE resident -> BLOCK
+   * - CHECKED_OUT or ALUMNI resident -> REUSE ALLOW
+   * - No match -> NEW
    */
-  public evaluateReadiness(draft: AdmissionDraft, reservation?: Reservation | null): AdmissionReadiness {
+  public checkDuplicateResidentMobile(mobileNumber: string): {
+    status: 'ACTIVE_BLOCK' | 'ON_NOTICE_BLOCK' | 'REUSE_ALLOW' | 'NEW';
+    existingResident?: Resident;
+    message?: string;
+  } {
+    const cleaned = mobileNumber.trim().replace(/\D/g, '');
+    if (cleaned.length !== 10) return { status: 'NEW' };
+
+    const inMemResidentRepo = this.residentRepo as InMemoryResidentRepository;
+    const residents = inMemResidentRepo.getAllSync ? inMemResidentRepo.getAllSync() : [];
+    const match = residents.find((r) => r.mobileNumber.replace(/\D/g, '') === cleaned);
+
+    if (!match) {
+      return { status: 'NEW' };
+    }
+
+    if (match.status === ResidentStatus.ACTIVE) {
+      return {
+        status: 'ACTIVE_BLOCK',
+        existingResident: match,
+        message: `Resident ${match.fullName} (${match.residentCode}) already has an active stay. A second active stay cannot be created.`,
+      };
+    }
+
+    if (match.status === ResidentStatus.ON_NOTICE) {
+      return {
+        status: 'ON_NOTICE_BLOCK',
+        existingResident: match,
+        message: `Resident ${match.fullName} (${match.residentCode}) has an active stay on notice. Checkout must be completed before readmission.`,
+      };
+    }
+
+    return {
+      status: 'REUSE_ALLOW',
+      existingResident: match,
+      message: `Existing resident record found (${match.fullName} - ${match.residentCode}). Resident record will be reused for new Stay.`,
+    };
+  }
+
+  /**
+   * Reordered Readiness Evaluation Pipeline (Refinement #6 & RA-7 Walk-in Support)
+   * Evaluates readiness across 5 sequential sections:
+   * Admission Source -> Resident Details -> Commercial Terms -> Accommodation -> Token Decision
+   */
+  public evaluateReadiness(
+    draft: AdmissionDraft,
+    reservation?: Reservation | null,
+    sourceType?: 'RESERVATION' | 'WALK_IN'
+  ): AdmissionReadiness {
+    const activeSourceType = sourceType || draft.sourceType || (reservation ? 'RESERVATION' : 'WALK_IN');
     const validationMessages: string[] = [];
 
-    // 1. Reservation Verification
+    // 1. Admission Source Verification
     let isReservationValid = false;
-    if (reservation) {
+    if (activeSourceType === 'WALK_IN') {
+      isReservationValid = true; // Direct walk-in is a valid admission source
+    } else if (reservation) {
       const editCheck = canEditReservation(reservation.status);
       if (
         (reservation.status === ReservationStatus.ACTIVE ||
@@ -70,14 +124,20 @@ export class AdmissionCoordinator {
       validationMessages.push('Active reservation is required.');
     }
 
-    // 2. Resident Details Verification (Progressive Data Capture: Name & 10-digit Mobile)
+    // 2. Resident Details Verification (Progressive Data Capture: Name & 10-digit Mobile + Duplicate Check)
     let isResidentDetailsValid = false;
     const nameValid = Boolean(draft.residentName && draft.residentName.trim().length > 0);
     const cleanedMobile = draft.mobileNumber ? draft.mobileNumber.trim().replace(/\D/g, '') : '';
     const mobileValid = cleanedMobile.length === 10;
 
     if (nameValid && mobileValid) {
-      isResidentDetailsValid = true;
+      // Check duplicate policy
+      const dupCheck = this.checkDuplicateResidentMobile(cleanedMobile);
+      if (dupCheck.status === 'ACTIVE_BLOCK' || dupCheck.status === 'ON_NOTICE_BLOCK') {
+        validationMessages.push(dupCheck.message || 'Duplicate resident mobile numbers with active stay are blocked.');
+      } else {
+        isResidentDetailsValid = true;
+      }
     } else {
       if (!nameValid) validationMessages.push('Resident full name is required.');
       if (!mobileValid) validationMessages.push('Valid 10-digit mobile number is required.');
@@ -130,13 +190,17 @@ export class AdmissionCoordinator {
 
     // 5. Token Decision Verification
     let isTokenDecisionValid = false;
-    const hasTokenAmount = Boolean(reservation?.tokenAmount && reservation.tokenAmount > 0);
-    if (!hasTokenAmount) {
-      isTokenDecisionValid = true;
-    } else if (draft.tokenDisposition) {
-      isTokenDecisionValid = true;
+    if (activeSourceType === 'WALK_IN') {
+      isTokenDecisionValid = true; // Walk-in admission has no reservation token to disposition
     } else {
-      validationMessages.push('Token disposition choice must be selected.');
+      const hasTokenAmount = Boolean(reservation?.tokenAmount && reservation.tokenAmount > 0);
+      if (!hasTokenAmount) {
+        isTokenDecisionValid = true;
+      } else if (draft.tokenDisposition) {
+        isTokenDecisionValid = true;
+      } else {
+        validationMessages.push('Token disposition choice must be selected.');
+      }
     }
 
     const isReadyToConfirm =
@@ -408,6 +472,181 @@ export class AdmissionCoordinator {
       if (createdResidentId) (this.residentRepo as any).delete?.(createdResidentId);
       if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       this.reservationRepo.saveSync(reservationSnapshot);
+      if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
+      throw error;
+    }
+  }
+
+  /**
+   * Executes atomic Walk-in Admission with Compensating Cleanup Strategy (MVP).
+   * Supports resident creation for new prospects OR resident reuse for returning checked-out/alumni residents.
+   * No Reservation involvement.
+   */
+  public confirmWalkInAdmission(draft: AdmissionDraft): AdmissionResult {
+    const readiness = this.evaluateReadiness(draft, null, 'WALK_IN');
+    if (!readiness.isReadyToConfirm) {
+      throw new Error(`Walk-in admission readiness check failed: ${readiness.validationMessages.join(' ')}`);
+    }
+
+    const nowIso = new Date().toISOString();
+    const targetFlat = this.accommodationRepo.findById(draft.flatId || '');
+    const flatSnapshot: Flat | null = targetFlat ? JSON.parse(JSON.stringify(targetFlat)) : null;
+
+    let createdResidentId: string | null = null;
+    let isResidentReused = false;
+    let residentSnapshot: Resident | null = null;
+    let createdStayId: string | null = null;
+
+    try {
+      const inMemResidentRepo = this.residentRepo as InMemoryResidentRepository;
+      const dupCheck = this.checkDuplicateResidentMobile(draft.mobileNumber);
+
+      let resident: Resident;
+
+      if (dupCheck.status === 'REUSE_ALLOW' && dupCheck.existingResident) {
+        // Reuse existing CHECKED_OUT / ALUMNI Resident
+        isResidentReused = true;
+        residentSnapshot = JSON.parse(JSON.stringify(dupCheck.existingResident));
+        const updatedResident: Resident = {
+          ...dupCheck.existingResident,
+          fullName: draft.residentName.trim(),
+          status: ResidentStatus.ACTIVE,
+          permanentAddress: draft.permanentAddress?.trim() || dupCheck.existingResident.permanentAddress,
+          updatedAt: nowIso,
+        };
+        resident = inMemResidentRepo.saveSync ? inMemResidentRepo.saveSync(updatedResident) : updatedResident;
+        createdResidentId = resident.id;
+      } else {
+        // Create brand new Resident
+        const allResidents = inMemResidentRepo.getAllSync ? inMemResidentRepo.getAllSync() : [];
+        const nextSeq = allResidents.length + 1;
+        const residentCode = `RESID-${String(nextSeq).padStart(6, '0')}`;
+        const hasEmergencyContact = Boolean(draft.emergencyContactName && draft.emergencyContactName.trim().length > 0);
+
+        const newResident: Resident = {
+          id: `res-${String(nextSeq).padStart(6, '0')}`,
+          residentCode,
+          fullName: draft.residentName.trim(),
+          status: ResidentStatus.ACTIVE,
+          mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
+          permanentAddress: draft.permanentAddress?.trim() || undefined,
+          emergencyContact: hasEmergencyContact
+            ? {
+                name: draft.emergencyContactName!.trim(),
+                relationship: draft.emergencyContactRelationship?.trim() || 'Other',
+                phone: draft.emergencyContactPhone ? draft.emergencyContactPhone.trim().replace(/\D/g, '') : '',
+              }
+            : undefined,
+          documents: draft.idProofType && draft.idProofNumber ? [
+            {
+              type: draft.idProofType as any,
+              documentNumber: draft.idProofNumber.trim(),
+              verificationStatus: 'Verified',
+            }
+          ] : undefined,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+
+        resident = inMemResidentRepo.saveSync ? inMemResidentRepo.saveSync(newResident) : newResident;
+        createdResidentId = resident.id;
+      }
+
+      // Step 2: Create Stay Aggregate
+      const inMemStayRepo = this.stayRepo as InMemoryStayRepository;
+      const allStays = inMemStayRepo.getAllSync ? inMemStayRepo.getAllSync() : [];
+      const staySeq = allStays.length + 1;
+      const stayId = `stay-${String(staySeq).padStart(6, '0')}`;
+
+      const initialCommercialAgreement = new CommercialAgreement({
+        id: `CA-${stayId}-1`,
+        stayId,
+        rent: Number(draft.agreedRent),
+        securityDeposit: Number(draft.agreedDeposit),
+        effectiveFrom: draft.checkInDate,
+        amendmentReason: 'Walk-in Admission Initial Agreement',
+        status: 'ACTIVE',
+        createdAt: nowIso,
+      });
+
+      const initialBedAllocations = (draft.bedIds || []).map(
+        (bedId, index) =>
+          new BedAllocation({
+            id: `BA-${stayId}-${index + 1}`,
+            stayId,
+            flatId: draft.flatId || '',
+            bedId,
+            allocatedFrom: draft.checkInDate,
+            status: 'ACTIVE',
+            createdAt: nowIso,
+          })
+      );
+
+      const resolvedFlatName = targetFlat ? targetFlat.name : (draft.flatId || 'Unknown');
+      const initialBusinessEvent = new BusinessEvent({
+        id: `BE-${stayId}-1`,
+        stayId,
+        eventType: 'ADMISSION',
+        timestamp: draft.checkInDate,
+        description: `Walk-in Resident checked in and allocated to Flat ${resolvedFlatName} / Bed(s) ${(draft.bedIds || []).join(', ')}`,
+        metadata: {
+          admissionSource: 'WALK_IN',
+        },
+      });
+
+      const newStay: Stay = new Stay({
+        id: stayId,
+        residentId: resident.id,
+        stayType: 'REGULAR' as any,
+        status: 'ACTIVE' as any,
+        checkInDate: draft.checkInDate,
+        commercialAgreements: [initialCommercialAgreement],
+        bedAllocations: initialBedAllocations,
+        businessEvents: [initialBusinessEvent],
+        notes: draft.notes ? `Walk-in Admission Note: ${draft.notes}` : 'Direct Walk-in Admission Check-in',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+
+      const savedStay = (inMemStayRepo.save ? (inMemStayRepo.save(newStay) as any) : newStay);
+      createdStayId = savedStay.id || stayId;
+
+      // Step 3: Update Bed Status in Accommodation Aggregate
+      if (targetFlat) {
+        draft.bedIds?.forEach((bedId) => {
+          const bed = targetFlat.areas.flatMap((a) => a.beds).find((b) => b.id === bedId);
+          if (bed) bed.status = BedStatus.OCCUPIED;
+        });
+        this.accommodationRepo.save(targetFlat);
+      }
+
+      return {
+        success: true,
+        residentCode: resident.residentCode,
+        residentName: resident.fullName,
+        residentId: resident.id,
+        stayId: createdStayId || stayId,
+        reservationNumber: 'N/A (Walk-in)',
+        allocatedFlatNumber: resolvedFlatName,
+        allocatedBedNumbers: draft.bedIds || [],
+        agreedRent: Number(draft.agreedRent),
+        agreedDeposit: Number(draft.agreedDeposit),
+        appliedTokenDisposition: 'None (Walk-in)',
+        tokenAmount: 0,
+        adjustedDepositBalance: Number(draft.agreedDeposit),
+        adjustedRentBalance: Number(draft.agreedRent),
+        timestamp: nowIso,
+      };
+    } catch (error) {
+      // Compensating Cleanup Strategy (MVP)
+      if (createdResidentId) {
+        if (isResidentReused && residentSnapshot) {
+          (this.residentRepo as any).save?.(residentSnapshot);
+        } else {
+          (this.residentRepo as any).delete?.(createdResidentId);
+        }
+      }
+      if (createdStayId) (this.stayRepo as any).delete?.(createdStayId);
       if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
       throw error;
     }

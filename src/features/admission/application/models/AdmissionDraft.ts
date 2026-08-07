@@ -1,6 +1,7 @@
 import type { TokenDisposition } from '../../domain/valueObjects/TokenDisposition';
 
 export interface AdmissionDraft {
+  sourceType?: 'RESERVATION' | 'WALK_IN';
   reservationId?: string;
   // Section 2: Resident Identity Details
   residentName: string;

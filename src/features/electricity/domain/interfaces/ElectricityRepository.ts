@@ -1,4 +1,4 @@
-import { Meter, MeterReading, ElectricityTariff } from '../index';
+import type { Meter, MeterReading, ElectricityTariff, ElectricityBill, ElectricityAllocation } from '../index';
 
 export interface ElectricityRepository {
   getMeters(): Meter[];
@@ -15,4 +15,15 @@ export interface ElectricityRepository {
   getTariffs(): ElectricityTariff[];
   getActiveTariff(date?: string): ElectricityTariff | null;
   saveTariff(tariff: ElectricityTariff): void;
+
+  // Stage 1 Additions: Supplier Bill & Allocation persistence
+  getBills(): ElectricityBill[];
+  getBillById(id: string): ElectricityBill | null;
+  getBillsByFlatId(flatId: string): ElectricityBill[];
+  saveBill(bill: ElectricityBill): void;
+
+  getAllocations(): ElectricityAllocation[];
+  getAllocationById(id: string): ElectricityAllocation | null;
+  getAllocationByBillId(billId: string): ElectricityAllocation | null;
+  saveAllocation(allocation: ElectricityAllocation): void;
 }

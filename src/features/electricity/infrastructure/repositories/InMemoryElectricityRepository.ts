@@ -1,4 +1,4 @@
-import { Meter, MeterReading, ElectricityTariff } from '../../domain';
+import { Meter, MeterReading, ElectricityTariff, ElectricityBill, ElectricityAllocation } from '../../domain';
 import type { ElectricityRepository } from '../../domain/interfaces/ElectricityRepository';
 import { electricityStorage } from '../../storage/electricityStorage';
 
@@ -6,11 +6,15 @@ export class InMemoryElectricityRepository implements ElectricityRepository {
   private meters: Meter[];
   private readings: MeterReading[];
   private tariffs: ElectricityTariff[];
+  private bills: ElectricityBill[];
+  private allocations: ElectricityAllocation[];
 
   constructor(
     initialMeters?: Meter[],
     initialReadings?: MeterReading[],
-    initialTariffs?: ElectricityTariff[]
+    initialTariffs?: ElectricityTariff[],
+    initialBills?: ElectricityBill[],
+    initialAllocations?: ElectricityAllocation[]
   ) {
     if (initialMeters) {
       this.meters = initialMeters;
@@ -32,6 +36,9 @@ export class InMemoryElectricityRepository implements ElectricityRepository {
       const storedT = electricityStorage.getStoredTariffs();
       this.tariffs = storedT.map((t) => new ElectricityTariff(t));
     }
+
+    this.bills = initialBills || [];
+    this.allocations = initialAllocations || [];
   }
 
   public getMeters(): Meter[] {
@@ -108,6 +115,49 @@ export class InMemoryElectricityRepository implements ElectricityRepository {
       this.tariffs.push(tariff);
     }
     electricityStorage.saveStoredTariffs(this.tariffs.map(this.toTariffProps));
+  }
+
+  // Stage 1 Implementations: Supplier Bill & Allocation persistence
+  public getBills(): ElectricityBill[] {
+    return [...this.bills];
+  }
+
+  public getBillById(id: string): ElectricityBill | null {
+    return this.bills.find((b) => b.id === id) || null;
+  }
+
+  public getBillsByFlatId(flatId: string): ElectricityBill[] {
+    return this.bills.filter((b) => b.flatId === flatId);
+  }
+
+  public saveBill(bill: ElectricityBill): void {
+    const index = this.bills.findIndex((b) => b.id === bill.id);
+    if (index >= 0) {
+      this.bills[index] = bill;
+    } else {
+      this.bills.push(bill);
+    }
+  }
+
+  public getAllocations(): ElectricityAllocation[] {
+    return [...this.allocations];
+  }
+
+  public getAllocationById(id: string): ElectricityAllocation | null {
+    return this.allocations.find((a) => a.id === id) || null;
+  }
+
+  public getAllocationByBillId(billId: string): ElectricityAllocation | null {
+    return this.allocations.find((a) => a.billId === billId) || null;
+  }
+
+  public saveAllocation(allocation: ElectricityAllocation): void {
+    const index = this.allocations.findIndex((a) => a.id === allocation.id);
+    if (index >= 0) {
+      this.allocations[index] = allocation;
+    } else {
+      this.allocations.push(allocation);
+    }
   }
 
   private toMeterProps(m: Meter) {

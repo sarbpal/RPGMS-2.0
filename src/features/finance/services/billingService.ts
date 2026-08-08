@@ -5,9 +5,8 @@ import type {
   BillLineItem,
   PaymentAllocation,
   FinanceRepository,
-  LedgerReferenceType,
 } from '../domain';
-import { AccountType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
+import { AccountType, LedgerReferenceType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
@@ -108,13 +107,18 @@ export class BillingApplicationService {
     const billNumber = `INV-${periodTag}-${sequenceNum}`;
     const billId = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE
+    // Select revenue account: UTILITIES line items route to ELECTRICITY_REVENUE, others to RENT_REVENUE
+    const isElectricity = billPayload.lineItems.some((item) => item.category === 'UTILITIES');
+    const revenueAccount = isElectricity ? AccountType.ELECTRICITY_REVENUE : AccountType.RENT_REVENUE;
+    const referenceType: LedgerReferenceType = isElectricity ? LedgerReferenceType.ELECTRICITY_ALLOCATION : LedgerReferenceType.BILL;
+
+    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE or ELECTRICITY_REVENUE
     const ledgerResult = this.ledgerService.postEntries([
       {
         stayId: billPayload.stayId,
         postingDate: now.split('T')[0],
         effectiveDate: billPayload.issueDate,
-        referenceType: 'BILL' as LedgerReferenceType,
+        referenceType,
         referenceId: billId,
         account: AccountType.ACCOUNTS_RECEIVABLE,
         debit: billPayload.totalAmount,
@@ -126,9 +130,9 @@ export class BillingApplicationService {
         stayId: billPayload.stayId,
         postingDate: now.split('T')[0],
         effectiveDate: billPayload.issueDate,
-        referenceType: 'BILL' as LedgerReferenceType,
+        referenceType,
         referenceId: billId,
-        account: AccountType.RENT_REVENUE,
+        account: revenueAccount,
         debit: 0,
         credit: billPayload.totalAmount,
         remarks: `Revenue recognition for Invoice #${billNumber}`,
@@ -376,6 +380,19 @@ export class BillingApplicationService {
       remarks: remarks || description || `Laundry Charge (${effectiveDate})`,
     });
   }
+
+  /**
+   * Application Use Case: Check if an electricity allocation bill has already been posted to Finance.
+   * Enforces idempotency using LedgerReferenceType.ELECTRICITY_ALLOCATION and participantAllocationId.
+   */
+  public hasDuplicateElectricityBill(participantAllocationId: string): boolean {
+    if (!participantAllocationId) return false;
+    const entries = this.repository.getLedgerEntries();
+    return entries.some(
+      (e) => e.referenceType === 'ELECTRICITY_ALLOCATION' && e.referenceId === participantAllocationId
+    );
+  }
 }
+
 
 export const billingService = new BillingApplicationService();

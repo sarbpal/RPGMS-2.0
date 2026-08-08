@@ -1,6 +1,7 @@
 export const AccountType = {
   ACCOUNTS_RECEIVABLE: 'ACCOUNTS_RECEIVABLE',
   RENT_REVENUE: 'RENT_REVENUE',
+  ELECTRICITY_REVENUE: 'ELECTRICITY_REVENUE',
   CASH: 'CASH',
   BANK: 'BANK',
   SECURITY_DEPOSIT_LIABILITY: 'SECURITY_DEPOSIT_LIABILITY',
@@ -10,3 +11,4 @@ export const AccountType = {
 } as const;
 
 export type AccountType = typeof AccountType[keyof typeof AccountType];
+

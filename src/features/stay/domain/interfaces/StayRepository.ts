@@ -9,4 +9,21 @@ export interface StayRepository {
   save(stay: Stay): Promise<Stay>;
   update(stay: Stay): Promise<Stay>;
   delete(id: string): Promise<void>;
+
+  /**
+   * Stage 2 Addition: Discovers all historical Stays that occupied the specified Flat
+   * during any portion of the date range [periodStart, periodEnd].
+   */
+  findStaysByFlatAndPeriodOverlap(
+    flatId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Promise<Stay[]>;
+
+  findStaysByFlatAndPeriodOverlapSync(
+    flatId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Stay[];
 }
+

@@ -58,4 +58,34 @@ export class InMemoryStayRepository implements StayRepository {
   public async delete(id: string): Promise<void> {
     this.stays = this.stays.filter((s) => s.id !== id);
   }
+
+  public findStaysByFlatAndPeriodOverlapSync(
+    flatId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Stay[] {
+    if (!flatId || !periodStart || !periodEnd) return [];
+
+    return this.stays
+      .filter((stay) => {
+        const allocations = stay.bedAllocations;
+        // Check if stay has any BedAllocation matching flatId and overlapping [periodStart, periodEnd]
+        return allocations.some((ba) => {
+          if (ba.flatId !== flatId) return false;
+          if (ba.allocatedFrom > periodEnd) return false;
+          if (ba.allocatedUntil && ba.allocatedUntil < periodStart) return false;
+          return true;
+        });
+      })
+      .map((s) => new Stay(s));
+  }
+
+  public async findStaysByFlatAndPeriodOverlap(
+    flatId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Promise<Stay[]> {
+    return this.findStaysByFlatAndPeriodOverlapSync(flatId, periodStart, periodEnd);
+  }
 }
+

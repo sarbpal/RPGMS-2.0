@@ -3,6 +3,16 @@ import { AllocationParticipant, type AllocationParticipantProps } from '../value
 export type AllocationStatus = 'DRAFT' | 'CONFIRMED' | 'REVERSED';
 export type AllocationOutcome = 'RESIDENT_ALLOCATED' | 'OWNER_ABSORBED';
 
+export interface AllocationDataQualityIssue {
+  stayId: string;
+  residentId: string;
+  issueType: 'MISSING_RESIDENT_RECORD' | 'ORPHANED_STAY' | 'INVALID_BED_ALLOCATION';
+  message: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  operatorNotes?: string;
+}
+
 export interface ElectricityAllocationProps {
   id: string;
   billId: string;
@@ -19,6 +29,7 @@ export interface ElectricityAllocationProps {
   allocationOutcome?: AllocationOutcome;
   status?: AllocationStatus;
   participants?: (AllocationParticipant | AllocationParticipantProps)[];
+  dataQualityIssues?: AllocationDataQualityIssue[];
   reversalReferenceId?: string;
   confirmedBy?: string;
   confirmedAt?: string;
@@ -46,6 +57,7 @@ export class ElectricityAllocation {
   private _allocationOutcome?: AllocationOutcome;
   private _status: AllocationStatus;
   private _participants: AllocationParticipant[];
+  private _dataQualityIssues: AllocationDataQualityIssue[];
   private _reversalReferenceId?: string;
   private _confirmedBy?: string;
   private _confirmedAt?: string;
@@ -80,6 +92,7 @@ export class ElectricityAllocation {
     this.allocationMethod = props.allocationMethod || 'SHARE_BASED';
     this._status = props.status || 'DRAFT';
     this._allocationOutcome = props.allocationOutcome;
+    this._dataQualityIssues = props.dataQualityIssues || [];
     this._reversalReferenceId = props.reversalReferenceId;
     this._confirmedBy = props.confirmedBy;
     this._confirmedAt = props.confirmedAt;
@@ -128,10 +141,14 @@ export class ElectricityAllocation {
     return [...this._participants];
   }
 
+  get dataQualityIssues(): readonly AllocationDataQualityIssue[] {
+    return [...this._dataQualityIssues];
+  }
+
   /**
    * Explicit Domain Action: Confirm allocation with selected resident shares (>0).
    */
-  public confirm(confirmedBy: string): void {
+  public confirm(confirmedBy: string, operatorNotes?: string): void {
     if (this._status !== 'DRAFT') {
       throw new Error(`Cannot confirm an ElectricityAllocation that is already ${this._status}.`);
     }
@@ -144,18 +161,27 @@ export class ElectricityAllocation {
       );
     }
 
+    const now = new Date().toISOString();
     this._allocationOutcome = 'RESIDENT_ALLOCATED';
     this._ownerAbsorbedAmount = 0;
     this._status = 'CONFIRMED';
     this._confirmedBy = confirmedBy;
-    this._confirmedAt = new Date().toISOString();
-    this._updatedAt = this._confirmedAt;
+    this._confirmedAt = now;
+    this._updatedAt = now;
+
+    // Acknowledge all data quality issues permanently
+    this._dataQualityIssues = this._dataQualityIssues.map((issue) => ({
+      ...issue,
+      acknowledgedBy: issue.acknowledgedBy || confirmedBy,
+      acknowledgedAt: issue.acknowledgedAt || now,
+      operatorNotes: operatorNotes || issue.operatorNotes,
+    }));
   }
 
   /**
    * Explicit Domain Action: Explicitly confirm zero-share OWNER_ABSORBED allocation outcome.
    */
-  public confirmOwnerAbsorbed(confirmedBy: string): void {
+  public confirmOwnerAbsorbed(confirmedBy: string, operatorNotes?: string): void {
     if (this._status !== 'DRAFT') {
       throw new Error(`Cannot confirm an ElectricityAllocation that is already ${this._status}.`);
     }
@@ -168,11 +194,21 @@ export class ElectricityAllocation {
       );
     }
 
+    const now = new Date().toISOString();
     this._allocationOutcome = 'OWNER_ABSORBED';
     this._ownerAbsorbedAmount = this.totalSupplierAmount;
     this._status = 'CONFIRMED';
     this._confirmedBy = confirmedBy;
-    this._confirmedAt = new Date().toISOString();
-    this._updatedAt = this._confirmedAt;
+    this._confirmedAt = now;
+    this._updatedAt = now;
+
+    // Acknowledge all data quality issues permanently
+    this._dataQualityIssues = this._dataQualityIssues.map((issue) => ({
+      ...issue,
+      acknowledgedBy: issue.acknowledgedBy || confirmedBy,
+      acknowledgedAt: issue.acknowledgedAt || now,
+      operatorNotes: operatorNotes || issue.operatorNotes,
+    }));
   }
 }
+

@@ -2,7 +2,7 @@
 
 # Electricity Business Rules & Domain Design
 
-**Status:** Architecture / Business Design — Proposed for Approval
+**Status:** Stage 1, Stage 2 & Stage 3 Implemented
 **Scope:** Ritu PG Supplier Electricity Billing & Allocation
 **Current FR-6 baseline:** Meter / Reading / kWh / Tariff / Automated Split
 **Target model:** Supplier Bill / Historical Occupancy / Operator Share Selection / Finance Posting
@@ -651,7 +651,7 @@ Finance = POSTED
 Allocation = DRAFT
 ```
 
-The implementation must use the strongest available transactional/compensating mechanism consistent with the repository architecture.
+The implementation uses an application-level compensating rollback. Because database-level ACID transactions across decoupled repositories are not present, `SupplierBillAllocationService` monitors multi-participant Finance postings during confirmation. If any participant billing fails mid-batch, all Finance bills and ledger entries previously created in that batch are reverted, the allocation remains in `DRAFT` status, and an error result is returned to prevent partial confirmation.
 
 ---
 
@@ -668,7 +668,9 @@ When Finance creates a receivable from an Electricity Allocation Participant, th
 * `referenceType = ELECTRICITY_ALLOCATION`
 * `referenceId = participantAllocationId`
 
-This provides a stable business reference that allows duplicate posting to be detected and prevented during retries.
+This provides a stable business reference that allows duplicate posting to be detected and prevented during retries via `hasDuplicateElectricityBill(participant.id)`.
+
+*Runtime Guarantee Note:* In the current single-threaded / in-memory architecture, idempotency is enforced by verifying pre-existing ledger entries prior to posting. Future persistent SQL repositories may require database unique constraints for multi-node concurrency safety.
 
 ---
 
@@ -775,9 +777,23 @@ Owner Absorbed Amount = ₹10,000
 
 The system must not create a resident receivable merely because a supplier bill exists.
 
-`OWNER_ABSORBED` must be explicitly selected/confirmed by the operator or otherwise arise from the approved allocation workflow; it must not be silently inferred from missing participants.
+`OWNER_ABSORBED` must be explicitly selected/confirmed by the operator or otherwise arise from the approved allocation workflow; it must not be silently inferred from missing participants. Setting `selectedShares = 0` during draft review recalculates preview totals to ₹0, but confirmation requires explicit operator invocation (`confirmAllocation` / `confirmOwnerAbsorbed`).
 
 ---
+
+## BR-E-51 — Data-Quality Issue Audit Acknowledgement
+
+Data-quality anomalies discovered during historical participant discovery (e.g. `MISSING_RESIDENT_RECORD` where a historical Stay exists without a corresponding Resident master record) are attached to the `ElectricityAllocation` as `AllocationDataQualityIssue` records.
+
+These data-quality issues are not silently ignored or discarded.
+
+Upon explicit allocation confirmation (`RESIDENT_ALLOCATED` or `OWNER_ABSORBED`), all data-quality issues are permanently stamped with audit metadata:
+
+* `acknowledgedBy` (operator ID)
+* `acknowledgedAt` (ISO timestamp)
+* `operatorNotes` (optional explanation)
+
+The acknowledged data-quality issues become part of the frozen historical allocation snapshot and cannot be altered or removed.
 
 # 21. Historical Traceability
 
@@ -1118,34 +1134,13 @@ This follows the project's established practice of having Gemini read the projec
 
 # 34. Current Design Status
 
-### CONFIRMED
+### CONFIRMED & IMPLEMENTED
 
-The following are approved:
+The following stages have been fully designed, implemented, code-reviewed, tested (100% passing rate), committed, and synchronized:
 
-* Supplier Bill as financial source;
-* Flat-specific bill;
-* explicit billing period;
-* historical occupancy date-overlap query (`findStaysByFlatAndPeriodOverlap`);
-* one-bed/one-potential-share;
-* two-bed/two-potential-share;
-* operator-controlled selected shares;
-* zero-share historical visibility;
-* OWNER_ABSORBED allocation outcome for zero selected shares;
-* exact paise calculation;
-* deterministic remainder ordering (`residentCode` ASC, `stayId` ASC);
-* exact bill reconciliation;
-* persistent allocation history;
-* Stay-based attribution;
-* existing Finance infrastructure with dedicated `ELECTRICITY_REVENUE` account;
-* post-checkout financial posting;
-* post-Alumni financial posting;
-* deposit separation;
-* atomic posting;
-* idempotent posting (`referenceType = ELECTRICITY_ALLOCATION`, `referenceId = participantAllocationId`);
-* immutable history;
-* controlled correction and allocation reversal mechanics (BR-E-49);
-* supplier document preservation;
-* coexistence with physical consumption engine.
+* **Stage 1 (Allocation Engine Baseline):** Pure domain integer-paise allocation engine (`calculateShareBasedAllocation`), deterministic remainder distribution (`residentCode` ASC, `stayId ASC`), `ElectricityBill`, `ElectricityAllocation`, and `AllocationParticipant` entities.
+* **Stage 2 (Historical Occupancy & Participant Discovery):** Repository date-overlap query (`findStaysByFlatAndPeriodOverlapSync`), maximum concurrent bed share calculation engine, `ParticipantDiscoveryService`, historical resident metadata snapshots.
+* **Stage 3 (Supplier-Bill Allocation Service & Finance Posting):** Application service layer (`SupplierBillAllocationService`), explicit confirmation state machine (`DRAFT` -> `RESIDENT_ALLOCATED` or `OWNER_ABSORBED`), `AllocationDataQualityIssue` audit acknowledgement persistence, Finance utility bill creation crediting `AccountType.ELECTRICITY_REVENUE`, Finance reference identity (`referenceType = ELECTRICITY_ALLOCATION`, `referenceId = participantAllocationId`), single-process idempotency check, and application-level compensating rollback on mid-batch billing failures.
 
 ### PARKED FOR LATER
 
@@ -1155,19 +1150,12 @@ Proration is a future allocation method and is deliberately excluded from the cu
 
 ---
 
-# 35. Next Architectural Step
+# 35. Implementation Status
 
-The next task is **not coding**.
+Electricity Stage 1, Stage 2, and Stage 3 are fully implemented, tested, committed, and synchronized.
 
-Gemini should perform a **READ-ONLY IMPLEMENTATION IMPACT ASSESSMENT** against this approved design.
-
-The assessment must identify the precise files, services, repositories, domain objects, UI components, tests, and documentation that will be:
-
-* retained;
-* adapted;
-* deprecated;
-* newly created.
-
-No source code should be modified until that assessment has been reviewed and approved.
+* Stage 1 Baseline Commit: `69727e956988be4bbbed106324fd188c41f84110`
+* Stage 2 Baseline Commit: `49ec2d9ebe7e23993d6b632f70c1d61f5f912747`
+* Stage 3 Baseline Commit: `479e4bd549b054d10f0ebadd7ba866ac760e2a30`
 
 

@@ -2,7 +2,7 @@
 
 # Electricity Business Rules & Domain Design
 
-**Status:** Stage 1, Stage 2 & Stage 3 Implemented
+**Status:** Stage 1, Stage 2, Stage 3 & Stage 4 Implemented
 **Scope:** Ritu PG Supplier Electricity Billing & Allocation
 **Current FR-6 baseline:** Meter / Reading / kWh / Tariff / Automated Split
 **Target model:** Supplier Bill / Historical Occupancy / Operator Share Selection / Finance Posting
@@ -501,7 +501,39 @@ The operator verifies the allocation.
 
 The complete allocation is confirmed and financial charges are posted.
 
-The existing FR-6 UI already demonstrates a useful Preview → Confirm pattern that can be reused conceptually.
+### Stage 4 UI Workspace Implementation Architecture
+
+The Stage 4 implementation completes this 8-step workflow via an operator-facing React UI workspace in `src/features/electricity/`:
+
+1. **Dual-Tab Electricity Workspace (`ElectricityPage.tsx`):**
+   * **Tab 0 (Supplier Bill Allocations):** Primary Ritu PG operator billing workflow for actual supplier bills.
+   * **Tab 1 (Physical Sub-Meters):** FR-6 analytical sub-meter consumption engine preserved intact (`meterRules.ts`, kWh readings, active tariff card).
+
+2. **Supplier Bill Entry Dialog (`SupplierBillEntryModal.tsx`):**
+   * Step 1 dialog form collecting supplier name, supplier bill reference number, supplier bill amount (₹), flat ID, and billing period date range (`periodStart`, `periodEnd`).
+   * Usability validation ensures non-empty strings, positive amount > 0, and valid date ordering (`periodEnd >= periodStart`).
+
+3. **Draft Allocation Review Panel (`DraftAllocationReviewPanel.tsx`):**
+   * Steps 2–7 review panel rendering candidate historical participants (`residentCode`, `residentNameSnapshot`, `stayId`, `potentialShares`, `selectedShares`, `allocatedAmount`).
+   * Interactive share selection inputs permitting operator adjustment between `0` and `potentialShares`, triggering `SupplierBillAllocationService.updateDraftShares()` to recalculate exact integer-paise share distribution via the Stage 1 allocation engine (`calculateShareBasedAllocation`).
+
+4. **Financial Reconciliation Presentation Aid:**
+   * Displays a reconciliation check alert confirming `Total Allocated Amount (₹) == Supplier Bill Amount (₹)`.
+   * **Authoritative Boundary:** The reconciliation check is strictly a presentation and verification aid. Authoritative allocation math remains 100% in the Stage 1/3 domain/application layer; the UI does NOT become a second allocation engine.
+
+5. **Explicit Confirmation & Action Controls:**
+   * **`RESIDENT_ALLOCATED` Confirmation:** Enabled when `totalSelectedShares > 0`. Operator UI action invokes `SupplierBillAllocationService.confirmAllocation()`, delegating to the existing Stage 3 application service to perform authoritative confirmation and post Finance utility bills crediting `AccountType.ELECTRICITY_REVENUE`.
+   * **`OWNER_ABSORBED` Confirmation:** Highlighted when `totalSelectedShares === 0`. Requires explicit operator confirmation click, creating ₹0 resident receivables while recording owner-absorbed expenses in electricity history. Zero selected shares do NOT automatically confirm an allocation.
+
+6. **Data-Quality & Audit Acknowledgement:**
+   * Renders warning alerts for historical occupancy anomalies (`AllocationDataQualityIssue`).
+   * Collects `confirmedBy` (Operator Identity) and optional `operatorNotes`.
+   * Domain entity stamps `acknowledgedBy`, `acknowledgedAt`, and `operatorNotes` onto data-quality issues upon confirmation.
+
+7. **Confirmed Allocation History Audit Table (`AllocationHistoryTable.tsx`):**
+   * Renders frozen historical allocation audit records.
+   * Derives bill metadata by pairing existing repository records using `allocation.billId === bill.id` from `getAllocations()` and `getBills()`.
+   * Displays outcome chips (`RESIDENT_ALLOCATED` / `OWNER_ABSORBED`), `confirmedBy`, `confirmedAt`, acknowledged data-quality tooltips, participant breakdowns, and linked `financeBillId`s.
 
 ---
 
@@ -1141,6 +1173,7 @@ The following stages have been fully designed, implemented, code-reviewed, teste
 * **Stage 1 (Allocation Engine Baseline):** Pure domain integer-paise allocation engine (`calculateShareBasedAllocation`), deterministic remainder distribution (`residentCode` ASC, `stayId ASC`), `ElectricityBill`, `ElectricityAllocation`, and `AllocationParticipant` entities.
 * **Stage 2 (Historical Occupancy & Participant Discovery):** Repository date-overlap query (`findStaysByFlatAndPeriodOverlapSync`), maximum concurrent bed share calculation engine, `ParticipantDiscoveryService`, historical resident metadata snapshots.
 * **Stage 3 (Supplier-Bill Allocation Service & Finance Posting):** Application service layer (`SupplierBillAllocationService`), explicit confirmation state machine (`DRAFT` -> `RESIDENT_ALLOCATED` or `OWNER_ABSORBED`), `AllocationDataQualityIssue` audit acknowledgement persistence, Finance utility bill creation crediting `AccountType.ELECTRICITY_REVENUE`, Finance reference identity (`referenceType = ELECTRICITY_ALLOCATION`, `referenceId = participantAllocationId`), single-process idempotency check, and application-level compensating rollback on mid-batch billing failures.
+* **Stage 4 (Supplier-Bill Allocation UI Workspace & UI ViewModel Coordinator):** Stage 4 acts as the Electricity UI workspace (`ElectricityPage.tsx`) and UI/ViewModel coordinator (`useSupplierBillAllocation.ts`), consuming the existing Stage 1–3 domain/application services. Includes supplier bill entry modal (`SupplierBillEntryModal.tsx`), interactive draft review panel (`DraftAllocationReviewPanel.tsx`), and frozen historical audit table (`AllocationHistoryTable.tsx`). Dual-tab workspace preserving physical sub-meter analytics (FR-6) untouched.
 
 ### PARKED FOR LATER
 
@@ -1152,10 +1185,12 @@ Proration is a future allocation method and is deliberately excluded from the cu
 
 # 35. Implementation Status
 
-Electricity Stage 1, Stage 2, and Stage 3 are fully implemented, tested, committed, and synchronized.
+Electricity Stage 1, Stage 2, Stage 3, and Stage 4 are fully implemented, tested, committed, and synchronized.
 
 * Stage 1 Baseline Commit: `69727e956988be4bbbed106324fd188c41f84110`
 * Stage 2 Baseline Commit: `49ec2d9ebe7e23993d6b632f70c1d61f5f912747`
 * Stage 3 Baseline Commit: `479e4bd549b054d10f0ebadd7ba866ac760e2a30`
+* Stage 4 Baseline Commit: `f2044f313f9718016acf1e6e5750962549d1294f` (`feat: implement electricity stage 4 ui workspace`)
+
 
 

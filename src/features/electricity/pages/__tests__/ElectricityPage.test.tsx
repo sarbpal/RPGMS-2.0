@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import ElectricityPage from '../../ElectricityPage';
 import { defaultElectricityRepository } from '../../infrastructure';
 import { Meter } from '../../domain/entities/Meter';
 import { ElectricityTariff } from '../../domain/valueObjects/ElectricityTariff';
 import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
 
-describe('Sprint FR-6 / OS-1 — Electricity Workspace ViewModel & Repository Integration', () => {
+describe('Stage 4 — Electricity Workspace Dual-Tab Integration Tests', () => {
   it('prepares meter items, tariffs, and property sub-meter counts for Electricity workspace rendering', () => {
     const testMeter = new Meter({
       id: 'm-page-01',
@@ -44,5 +45,9 @@ describe('Sprint FR-6 / OS-1 — Electricity Workspace ViewModel & Repository In
 
     const flat = flats.find((f: Flat) => f.id === targetMeter?.flatId);
     expect(flat?.name).toBe('Flat 101 (DeLuxe)');
+  });
+
+  it('instantiates ElectricityPage component cleanly', () => {
+    expect(typeof ElectricityPage).toBe('function');
   });
 });

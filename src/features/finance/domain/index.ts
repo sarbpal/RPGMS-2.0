@@ -3,6 +3,8 @@ export * from './entities/LedgerEntry';
 export * from './entities/Bill';
 export * from './entities/Payment';
 export * from './entities/Settlement';
+export * from './entities/DepositTransaction';
+
 
 // Value Objects
 export * from './valueObjects/AccountType';

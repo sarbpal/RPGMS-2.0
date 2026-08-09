@@ -1,10 +1,11 @@
-import type { LedgerEntry, Bill, Payment, Settlement } from '../types';
+import type { LedgerEntry, Bill, Payment, Settlement, DepositTransaction } from '../types';
 
 export const STORAGE_KEYS = {
   LEDGER_ENTRIES: 'rpgms_ledger_entries',
   BILLS: 'rpgms_bills',
   PAYMENTS: 'rpgms_payments',
   SETTLEMENTS: 'rpgms_settlements',
+  DEPOSIT_TRANSACTIONS: 'rpgms_deposit_transactions',
 } as const;
 
 const memoryStore = new Map<string, string>();
@@ -48,6 +49,9 @@ export const financeStorage = {
       }
       if (!getItem(STORAGE_KEYS.SETTLEMENTS)) {
         setItem(STORAGE_KEYS.SETTLEMENTS, JSON.stringify([]));
+      }
+      if (!getItem(STORAGE_KEYS.DEPOSIT_TRANSACTIONS)) {
+        setItem(STORAGE_KEYS.DEPOSIT_TRANSACTIONS, JSON.stringify([]));
       }
     } catch (error) {
       console.error('Failed to initialize finance storage:', error);
@@ -145,4 +149,28 @@ export const financeStorage = {
       console.error('Failed to save settlements:', error);
     }
   },
+
+  /**
+   * Read raw deposit transactions array from storage.
+   */
+  getStoredDepositTransactions(): DepositTransaction[] {
+    try {
+      const saved = getItem(STORAGE_KEYS.DEPOSIT_TRANSACTIONS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Persist deposit transactions array to storage.
+   */
+  saveStoredDepositTransactions(transactions: DepositTransaction[]): void {
+    try {
+      setItem(STORAGE_KEYS.DEPOSIT_TRANSACTIONS, JSON.stringify(transactions));
+    } catch (error) {
+      console.error('Failed to save deposit transactions:', error);
+    }
+  },
 };
+

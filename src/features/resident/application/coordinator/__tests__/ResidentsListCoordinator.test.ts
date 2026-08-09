@@ -35,9 +35,10 @@ describe('ResidentsListCoordinator', () => {
     const vm = coordinator.createViewModel('', 'ALUMNI');
 
     expect(vm.activeFilter).toBe('ALUMNI');
-    expect(vm.residents.every((r) => r.status === 'CHECKED_OUT' || r.status === 'ALUMNI')).toBe(true);
+    expect(vm.residents.every((r) => r.status === 'ALUMNI')).toBe(true);
     expect(vm.residents.length).toBe(vm.summary.alumniCount);
   });
+
 
   it('should filter residents by search query using existing search logic', () => {
     const coordinator = new ResidentsListCoordinator();

@@ -10,6 +10,7 @@ export * from './services/balanceEngine';
 export * from './services/billingService';
 export * from './services/paymentService';
 export * from './services/settlementService';
+export * from './services/depositService';
 export * from './services/timelineService';
 export * from './services/reportingService';
 export * from './hooks/useStayFinance';
@@ -25,7 +26,11 @@ export * from './components/ReceivePaymentModal';
 export * from './components/AddLaundryModal';
 export * from './components/ResidentLedgerModal';
 export * from './components/SettlementDialog';
+export * from './components/PartialDepositReturnModal';
+export * from './components/DepositDeductionModal';
+export * from './components/DepositLedgerTable';
 export { default as FinanceWorkspacePage, default as FinancePage } from './pages/FinanceWorkspacePage';
+
 
 
 

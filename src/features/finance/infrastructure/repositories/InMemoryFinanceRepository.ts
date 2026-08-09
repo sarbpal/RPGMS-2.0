@@ -3,6 +3,7 @@ import type { LedgerEntry } from '../../domain/entities/LedgerEntry';
 import type { Bill } from '../../domain/entities/Bill';
 import type { Payment } from '../../domain/entities/Payment';
 import type { Settlement } from '../../domain/entities/Settlement';
+import type { DepositTransaction } from '../../domain/entities/DepositTransaction';
 import { financeStorage } from '../../storage/financeStorage';
 
 export class InMemoryFinanceRepository implements FinanceRepository {
@@ -84,6 +85,27 @@ export class InMemoryFinanceRepository implements FinanceRepository {
     financeStorage.saveStoredSettlements(settlements);
     return settlement;
   }
+
+  public getDepositTransactions(): DepositTransaction[] {
+    return financeStorage.getStoredDepositTransactions();
+  }
+
+  public getDepositTransactionsByStayId(stayId: string): DepositTransaction[] {
+    return this.getDepositTransactions().filter((t) => t.stayId === stayId);
+  }
+
+  public saveDepositTransaction(transaction: DepositTransaction): DepositTransaction {
+    const transactions = this.getDepositTransactions();
+    const idx = transactions.findIndex((t) => t.id === transaction.id);
+    if (idx >= 0) {
+      transactions[idx] = transaction;
+    } else {
+      transactions.push(transaction);
+    }
+    financeStorage.saveStoredDepositTransactions(transactions);
+    return transaction;
+  }
 }
 
 export const defaultFinanceRepository = new InMemoryFinanceRepository();
+

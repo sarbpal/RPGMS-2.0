@@ -12,6 +12,9 @@ import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
 import type { StayRepository } from '../../stay';
 import { InMemoryStayRepository, StayStatus } from '../../stay';
+
+import type { ResidentRepository, Resident } from '../../resident';
+import { InMemoryResidentRepository, ResidentStatus } from '../../resident';
 import { LedgerApplicationService } from './ledgerService';
 
 export interface GeneratePreviewResult {
@@ -29,15 +32,18 @@ export interface ConfirmSettlementResult {
 export class SettlementApplicationService {
   private repository: FinanceRepository;
   private stayRepository: StayRepository;
+  private residentRepository: ResidentRepository;
   private ledgerService: LedgerApplicationService;
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
     stayRepository: StayRepository = new InMemoryStayRepository(),
-    ledgerService?: LedgerApplicationService
+    ledgerService?: LedgerApplicationService,
+    residentRepository: ResidentRepository = new InMemoryResidentRepository()
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
+    this.residentRepository = residentRepository;
     this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
   }
 
@@ -59,6 +65,7 @@ export class SettlementApplicationService {
    * STAGE 1 Use Case: Generate a read-only Settlement Preview for a Stay.
    * Delegates preview calculations to domain rule deriveSettlementPreview.
    * STRICTLY READ-ONLY: Performs no storage writes, no ledger entries, no state mutations.
+   * Note: Decoupled from operational checkout (BR-460) - Stays with status CHECKED_OUT remain eligible for settlement preview.
    */
   public generateSettlementPreview(
     stayId: string,
@@ -83,11 +90,6 @@ export class SettlementApplicationService {
       return { success: false, preview: null, errors };
     }
 
-    if (stay.status === StayStatus.CHECKED_OUT) {
-      errors.push(`Stay '${stayId}' is already checked out.`);
-      return { success: false, preview: null, errors };
-    }
-
     const existingSettlement = this.getSettlementByStayId(stayId);
     if (existingSettlement) {
       errors.push(`Stay '${stayId}' has already been settled via Settlement #${existingSettlement.settlementNumber}.`);
@@ -108,7 +110,7 @@ export class SettlementApplicationService {
   /**
    * STAGE 2 Use Case: Confirm a Settlement using a previously generated read-only SettlementPreview.
    * Creates balanced double-entry ledger postings, stores preview snapshot,
-   * updates Settlement status, and financially closes the Stay.
+   * updates Settlement status, and converts Resident status to ALUMNI upon financial completion (BR-461).
    */
   public confirmSettlement(
     previewPayload: SettlementPreview,
@@ -278,22 +280,43 @@ export class SettlementApplicationService {
     // Save Settlement via repository
     this.repository.saveSettlement(finalizedSettlement);
 
-    // Ensure Stay operational checkout is reflected cleanly if not already checked out
+    // Operational stay checkout if stay is active/on_notice (releases accommodation bed)
     const currentStay = this.stayRepository.findByIdSync(stayId);
     if (currentStay && currentStay.status !== StayStatus.CHECKED_OUT) {
       if (currentStay.status === StayStatus.ACTIVE) {
         currentStay.giveNotice({
-          noticeDate: new Date().toISOString().split('T')[0],
-          expectedCheckoutDate: new Date().toISOString().split('T')[0],
+          noticeDate: todayStr,
+          expectedCheckoutDate: todayStr,
           reason: 'Settlement checkout',
         });
       }
       currentStay.processCheckout({
-        actualCheckoutDate: new Date().toISOString().split('T')[0],
+        actualCheckoutDate: todayStr,
         reason: 'Settlement finalized',
       });
       this.stayRepository.save(currentStay);
     }
+
+    // Convert Resident status to ALUMNI upon financial completion (BR-461)
+    if (currentStay) {
+      const resident = this.residentRepository.getByIdSync(currentStay.residentId);
+      if (resident) {
+        const allStays = this.stayRepository.getAllSync();
+        const residentStays = allStays.filter((s) => s.residentId === resident.id);
+        const hasActiveStay = residentStays.some(
+          (s) => s.id !== stayId && (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE)
+        );
+        if (!hasActiveStay) {
+          const updatedResident: Resident = {
+            ...resident,
+            status: ResidentStatus.ALUMNI,
+            updatedAt: now,
+          };
+          this.residentRepository.save(updatedResident);
+        }
+      }
+    }
+
 
 
     return {
@@ -305,3 +328,4 @@ export class SettlementApplicationService {
 }
 
 export const settlementService = new SettlementApplicationService();
+

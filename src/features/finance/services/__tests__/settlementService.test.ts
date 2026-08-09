@@ -7,6 +7,8 @@ import { ledgerService } from '../ledgerService';
 import { financeStorage } from '../../storage/financeStorage';
 import { AccountType, SettlementOutcome } from '../../domain';
 import type { Settlement, SettlementPreview } from '../../domain';
+import { InMemoryResidentRepository, ResidentStatus } from '../../../resident';
+
 
 describe('SettlementApplicationService Unit Test Suite (Sprint FR-1)', () => {
   let stayRepo: InMemoryStayRepository;
@@ -69,15 +71,16 @@ describe('SettlementApplicationService Unit Test Suite (Sprint FR-1)', () => {
       expect(result.errors).toContain("Stay 'stay-non-existent' not found in system.");
     });
 
-    it('TC-STL-04: rejects preview if target Stay is already CHECKED_OUT', () => {
+    it('TC-STL-04: allows settlement preview generation for Stay with CHECKED_OUT status (BR-460)', () => {
       const stay = createActiveStay(sampleStayId, StayStatus.CHECKED_OUT);
       stayRepo.saveSync(stay);
 
       const result = service.generateSettlementPreview(sampleStayId);
-      expect(result.success).toBe(false);
-      expect(result.preview).toBeNull();
-      expect(result.errors).toContain(`Stay '${sampleStayId}' is already checked out.`);
+      expect(result.success).toBe(true);
+      expect(result.preview).not.toBeNull();
+      expect(result.preview?.stayId).toBe(sampleStayId);
     });
+
 
     it('TC-STL-05: rejects preview if target Stay has already been settled', () => {
       const stay = createActiveStay(sampleStayId, StayStatus.ON_NOTICE);
@@ -646,5 +649,40 @@ describe('SettlementApplicationService Unit Test Suite (Sprint FR-1)', () => {
       const updatedStay = stayRepo.findByIdSync(sampleStayId);
       expect(updatedStay?.residentId).toBe(sampleResidentId);
     });
+
+    it('TC-STL-19: converts Resident status to ALUMNI upon settlement completion (BR-461)', () => {
+      const residentRepo = new InMemoryResidentRepository();
+      const customService = new SettlementApplicationService(
+        defaultFinanceRepository,
+        stayRepo,
+        undefined,
+        residentRepo
+      );
+
+
+      const resident = {
+        id: sampleResidentId,
+        residentCode: 'R-101',
+        fullName: 'Alumni Test Resident',
+        status: ResidentStatus.ACTIVE,
+
+        mobileNumber: '9876543210',
+        createdAt: todayStr,
+        updatedAt: todayStr,
+      };
+      residentRepo.save(resident);
+
+      const stay = createActiveStay(sampleStayId, StayStatus.CHECKED_OUT);
+      stayRepo.saveSync(stay);
+
+      const previewRes = customService.generateSettlementPreview(sampleStayId, 0);
+      const confirmRes = customService.confirmSettlement(previewRes.preview!);
+
+      expect(confirmRes.success).toBe(true);
+
+      const updatedResident = residentRepo.getByIdSync(sampleResidentId);
+      expect(updatedResident?.status).toBe(ResidentStatus.ALUMNI);
+    });
   });
 });
+

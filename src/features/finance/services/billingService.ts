@@ -107,12 +107,18 @@ export class BillingApplicationService {
     const billNumber = `INV-${periodTag}-${sequenceNum}`;
     const billId = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // Select revenue account: UTILITIES line items route to ELECTRICITY_REVENUE, others to RENT_REVENUE
+    // Select credit account: UTILITIES line items route to ELECTRICITY_REVENUE, SECURITY_DEPOSIT to SECURITY_DEPOSIT_LIABILITY, others to RENT_REVENUE
     const isElectricity = billPayload.lineItems.some((item) => item.category === 'UTILITIES');
-    const revenueAccount = isElectricity ? AccountType.ELECTRICITY_REVENUE : AccountType.RENT_REVENUE;
+    const isDeposit = billPayload.lineItems.some((item) => item.category === 'SECURITY_DEPOSIT');
+    const revenueAccount = isElectricity
+      ? AccountType.ELECTRICITY_REVENUE
+      : isDeposit
+      ? AccountType.SECURITY_DEPOSIT_LIABILITY
+      : AccountType.RENT_REVENUE;
     const referenceType: LedgerReferenceType = isElectricity ? LedgerReferenceType.ELECTRICITY_ALLOCATION : LedgerReferenceType.BILL;
 
-    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE or ELECTRICITY_REVENUE
+    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE, ELECTRICITY_REVENUE, or SECURITY_DEPOSIT_LIABILITY
+
     const ledgerResult = this.ledgerService.postEntries([
       {
         stayId: billPayload.stayId,

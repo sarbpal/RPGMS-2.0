@@ -38,7 +38,7 @@ export class ResidentsListCoordinator {
       totalCount: allResidents.length,
       activeCount: allResidents.filter((r) => r.status === 'ACTIVE').length,
       onNoticeCount: allResidents.filter((r) => r.status === 'ON_NOTICE').length,
-      alumniCount: allResidents.filter((r) => r.status === 'CHECKED_OUT' || r.status === 'ALUMNI').length,
+      alumniCount: allResidents.filter((r) => r.status === 'ALUMNI').length,
     };
 
     // 2. Filter residents by search query using existing search logic
@@ -58,7 +58,7 @@ export class ResidentsListCoordinator {
       if (activeFilter === 'ALL') return true;
       if (activeFilter === 'ACTIVE') return r.status === 'ACTIVE';
       if (activeFilter === 'ON_NOTICE') return r.status === 'ON_NOTICE';
-      if (activeFilter === 'ALUMNI') return r.status === 'CHECKED_OUT' || r.status === 'ALUMNI';
+      if (activeFilter === 'ALUMNI') return r.status === 'ALUMNI';
       return true;
     });
 

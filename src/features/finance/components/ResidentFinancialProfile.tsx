@@ -23,6 +23,9 @@ import { ReceivePaymentModal } from './ReceivePaymentModal';
 import { AddLaundryModal } from './AddLaundryModal';
 import { ResidentLedgerModal } from './ResidentLedgerModal';
 import { SettlementDialog } from './SettlementDialog';
+import { PartialDepositReturnModal } from './PartialDepositReturnModal';
+import { DepositDeductionModal } from './DepositDeductionModal';
+
 
 
 
@@ -60,7 +63,10 @@ export type ActionType =
   | 'RECEIVE_PAYMENT'
   | 'VIEW_LEDGER'
   | 'CHECKOUT'
+  | 'PARTIAL_DEPOSIT_RETURN'
+  | 'DEPOSIT_DEDUCTION'
   | null;
+
 
 export function ResidentFinancialProfile({
   resident,
@@ -719,6 +725,29 @@ export function ResidentFinancialProfile({
           onSuccess={handleSettlementSuccess}
         />
       )}
+
+      {/* Partial Deposit Return Modal */}
+      {activeAction === 'PARTIAL_DEPOSIT_RETURN' && stayId && (
+        <PartialDepositReturnModal
+          open={activeAction === 'PARTIAL_DEPOSIT_RETURN'}
+          onClose={() => setActiveAction(null)}
+          stayId={stayId}
+          currentDepositHeld={balances.securityDepositHeld}
+          onSuccess={() => handleSettlementSuccess('Partial deposit return processed successfully.')}
+        />
+      )}
+
+      {/* Deposit Deduction Modal */}
+      {activeAction === 'DEPOSIT_DEDUCTION' && stayId && (
+        <DepositDeductionModal
+          open={activeAction === 'DEPOSIT_DEDUCTION'}
+          onClose={() => setActiveAction(null)}
+          stayId={stayId}
+          currentDepositHeld={balances.securityDepositHeld}
+          onSuccess={() => handleSettlementSuccess('Deposit deduction recorded successfully.')}
+        />
+      )}
+
 
       {/* Action Placeholder Dialog for Other Ancillary Workflows */}
       <Dialog

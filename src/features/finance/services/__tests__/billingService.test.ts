@@ -75,7 +75,37 @@ describe('BillingApplicationService Unit Test Suite (Sprint FR-3)', () => {
       expect(revEntry?.credit).toBe(12000);
     });
 
+    it('routes SECURITY_DEPOSIT category bill line items to SECURITY_DEPOSIT_LIABILITY account', () => {
+      const res = billingService.createBill({
+        stayId: sampleStayId,
+        billType: 'ONE_TIME_CHARGE',
+        period: '2026-08',
+
+
+        issueDate: '2026-08-01',
+        dueDate: '2026-08-07',
+        lineItems: [
+          {
+            id: 'li-dep-1',
+            description: 'Security Deposit Bill',
+            amount: 8000,
+            category: 'SECURITY_DEPOSIT',
+          },
+        ],
+        totalAmount: 8000,
+        status: 'UNPAID',
+        remarks: 'Admission Deposit Invoice',
+      });
+
+      expect(res.success).toBe(true);
+      const entries = defaultFinanceRepository.getLedgerEntriesByStayId(sampleStayId);
+      const depEntry = entries.find((e) => e.account === AccountType.SECURITY_DEPOSIT_LIABILITY);
+      expect(depEntry).toBeDefined();
+      expect(depEntry?.credit).toBe(8000);
+    });
+
     it('rejects bill creation when stayId is missing or amount is invalid', () => {
+
       const invalidRes = billingService.createBill({
         stayId: '',
         billType: 'MONTHLY_RENT',

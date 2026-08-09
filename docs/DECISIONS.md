@@ -678,10 +678,37 @@ Following the implementation of supplier bill allocation confirmation (Stage 1 t
 
 ---
 
+## ADR-024 — Running Deposit Account Lifecycle, Partial Returns, and Decoupled Settlement
+
+**Status:** Accepted
+
+### Context
+
+Following the initial Settlement Implementation (Sprint FR-1), deposit tracking remained static at initial admission and settlement calculations were coupled to operational checkout. Stage 6 required establishing a running, Stay-dependent deposit account supported by double-entry ledger postings, enabling mid-stay partial returns, additional contributions, damage deductions, and decoupling settlement calculations from operational checkout.
+
+### Decision
+
+1. **DEC-DEP-01 (Partial Deposit Returns):** Partial deposit returns are permitted during `ACTIVE`, `ON_NOTICE`, and `CHECKED_OUT` stay states. Returns are strictly guarded against live available deposit balance (`sum(deposit credits) - sum(deposit debits)`). Rejects zero, negative, or over-return amounts.
+2. **DEC-DEP-02 (Additional Deposit Contributions):** Additional deposit contributions are permitted after the initial admission deposit. Each contribution is recorded as an independent immutable transaction (`DEPOSIT_RECEIPT`), posting double-entry ledger entries (`Debit CASH/BANK`, `Credit SECURITY_DEPOSIT_LIABILITY`).
+3. **DEC-DEP-03 (Alumni Re-admission Identity Invariant):** Readmission of an `ALUMNI` resident preserves the permanent `Resident` identity and establishes a new `Stay` aggregate. Returning alumni do not require duplicate resident profiles.
+4. **Decoupled Post-Checkout Settlement (BR-460):** `generateSettlementPreview` allows preview calculations on stays with operational status `CHECKED_OUT` without forcing operational checkout re-execution.
+5. **Resident ALUMNI Transition (BR-461):** `confirmSettlement` converts `Resident.status` to `ResidentStatus.ALUMNI` upon completion of final financial settlement when all stays for the resident are settled and closed.
+
+### Consequences
+
+#### Advantages:
+- **Running Deposit Ledger**: Reflects real-world running deposit accounts with immutable audit history.
+- **Over-Return Protection**: Prevents negative or excessive deposit refunds through live double-entry liability balance validation.
+- **Decoupled Financial Completion**: Allows post-checkout utility ingestion, damage adjustments, and final settlement without disturbing operational bed inventory release.
+- **Identity Integrity**: Preserves permanent resident identity across multiple stays over time.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.8 | August 2026 | Added ADR-024 (Running Deposit Account Lifecycle, Partial Returns, and Decoupled Settlement). |
 | 2.7 | August 2026 | Added ADR-023 (Electricity Allocation Reversal, Audit Integrity & Controlled Financial Adjustment). |
 | 2.6 | August 2026 | Added ADR-022 (Electricity Consumption Allocation & Financial Ledger Billing Integration). |
 | 2.5 | August 2026 | Added ADR-021 (Finance UI Workspace Coordination & Interactive Modal Integration). |
@@ -692,3 +719,4 @@ Following the implementation of supplier bill allocation confirmation (Stage 1 t
 | 2.0 | July 2026 | Rewritten using a structured ADR format aligned with the RPGMS business architecture. |
 
 ---
+

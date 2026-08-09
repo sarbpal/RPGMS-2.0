@@ -423,45 +423,42 @@ The Admission Module is responsible for validating admission readiness, allocati
 
 **Status:** 🟢 Complete
 
-**State:** Frozen (CR-3 / Sprint FR-5 Completed)
+**State:** Frozen (CR-3 / Stage 6 Deposit Account Lifecycle & Settlement Refinement Completed)
 
 ## Purpose
 
-Manages the complete financial lifecycle of residents, including rent, security deposits, electricity, laundry, split billing, payments, and resident ledger management.
+Manages the complete financial lifecycle of residents, including rent, running security deposit account, electricity, laundry, split billing, payments, damage adjustments, decoupled checkout settlement, and resident ledger management.
 
 ---
 
-## Planned Features
+## Completed Features
 
-### Workspaces
+### Workspaces & Components
 
-- Finance Dashboard
-- Resident Ledger Workspace
-- Billing Workspace
-- Payment Workspace
+- Finance Dashboard & Workspace (`FinanceWorkspacePage.tsx`)
+- Resident Financial Profile (`ResidentFinancialProfile.tsx`)
+- Deposit Ledger Table (`DepositLedgerTable.tsx`)
+- Partial Deposit Return Modal (`PartialDepositReturnModal.tsx`)
+- Deposit Deduction Modal (`DepositDeductionModal.tsx`)
+- Two-Stage Checkout Settlement Dialog (`SettlementDialog.tsx`)
 
-### Business Features
+### Business Capabilities
 
-- Monthly rent generation
-- Security deposit management
-- Resident ledger
-- Split billing
-- Electricity billing
-- Laundry billing
-- Payment receipts
-- Outstanding dues
-- Financial reports
-
-### User Experience
-
-- Operational dashboard
-- Ledger view
-- Billing summary
-- Quick actions
+- Double-entry ledger architecture (`LedgerApplicationService`, `BalanceEngine`)
+- Monthly rent bill generation & category accounting
+- Security Deposit liability account & category routing (`AccountType.SECURITY_DEPOSIT_LIABILITY`)
+- Running Deposit Account ledger (`DepositTransaction`)
+- Additional deposit contributions (`DEPOSIT_RECEIPT`) & mid-stay partial returns (`PARTIAL_RETURN`)
+- Damage deductions (`DEPOSIT_DEDUCTION`) with mandatory reason auditing
+- Over-return & over-deduction balance guards
+- Decoupled settlement preview & confirmation (`CHECKED_OUT` stay support under BR-460)
+- Resident status transition to `ALUMNI` on final financial completion (BR-461)
+- Complete Vitest test suite (51 test files, 324 passing tests)
 
 ---
 
 ## Dependencies
+
 
 ### Upstream
 

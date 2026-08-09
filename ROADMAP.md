@@ -110,19 +110,21 @@ Each Capability Release delivers one complete business capability rather than a 
 
 ## CR-3 — Financial Operations
 
-**Status:** Planned
+**Status:** ✅ Completed
 
-### Planned Deliverables
+### Delivered
 
-- Finance Dashboard
-- Resident Ledger
-- Rent Generation
-- Security Deposits
-- Payment Management
-- Split Billing
-- Laundry Billing
-- Electricity Billing
-- Financial Reports
+- Finance Dashboard & Workspace
+- Double-Entry Resident Ledger
+- Monthly Rent Generation & Category Accounting
+- Security Deposit Liability Category Routing (`AccountType.SECURITY_DEPOSIT_LIABILITY`)
+- Running Deposit Account Ledger & Additional Contributions (DEC-DEP-02)
+- Mid-Stay Partial Deposit Returns & Over-Return Balance Guards (DEC-DEP-01)
+- Damage Deductions & Mandatory Reason Auditing
+- Payment Management & Advance Overpayment Handling
+- Decoupled Post-Checkout Settlement Preview & Confirmation (BR-460)
+- Resident ALUMNI Status Transition on Financial Completion (BR-461 & DEC-DEP-03)
+
 
 ---
 

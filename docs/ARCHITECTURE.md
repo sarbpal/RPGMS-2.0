@@ -1878,39 +1878,46 @@ Separating Security Deposit management from general financial accounting preserv
 
 ### Deposit Lifecycle
 
-A Security Deposit follows an independent business lifecycle:
+A Security Deposit follows an independent business lifecycle tied to a specific Stay:
 
-Deposit Account Opened
-
-↓
-
-Deposit Collected
+Deposit Account Opened (Stay Established)
 
 ↓
 
-Deposit Held
+Deposit Collected (Initial / Additional Contribution)
 
 ↓
 
-Adjustments (Optional)
+Deposit Held in Trust (Liability Balance Reconstructable from Ledger)
 
 ↓
 
-Financial Settlement
+Partial Returns / Deductions (Optional Mid-Stay or Notice Movements)
 
 ↓
 
-Deposit Refunded
+Operational Checkout (Stay Status = CHECKED_OUT; Account Remains Open)
 
 ↓
 
-Deposit Account Closed
+Post-Checkout Activity & Financial Settlement
 
-The Deposit lifecycle is independent of both the Stay lifecycle and the Financial Account lifecycle.
+↓
 
-Operational Checkout does not automatically close the Deposit Account.
+Deposit Refunded / Settled (Liability Balance = ₹0)
 
-The Deposit Account remains active until all authorised deductions and refunds have been completed.
+↓
+
+Financial Completion & Alumni Conversion (Resident Status = ALUMNI)
+
+The Deposit lifecycle is independent of the operational Stay lifecycle.
+
+Operational Checkout terminates physical occupancy and releases accommodation beds, but does not close the Deposit Account.
+
+The Deposit Account remains open for post-checkout financial activity, utility bill ingestion, damage deductions, and final financial settlement.
+
+Completion of final financial settlement clears all financial obligations and transitions the Resident to ALUMNI status. Readmission of an Alumni Resident preserves the permanent Resident identity while establishing a new Stay aggregate.
+
 
 ---
 

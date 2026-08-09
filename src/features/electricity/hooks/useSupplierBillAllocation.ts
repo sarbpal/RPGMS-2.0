@@ -49,9 +49,11 @@ export function useSupplierBillAllocation(
         setDataQualityIssues([]);
       }
 
-      // Pair all non-draft or all allocations with bill metadata for history display
+      // Pair all confirmed and reversed allocations with bill metadata for history display
       const historyList: HistoricalAllocationItem[] = allAllocations
-        .filter((a) => a.status === 'CONFIRMED' && (!selectedFlatId || a.flatId === selectedFlatId))
+        .filter(
+          (a) => (a.status === 'CONFIRMED' || a.status === 'REVERSED') && (!selectedFlatId || a.flatId === selectedFlatId)
+        )
         .map((allocation) => {
           const bill = allBills.find((b) => b.id === allocation.billId) || null;
           return { allocation, bill };
@@ -71,8 +73,13 @@ export function useSupplierBillAllocation(
     refresh();
   }, [refresh]);
 
+  const [reversalTarget, setReversalTarget] = useState<HistoricalAllocationItem | null>(null);
+
   const openEntryModal = () => setIsEntryModalOpen(true);
   const closeEntryModal = () => setIsEntryModalOpen(false);
+
+  const openReversalModal = (item: HistoricalAllocationItem) => setReversalTarget(item);
+  const closeReversalModal = () => setReversalTarget(null);
 
   const createDraftBill = (
     input: CreateSupplierBillInput,
@@ -143,12 +150,30 @@ export function useSupplierBillAllocation(
     }
   };
 
+  const reverseAllocation = (allocationId: string, reversedBy: string, reversalReason?: string) => {
+    setError(null);
+    setSuccessMessage(null);
+    const result = service.reverseAllocation(allocationId, reversedBy, reversalReason);
+    if (result.success && result.allocation) {
+      setSuccessMessage(`Electricity allocation '${allocationId}' was successfully reversed.`);
+      closeReversalModal();
+      refresh();
+      return true;
+    } else {
+      setError(result.errors.join(' '));
+      return false;
+    }
+  };
+
   return {
     selectedFlatId,
     setSelectedFlatId,
     isEntryModalOpen,
     openEntryModal,
     closeEntryModal,
+    reversalTarget,
+    openReversalModal,
+    closeReversalModal,
     draftAllocation,
     supplierBill,
     historicalAllocations,
@@ -160,6 +185,7 @@ export function useSupplierBillAllocation(
     createDraftBill,
     updateParticipantShares,
     confirmAllocation,
+    reverseAllocation,
     refresh,
   };
 }

@@ -59,4 +59,44 @@ describe('Stage 4 — AllocationHistoryTable Unit Tests', () => {
     expect(item.bill?.supplierBillNumber).toBe('INV-BSES-88');
     expect(item.allocation.participants[0].financeBillId).toBe('fbill-9988');
   });
+
+  it('handles REVERSED historical allocation audit items and metadata correctly', () => {
+    const mockBill = new ElectricityBill({
+      id: 'bill-rev-01',
+      flatId: 'flat-101',
+      supplierName: 'BSES Rajdhani',
+      supplierBillNumber: 'INV-BSES-89',
+      periodStart: '2026-06-01',
+      periodEnd: '2026-06-30',
+      supplierAmount: 4000,
+      status: 'CONFIRMED',
+    });
+
+    const mockAllocation = new ElectricityAllocation({
+      id: 'alloc-rev-01',
+      billId: 'bill-rev-01',
+      flatId: 'flat-101',
+      periodStart: '2026-06-01',
+      periodEnd: '2026-06-30',
+      totalSupplierAmount: 4000,
+      totalPotentialShares: 2,
+      totalSelectedShares: 2,
+      amountPerShare: 2000,
+      remainderPaise: 0,
+      allocationMethod: 'SHARE_BASED',
+      status: 'CONFIRMED',
+      allocationOutcome: 'RESIDENT_ALLOCATED',
+      confirmedBy: 'op-admin-01',
+      confirmedAt: '2026-07-01T10:00:00.000Z',
+    });
+
+    mockAllocation.reverse('sup-supervisor-01', 'rev_alloc-rev-01', 'Wrong billing period entered');
+
+    const item = { allocation: mockAllocation, bill: mockBill };
+    expect(item.bill?.id).toBe('bill-rev-01');
+    expect(mockAllocation.status).toBe('REVERSED');
+    expect(mockAllocation.reversedBy).toBe('sup-supervisor-01');
+    expect(mockAllocation.reversalReason).toBe('Wrong billing period entered');
+    expect(mockAllocation.reversalReferenceId).toBe('rev_alloc-rev-01');
+  });
 });

@@ -31,6 +31,9 @@ export interface ElectricityAllocationProps {
   participants?: (AllocationParticipant | AllocationParticipantProps)[];
   dataQualityIssues?: AllocationDataQualityIssue[];
   reversalReferenceId?: string;
+  reversedBy?: string;
+  reversedAt?: string;
+  reversalReason?: string;
   confirmedBy?: string;
   confirmedAt?: string;
   createdAt?: string;
@@ -59,6 +62,9 @@ export class ElectricityAllocation {
   private _participants: AllocationParticipant[];
   private _dataQualityIssues: AllocationDataQualityIssue[];
   private _reversalReferenceId?: string;
+  private _reversedBy?: string;
+  private _reversedAt?: string;
+  private _reversalReason?: string;
   private _confirmedBy?: string;
   private _confirmedAt?: string;
   readonly createdAt: string;
@@ -94,6 +100,9 @@ export class ElectricityAllocation {
     this._allocationOutcome = props.allocationOutcome;
     this._dataQualityIssues = props.dataQualityIssues || [];
     this._reversalReferenceId = props.reversalReferenceId;
+    this._reversedBy = props.reversedBy;
+    this._reversedAt = props.reversedAt;
+    this._reversalReason = props.reversalReason;
     this._confirmedBy = props.confirmedBy;
     this._confirmedAt = props.confirmedAt;
     this.createdAt = props.createdAt || new Date().toISOString();
@@ -131,6 +140,18 @@ export class ElectricityAllocation {
 
   get reversalReferenceId(): string | undefined {
     return this._reversalReferenceId;
+  }
+
+  get reversedBy(): string | undefined {
+    return this._reversedBy;
+  }
+
+  get reversedAt(): string | undefined {
+    return this._reversedAt;
+  }
+
+  get reversalReason(): string | undefined {
+    return this._reversalReason;
   }
 
   get updatedAt(): string {
@@ -210,5 +231,31 @@ export class ElectricityAllocation {
       operatorNotes: operatorNotes || issue.operatorNotes,
     }));
   }
+
+  /**
+   * Explicit Domain Action: Reverse a confirmed allocation.
+   * Transitions status from CONFIRMED -> REVERSED.
+   * Enforces invariant that only CONFIRMED allocations can be reversed.
+   */
+  public reverse(reversedBy: string, reversalReferenceId: string, reversalReason?: string): void {
+    if (this._status !== 'CONFIRMED') {
+      throw new Error(`Cannot reverse an ElectricityAllocation that is ${this._status}. Only CONFIRMED allocations can be reversed.`);
+    }
+    if (!reversedBy || reversedBy.trim() === '') {
+      throw new Error('Operator identity (reversedBy) is required to reverse an allocation.');
+    }
+    if (!reversalReferenceId || reversalReferenceId.trim() === '') {
+      throw new Error('Reversal reference ID (reversalReferenceId) is required to reverse an allocation.');
+    }
+
+    const now = new Date().toISOString();
+    this._status = 'REVERSED';
+    this._reversalReferenceId = reversalReferenceId;
+    this._reversedBy = reversedBy;
+    this._reversedAt = now;
+    this._reversalReason = reversalReason;
+    this._updatedAt = now;
+  }
 }
+
 

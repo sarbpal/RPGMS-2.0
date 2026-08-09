@@ -358,4 +358,152 @@ describe('Stage 3 — SupplierBillAllocationService Unit & Integration Tests', (
     expect(stayFinal?.status).toBe(stayInitial?.status);
     expect(resFinal?.status).toBe(resInitial?.status);
   });
+
+  it('Scenario 9: Reverses a confirmed RESIDENT_ALLOCATED allocation, cancelling Finance bills and posting reversing double-entry ledger records (BR-E-49)', () => {
+    const draftResult = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-009',
+        supplierAmount: 1000,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+
+    const allocId = draftResult.allocation!.id;
+    allocationService.confirmAllocation(allocId, 'operator-john');
+
+    const revResult = allocationService.reverseAllocation(
+      allocId,
+      'supervisor-jane',
+      'Incorrect billing date range'
+    );
+
+    expect(revResult.success).toBe(true);
+    const reversedAlloc = revResult.allocation!;
+    expect(reversedAlloc.status).toBe('REVERSED');
+    expect(reversedAlloc.reversedBy).toBe('supervisor-jane');
+    expect(reversedAlloc.reversalReason).toBe('Incorrect billing date range');
+    expect(reversedAlloc.reversalReferenceId).toBe(`rev_${allocId}`);
+    expect(reversedAlloc.reversedAt).toBeDefined();
+
+    // Verify resident Finance bills are CANCELLED
+    const financeBills = financeRepo.getBills();
+    expect(financeBills.length).toBe(2);
+    expect(financeBills[0].status).toBe('CANCELLED');
+    expect(financeBills[1].status).toBe('CANCELLED');
+
+    // Verify reversing double-entry ledger entries exist (Debit ELECTRICITY_REVENUE, Credit ACCOUNTS_RECEIVABLE)
+    const ledgerEntries = financeRepo.getLedgerEntries();
+    const reversalEntries = ledgerEntries.filter((e) => e.referenceType === 'REVERSAL');
+    expect(reversalEntries.length).toBeGreaterThan(0);
+    expect(reversalEntries.some((e) => e.account === AccountType.ELECTRICITY_REVENUE && e.debit > 0)).toBe(true);
+  });
+
+  it('Scenario 10: Reverses a confirmed OWNER_ABSORBED allocation without resident Finance bill operations', () => {
+    const draftResult = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-010',
+        supplierAmount: 1200,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+
+    const allocId = draftResult.allocation!.id;
+    allocationService.updateDraftShares(allocId, [
+      { stayId: 'stay-01', selectedShares: 0 },
+      { stayId: 'stay-02', selectedShares: 0 },
+    ]);
+    allocationService.confirmAllocation(allocId, 'operator-mary');
+
+    const revResult = allocationService.reverseAllocation(
+      allocId,
+      'supervisor-jane',
+      'Owner absorbed in error'
+    );
+
+    expect(revResult.success).toBe(true);
+    expect(revResult.allocation?.status).toBe('REVERSED');
+    expect(revResult.allocation?.allocationOutcome).toBe('OWNER_ABSORBED');
+
+    // Confirm zero resident Finance bills exist
+    expect(financeRepo.getBills().length).toBe(0);
+  });
+
+  it('Scenario 11: Idempotency & Validation Guards — prevents double reversal or reversing DRAFT allocation', () => {
+    const draftResult = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-011',
+        supplierAmount: 1000,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+
+    const allocId = draftResult.allocation!.id;
+
+    // Attempting reversal on DRAFT allocation fails
+    const draftRevResult = allocationService.reverseAllocation(allocId, 'supervisor-jane');
+    expect(draftRevResult.success).toBe(false);
+    expect(draftRevResult.errors[0]).toContain('Only CONFIRMED allocations can be reversed');
+
+    // Confirm allocation then reverse
+    allocationService.confirmAllocation(allocId, 'operator-john');
+    const firstRevResult = allocationService.reverseAllocation(allocId, 'supervisor-jane');
+    expect(firstRevResult.success).toBe(true);
+
+    // Attempting second reversal fails (idempotency guard)
+    const secondRevResult = allocationService.reverseAllocation(allocId, 'supervisor-jane');
+    expect(secondRevResult.success).toBe(false);
+    expect(secondRevResult.errors[0]).toContain('Only CONFIRMED allocations can be reversed');
+
+    // Missing operator identity fails
+    const missingOperatorResult = allocationService.reverseAllocation(allocId, '   ');
+    expect(missingOperatorResult.success).toBe(false);
+    expect(missingOperatorResult.errors[0]).toContain('Operator identity (reversedBy) is required');
+  });
+
+  it('Scenario 12: Application compensating rollback executes if Finance reversal fails mid-batch', () => {
+    const draftResult = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-012',
+        supplierAmount: 1000,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+
+    const allocId = draftResult.allocation!.id;
+    allocationService.confirmAllocation(allocId, 'operator-john');
+
+    // Mock ledgerService.reverseEntries on allocationService's internal ledgerService to fail
+    const internalLedgerService = (allocationService as any).ledgerService;
+    internalLedgerService.reverseEntries = () => ({
+      success: false,
+      entries: [],
+      errors: ['Simulated Finance ledger lock failure'],
+    });
+
+    const revResult = allocationService.reverseAllocation(allocId, 'supervisor-jane');
+
+    expect(revResult.success).toBe(false);
+    expect(revResult.errors[0]).toContain('compensating rollback executed');
+
+    // Verify allocation state remains CONFIRMED (not REVERSED)
+    const allocInRepo = electricityRepo.getAllocationById(allocId);
+    expect(allocInRepo?.status).toBe('CONFIRMED');
+
+    // Verify Finance bills were restored to UNPAID (pre-reversal state)
+    const billsInFinance = financeRepo.getBills();
+    expect(billsInFinance.every((b) => b.status === 'UNPAID')).toBe(true);
+  });
 });
+

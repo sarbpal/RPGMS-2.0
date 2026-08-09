@@ -5,6 +5,7 @@ import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/I
 import type { ResidentRepository } from '../../resident/domain/interfaces/ResidentRepository';
 import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { BillingApplicationService, billingService as defaultBillingService } from '../../finance/services/billingService';
+import { LedgerApplicationService, ledgerService as defaultLedgerService } from '../../finance/services/ledgerService';
 import type { FinanceRepository } from '../../finance/domain/interfaces/FinanceRepository';
 import { defaultFinanceRepository } from '../../finance/infrastructure/repositories/InMemoryFinanceRepository';
 import { ParticipantDiscoveryService } from './participantDiscoveryService';
@@ -39,6 +40,7 @@ export class SupplierBillAllocationService {
   private stayRepo: StayRepository;
   private residentRepo: ResidentRepository;
   private financeService: BillingApplicationService;
+  private ledgerService: LedgerApplicationService;
   private financeRepo: FinanceRepository;
   private discoveryService: ParticipantDiscoveryService;
 
@@ -48,13 +50,15 @@ export class SupplierBillAllocationService {
     residentRepo: ResidentRepository = new InMemoryResidentRepository(),
     financeService: BillingApplicationService = defaultBillingService,
     financeRepo: FinanceRepository = defaultFinanceRepository,
-    discoveryService?: ParticipantDiscoveryService
+    discoveryService?: ParticipantDiscoveryService,
+    ledgerService: LedgerApplicationService = defaultLedgerService
   ) {
     this.electricityRepo = electricityRepo;
     this.stayRepo = stayRepo;
     this.residentRepo = residentRepo;
     this.financeService = financeService;
     this.financeRepo = financeRepo;
+    this.ledgerService = ledgerService;
     this.discoveryService =
       discoveryService || new ParticipantDiscoveryService(this.stayRepo, this.residentRepo);
   }
@@ -517,6 +521,165 @@ export class SupplierBillAllocationService {
       bill,
       allocation: confirmedAllocation,
       dataQualityIssues: [...confirmedAllocation.dataQualityIssues],
+      errors: [],
+    };
+  }
+
+  /**
+   * Application Use Case: Reverse a confirmed Electricity Allocation (BR-E-49).
+   * Cancels associated resident Finance bills, counter-posts ledger entries,
+   * handles OWNER_ABSORBED vs RESIDENT_ALLOCATED outcomes, and employs compensating rollback on failure.
+   */
+  public reverseAllocation(
+    allocationId: string,
+    reversedBy: string,
+    reversalReason?: string
+  ): SupplierBillAllocationServiceResult {
+    if (!reversedBy || reversedBy.trim() === '') {
+      return {
+        success: false,
+        bill: null,
+        allocation: null,
+        dataQualityIssues: [],
+        errors: ['Operator identity (reversedBy) is required to reverse an allocation.'],
+      };
+    }
+
+    const allocation = this.electricityRepo.getAllocationById(allocationId);
+    if (!allocation) {
+      return {
+        success: false,
+        bill: null,
+        allocation: null,
+        dataQualityIssues: [],
+        errors: [`ElectricityAllocation '${allocationId}' not found.`],
+      };
+    }
+
+    if (allocation.status !== 'CONFIRMED') {
+      return {
+        success: false,
+        bill: null,
+        allocation,
+        dataQualityIssues: [...allocation.dataQualityIssues],
+        errors: [`Cannot reverse an ElectricityAllocation that is ${allocation.status}. Only CONFIRMED allocations can be reversed.`],
+      };
+    }
+
+    const bill = this.electricityRepo.getBillById(allocation.billId);
+    if (!bill) {
+      return {
+        success: false,
+        bill: null,
+        allocation,
+        dataQualityIssues: [...allocation.dataQualityIssues],
+        errors: [`Linked ElectricityBill '${allocation.billId}' not found.`],
+      };
+    }
+
+    const reversalReferenceId = `rev_${allocation.id}`;
+
+    // Branch A: Explicit OWNER_ABSORBED reversal (no resident Finance bills were created)
+    if (allocation.allocationOutcome === 'OWNER_ABSORBED' || allocation.totalSelectedShares === 0) {
+      allocation.reverse(reversedBy, reversalReferenceId, reversalReason);
+
+      this.electricityRepo.saveAllocation(allocation);
+
+      return {
+        success: true,
+        bill,
+        allocation,
+        dataQualityIssues: [...allocation.dataQualityIssues],
+        errors: [],
+      };
+    }
+
+    // Branch B: Standard RESIDENT_ALLOCATED reversal
+    // 1. Capture pre-reversal Finance state snapshot for compensating rollback
+    const preReversalBillsSnapshot = JSON.parse(JSON.stringify(this.financeRepo.getBills()));
+    const preReversalLedgerEntriesSnapshot = JSON.parse(JSON.stringify(this.financeRepo.getLedgerEntries()));
+
+    const reversalErrors: string[] = [];
+
+    try {
+      const allBills = this.financeRepo.getBills();
+      const updatedBills = [...allBills];
+
+      for (const participant of allocation.participants) {
+        if (!participant.financeBillId) continue;
+
+        // Cancel the Finance bill using existing FinanceRepository.saveBill / saveBills
+        const billIndex = updatedBills.findIndex((b) => b.id === participant.financeBillId);
+        if (billIndex >= 0) {
+          const targetBill = updatedBills[billIndex];
+          updatedBills[billIndex] = {
+            ...targetBill,
+            status: 'CANCELLED',
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        // Counter-post ledger entries for the participant bill using existing ledgerService.reverseEntries
+        const remarks = `Reversal of electricity allocation ${allocation.id} (Bill: ${participant.financeBillId})${reversalReason ? ` - ${reversalReason}` : ''}`;
+        
+        let revResult = this.ledgerService.reverseEntries(
+          'ELECTRICITY_ALLOCATION',
+          participant.financeBillId,
+          remarks,
+          reversedBy
+        );
+
+        if (!revResult.success) {
+          // Fallback to checking by BILL reference type if ELECTRICITY_ALLOCATION wasn't found
+          revResult = this.ledgerService.reverseEntries(
+            'BILL',
+            participant.financeBillId,
+            remarks,
+            reversedBy
+          );
+        }
+
+        if (!revResult.success) {
+          reversalErrors.push(
+            `Failed to reverse ledger entries for participant stay '${participant.stayId}' (Bill ${participant.financeBillId}): ${revResult.errors.join(', ')}`
+          );
+        }
+      }
+
+      if (reversalErrors.length > 0) {
+        throw new Error(reversalErrors.join('; '));
+      }
+
+      // Persist all cancelled bills
+      this.financeRepo.saveBills(updatedBills);
+    } catch (err: unknown) {
+      // Application-Level Compensating Rollback: restore Finance state to pre-reversal snapshot
+      this.financeRepo.saveBills(preReversalBillsSnapshot);
+      this.financeRepo.saveLedgerEntries(preReversalLedgerEntriesSnapshot);
+
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        bill,
+        allocation,
+        dataQualityIssues: [...allocation.dataQualityIssues],
+        errors: [
+          'Electricity allocation reversal aborted due to Finance processing failure. Application compensating rollback executed.',
+          errorMessage,
+        ],
+      };
+    }
+
+    // All Finance reversals succeeded: Transition ElectricityAllocation to REVERSED
+    allocation.reverse(reversedBy, reversalReferenceId, reversalReason);
+
+    this.electricityRepo.saveAllocation(allocation);
+
+    return {
+      success: true,
+      bill,
+      allocation,
+      dataQualityIssues: [...allocation.dataQualityIssues],
       errors: [],
     };
   }

@@ -14,15 +14,17 @@ import {
   AccordionSummary,
   AccordionDetails,
   Stack,
+  Button,
 } from '@mui/material';
-import { ExpandMore, History, InfoOutlined } from '@mui/icons-material';
+import { ExpandMore, History, InfoOutlined, UndoOutlined } from '@mui/icons-material';
 import type { HistoricalAllocationItem } from '../hooks/useSupplierBillAllocation';
 
 export interface AllocationHistoryTableProps {
   items: HistoricalAllocationItem[];
+  onOpenReversalModal?: (item: HistoricalAllocationItem) => void;
 }
 
-export function AllocationHistoryTable({ items }: AllocationHistoryTableProps) {
+export function AllocationHistoryTable({ items, onOpenReversalModal }: AllocationHistoryTableProps) {
   if (!items || items.length === 0) {
     return (
       <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider' }}>
@@ -50,22 +52,32 @@ export function AllocationHistoryTable({ items }: AllocationHistoryTableProps) {
               <TableCell sx={{ fontWeight: 700 }}>Flat & Invoice</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Billing Period</TableCell>
               <TableCell align="right" sx={{ fontWeight: 700 }}>Supplier Bill Amount</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700 }}>Outcome</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Confirmed By & Date</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>Outcome & Status</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Confirmed By & Audit</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Participant Breakdown & Finance Posting</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
-            {items.map(({ allocation, bill }) => {
+            {items.map((item) => {
+              const { allocation, bill } = item;
               const isOwnerAbsorbed = allocation.allocationOutcome === 'OWNER_ABSORBED';
+              const isReversed = allocation.status === 'REVERSED';
               const formattedAmount = allocation.totalSupplierAmount.toLocaleString('en-IN', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               });
 
               return (
-                <TableRow key={allocation.id} hover sx={{ verticalAlign: 'top' }}>
+                <TableRow
+                  key={allocation.id}
+                  hover
+                  sx={{
+                    verticalAlign: 'top',
+                    bgcolor: isReversed ? 'action.hover' : 'inherit',
+                  }}
+                >
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 800 }}>
                       Flat {allocation.flatId}
@@ -97,12 +109,23 @@ export function AllocationHistoryTable({ items }: AllocationHistoryTableProps) {
                   </TableCell>
 
                   <TableCell align="center">
-                    <Chip
-                      label={allocation.allocationOutcome || 'CONFIRMED'}
-                      color={isOwnerAbsorbed ? 'warning' : 'success'}
-                      size="small"
-                      sx={{ fontWeight: 800 }}
-                    />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                      <Chip
+                        label={allocation.allocationOutcome || 'CONFIRMED'}
+                        color={isOwnerAbsorbed ? 'warning' : 'success'}
+                        size="small"
+                        sx={{ fontWeight: 800 }}
+                      />
+                      {isReversed && (
+                        <Chip
+                          label="REVERSED"
+                          color="error"
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 800 }}
+                        />
+                      )}
+                    </Box>
                   </TableCell>
 
                   <TableCell>
@@ -120,6 +143,23 @@ export function AllocationHistoryTable({ items }: AllocationHistoryTableProps) {
                           })
                         : 'Confirmed'}
                     </Typography>
+                    {isReversed && (
+                      <Box sx={{ mt: 1, p: 0.75, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
+                        <Typography variant="caption" color="error.main" sx={{ fontWeight: 700, display: 'block' }}>
+                          Reversed by: {allocation.reversedBy || 'Operator'}
+                        </Typography>
+                        {allocation.reversedAt && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            At: {new Date(allocation.reversedAt).toLocaleString('en-IN')}
+                          </Typography>
+                        )}
+                        {allocation.reversalReason && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic' }}>
+                            Reason: "{allocation.reversalReason}"
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
                     {allocation.dataQualityIssues && allocation.dataQualityIssues.length > 0 && (
                       <Tooltip
                         title={`Data Quality Issues Acknowledged by ${allocation.dataQualityIssues[0].acknowledgedBy || 'Operator'}: ${allocation.dataQualityIssues.map((i) => i.message).join(' | ')}`}
@@ -168,17 +208,44 @@ export function AllocationHistoryTable({ items }: AllocationHistoryTableProps) {
                                 </Typography>
                                 {p.financeBillId && (
                                   <Typography variant="caption" color="primary.main" sx={{ fontFamily: 'monospace' }}>
-                                    Bill: {p.financeBillId}
+                                    Bill: {p.financeBillId} {isReversed ? '(Cancelled)' : ''}
                                   </Typography>
                                 )}
                               </Box>
-                              <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontWeight: 800,
+                                  textDecoration: isReversed ? 'line-through' : 'none',
+                                  color: isReversed ? 'text.disabled' : 'inherit',
+                                }}
+                              >
                                 ₹{p.allocatedAmount.toFixed(2)}
                               </Typography>
                             </Box>
                           ))}
                         </AccordionDetails>
                       </Accordion>
+                    )}
+                  </TableCell>
+
+                  <TableCell align="center">
+                    {!isReversed && onOpenReversalModal && (
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        startIcon={<UndoOutlined />}
+                        onClick={() => onOpenReversalModal(item)}
+                        sx={{ textTransform: 'none', fontWeight: 700 }}
+                      >
+                        Reverse
+                      </Button>
+                    )}
+                    {isReversed && (
+                      <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                        Reversed
+                      </Typography>
                     )}
                   </TableCell>
                 </TableRow>

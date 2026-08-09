@@ -28,6 +28,7 @@ import { RecordMeterReadingModal } from './components/RecordMeterReadingModal';
 import { SupplierBillEntryModal } from './components/SupplierBillEntryModal';
 import { DraftAllocationReviewPanel } from './components/DraftAllocationReviewPanel';
 import { AllocationHistoryTable } from './components/AllocationHistoryTable';
+import { ReverseAllocationModal } from './components/ReverseAllocationModal';
 
 export default function ElectricityPage() {
   const [tabIndex, setTabIndex] = useState<number>(0);
@@ -50,6 +51,9 @@ export default function ElectricityPage() {
     isEntryModalOpen,
     openEntryModal,
     closeEntryModal,
+    reversalTarget,
+    openReversalModal,
+    closeReversalModal,
     draftAllocation,
     supplierBill,
     historicalAllocations,
@@ -60,6 +64,7 @@ export default function ElectricityPage() {
     createDraftBill,
     updateParticipantShares,
     confirmAllocation,
+    reverseAllocation,
   } = useSupplierBillAllocation();
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -161,7 +166,20 @@ export default function ElectricityPage() {
           />
 
           {/* Confirmed Allocation History Table */}
-          <AllocationHistoryTable items={historicalAllocations} />
+          <AllocationHistoryTable
+            items={historicalAllocations}
+            onOpenReversalModal={openReversalModal}
+          />
+
+          {/* Reversal Confirmation Modal */}
+          <ReverseAllocationModal
+            open={Boolean(reversalTarget)}
+            item={reversalTarget}
+            onClose={closeReversalModal}
+            onConfirmReversal={(allocId, reversedBy, reason) => {
+              reverseAllocation(allocId, reversedBy, reason);
+            }}
+          />
         </Stack>
       )}
 

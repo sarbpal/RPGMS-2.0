@@ -128,12 +128,17 @@ Each Capability Release delivers one complete business capability rather than a 
 
 ## CR-4 — Operational Services
 
-**Status:** Planned
+**Status:** 🔄 In Progress
+
+### Completed Deliverables
+
+- Electricity Workspace & Supplier Bill Ingestion
+- Physical Meter Reading & Tariff Engine
+- Historical Occupancy Reconstruction & Share Selection Allocation
+- Electricity Allocation Reversal & Financial Adjustment Workflow (BR-E-49)
 
 ### Planned Deliverables
 
-- Electricity Workspace
-- Meter Reading
 - Maintenance Workspace
 - Complaint Management
 - Vendor Management

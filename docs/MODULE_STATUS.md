@@ -48,7 +48,7 @@ Current development is focused on delivering the Operational Services capability
 | Stay Workspace | 🟢 MVP Complete |
 | Reservation & Admission | 🟢 Complete |
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
-| Electricity | 🟢 MVP Complete (CR-4 / Sprint OS-1) |
+| Electricity | 🟢 MVP Complete (CR-4 / Stage 1–5 Complete) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
 
@@ -476,30 +476,39 @@ Manages the complete financial lifecycle of residents, including rent, security 
 
 # Electricity Module
 
-**Status:** 🟢 Foundation Complete
+**Status:** 🟢 MVP Complete (Stage 1–5 Implemented)
 
-**State:** Future Capability
+**State:** Active (CR-4)
 
 ## Purpose
 
-Manages electricity meter readings, monthly consumption, shared billing, and resident electricity allocation.
+Manages electricity supplier bills, sub-meter readings, monthly consumption, historical occupancy reconstruction, operator share selection, resident utility bill allocation, ledger counter-posting, and allocation reversal audit integrity.
 
 ---
 
-## Planned Features
+## Completed Features
 
-### Workspaces
+### Workspaces & Modals
 
-- Electricity Dashboard
-- Meter Reading Workspace
-- Billing Workspace
+- Electricity Workspace (`ElectricityPage.tsx`)
+- Supplier Bill Entry Modal (`SupplierBillEntryModal.tsx`)
+- Draft Allocation Review Panel (`DraftAllocationReviewPanel.tsx`)
+- Allocation History & Audit Table (`AllocationHistoryTable.tsx`)
+- Allocation Reversal Modal (`ReverseAllocationModal.tsx`)
 
 ### Business Features
 
-- Meter readings
-- Consumption tracking
-- Shared electricity billing
-- Electricity reports
+- Physical sub-meter reading & tariff calculation engine
+- Supplier bill ingestion (`ElectricityBill`)
+- Historical occupancy reconstruction (`ParticipantDiscoveryService`)
+- Potential share calculation & operator share selection
+- Remainder paise deterministic allocation
+- Finance ledger double-entry posting (`Debit ACCOUNTS_RECEIVABLE`, `Credit ELECTRICITY_REVENUE`)
+- Allocation Reversal & Audit Integrity workflow (`CONFIRMED -> REVERSED`)
+- Finance bill cancellation (`BillStatus.CANCELLED`) & ledger counter-posting (`referenceType = REVERSAL`)
+- Owner-absorbed allocation handling (`OWNER_ABSORBED`)
+- Application-level compensating rollback on multi-participant failure
+- Complete Vitest test suite (50 test files, 312 passing tests)
 
 ---
 
@@ -642,7 +651,7 @@ Current objectives:
 | Reservation | 🟢 Complete | Frozen |
 | Admission | 🟢 Complete | Frozen |
 | Finance | 🔵 Active Development | Active (CR-3) |
-| Electricity | 🟢 Foundation Complete | Future Capability |
+| Electricity | 🟢 MVP Complete | Active (CR-4) |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
 

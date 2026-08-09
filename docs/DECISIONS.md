@@ -652,10 +652,37 @@ Following the completion of Capability Release 3 (CR-3 — Financial Operations)
 
 ---
 
+## ADR-023 — Electricity Allocation Reversal, Audit Integrity & Controlled Financial Adjustment
+
+**Status:** Accepted
+
+### Context
+
+Following the implementation of supplier bill allocation confirmation (Stage 1 through Stage 4), operator corrections required the ability to reverse a confirmed electricity allocation (`ElectricityAllocation`). Reversal must preserve original calculation data, maintain an immutable historical audit trail, cancel associated resident Finance bills, post counter-balancing double-entry ledger records, and execute within an all-or-nothing compensating rollback boundary without creating custom refund or credit-note mechanisms outside the Finance domain.
+
+### Decision
+
+1. **Authoritative Reversal Lifecycle**: `ElectricityAllocation` is the single authoritative aggregate root owning the allocation reversal lifecycle (`CONFIRMED -> REVERSED`). The physical supplier invoice (`ElectricityBill`) remains unmutated and does NOT have a `REVERSED` lifecycle state.
+2. **Explicit Audit Metadata**: `ElectricityAllocation` records mandatory operator identity (`reversedBy`), ISO timestamp (`reversedAt`), stable reference ID (`reversalReferenceId = 'rev_' + allocation.id`), and optional operational notes (`reversalReason`). Historical calculation parameters and confirmation metadata remain strictly unmutated.
+3. **Finance Domain Primitives**: Resident financial adjustments delegate 100% to existing Finance primitives: resident bills transition to `status = 'CANCELLED'` via `FinanceRepository.saveBill()`, and counter-postings (`Debit ELECTRICITY_REVENUE`, `Credit ACCOUNTS_RECEIVABLE`) with `referenceType = REVERSAL` are posted via `LedgerApplicationService.reverseEntries()`.
+4. **No Custom Credit-Note Mechanism**: Reversing a paid bill naturally leaves an Accounts Receivable credit balance on the resident ledger view model under standard double-entry rules. No custom credit-note, refund, or resident credit logic is introduced in Electricity.
+5. **Application-Level Compensating Rollback**: Multi-participant reversal operates within an application-level compensating rollback boundary using pre-reversal in-memory Finance snapshots (`preReversalBillsSnapshot`, `preReversalLedgerEntriesSnapshot`) to restore Finance state and maintain `CONFIRMED` allocation status if any participant reversal step fails.
+
+### Consequences
+
+#### Advantages:
+- **Domain & Architectural Separation**: Electricity domain owns supplier allocation reversal rules while Finance authoritatively manages ledger double-entry counter-postings and receivables.
+- **Immutable Audit History**: Preserves complete historical lineage and attribution without altering original calculation parameters.
+- **Zero Orphan Financial States**: Compensating rollback guarantees atomic reversal outcomes across multi-participant allocations.
+- **Clean 9-File Implementation**: Executed with zero modifications to Finance code or external domain interfaces.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.7 | August 2026 | Added ADR-023 (Electricity Allocation Reversal, Audit Integrity & Controlled Financial Adjustment). |
 | 2.6 | August 2026 | Added ADR-022 (Electricity Consumption Allocation & Financial Ledger Billing Integration). |
 | 2.5 | August 2026 | Added ADR-021 (Finance UI Workspace Coordination & Interactive Modal Integration). |
 | 2.4 | August 2026 | Added ADR-020 (Financial Reporting, Activity Timeline & Workspace Coordination). |

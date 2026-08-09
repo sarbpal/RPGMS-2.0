@@ -2,7 +2,7 @@
 
 # Electricity Business Rules & Domain Design
 
-**Status:** Stage 1, Stage 2, Stage 3 & Stage 4 Implemented
+**Status:** Stage 1, Stage 2, Stage 3, Stage 4 & Stage 5 Implemented
 **Scope:** Ritu PG Supplier Electricity Billing & Allocation
 **Current FR-6 baseline:** Meter / Reading / kWh / Tariff / Automated Split
 **Target model:** Supplier Bill / Historical Occupancy / Operator Share Selection / Finance Posting
@@ -752,10 +752,71 @@ If a confirmed allocation must be corrected:
 
 * the original allocation remains preserved;
 * original financial postings remain historically traceable;
-* a controlled reversal/adjustment is created;
-* the corrected allocation is represented separately;
-* resulting Finance ledger entries must preserve double-entry integrity;
-* the correction must not silently edit or delete the original financial history.
+* a controlled reversal workflow transitions `ElectricityAllocation` status from `CONFIRMED → REVERSED`;
+* resulting Finance ledger entries preserve double-entry integrity;
+* the correction does not edit or delete historical financial records.
+
+### 1. Authoritative Reversal Lifecycle
+The allocation reversal lifecycle belongs strictly to `ElectricityAllocation`:
+
+```text
+CONFIRMED → REVERSED
+```
+
+Attempts to reverse an allocation in any other state are strictly prohibited:
+* `DRAFT → REVERSED`: Rejected with a domain error.
+* `REVERSED → REVERSED`: Rejected with a domain error.
+
+### 2. Reversal Audit Metadata
+When an allocation is reversed, explicit audit metadata is recorded on the `ElectricityAllocation` aggregate:
+* `reversalReferenceId`: Stable business reference string (e.g., `rev_ealloc_123`).
+* `reversedBy`: Mandatory operator identity initiating the reversal.
+* `reversedAt`: ISO timestamp when the reversal was committed.
+* `reversalReason`: Optional operational notes describing the reason for reversal.
+
+### 3. Historical Immutability
+Reversal does NOT alter historical calculation or attribution parameters on `ElectricityAllocation`:
+* `totalSupplierAmount`, `totalPotentialShares`, `totalSelectedShares`, `amountPerShare`, `remainderPaise` remain unmutated;
+* `periodStart`, `periodEnd`, `flatId`, `billId` remain unmutated;
+* `confirmedBy` and `confirmedAt` confirmation metadata remain unmutated;
+* `participants` array and historical `dataQualityIssues` remain unmutated.
+
+### 4. Finance Integration (Resident Allocations)
+Reversal of a `RESIDENT_ALLOCATED` electricity allocation delegates financial adjustments strictly to existing Finance domain primitives:
+* **Finance Bill Cancellation**: Linked resident Finance bills transition to `status = 'CANCELLED'` via `FinanceRepository.saveBill()`.
+* **Ledger Counter-Posting**: Counter-posting entries are created using `LedgerApplicationService.reverseEntries()`:
+  * Original entries are located using `referenceType = 'ELECTRICITY_ALLOCATION'` (or fallback `'BILL'`) and `referenceId = participant.financeBillId`.
+  * Generated counter-posting ledger entries are posted with `referenceType = 'REVERSAL'` and `referenceId = orig.id`.
+  * Accounting entry direction:
+    ```text
+    Debit  ELECTRICITY_REVENUE
+    Credit ACCOUNTS_RECEIVABLE
+    ```
+
+### 5. Owner-Absorbed Allocations
+Reversing an `OWNER_ABSORBED` allocation transitions `ElectricityAllocation` status to `REVERSED` without executing resident Finance bill cancellations or resident ledger counter-postings, as no resident bills were created during confirmation.
+
+### 6. Paid Bills & Overpayment Handling
+If a resident bill was already paid prior to allocation reversal, counter-posting `Credit ACCOUNTS_RECEIVABLE` naturally leaves a negative running balance (credit/advance balance) on the resident's ledger view model.
+
+Stage 5 does NOT introduce:
+* custom credit-note mechanisms;
+* cash/bank refund mechanisms;
+* Electricity-specific resident credit tracking.
+
+All accounting consequences remain 100% delegated to the standard Finance double-entry model.
+
+### 7. Idempotency Boundary
+An allocation is eligible for reversal only while `allocation.status === 'CONFIRMED'`. Once reversed, `allocation.status` becomes `'REVERSED'`, causing all subsequent reversal requests to be rejected immediately at the domain check.
+
+### 8. Application-Level Compensating Rollback
+Multi-participant financial reversals operate under an **application-level compensating rollback** pattern:
+* Pre-reversal in-memory snapshots of Finance bills and ledger entries are captured before attempting batch reversals.
+* If any participant ledger reversal or bill cancellation fails mid-batch, the Finance repository state is restored from the snapshot, `ElectricityAllocation` status remains `CONFIRMED`, and an error is returned.
+
+### 9. Aggregate Ownership Distinction
+* `ElectricityAllocation`: Authoritative aggregate root owning the allocation reversal lifecycle (`CONFIRMED → REVERSED`) and reversal audit metadata.
+* `ElectricityBill`: Represents the physical supplier utility invoice received from the supply company. It remains `CONFIRMED` and does NOT have a `REVERSED` lifecycle state.
 
 ---
 

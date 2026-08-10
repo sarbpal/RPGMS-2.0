@@ -3,6 +3,21 @@
 
 # [Unreleased]
 
+## Features & Operational Services
+
+### CR-4 — Maintenance Management Foundation (Implemented)
+
+#### Completed
+
+- **Core Maintenance Domain (`src/features/maintenance/domain/`):** Implemented `MaintenanceRequest` and `MaintenancePersonnel` entities, status state machine (`OPEN` -> `IN_PROGRESS` -> `RESOLVED` / `CANCELLED`), category & priority classifications, reporter types (`RESIDENT`, `STAFF`, `OTHER`), and append-only event logs (`MaintenanceEventLog`).
+- **Maintenance Personnel Directory (`MaintenancePersonnel`):** Created lightweight personnel entity supporting internal staff and external contractors with soft-deactivation toggle and Door ID reference capabilities.
+- **Repository Contracts & In-Memory Infrastructure (`src/features/maintenance/infrastructure/`):** Implemented `InMemoryMaintenanceRepository` and `InMemoryMaintenancePersonnelRepository` with sequential `MNT-2026-XXXX` ticket number generation, `localStorage` persistence, and seed datasets.
+- **Multi-Filter Operational Search:** Added combinable search across ticket number, status (including `PENDING`), priority, category, technician, location (`Flat`/`Area`/`Bed`), resident/stay, inclusive date ranges (`dateLogged`, `dateResolved`), cost ranges (`estimateCost`, `actualCost`), and full-text keyword search.
+- **Reporting & Period Analytics (`MaintenanceAnalyticsPanel`):** Implemented dynamic financial metrics (Estimate vs. Actual Variance), operational statistics, category breakdowns, location repair costs, technician performance metrics, and monthly period trends (`YYYY-MM`).
+- **Application Coordinator & ViewModels (`MaintenanceWorkspaceCoordinator`):** Created coordinator orchestrating queries across Maintenance, Accommodation, Stay, and Resident domains for enriched ViewModels and contextual prefill handling.
+- **Workspace UI & Contextual Entry (`/maintenance`):** Built canonical tabbed workspace page (`MaintenancePage`) with summary cards, toolbar, data table, analytics panel, and registration/update/personnel/detail modals. Integrated contextual links from Accommodation (`FlatCard`), Resident (`CurrentStaySummaryCard`), and Dashboard (`DashboardPage`).
+- **Vitest Testing Suite:** Added unit test coverage for domain rules, repository CRUD/search/analytics, and coordinator workflows (157 total tests passing).
+
 ## Documentation
 
 ### Documentation Capability Sprint 2 (DCS-2)

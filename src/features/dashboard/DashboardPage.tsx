@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   Build,
   Hotel,
@@ -23,6 +24,7 @@ interface SummaryCard {
 interface QuickAction {
   label: string;
   icon: ReactNode;
+  onClick?: (navigate: ReturnType<typeof useNavigate>) => void;
 }
 
 const summaryCards: SummaryCard[] = [
@@ -33,13 +35,15 @@ const summaryCards: SummaryCard[] = [
 ];
 
 const quickActions: QuickAction[] = [
-  { label: 'Add Resident', icon: <PersonAdd /> },
-  { label: 'Record Payment', icon: <Payments /> },
-  { label: 'Occupancy', icon: <Hotel /> },
-  { label: 'Add Complaint', icon: <Build /> },
+  { label: 'Add Resident', icon: <PersonAdd />, onClick: (nav) => nav('/residents') },
+  { label: 'Record Payment', icon: <Payments />, onClick: (nav) => nav('/finance') },
+  { label: 'Occupancy', icon: <Hotel />, onClick: (nav) => nav('/accommodation') },
+  { label: 'Add Complaint', icon: <Build />, onClick: (nav) => nav('/maintenance') },
 ];
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+
   return (
     <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
       <Stack spacing={0.5} sx={{ mb: 4 }}>
@@ -87,6 +91,7 @@ export function DashboardPage() {
               key={action.label}
               startIcon={action.icon}
               variant="contained"
+              onClick={() => action.onClick && action.onClick(navigate)}
             >
               {action.label}
             </Button>

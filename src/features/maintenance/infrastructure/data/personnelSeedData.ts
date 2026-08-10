@@ -1,0 +1,48 @@
+import type { MaintenancePersonnelProps } from '../../domain/entities/MaintenancePersonnel';
+
+export const personnelSeedData: MaintenancePersonnelProps[] = [
+  {
+    id: 'per-101',
+    name: 'Ramesh Kumar',
+    phone: '+91 98765 43210',
+    type: 'STAFF',
+    doorId: 'STAFF-KEY-01',
+    isActive: true,
+    notes: 'Plumbing & General Maintenance Specialist',
+    createdAt: '2026-06-01T09:00:00.000Z',
+    updatedAt: '2026-06-01T09:00:00.000Z',
+  },
+  {
+    id: 'per-102',
+    name: 'Suresh Electrician',
+    phone: '+91 98765 12345',
+    type: 'EXTERNAL',
+    address: 'City Electricals, MG Road, Ward 4',
+    isActive: true,
+    notes: 'External Electrical Contractor',
+    createdAt: '2026-06-05T10:00:00.000Z',
+    updatedAt: '2026-06-05T10:00:00.000Z',
+  },
+  {
+    id: 'per-103',
+    name: 'Anil Carpenter',
+    phone: '+91 98123 45678',
+    type: 'EXTERNAL',
+    address: 'Anil Furniture Works, Industrial Area',
+    isActive: true,
+    notes: 'Woodwork & Furniture Repairs',
+    createdAt: '2026-06-10T11:00:00.000Z',
+    updatedAt: '2026-06-10T11:00:00.000Z',
+  },
+  {
+    id: 'per-104',
+    name: 'Deepak Housekeeping',
+    phone: '+91 97654 32109',
+    type: 'STAFF',
+    doorId: 'STAFF-KEY-02',
+    isActive: true,
+    notes: 'Civil & Cleaning Operations',
+    createdAt: '2026-06-15T08:30:00.000Z',
+    updatedAt: '2026-06-15T08:30:00.000Z',
+  },
+];

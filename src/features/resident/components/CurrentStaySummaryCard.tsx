@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, CardContent, Chip, Divider, Grid, Stack, Typography } from '@mui/material';
-import { Visibility } from '@mui/icons-material';
+import { Build, Visibility } from '@mui/icons-material';
 import type { CurrentStaySummaryViewModel } from '../application/models/ResidentWorkspaceViewModel';
 
 interface CurrentStaySummaryCardProps {
@@ -19,16 +19,28 @@ export function CurrentStaySummaryCard({ data }: CurrentStaySummaryCardProps) {
             Current Stay Summary
           </Typography>
           {data.hasActiveStay && (
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<Visibility />}
-              onClick={() => navigate(`/stay/${data.stayId}`)}
-              sx={{ fontWeight: 700, textTransform: 'none' }}
-            >
-              Open Stay Workspace
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                startIcon={<Build />}
+                onClick={() => navigate(`/maintenance?stayId=${data.stayId}`)}
+                sx={{ fontWeight: 700, textTransform: 'none' }}
+              >
+                Maintenance
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<Visibility />}
+                onClick={() => navigate(`/stay/${data.stayId}`)}
+                sx={{ fontWeight: 700, textTransform: 'none' }}
+              >
+                Open Stay Workspace
+              </Button>
+            </Stack>
           )}
         </Stack>
 

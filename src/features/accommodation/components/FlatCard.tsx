@@ -1,5 +1,6 @@
 import { Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Build as BuildIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 import { BedStatus } from '../domain';
 import type { Bed, Flat } from '../domain';
@@ -13,6 +14,7 @@ interface FlatCardProps {
 }
 
 export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) {
+  const navigate = useNavigate();
   // Derive metrics dynamically
   let totalBeds = 0;
   let occupiedBeds = 0;
@@ -60,6 +62,14 @@ export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) 
             ({totalBeds} Beds &bull; {occupiedBeds} Occupied &bull; {vacantBeds} Vacant)
           </Typography>
           <Stack direction="row" spacing={1}>
+            <Button
+              startIcon={<BuildIcon />}
+              variant="outlined"
+              size="small"
+              onClick={() => navigate(`/maintenance?flatId=${flat.id}`)}
+            >
+              Maintenance
+            </Button>
             {onEdit && (
               <Button
                 startIcon={<EditIcon />}

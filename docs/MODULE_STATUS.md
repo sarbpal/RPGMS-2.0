@@ -524,13 +524,13 @@ Manages electricity supplier bills, sub-meter readings, monthly consumption, his
 
 # Maintenance Module
 
-**Status:** 🟢 Foundation Complete
+**Status:** 🟢 MVP Complete (CR-4 / Maintenance Foundation Implemented)
 
-**State:** Future Capability
+**State:** Active Operational Capability
 
 ## Purpose
 
-Manages maintenance requests, work orders, vendor coordination, asset servicing, and issue resolution across the hostel.
+Manages maintenance requests, operational repairs, technician assignments, category & location metrics, financial repair costs, and append-only audit histories across the hostel.
 
 ---
 

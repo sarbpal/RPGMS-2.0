@@ -120,12 +120,14 @@ Area
     ↓
 Bed
     ↓
-Resident
+Stay
+    ↓
+Charge / Billing
     ↓
 Ledger
 ```
 
-Accommodation is the foundation for occupancy, billing, and reporting.
+Accommodation is the foundation for occupancy. Billing and financial history belong to the Stay context rather than directly to the Resident profile.
 
 ---
 
@@ -428,7 +430,7 @@ If implementation conflicts with these rules, the rules must be followed unless 
 
 Never duplicate a resident for readmission.
 Admissions are historical records and are never rewritten.
-Billing and Ledger always belong to an Admission.
+Billing and Ledger financial records belong to a Stay. An Admission establishes a Stay but does not replace the Stay as the financial ownership context.
 Checkout never deletes history.
 Deposit decisions are recommendations based on contract evaluation, not automatic irreversible actions.
 

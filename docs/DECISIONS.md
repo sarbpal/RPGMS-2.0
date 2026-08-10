@@ -704,10 +704,50 @@ Following the initial Settlement Implementation (Sprint FR-1), deposit tracking 
 
 ---
 
+## ADR-025 — Billing Engine Controlled Run, Claim, Recovery and Retry Architecture
+
+**Status:** Accepted
+
+### Context
+
+RPGMS billing requires controlled execution over operator-selected Billing Periods, while preserving Stay ownership, immutable financial history, duplicate prevention, concurrent-run safety, late-entry handling, and explicit recovery when financial outcome is uncertain. Preview-only calculation is insufficient because two overlapping Billing Runs may observe the same eligible Charge before either is authoritatively confirmed.
+
+The broader architecture defines the Billing Engine as an Architectural Service that coordinates billing execution, while the Ledger Engine maintains authoritative financial history. The Billing Engine therefore requires an explicit processing lifecycle without becoming the owner of financial truth.
+
+### Decision
+
+1. **Billing Run lifecycle:** Billing Runs use Preview → authoritative revalidation → Confirmation → Claim → Processing → Final Outcome.
+2. **Operator-selected Billing Period:** The operator chooses the Billing Period; it is not hard-coded. Overlapping Billing Periods are permitted.
+3. **Eligibility Cutoff:** Authoritative eligibility is determined from data available and valid at confirmation/claim time, not from the earlier Preview.
+4. **First Claim Wins:** The first successful authoritative Claim establishes exclusive Billing Operation responsibility for a Charge. Competing runs exclude already claimed or financially resolved Charges.
+5. **Claim is processing state:** A Claim is not financial truth. Bills, Payments, Settlements and Ledger history remain owned by Finance/Ledger capabilities.
+6. **Retry:** `NOT_PROCESSED` items return to normal future eligibility; attempted `FAILED` or `CLAIM_FAILED` operations require controlled Retry Runs. A Retry Run is a new immutable Billing Run.
+7. **Recovery:** Uncertain financial outcomes enter `RECOVERY_REQUIRED`; the Claim remains protected until an authorized recovery resolution establishes financial success or absence of financial commitment.
+8. **Graceful Stop:** Stop Processing prevents new operations from starting while allowing in-flight operations to finish; never-started work becomes `NOT_PROCESSED`.
+9. **Audit:** Billing Run, Billing Operation, Claim, Retry and Recovery decisions remain permanently auditable.
+10. **Target architecture document:** `docs/BILLING_ENGINE_ARCHITECTURE.md` is the authoritative target architecture for Billing Engine processing behavior and specializes `docs/ARCHITECTURE.md` without overriding `docs/BUSINESS_RULES.md`, `docs/DOMAIN_MODEL.md`, or `PROJECT_RULES.md`.
+
+### Consequences
+
+#### Advantages:
+- Prevents duplicate financial processing under overlapping Billing Runs.
+- Preserves the distinction between processing ownership and financial truth.
+- Supports late-entered Charges and historical-period reruns without rewriting history.
+- Provides a controlled path for failures, uncertainty, recovery and retry.
+- Preserves immutable Billing Run lineage and auditability.
+
+#### Trade-offs:
+- Billing processing requires explicit state management and reconciliation logic.
+- Concurrent claim acquisition requires database/application transaction design.
+- Recovery cases require additional operational tooling and authorization controls.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.9 | August 2026 | Added ADR-025 (Billing Engine Controlled Run, Claim, Recovery and Retry Architecture). |
 | 2.8 | August 2026 | Added ADR-024 (Running Deposit Account Lifecycle, Partial Returns, and Decoupled Settlement). |
 | 2.7 | August 2026 | Added ADR-023 (Electricity Allocation Reversal, Audit Integrity & Controlled Financial Adjustment). |
 | 2.6 | August 2026 | Added ADR-022 (Electricity Consumption Allocation & Financial Ledger Billing Integration). |

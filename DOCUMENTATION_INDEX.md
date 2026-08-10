@@ -71,6 +71,7 @@ Located in /docs
 | BUSINESS_RULES.md | Operational business policies and rules | Active | Current |
 | DOMAIN_MODEL.md | Business domains, entities and relationships | Active | Current |
 | ARCHITECTURE.md | Software architecture and implementation principles | Active | Current |
+| BILLING_ENGINE_ARCHITECTURE.md | Authoritative target architecture for Billing Engine lifecycle, claims, concurrency, recovery and retry | Active | 1.1 |
 | PROJECT_RULES.md | Constitutional engineering and implementation rules | Active | Current |
 | ENGINEERING_BASELINE.md | Established engineering practices and implementation baseline | Active | Current |
 
@@ -146,21 +147,25 @@ Learn the constitutional engineering rules governing the project.
 
 3. ARCHITECTURE.md
 
-Understand the software architecture, layering, and dependency rules.
+Understand the software architecture, layering, dependency rules, and architectural service boundaries.
 
-4. ENGINEERING_BASELINE.md
+4. BILLING_ENGINE_ARCHITECTURE.md
+
+When the task involves billing execution, Billing Runs, claims, retry, recovery, or financial processing orchestration, read the authoritative Billing Engine target architecture. It specializes ARCHITECTURE.md and does not override BUSINESS_RULES.md or DOMAIN_MODEL.md.
+
+5. ENGINEERING_BASELINE.md
 
 Understand the established engineering patterns and implementation principles.
 
-5. BUSINESS_BLUEPRINT.md
+6. BUSINESS_BLUEPRINT.md
 
 Understand the overall business vision and objectives.
 
-6. BUSINESS_RULES.md
+7. BUSINESS_RULES.md
 
 Learn the operational rules of the hostel business.
 
-7. DOMAIN_MODEL.md
+8. DOMAIN_MODEL.md
 
 Understand the business entities, aggregates, and domain relationships.
 
@@ -168,15 +173,15 @@ Understand the business entities, aggregates, and domain relationships.
 Phase 2 – AI Context
 ------------------------------------------------------------------------------
 
-8. AI_GOVERNANCE.md
+9. AI_GOVERNANCE.md
 
 Understand AI operating principles.
 
-9. AI_CONTEXT.md
+10. AI_CONTEXT.md
 
 Understand business context, terminology, and project conventions.
 
-10. AI_INSTRUCTIONS.md
+11. AI_INSTRUCTIONS.md
 
 Understand coding standards and implementation workflow.
 
@@ -184,23 +189,23 @@ Understand coding standards and implementation workflow.
 Phase 3 – Project Status
 ------------------------------------------------------------------------------
 
-11. MODULE_STATUS.md
+12. MODULE_STATUS.md
 
 Understand current implementation maturity.
 
-12. ROADMAP.md
+13. ROADMAP.md
 
 Understand future business capabilities and product direction.
 
-13. CHANGELOG.md
+14. CHANGELOG.md
 
 Review recent implementation history.
 
-14. SESSION.md
+15. SESSION.md
 
 Review the current development session.
 
-15. NEXT_TASK.md
+16. NEXT_TASK.md
 
 Understand the immediate implementation objective.
 
@@ -457,6 +462,7 @@ Contributors should always consult the designated document before introducing ch
 | Business Rules | BUSINESS_RULES.md |
 | Business Domain Model | DOMAIN_MODEL.md |
 | Software Architecture | ARCHITECTURE.md |
+| Billing Engine Architecture | BILLING_ENGINE_ARCHITECTURE.md |
 | Engineering Rules | PROJECT_RULES.md |
 | Engineering Standards | PROJECT_ENGINEERING_STANDARD.md |
 | AI Governance | AI_GOVERNANCE.md |

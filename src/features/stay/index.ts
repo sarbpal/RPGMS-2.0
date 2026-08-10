@@ -7,4 +7,7 @@ export * from './components/StaySummaryCard';
 export * from './components/FinancialSummaryCard';
 export * from './components/TimelinePanel';
 export * from './components/SupportingInformationPanel';
+export * from './components/BillingCycleHistoryCard';
+export * from './components/ChangeBillingCycleModal';
 export { default as StayWorkspacePage } from './pages/StayWorkspacePage';
+export { StaysRegistryPage } from './pages/StaysRegistryPage';

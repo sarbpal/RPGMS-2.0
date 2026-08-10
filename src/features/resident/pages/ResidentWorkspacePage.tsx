@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { Container, Grid, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Button, Link } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
-import { ResidentWorkspaceCoordinator } from '../application/coordinator/ResidentWorkspaceCoordinator';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import { ResidentHeader } from '../components/ResidentHeader';
 import { ResidentQuickActions } from '../components/ResidentQuickActions';
 import { CurrentStaySummaryCard } from '../components/CurrentStaySummaryCard';
+import { ResidentStayHistoryCard } from '../components/ResidentStayHistoryCard';
 import { ProfileCompletionCard } from '../components/ProfileCompletionCard';
 import { OperationalReadinessCard } from '../components/OperationalReadinessCard';
 import { PersonalInformationCard } from '../components/PersonalInformationCard';
@@ -20,7 +21,7 @@ import { ResidentIdentityForm, type ResidentIdentityFormData } from '../componen
 export default function ResidentWorkspacePage() {
   const { residentId } = useParams<{ residentId: string }>();
 
-  const coordinator = useMemo(() => new ResidentWorkspaceCoordinator(), []);
+  const coordinator = useMemo(() => stayWorkflowComposition.residentWorkspaceCoordinator, []);
   const viewModel = useMemo(
     () => coordinator.createViewModel(residentId || ''),
     [coordinator, residentId]
@@ -81,7 +82,7 @@ export default function ResidentWorkspacePage() {
           Back to Residents
         </Link>
 
-        {/* Operational Workspace Top Block: Resident Header -> Quick Actions -> Current Stay Summary */}
+        {/* Operational Workspace Top Block: Resident Header -> Quick Actions -> Current Stay Summary -> Resident Stay History */}
         <Stack spacing={2}>
           <ResidentHeader data={viewModel.header} />
           <ResidentQuickActions
@@ -89,6 +90,7 @@ export default function ResidentWorkspacePage() {
             onEditProfile={handleOpenEditModal}
           />
           <CurrentStaySummaryCard data={viewModel.currentStay} />
+          <ResidentStayHistoryCard residentId={viewModel.header.residentId} />
         </Stack>
 
         {/* Operational Dashboard: Side-by-side cards immediately below Current Stay Summary */}

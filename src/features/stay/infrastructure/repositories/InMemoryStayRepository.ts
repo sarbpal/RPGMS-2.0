@@ -89,3 +89,6 @@ export class InMemoryStayRepository implements StayRepository {
   }
 }
 
+// Application-wide in-memory composition root.  Coordinators receive this by
+// default, while tests continue to provide isolated repository instances.
+export const defaultStayRepository = new InMemoryStayRepository();

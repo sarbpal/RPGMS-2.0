@@ -22,9 +22,7 @@ import { AdmissionActionsCard } from '../components/AdmissionActionsCard';
 import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordinator';
 import type { AdmissionDraft } from '../application/models/AdmissionDraft';
 import type { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
-import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
-import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 
 export const AdmissionWorkspacePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,9 +32,9 @@ export const AdmissionWorkspacePage: React.FC = () => {
   const isWalkIn = !id;
 
   const reservationRepo = useMemo(() => new InMemoryReservationRepository(), []);
-  const residentRepo = useMemo(() => new InMemoryResidentRepository(), []);
-  const stayRepo = useMemo(() => new InMemoryStayRepository(), []);
-  const accommodationRepo = useMemo(() => new InMemoryAccommodationRepository(), []);
+  const residentRepo = stayWorkflowComposition.residentRepository;
+  const stayRepo = stayWorkflowComposition.stayRepository;
+  const accommodationRepo = stayWorkflowComposition.accommodationRepository;
 
   const reservationUseCases = useMemo(
     () => new ReservationUseCases(reservationRepo),

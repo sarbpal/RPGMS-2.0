@@ -5,16 +5,16 @@ import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogT
 
 import { EmptyState } from '../../../components/EmptyState';
 import { PageHeader } from '../../../components/PageHeader';
-import { AccommodationWorkspaceCoordinator } from '../application/coordinator/AccommodationWorkspaceCoordinator';
 import { AccommodationSummary } from '../components/AccommodationSummary';
 import { AccommodationToolbar } from '../components/AccommodationToolbar';
 import { AddFlatDialog, type FlatDraft } from '../components/AddFlatDialog';
 import { BedDetailsDialog } from '../components/BedDetailsDialog';
 import { FlatCard } from '../components/FlatCard';
 import type { Bed, Flat } from '../domain';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 
 export default function AccommodationWorkspacePage() {
-  const coordinator = useMemo(() => new AccommodationWorkspaceCoordinator(), []);
+  const coordinator = useMemo(() => stayWorkflowComposition.accommodationWorkspaceCoordinator, []);
 
   const [flats, setFlats] = useState<Flat[]>(() => {
     return coordinator.loadAndSynchronizeFlats();

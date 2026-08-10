@@ -4,6 +4,8 @@ import { CommercialAgreement, type CommercialAgreementProps } from '../valueObje
 import { CurrentProjection } from '../valueObjects/CurrentProjection';
 import { StayStatus } from '../valueObjects/StayStatus';
 import type { StayType } from '../valueObjects/StayType';
+import { BillingCycleRecord, type BillingCycleRecordProps } from '../valueObjects/BillingCycleRecord';
+import { BillingCycleChange, type BillingCycleChangeProps } from './BillingCycleChange';
 
 export interface StayProps {
   id: string;
@@ -16,6 +18,9 @@ export interface StayProps {
   commercialAgreements?: (CommercialAgreement | CommercialAgreementProps)[] | readonly CommercialAgreement[];
   bedAllocations?: (BedAllocation | BedAllocationProps)[] | readonly BedAllocation[];
   businessEvents?: (BusinessEvent | BusinessEventProps)[] | readonly BusinessEvent[];
+  billingAnchorDay?: number;
+  billingCycleRecords?: readonly (BillingCycleRecord | BillingCycleRecordProps)[];
+  billingCycleChanges?: readonly (BillingCycleChange | BillingCycleChangeProps)[];
   doorId?: string;
   notes?: string;
   createdAt?: string;
@@ -33,12 +38,15 @@ export class Stay {
   readonly residentId: string;
   readonly stayType: StayType;
   private _status: StayStatus;
-  readonly checkInDate: string;
+  readonly checkInDate: string; // IMMUTABLE
   private _expectedCheckoutDate?: string;
   private _actualCheckoutDate?: string;
   private _commercialAgreements: CommercialAgreement[];
   private _bedAllocations: BedAllocation[];
   private _businessEvents: BusinessEvent[];
+  private _billingAnchorDay: number;
+  private _billingCycleRecords: BillingCycleRecord[];
+  private _billingCycleChanges: BillingCycleChange[];
   readonly doorId?: string;
   readonly notes?: string;
   readonly createdAt: string;
@@ -115,6 +123,41 @@ export class Stay {
         }),
       ];
     }
+
+    // Initialize Billing Anchor & History
+    let derivedAnchor = 10;
+    if (props.billingAnchorDay && props.billingAnchorDay >= 1 && props.billingAnchorDay <= 31) {
+      derivedAnchor = props.billingAnchorDay;
+    } else if (props.checkInDate) {
+      const parsedDay = parseInt(props.checkInDate.split('-')[0], 10) || new Date(props.checkInDate).getDate();
+      if (!isNaN(parsedDay) && parsedDay >= 1 && parsedDay <= 31) {
+        derivedAnchor = parsedDay;
+      }
+    }
+    this._billingAnchorDay = derivedAnchor;
+
+    if (props.billingCycleRecords && props.billingCycleRecords.length > 0) {
+      this._billingCycleRecords = props.billingCycleRecords.map((bcr) =>
+        bcr instanceof BillingCycleRecord ? bcr : new BillingCycleRecord(bcr)
+      );
+    } else {
+      this._billingCycleRecords = [
+        new BillingCycleRecord({
+          id: `BCR-${props.id}-1`,
+          stayId: props.id,
+          billingAnchorDay: this._billingAnchorDay,
+          effectiveFrom: props.checkInDate,
+        }),
+      ];
+    }
+
+    if (props.billingCycleChanges && props.billingCycleChanges.length > 0) {
+      this._billingCycleChanges = props.billingCycleChanges.map((bcc) =>
+        bcc instanceof BillingCycleChange ? bcc : new BillingCycleChange(bcc)
+      );
+    } else {
+      this._billingCycleChanges = [];
+    }
   }
 
   // Aggregate Getters
@@ -140,6 +183,25 @@ export class Stay {
 
   get businessEvents(): readonly BusinessEvent[] {
     return [...this._businessEvents];
+  }
+
+  get billingAnchorDay(): number {
+    return this._billingAnchorDay;
+  }
+
+  get billingCycleRecords(): readonly BillingCycleRecord[] {
+    return [...this._billingCycleRecords];
+  }
+
+  get billingCycleChanges(): readonly BillingCycleChange[] {
+    return [...this._billingCycleChanges];
+  }
+
+  get currentBillingCycleRecord(): BillingCycleRecord | undefined {
+    return (
+      this._billingCycleRecords.find((bcr) => !bcr.effectiveTo) ||
+      this._billingCycleRecords[this._billingCycleRecords.length - 1]
+    );
   }
 
   get activeCommercialAgreement(): CommercialAgreement | undefined {
@@ -174,6 +236,207 @@ export class Stay {
 
   get agreedDeposit(): number {
     return this.activeCommercialAgreement?.securityDeposit ?? 0;
+  }
+
+  // Aggregate API: Stay Lifecycle Operations (CR-5)
+
+  /**
+   * Activates a PLANNED Stay upon physical check-in.
+   * State transition: PLANNED -> ACTIVE.
+   */
+  public activateStay(props?: { effectiveDate?: string; reason?: string }): CurrentProjection {
+    if (this._status !== StayStatus.PLANNED) {
+      throw new Error(`Cannot activate Stay with status ${this._status}. Only PLANNED Stays can be activated.`);
+    }
+
+    const timestamp = props?.effectiveDate || this.checkInDate;
+    this._status = StayStatus.ACTIVE;
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'STAY_ACTIVATED',
+        timestamp,
+        description: props?.reason || `Stay activated on ${timestamp}`,
+      })
+    );
+
+    return this.getCurrentProjection();
+  }
+
+  /**
+   * Cancels a PLANNED Stay prior to physical occupancy.
+   * State transition: PLANNED -> CANCELLED.
+   */
+  public cancelPlannedStay(props: { cancellationDate: string; reason: string }): CurrentProjection {
+    if (this._status !== StayStatus.PLANNED) {
+      throw new Error(`Cannot cancel Stay with status ${this._status}. Only PLANNED Stays can be cancelled.`);
+    }
+
+    this._status = StayStatus.CANCELLED;
+
+    // Release any allocated beds
+    this._bedAllocations = this._bedAllocations.map((ba) => {
+      if (ba.status === 'ACTIVE') {
+        return new BedAllocation({
+          id: ba.id,
+          stayId: ba.stayId,
+          flatId: ba.flatId,
+          bedId: ba.bedId,
+          allocatedFrom: ba.allocatedFrom,
+          allocatedUntil: props.cancellationDate,
+          status: 'RELEASED',
+          createdAt: ba.createdAt,
+        });
+      }
+      return ba;
+    });
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'STAY_CANCELLED',
+        timestamp: props.cancellationDate,
+        description: props.reason,
+      })
+    );
+
+    return this.getCurrentProjection();
+  }
+
+  /**
+   * Closes a CHECKED_OUT Stay after operational checkout and final administrative completion.
+   * State transition: CHECKED_OUT -> CLOSED.
+   */
+  public closeStay(props: { closedDate: string; reason?: string }): CurrentProjection {
+    if (this._status !== StayStatus.CHECKED_OUT) {
+      throw new Error(`Cannot close Stay with status ${this._status}. Only CHECKED_OUT Stays can be closed.`);
+    }
+
+    this._status = StayStatus.CLOSED;
+
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'STAY_CLOSED',
+        timestamp: props.closedDate,
+        description: props.reason || `Stay closed on ${props.closedDate}`,
+      })
+    );
+
+    return this.getCurrentProjection();
+  }
+
+  // Aggregate API: Billing Cycle Operations (CR-5)
+
+  /**
+   * Executes a Billing-Cycle change, updating anchor day and recording immutable history.
+   * Does NOT modify immutable checkInDate or perform financial calculations.
+   */
+  public changeBillingCycle(props: {
+    requestedBillingAnchor: number;
+    effectiveFrom: string;
+    reason: string;
+    financialAdjustmentReference?: string;
+  }): CurrentProjection {
+    if (!props.requestedBillingAnchor || props.requestedBillingAnchor < 1 || props.requestedBillingAnchor > 31) {
+      throw new Error('Requested billing anchor day must be between 1 and 31.');
+    }
+
+    if (!props.effectiveFrom || props.effectiveFrom.trim() === '') {
+      throw new Error('Effective date is required for a billing cycle change.');
+    }
+
+    const effectiveAt = new Date(`${props.effectiveFrom}T00:00:00Z`);
+    const commencement = new Date(`${this.checkInDate}T00:00:00Z`);
+    if (Number.isNaN(effectiveAt.getTime())) throw new Error('Effective date must be a valid ISO date.');
+    if (!Number.isNaN(commencement.getTime()) && effectiveAt < commencement) {
+      throw new Error('Billing cycle change cannot be effective before check-in date.');
+    }
+    const currentRecord = this.currentBillingCycleRecord;
+    if (currentRecord && effectiveAt < new Date(`${currentRecord.effectiveFrom}T00:00:00Z`)) {
+      throw new Error('Billing cycle change cannot predate the current billing cycle.');
+    }
+
+    if (!props.reason || props.reason.trim() === '') {
+      throw new Error('An explicit reason is required for a billing cycle change.');
+    }
+
+    if (
+      this._status === StayStatus.CHECKED_OUT ||
+      this._status === StayStatus.CLOSED ||
+      this._status === StayStatus.CANCELLED
+    ) {
+      throw new Error(`Cannot change billing cycle for a Stay with status ${this._status}.`);
+    }
+
+    const previousAnchor = this._billingAnchorDay;
+
+    // 1. Create BillingCycleChange entity
+    const change = new BillingCycleChange({
+      changeId: `BCC-${this.id}-${this._billingCycleChanges.length + 1}`,
+      stayId: this.id,
+      previousBillingAnchor: previousAnchor,
+      requestedBillingAnchor: props.requestedBillingAnchor,
+      effectiveFrom: props.effectiveFrom,
+      reason: props.reason,
+      status: 'EFFECTIVE',
+      financialAdjustmentReference: props.financialAdjustmentReference,
+      effectiveAt: props.effectiveFrom,
+    });
+    this._billingCycleChanges.push(change);
+
+    // 2. Update BillingCycleRecord history: close active record and create new record
+    this._billingCycleRecords = this._billingCycleRecords.map((bcr) => {
+      if (!bcr.effectiveTo) {
+        return new BillingCycleRecord({
+          id: bcr.id,
+          stayId: bcr.stayId,
+          billingAnchorDay: bcr.billingAnchorDay,
+          effectiveFrom: bcr.effectiveFrom,
+          effectiveTo: props.effectiveFrom,
+          changeId: bcr.changeId,
+          notes: bcr.notes,
+          createdAt: bcr.createdAt,
+        });
+      }
+      return bcr;
+    });
+
+    const newRecord = new BillingCycleRecord({
+      id: `BCR-${this.id}-${this._billingCycleRecords.length + 1}`,
+      stayId: this.id,
+      billingAnchorDay: props.requestedBillingAnchor,
+      effectiveFrom: props.effectiveFrom,
+      changeId: change.changeId,
+    });
+    this._billingCycleRecords.push(newRecord);
+
+    // 3. Update current billing anchor day (checkInDate remains IMMUTABLE!)
+    this._billingAnchorDay = props.requestedBillingAnchor;
+
+    // 4. Log BusinessEvent
+    this._businessEvents.push(
+      new BusinessEvent({
+        id: `BE-${this.id}-${this._businessEvents.length + 1}`,
+        stayId: this.id,
+        eventType: 'BILLING_CYCLE_CHANGED',
+        timestamp: props.effectiveFrom,
+        description: `Billing anchor changed from day ${previousAnchor} to day ${props.requestedBillingAnchor}. Reason: ${props.reason}`,
+        metadata: {
+          changeId: change.changeId,
+          previousBillingAnchor: previousAnchor,
+          requestedBillingAnchor: props.requestedBillingAnchor,
+          effectiveFrom: props.effectiveFrom,
+          financialAdjustmentReference: props.financialAdjustmentReference,
+        },
+      })
+    );
+
+    return this.getCurrentProjection();
   }
 
   // Aggregate API: Accommodation Domain Operations (CR-3.3)
@@ -637,7 +900,7 @@ export class Stay {
 
   /**
    * Domain operation for completing Operational Checkout on a Stay.
-   * Enforces that only ON_NOTICE Stays can be checked out.
+   * Enforces that ACTIVE or ON_NOTICE Stays can be checked out.
    * Closes all active BedAllocations, closes active CommercialAgreement, transitions state to CHECKED_OUT,
    * appends a CHECKOUT_COMPLETED BusinessEvent, and regenerates CurrentProjection.
    */
@@ -645,9 +908,9 @@ export class Stay {
     actualCheckoutDate: string;
     reason?: string;
   }): CurrentProjection {
-    if (this._status !== StayStatus.ON_NOTICE) {
+    if (this._status !== StayStatus.ACTIVE && this._status !== StayStatus.ON_NOTICE) {
       throw new Error(
-        `Only ON_NOTICE Stays may be operationally checked out. Current status is ${this._status}.`
+        `Only ACTIVE or ON_NOTICE Stays may be operationally checked out. Current status is ${this._status}.`
       );
     }
 
@@ -740,10 +1003,13 @@ export class Stay {
   getCurrentProjection(): CurrentProjection {
     const activeAgreement = this.activeCommercialAgreement;
     const activeAllocations = this.activeBedAllocations;
-    const activeBedIds =
-      this._status === StayStatus.CHECKED_OUT
-        ? []
-        : activeAllocations.map((ba) => ba.bedId).filter((b) => b !== 'UNASSIGNED');
+    const isInactive =
+      this._status === StayStatus.CHECKED_OUT ||
+      this._status === StayStatus.CLOSED ||
+      this._status === StayStatus.CANCELLED;
+    const activeBedIds = isInactive
+      ? []
+      : activeAllocations.map((ba) => ba.bedId).filter((b) => b !== 'UNASSIGNED');
     const flatId = activeAllocations.length > 0 ? activeAllocations[0].flatId : 'Unassigned';
 
     const noticeEvent = [...this._businessEvents].reverse().find((be) => be.eventType === 'NOTICE_GIVEN');
@@ -758,11 +1024,16 @@ export class Stay {
       actualCheckoutDate: this._actualCheckoutDate,
       flatId,
       activeBedIds,
-      currentRent: this._status === StayStatus.CHECKED_OUT ? 0 : (activeAgreement?.rent ?? 0),
-      currentDeposit: this._status === StayStatus.CHECKED_OUT ? 0 : (activeAgreement?.securityDeposit ?? 0),
+      currentRent: isInactive ? 0 : (activeAgreement?.rent ?? 0),
+      currentDeposit: isInactive ? 0 : (activeAgreement?.securityDeposit ?? 0),
       doorId: this.doorId,
       noticeStatus: this._status === StayStatus.ON_NOTICE ? 'ON_NOTICE' : 'NONE',
       noticeDate,
+      billingAnchorDay: this._billingAnchorDay,
+      billingCycleChangeStatus:
+        this._billingCycleChanges.length > 0
+          ? this._billingCycleChanges[this._billingCycleChanges.length - 1].status
+          : undefined,
     });
   }
 }

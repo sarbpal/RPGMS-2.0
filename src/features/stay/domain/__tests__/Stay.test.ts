@@ -612,12 +612,12 @@ describe('Stay Aggregate Root (CR-3.1 Foundation)', () => {
       expect(lastEvent.description).toBe('End of residency agreement');
     });
 
-    it('enforces ON_NOTICE-only invariant: rejects processCheckout if Stay is ACTIVE or CHECKED_OUT', () => {
-      const activeStay = new Stay({
+    it('enforces ACTIVE/ON_NOTICE invariant: rejects processCheckout if Stay is PLANNED, CHECKED_OUT, CLOSED, or CANCELLED', () => {
+      const plannedStay = new Stay({
         id: 'STAY-502',
         residentId: 'RES-502',
         stayType: StayType.REGULAR,
-        status: StayStatus.ACTIVE,
+        status: StayStatus.PLANNED,
         checkInDate: '2026-01-01',
         flatId: 'FLAT-101',
         allocatedBedIds: ['BED-A1'],
@@ -626,10 +626,10 @@ describe('Stay Aggregate Root (CR-3.1 Foundation)', () => {
       });
 
       expect(() =>
-        activeStay.processCheckout({
+        plannedStay.processCheckout({
           actualCheckoutDate: '2026-05-01',
         })
-      ).toThrow('Only ON_NOTICE Stays may be operationally checked out. Current status is ACTIVE');
+      ).toThrow('Only ACTIVE or ON_NOTICE Stays may be operationally checked out. Current status is PLANNED');
     });
 
     it('enforces date validation: rejects actualCheckoutDate preceding checkInDate', () => {

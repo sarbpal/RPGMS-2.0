@@ -10,7 +10,7 @@ import { MaintenancePage } from '../features/maintenance';
 import { ReportsPage } from '../features/reports';
 import { ResidentsPage, ResidentWorkspacePage } from '../features/resident';
 import { SettingsPage } from '../features/settings';
-import { StayWorkspacePage } from '../features/stay';
+import { StayWorkspacePage, StaysRegistryPage } from '../features/stay';
 import { ReservationsPage, ReservationWorkspacePage } from '../features/reservation';
 
 export const router = createBrowserRouter([
@@ -25,6 +25,8 @@ export const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'residents', element: <ResidentsPage /> },
       { path: 'resident/:residentId', element: <ResidentWorkspacePage /> },
+      { path: 'stays', element: <StaysRegistryPage /> },
+      { path: 'stays/:stayId', element: <StayWorkspacePage /> },
       { path: 'stay/:stayId', element: <StayWorkspacePage /> },
       { path: 'accommodation', element: <AccommodationWorkspacePage /> },
       { path: 'reservations', element: <ReservationsPage /> },

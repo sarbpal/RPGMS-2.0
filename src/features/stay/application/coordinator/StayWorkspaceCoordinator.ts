@@ -1,21 +1,51 @@
 import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
 import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import type { StayWorkspaceViewModel, TimelineEventViewModel } from '../models/StayWorkspaceViewModel';
 import type { BusinessEvent } from '../../domain/valueObjects/BusinessEvent';
+import type { CurrentProjection } from '../../domain/valueObjects/CurrentProjection';
+import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
+import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { StayBillingCycleCoordinator, type ChangeBillingCycleInput } from './StayBillingCycleCoordinator';
+import { StayLifecycleCoordinator, type ActivateStayInput, type CancelPlannedStayInput, type CloseStayInput } from './StayLifecycleCoordinator';
 
 export class StayWorkspaceCoordinator {
   private stayRepository: StayRepository;
   private residentRepository: ResidentRepository;
+  private accommodationRepository: AccommodationRepository;
 
   constructor(
-    stayRepository: StayRepository = new InMemoryStayRepository(),
-    residentRepository: ResidentRepository = new InMemoryResidentRepository()
+    stayRepository: StayRepository = defaultStayRepository,
+    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
+    accommodationRepository: AccommodationRepository = new InMemoryAccommodationRepository()
   ) {
     this.stayRepository = stayRepository;
     this.residentRepository = residentRepository;
+    this.accommodationRepository = accommodationRepository;
+  }
+
+  public findStay(stayId: string): Stay | null {
+    return this.stayRepository.findByIdSync(stayId);
+  }
+
+  public getStaysForResident(residentId: string): Stay[] {
+    return this.stayRepository.getAllSync().filter((stay) => stay.residentId === residentId);
+  }
+
+  public getAllStays(): Stay[] { return this.stayRepository.getAllSync(); }
+  public changeBillingCycle(input: ChangeBillingCycleInput): CurrentProjection {
+    return new StayBillingCycleCoordinator(this.stayRepository).changeBillingCycle(input);
+  }
+  public activateStay(input: ActivateStayInput): CurrentProjection {
+    return new StayLifecycleCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).activateStay(input);
+  }
+  public cancelPlannedStay(input: CancelPlannedStayInput): CurrentProjection {
+    return new StayLifecycleCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).cancelPlannedStay(input);
+  }
+  public closeStay(input: CloseStayInput): CurrentProjection {
+    return new StayLifecycleCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).closeStay(input);
   }
 
   public createViewModel(stayId: string): StayWorkspaceViewModel {

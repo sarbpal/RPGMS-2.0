@@ -14,6 +14,8 @@ export interface CurrentProjectionProps {
   doorId?: string;
   noticeStatus: 'NONE' | 'ON_NOTICE';
   noticeDate?: string;
+  billingAnchorDay?: number;
+  billingCycleChangeStatus?: string;
 }
 
 export class CurrentProjection {
@@ -30,6 +32,8 @@ export class CurrentProjection {
   readonly doorId?: string;
   readonly noticeStatus: 'NONE' | 'ON_NOTICE';
   readonly noticeDate?: string;
+  readonly billingAnchorDay?: number;
+  readonly billingCycleChangeStatus?: string;
 
   constructor(props: CurrentProjectionProps) {
     this.stayId = props.stayId;
@@ -45,5 +49,7 @@ export class CurrentProjection {
     this.doorId = props.doorId;
     this.noticeStatus = props.noticeStatus;
     this.noticeDate = props.noticeDate;
+    this.billingAnchorDay = props.billingAnchorDay;
+    this.billingCycleChangeStatus = props.billingCycleChangeStatus;
   }
 }

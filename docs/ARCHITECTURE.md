@@ -1547,6 +1547,7 @@ The Stay Domain owns the operational relationship between a Resident and the org
 It preserves the complete operational history of the Stay while exposing a derived Current Projection for day-to-day operations.
 
 The Stay Domain coordinates operational occupancy by referencing Resident, Accommodation and Commercial information without assuming ownership of those domains.
+
 ---
 
 ### Responsibilities
@@ -1687,8 +1688,46 @@ Operational Checkout and Financial Settlement are independent business processes
 The Stay Domain concludes with Operational Checkout.
 
 Any remaining financial obligations continue to be managed by the Finance Domain until financial settlement is complete.
-  
+
 ---
+
+### CR-5 Stay Lifecycle and Operational History Architecture
+
+The Stay Domain preserves the complete operational history of a Stay while exposing the current operational state required by application workflows.
+
+#### Stay Lifecycle State Model
+
+The Stay lifecycle is represented by explicit operational states:
+
+- PLANNED
+- ACTIVE
+- ON_NOTICE
+- CHECKED_OUT
+- CLOSED
+- CANCELLED
+
+Lifecycle transitions are performed through Application Layer coordination rather than direct User Interface state mutation.
+
+The principal lifecycle paths are:
+
+```text
+PLANNED
+   |
+   +-- Activate --> ACTIVE
+   |                  |
+   |                  +-- Notice --> ON_NOTICE
+   |                  |
+   |                  +-- Checkout --> CHECKED_OUT
+   |
+   +-- Cancel -----> CANCELLED
+
+CHECKED_OUT
+   |
+   +-- Close ------> CLOSED
+```
+
+---
+
 ## Finance Domain
 
 ### Purpose

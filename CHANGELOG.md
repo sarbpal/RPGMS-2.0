@@ -5,6 +5,15 @@
 
 ## Features & Operational Services
 
+### Accommodation — Filter and Maintenance Button Fixes (Implemented)
+
+#### Completed
+
+- **Vacant / Occupied filter precision (`AccommodationWorkspaceCoordinator`):** The `VACANT` and `OCCUPIED` bed-status filters now show only flats that contain at least one bed of the requested status. Previously, the `OCCUPIED` filter incorrectly conflated `ON_NOTICE` beds with `OCCUPIED` beds; each status is now strictly independent.
+- **Bed-level masking (`AreaSection`, `FlatCard`):** When a status filter is active, only matching beds are rendered within each flat card. Areas with no visible beds are suppressed. Flat-card metrics (Beds / Occupied / Vacant) recalculate from visible beds only, so the header always reflects what is shown.
+- **Flat Maintenance button (`FlatCard`, `AccommodationWorkspacePage`):** The flat-card Maintenance button now opens the Log Maintenance Request modal inline on the Accommodation page, pre-populated with the flat's ID. The previous behaviour (navigating away to `/maintenance?flatId=…` without opening the modal) is corrected. Successful submission shows a confirmation snackbar and the user remains on the Accommodation page.
+- **Tests:** Three new coordinator filter precision tests added (`OCCUPIED filter does not include ON_NOTICE`, `ON_NOTICE filter is independent of OCCUPIED`, `VACANT filter excludes occupied-only flats`). Full suite: 363 tests, 58 test files — all passing.
+
 ### CR-4 — Maintenance Management Foundation (Implemented)
 
 #### Completed

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Add, Apartment } from '@mui/icons-material';
 import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
@@ -12,6 +12,8 @@ import { BedDetailsDialog } from '../components/BedDetailsDialog';
 import { FlatCard } from '../components/FlatCard';
 import type { Bed, Flat } from '../domain';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
+import { MaintenanceWorkspaceCoordinator, RegisterMaintenanceModal } from '../../maintenance';
+import type { MaintenancePersonnel } from '../../maintenance';
 
 export default function AccommodationWorkspacePage() {
   const coordinator = useMemo(() => stayWorkflowComposition.accommodationWorkspaceCoordinator, []);
@@ -32,6 +34,20 @@ export default function AccommodationWorkspacePage() {
     flatName: string;
     areaName: string;
   } | null>(null);
+  const maintenanceCoordinator = useMemo(() => new MaintenanceWorkspaceCoordinator(), []);
+  const [maintenancePersonnel, setMaintenancePersonnel] = useState<readonly MaintenancePersonnel[]>([]);
+  const [maintenanceFlatId, setMaintenanceFlatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    maintenanceCoordinator.createViewModel().then((vm) => {
+      setMaintenancePersonnel(vm.personnelList);
+    });
+  }, [maintenanceCoordinator]);
+
+  const handleFlatMaintenanceClick = (flat: Flat) => {
+    setMaintenanceFlatId(flat.id);
+  };
+
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -222,6 +238,8 @@ export default function AccommodationWorkspacePage() {
             <FlatCard
               key={flat.id}
               flat={flat}
+              statusFilter={statusFilter}
+              onMaintenanceClick={() => handleFlatMaintenanceClick(flat)}
               onEdit={() => handleEditFlatClick(flat)}
               onDelete={() => handleDeleteFlatClick(flat)}
               onBedClick={handleBedClick}
@@ -260,6 +278,22 @@ export default function AccommodationWorkspacePage() {
         onUnblockBed={handleUnblockBed}
         onStartMaintenance={handleStartMaintenance}
         onCompleteMaintenance={handleCompleteMaintenance}
+      />
+
+      <RegisterMaintenanceModal
+        isOpen={Boolean(maintenanceFlatId)}
+        onClose={() => setMaintenanceFlatId(null)}
+        personnelList={maintenancePersonnel}
+        initialContext={{ flatId: maintenanceFlatId ?? undefined }}
+        onSubmit={async (dto) => {
+          await maintenanceCoordinator.registerRequest(dto);
+          setMaintenanceFlatId(null);
+          setSnackbar({
+            open: true,
+            message: 'Maintenance request logged successfully.',
+            severity: 'success',
+          });
+        }}
       />
 
       <Dialog

@@ -378,12 +378,7 @@ export class AccommodationWorkspaceCoordinator {
       const matchesStatus =
         statusFilter === 'ALL' ||
         flat.areas.some((area) =>
-          area.beds.some((bed) => {
-            if (statusFilter === BedStatus.OCCUPIED) {
-              return bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE;
-            }
-            return bed.status === statusFilter;
-          })
+          area.beds.some((bed) => bed.status === statusFilter)
         );
 
       const matchesSearch =

@@ -1,6 +1,5 @@
 import { Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material';
 import { Build as BuildIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 
 import { BedStatus } from '../domain';
 import type { Bed, Flat } from '../domain';
@@ -8,25 +7,39 @@ import { AreaSection } from './AreaSection';
 
 interface FlatCardProps {
   flat: Flat;
+  statusFilter?: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onMaintenanceClick?: () => void;
   onBedClick?: (flatId: string, flatName: string, areaName: string, bed: Bed) => void;
 }
 
-export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) {
-  const navigate = useNavigate();
-  // Derive metrics dynamically
+export function FlatCard({
+  flat,
+  statusFilter,
+  onEdit,
+  onDelete,
+  onMaintenanceClick,
+  onBedClick,
+}: FlatCardProps) {
+  const activeFilter = statusFilter && statusFilter !== 'ALL' ? statusFilter : null;
+
+  // Derive metrics from visible beds only.
+  // When a filter is active, metrics reflect only the beds currently shown.
   let totalBeds = 0;
   let occupiedBeds = 0;
   let vacantBeds = 0;
 
   flat.areas.forEach((area) => {
     area.beds.forEach((bed) => {
-      totalBeds++;
-      if (bed.status === BedStatus.OCCUPIED) {
-        occupiedBeds++;
-      } else if (bed.status === BedStatus.VACANT) {
-        vacantBeds++;
+      const isVisible = !activeFilter || bed.status === activeFilter;
+      if (isVisible) {
+        totalBeds++;
+        if (bed.status === BedStatus.OCCUPIED) {
+          occupiedBeds++;
+        } else if (bed.status === BedStatus.VACANT) {
+          vacantBeds++;
+        }
       }
     });
   });
@@ -45,7 +58,7 @@ export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) 
       }}
     >
       <CardContent sx={{ p: 3 }}>
-        {/* Header - Simplified and visually integrated with theme defaults */}
+        {/* Header */}
         <Box
           sx={{
             display: 'flex',
@@ -66,7 +79,7 @@ export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) 
               startIcon={<BuildIcon />}
               variant="outlined"
               size="small"
-              onClick={() => navigate(`/maintenance?flatId=${flat.id}`)}
+              onClick={onMaintenanceClick}
             >
               Maintenance
             </Button>
@@ -102,6 +115,7 @@ export function FlatCard({ flat, onEdit, onDelete, onBedClick }: FlatCardProps) 
             <AreaSection
               key={area.id}
               area={area}
+              statusFilter={statusFilter}
               onBedClick={
                 onBedClick
                   ? (areaName, bed) => onBedClick(flat.id, flat.name, areaName, bed)

@@ -243,6 +243,67 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(viewModel.filteredFlats).toHaveLength(1);
       expect(viewModel.filteredFlats[0].name).toBe('Flat 101');
     });
+
+    it('OCCUPIED filter — does NOT include ON_NOTICE beds', () => {
+      const flat = createMockFlat({
+        id: '101',
+        name: 'Flat 101',
+        areas: [
+          createMockArea({
+            beds: [
+              createMockBed({ id: '101-B1', status: BedStatus.ON_NOTICE, residentName: 'Alice' }),
+              createMockBed({ id: '101-B2', status: BedStatus.VACANT }),
+            ],
+          }),
+        ],
+      });
+
+      const viewModel = coordinator.createViewModel([flat], '', BedStatus.OCCUPIED);
+
+      // A flat containing only ON_NOTICE and VACANT beds must not appear under the OCCUPIED filter.
+      expect(viewModel.filteredFlats).toHaveLength(0);
+    });
+
+    it('ON_NOTICE filter — returns flats with on-notice beds independently of OCCUPIED filter', () => {
+      const flat = createMockFlat({
+        id: '101',
+        name: 'Flat 101',
+        areas: [
+          createMockArea({
+            beds: [
+              createMockBed({ id: '101-B1', status: BedStatus.ON_NOTICE, residentName: 'Alice' }),
+            ],
+          }),
+        ],
+      });
+
+      // OCCUPIED filter: flat must NOT appear (ON_NOTICE is its own status)
+      const vmOccupied = coordinator.createViewModel([flat], '', BedStatus.OCCUPIED);
+      expect(vmOccupied.filteredFlats).toHaveLength(0);
+
+      // ON_NOTICE filter: flat must appear
+      const vmOnNotice = coordinator.createViewModel([flat], '', BedStatus.ON_NOTICE);
+      expect(vmOnNotice.filteredFlats).toHaveLength(1);
+    });
+
+    it('VACANT filter — does NOT include flats that contain only occupied beds', () => {
+      const flat = createMockFlat({
+        id: '101',
+        name: 'Flat 101',
+        areas: [
+          createMockArea({
+            beds: [
+              createMockBed({ id: '101-B1', status: BedStatus.OCCUPIED, residentName: 'Bob' }),
+            ],
+          }),
+        ],
+      });
+
+      const viewModel = coordinator.createViewModel([flat], '', BedStatus.VACANT);
+
+      // A flat with no vacant beds must not appear under the VACANT filter.
+      expect(viewModel.filteredFlats).toHaveLength(0);
+    });
   });
 
   // Refinement 4: Explicit Multi-bed Occupancy & Partial Bed Release Integration Scenario

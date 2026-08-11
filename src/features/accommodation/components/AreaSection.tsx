@@ -5,10 +5,20 @@ import { BedCard } from './BedCard';
 
 interface AreaSectionProps {
   area: Area;
+  statusFilter?: string;
   onBedClick?: (areaName: string, bed: Bed) => void;
 }
 
-export function AreaSection({ area, onBedClick }: AreaSectionProps) {
+export function AreaSection({ area, statusFilter, onBedClick }: AreaSectionProps) {
+  const visibleBeds =
+    statusFilter && statusFilter !== 'ALL'
+      ? area.beds.filter((bed) => bed.status === statusFilter)
+      : area.beds;
+
+  if (visibleBeds.length === 0) {
+    return null;
+  }
+
   return (
     <Box sx={{ mb: 2 }}>
       <Typography
@@ -34,7 +44,7 @@ export function AreaSection({ area, onBedClick }: AreaSectionProps) {
           gap: 2,
         }}
       >
-        {area.beds.map((bed) => (
+        {visibleBeds.map((bed) => (
           <BedCard
             key={bed.id}
             bed={bed}

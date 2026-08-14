@@ -8,6 +8,8 @@ import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/I
 import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordinator';
 import type { AdmissionDraft } from '../application/models/AdmissionDraft';
 import { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
+import { toTitleCase, DOCUMENT_TYPE_OPTIONS } from '../components/ProspectDetailsCard';
+import { financeStorage } from '../../finance/storage/financeStorage';
 
 describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
   const mockReservations: Reservation[] = [
@@ -364,6 +366,110 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
 
       expect(reservationDraft.agreedRent).toBe(12000);
       expect(reservationDraft.agreedDeposit).toBe(12000);
+    });
+  });
+
+  describe('Accommodation #7 — Admission Form Identity Fields', () => {
+    it('normalizes resident and prospect names to Title Case by default', () => {
+      expect(toTitleCase('arjun sharma')).toBe('Arjun Sharma');
+      expect(toTitleCase('SANJAY DUTT')).toBe('SANJAY DUTT');
+      expect(toTitleCase('priya')).toBe('Priya');
+      expect(toTitleCase('')).toBe('');
+      expect(toTitleCase('rajesh kumar verma')).toBe('Rajesh Kumar Verma');
+    });
+
+    it('exposes Document Type options matching domain IdentityDocumentType enums', () => {
+      expect(DOCUMENT_TYPE_OPTIONS).toBeDefined();
+      const optionValues = DOCUMENT_TYPE_OPTIONS.map((o) => o.value);
+      expect(optionValues).toContain('AADHAAR');
+      expect(optionValues).toContain('PAN');
+      expect(optionValues).toContain('PASSPORT');
+      expect(optionValues).toContain('DRIVING_LICENCE');
+      expect(optionValues).toContain('VOTER_ID');
+      expect(optionValues).toContain('GOVERNMENT_ID');
+      expect(optionValues).toContain('OTHER');
+    });
+
+    it('persists Document Type and Document Number into the Resident entity during walk-in admission', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository([]);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const draft: AdmissionDraft = {
+        sourceType: 'WALK_IN',
+        residentName: 'Karan Mehra',
+        mobileNumber: '9988776655',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234 5678 9012',
+        checkInDate: '2026-08-15',
+        agreedRent: 6500,
+        agreedDeposit: 6500,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+      };
+
+      const result = coord.confirmWalkInAdmission(draft);
+      expect(result.success).toBe(true);
+      expect(result.residentId).toBeDefined();
+
+      const resident = residentRepo.getByIdSync(result.residentId!);
+      expect(resident).toBeDefined();
+      expect(resident!.fullName).toBe('Karan Mehra');
+      expect(resident!.documents).toHaveLength(1);
+      expect(resident!.documents![0].type).toBe('AADHAAR');
+      expect(resident!.documents![0].documentNumber).toBe('1234 5678 9012');
+      expect(resident!.documents![0].customType).toBeUndefined();
+    });
+
+    it('persists custom document type when Document Type is OTHER and customIdProofType is provided', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository([]);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const draft: AdmissionDraft = {
+        sourceType: 'WALK_IN',
+        residentName: 'Rohan Joshi',
+        mobileNumber: '9876543219',
+        idProofType: 'OTHER',
+        customIdProofType: 'University Student ID',
+        idProofNumber: 'STU-2026-99',
+        checkInDate: '2026-08-15',
+        agreedRent: 7000,
+        agreedDeposit: 7000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+      };
+
+      const result = coord.confirmWalkInAdmission(draft);
+      expect(result.success).toBe(true);
+      expect(result.residentId).toBeDefined();
+
+      const resident = residentRepo.getByIdSync(result.residentId!);
+      expect(resident).toBeDefined();
+      expect(resident!.documents).toHaveLength(1);
+      expect(resident!.documents![0].type).toBe('OTHER');
+      expect(resident!.documents![0].documentNumber).toBe('STU-2026-99');
+      expect(resident!.documents![0].customType).toBe('University Student ID');
     });
   });
 });

@@ -91,7 +91,7 @@ export class ResidentWorkspaceCoordinator {
       resident.documents && resident.documents.length > 0
         ? resident.documents.map((doc, idx) => ({
             id: `doc-${idx + 1}`,
-            type: this.formatDocumentType(doc.type),
+            type: doc.type === 'OTHER' && doc.customType ? doc.customType : this.formatDocumentType(doc.type),
             number: doc.documentNumber,
             status: doc.verificationStatus,
             color: doc.verificationStatus === 'Verified' ? 'success' : 'primary',

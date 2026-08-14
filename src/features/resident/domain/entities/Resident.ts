@@ -12,6 +12,7 @@ export interface IdentityDocument {
   type: IdentityDocumentType;
   documentNumber: string;
   verificationStatus: 'Verified' | 'Pending' | 'Signed';
+  customType?: string;
 }
 
 export interface RegisteredVehicle {

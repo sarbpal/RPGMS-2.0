@@ -10,6 +10,7 @@ export interface AdmissionDraft {
   emergencyContactRelationship?: string;
   emergencyContactPhone?: string;
   idProofType?: string;
+  customIdProofType?: string;
   idProofNumber?: string;
   permanentAddress?: string;
 

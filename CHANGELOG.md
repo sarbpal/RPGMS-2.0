@@ -5,6 +5,15 @@
 
 ## Features & Operational Services
 
+### Accommodation #7 — Admission Form Identity Fields & Custom Document Types (Implemented)
+
+#### Completed
+
+- **Title Case Name Normalization (`ProspectDetailsCard`, `AdmissionWorkspacePage`):** Automatically format prospect names to Title Case on input and when pre-filling from reservations, while maintaining seamless manual editing.
+- **Identity Document Capture (`ProspectDetailsCard`, `AdmissionWorkspacePage`):** Replaced static placeholder fields (Alternate Mobile and Email Address) with active controls for Document Type (`IdentityDocumentType` selector) and Document Number (`TextField`).
+- **Custom Document Type Support (`ProspectDetailsCard`, `AdmissionCoordinator`, `ResidentWorkspaceCoordinator`):** Added conditional "Specify Document Type" input when Document Type is set to `OTHER`, persisting the custom document description in `Resident.documents[0].customType` and displaying it within the Resident Workspace. Automatically clears custom document values when returning to standard document options.
+- **Tests:** Added comprehensive test suite verifying Title Case normalization, Document Type enum coverage, custom type persistence during walk-in admission, and state reset upon document type changes.
+
 ### Accommodation #5 — Global UI & Card Consistency (Implemented)
 
 #### Completed

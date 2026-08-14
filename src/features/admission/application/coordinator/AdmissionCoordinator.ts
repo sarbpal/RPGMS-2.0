@@ -387,6 +387,7 @@ export class AdmissionCoordinator {
             type: draft.idProofType as any,
             documentNumber: draft.idProofNumber.trim(),
             verificationStatus: 'Verified',
+            customType: draft.idProofType === 'OTHER' && draft.customIdProofType ? draft.customIdProofType.trim() : undefined,
           }
         ] : undefined,
         createdAt: nowIso,
@@ -599,6 +600,7 @@ export class AdmissionCoordinator {
               type: draft.idProofType as any,
               documentNumber: draft.idProofNumber.trim(),
               verificationStatus: 'Verified',
+              customType: draft.idProofType === 'OTHER' && draft.customIdProofType ? draft.customIdProofType.trim() : undefined,
             }
           ] : undefined,
           createdAt: nowIso,

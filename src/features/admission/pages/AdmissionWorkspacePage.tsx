@@ -54,6 +54,9 @@ export const AdmissionWorkspacePage: React.FC = () => {
   // Workspace Preparation State
   const [fullName, setFullName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [idProofType, setIdProofType] = useState<string>('AADHAAR');
+  const [customIdProofType, setCustomIdProofType] = useState<string>('');
+  const [idProofNumber, setIdProofNumber] = useState<string>('');
   const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [agreedRent, setAgreedRent] = useState<number>(0);
   const [agreedDeposit, setAgreedDeposit] = useState<number>(0);
@@ -68,7 +71,10 @@ export const AdmissionWorkspacePage: React.FC = () => {
   // Pre-populate state from reservation or query params
   useEffect(() => {
     if (reservation) {
-      setFullName(reservation.prospectName || '');
+      const prospectName = reservation.prospectName
+        ? reservation.prospectName.replace(/\b\w/g, (char) => char.toUpperCase())
+        : '';
+      setFullName(prospectName);
       setMobileNumber(reservation.mobileNumber || '');
       setCheckInDate(reservation.expectedJoiningDate || new Date().toISOString().split('T')[0]);
       setAgreedRent(reservation.expectedMonthlyRent || 0);
@@ -108,6 +114,9 @@ export const AdmissionWorkspacePage: React.FC = () => {
       reservationId: reservation?.id,
       residentName: fullName,
       mobileNumber,
+      idProofType,
+      customIdProofType: idProofType === 'OTHER' ? customIdProofType : undefined,
+      idProofNumber,
       checkInDate,
       agreedRent,
       agreedDeposit,
@@ -115,7 +124,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
       bedIds,
       tokenDisposition,
     }),
-    [isWalkIn, reservation?.id, fullName, mobileNumber, checkInDate, agreedRent, agreedDeposit, flatId, bedIds, tokenDisposition]
+    [isWalkIn, reservation?.id, fullName, mobileNumber, idProofType, customIdProofType, idProofNumber, checkInDate, agreedRent, agreedDeposit, flatId, bedIds, tokenDisposition]
   );
 
   const duplicateCheckStatus = useMemo(() => {
@@ -357,8 +366,19 @@ export const AdmissionWorkspacePage: React.FC = () => {
             <ProspectDetailsCard
               fullName={fullName}
               mobileNumber={mobileNumber}
+              idProofType={idProofType}
+              customIdProofType={customIdProofType}
+              idProofNumber={idProofNumber}
               onChangeFullName={setFullName}
               onChangeMobileNumber={setMobileNumber}
+              onChangeIdProofType={(type) => {
+                setIdProofType(type);
+                if (type !== 'OTHER') {
+                  setCustomIdProofType('');
+                }
+              }}
+              onChangeCustomIdProofType={setCustomIdProofType}
+              onChangeIdProofNumber={setIdProofNumber}
               duplicateCheckStatus={duplicateCheckStatus}
             />
           </Grid>

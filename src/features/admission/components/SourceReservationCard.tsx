@@ -76,7 +76,7 @@ export const SourceReservationCard: React.FC<SourceReservationCardProps> = ({ re
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
-                Token Received
+                Token Amount Received
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: reservation.tokenAmount ? 'success.dark' : 'text.secondary' }}>
                 {formatCurrency(reservation.tokenAmount)}

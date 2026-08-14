@@ -238,4 +238,132 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       expect(safeNavPath).toBeNull();
     });
   });
+
+  describe('Accommodation #6 — Admission Rent & Deposit Inheritance from Bed Context', () => {
+    it('inherits monthly rent and security deposit when initiating direct admission from an accommodation bed', () => {
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      // Simulate resolving commercial terms via coordinator helper (used by AdmissionWorkspacePage)
+      const terms = coordinator.getBedCommercialTerms(flat.id, vacantBed.id);
+
+      expect(terms).not.toBeNull();
+      expect(terms?.defaultRent).toBe(vacantBed.defaultRent);
+      expect(terms?.defaultDeposit).toBe(vacantBed.defaultDeposit);
+
+      // Construct draft using prefilled flat, bed, rent, and deposit
+      const walkInDraft: AdmissionDraft = {
+        sourceType: 'WALK_IN',
+        residentName: 'Vikas Gupta',
+        mobileNumber: '9811223344',
+        checkInDate: '2026-08-15',
+        agreedRent: terms!.defaultRent,
+        agreedDeposit: terms!.defaultDeposit,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+      };
+
+      const readiness = coordinator.evaluateReadiness(walkInDraft, null, 'WALK_IN');
+      expect(readiness.isAccommodationValid).toBe(true);
+      expect(readiness.isCommercialTermsValid).toBe(true);
+      expect(readiness.isReadyToConfirm).toBe(true);
+    });
+
+    it('inherits summed monthly rent and security deposit when initiating direct admission for multiple beds', () => {
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBeds = flat.areas.flatMap((a) => a.beds).filter((b) => b.status === 'VACANT');
+      expect(vacantBeds.length).toBeGreaterThanOrEqual(2);
+
+      const selectedBeds = [vacantBeds[0], vacantBeds[1]];
+      const expectedTotalRent = selectedBeds[0].defaultRent + selectedBeds[1].defaultRent;
+      const expectedTotalDeposit = selectedBeds[0].defaultDeposit + selectedBeds[1].defaultDeposit;
+
+      // Simulate resolving commercial terms for multiple beds
+      const terms = coordinator.getBedCommercialTerms(flat.id, [selectedBeds[0].id, selectedBeds[1].id]);
+
+      expect(terms).not.toBeNull();
+      expect(terms?.defaultRent).toBe(expectedTotalRent);
+      expect(terms?.defaultDeposit).toBe(expectedTotalDeposit);
+
+      // Construct draft using prefilled flat, multiple beds, and summed rent/deposit
+      const multiBedDraft: AdmissionDraft = {
+        sourceType: 'WALK_IN',
+        residentName: 'Sanjay Dutt',
+        mobileNumber: '9822334455',
+        checkInDate: '2026-08-15',
+        agreedRent: terms!.defaultRent,
+        agreedDeposit: terms!.defaultDeposit,
+        flatId: flat.id,
+        bedIds: [selectedBeds[0].id, selectedBeds[1].id],
+      };
+
+      const readiness = coordinator.evaluateReadiness(multiBedDraft, null, 'WALK_IN');
+      expect(readiness.isAccommodationValid).toBe(true);
+      expect(readiness.isCommercialTermsValid).toBe(true);
+      expect(readiness.isReadyToConfirm).toBe(true);
+    });
+
+    it('dynamically recalculates rent and deposit when additional beds are toggled in walk-in mode', () => {
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBeds = flat.areas.flatMap((a) => a.beds).filter((b) => b.status === 'VACANT');
+      expect(vacantBeds.length).toBeGreaterThanOrEqual(2);
+
+      const bed1 = vacantBeds[0];
+      const bed2 = vacantBeds[1];
+
+      // Step 1: Initial single bed selected (e.g. from Accommodation Bed click)
+      let selectedBedIds = [bed1.id];
+      let terms = coordinator.getBedCommercialTerms(flat.id, selectedBedIds);
+      expect(terms?.defaultRent).toBe(bed1.defaultRent);
+      expect(terms?.defaultDeposit).toBe(bed1.defaultDeposit);
+
+      // Step 2: Operator selects second bed in AccommodationSelectionCard
+      selectedBedIds = [...selectedBedIds, bed2.id];
+      terms = coordinator.getBedCommercialTerms(flat.id, selectedBedIds);
+      expect(terms?.defaultRent).toBe(bed1.defaultRent + bed2.defaultRent);
+      expect(terms?.defaultDeposit).toBe(bed1.defaultDeposit + bed2.defaultDeposit);
+
+      // Step 3: Operator deselects first bed
+      selectedBedIds = selectedBedIds.filter((id) => id !== bed1.id);
+      terms = coordinator.getBedCommercialTerms(flat.id, selectedBedIds);
+      expect(terms?.defaultRent).toBe(bed2.defaultRent);
+      expect(terms?.defaultDeposit).toBe(bed2.defaultDeposit);
+
+      // Step 4: Operator deselects all beds
+      selectedBedIds = [];
+      terms = coordinator.getBedCommercialTerms(flat.id, selectedBedIds);
+      expect(terms).toBeNull();
+    });
+
+    it('preserves reservation-defined commercial terms when admission is initiated from a reservation', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+
+      expect(reservation.expectedMonthlyRent).toBe(12000);
+      expect(reservation.expectedSecurityDeposit).toBe(12000);
+
+      // Draft initialized from reservation retains reservation commercial terms
+      const reservationDraft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: reservation.prospectName,
+        mobileNumber: reservation.mobileNumber,
+        checkInDate: reservation.expectedJoiningDate,
+        agreedRent: reservation.expectedMonthlyRent ?? 0,
+        agreedDeposit: reservation.expectedSecurityDeposit ?? 0,
+      };
+
+      expect(reservationDraft.agreedRent).toBe(12000);
+      expect(reservationDraft.agreedDeposit).toBe(12000);
+    });
+  });
 });

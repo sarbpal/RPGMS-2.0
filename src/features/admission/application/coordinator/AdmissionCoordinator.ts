@@ -98,6 +98,46 @@ export class AdmissionCoordinator {
   }
 
   /**
+   * Retrieves default commercial terms (monthly rent & security deposit) for one or multiple beds in a flat.
+   * Checks each bed's defaultRent / defaultDeposit with fallback to the containing area's defaults,
+   * summing monthly rents and security deposits when multiple beds are specified.
+   */
+  public getBedCommercialTerms(
+    flatId: string,
+    bedIdOrIds: string | string[]
+  ): { defaultRent: number; defaultDeposit: number } | null {
+    const flat = this.accommodationRepo.findById(flatId);
+    if (!flat) return null;
+    const targetBedIds = Array.isArray(bedIdOrIds) ? bedIdOrIds : [bedIdOrIds];
+    if (targetBedIds.length === 0) return null;
+
+    let totalRent = 0;
+    let totalDeposit = 0;
+    let foundCount = 0;
+
+    for (const bedId of targetBedIds) {
+      for (const area of flat.areas) {
+        const bed = area.beds.find((b) => b.id === bedId);
+        if (bed) {
+          const rent = bed.defaultRent !== undefined ? bed.defaultRent : (area.defaultRent ?? 0);
+          const deposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : (area.defaultDeposit ?? 0);
+          totalRent += (rent ?? 0);
+          totalDeposit += (deposit ?? 0);
+          foundCount++;
+          break;
+        }
+      }
+    }
+
+    if (foundCount === 0) return null;
+
+    return {
+      defaultRent: totalRent,
+      defaultDeposit: totalDeposit,
+    };
+  }
+
+  /**
    * Reordered Readiness Evaluation Pipeline (Refinement #6 & RA-7 Walk-in Support)
    * Evaluates readiness across 5 sequential sections:
    * Admission Source -> Resident Details -> Commercial Terms -> Accommodation -> Token Decision

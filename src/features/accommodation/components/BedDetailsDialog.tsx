@@ -18,6 +18,7 @@ import {
   Hotel as HotelIcon,
   Lock as LockIcon,
   LockOpen as UnlockIcon,
+  Person as PersonIcon,
   PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,10 @@ interface BedDetailsDialogProps {
   onUnblockBed: (flatId: string, bedId: string) => void;
   onStartMaintenance: (flatId: string, bedId: string) => void;
   onCompleteMaintenance: (flatId: string, bedId: string) => void;
+  /** Called when the operator clicks "View Resident Profile" on an occupied bed. Only provided when a resident can be resolved. */
+  onViewResident?: (residentId: string) => void;
+  /** The resolved residentId for the currently displayed bed, if any. Provided by the parent page. */
+  residentId?: string | null;
 }
 
 export function BedDetailsDialog({
@@ -49,6 +54,8 @@ export function BedDetailsDialog({
   onUnblockBed,
   onStartMaintenance,
   onCompleteMaintenance,
+  onViewResident,
+  residentId,
 }: BedDetailsDialogProps) {
   const navigate = useNavigate();
   if (!bed) return null;
@@ -143,9 +150,24 @@ export function BedDetailsDialog({
                   Occupant Status
                 </Typography>
                 {bed.residentName ? (
-                  <Typography variant="body1" color="primary.main" sx={{ fontWeight: 700, mt: 0.5 }}>
-                    {bed.residentName}
-                  </Typography>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mt: 0.5, flexWrap: 'wrap' }}>
+                    <Typography variant="body1" color="primary.main" sx={{ fontWeight: 700 }}>
+                      {bed.residentName}
+                    </Typography>
+                    {residentId && onViewResident && (
+                      <Button
+                        id={`view-resident-${bed.id}`}
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<PersonIcon fontSize="small" />}
+                        onClick={() => handleAction(() => onViewResident(residentId))}
+                        sx={{ fontWeight: 600, textTransform: 'none', py: 0.25 }}
+                      >
+                        View Resident Profile
+                      </Button>
+                    )}
+                  </Stack>
                 ) : (
                   <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic', mt: 0.5 }}>
                     No resident currently assigned

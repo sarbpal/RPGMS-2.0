@@ -241,6 +241,28 @@ export class AccommodationWorkspaceCoordinator {
   }
 
   /**
+   * Resolves the residentId for a given bedId by scanning all ACTIVE or ON_NOTICE
+   * stays whose allocated beds include the specified bedId.
+   *
+   * Returns null when no active stay can be found for the bed, so callers can
+   * conditionally suppress the "View Resident" action for unresolvable beds.
+   */
+  public getResidentIdForBed(bedId: string): string | null {
+    const stays: Stay[] =
+      this.stayRepository instanceof InMemoryStayRepository
+        ? this.stayRepository.getAllSync()
+        : [];
+
+    const activeStay = stays.find(
+      (s) =>
+        (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE) &&
+        s.allocatedBedIds?.includes(bedId)
+    );
+
+    return activeStay ? activeStay.residentId : null;
+  }
+
+  /**
    * Synchronize flats status against active/on-notice stays (self-healing synchronization).
    */
   public synchronizeFlats(

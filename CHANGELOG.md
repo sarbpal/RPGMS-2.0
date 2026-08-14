@@ -5,6 +5,23 @@
 
 ## Features & Operational Services
 
+### Accommodation #6 — Rent & Deposit Inheritance for Selected Bed(s) (Implemented)
+
+#### Completed
+
+- **Multi-bed Commercial Terms Aggregation (`AdmissionCoordinator.getBedCommercialTerms`):** Dynamic resolution of default monthly rent and security deposit aggregated across single or multiple selected beds for direct/walk-in admission flows.
+- **Dynamic Term Synchronization (`AdmissionWorkspacePage`):** Connected bed selection changes (`AccommodationSelectionCard`) to dynamically update agreed rent and security deposit in real-time, while preserving manual operator edits and isolating reservation-defined terms.
+- **Tests:** Added tests for multi-bed commercial term resolution, area fallbacks, dynamic bed toggling, and reservation contract preservation.
+
+### Accommodation #1 — View Resident Profile from Occupied Bed Details (Implemented)
+
+#### Completed
+
+- **Resident Resolution (`AccommodationWorkspaceCoordinator.getResidentIdForBed`):** Added synchronous resolution of `residentId` for occupied and on-notice beds via active/on-notice stays.
+- **Direct Resident Profile Action (`BedDetailsDialog`, `AccommodationWorkspacePage`):** Added a "View Resident Profile" action on occupied beds with resolvable resident context, navigating directly to the Resident Workspace (`/resident/:residentId`).
+- **Safety Gating:** Suppressed resident actions on vacant, blocked, maintenance, reserved, or unresolvable beds without modifying domain models or repository contracts.
+- **Tests:** Added coordinator tests covering active, on-notice, unallocated, and checked-out stays.
+
 ### Accommodation — Filter and Maintenance Button Fixes (Implemented)
 
 #### Completed

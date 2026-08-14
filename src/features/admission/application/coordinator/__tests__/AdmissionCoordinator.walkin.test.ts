@@ -270,4 +270,67 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       expect(bed?.status).toBe(BedStatus.VACANT);
     });
   });
+
+  describe('getBedCommercialTerms (Accommodation #6 & Multi-bed Follow-up)', () => {
+    it('retrieves default rent and security deposit for a single selected bed', () => {
+      const terms = coordinator.getBedCommercialTerms('flat-201', 'bed-201-a');
+      expect(terms).not.toBeNull();
+      expect(terms?.defaultRent).toBe(9000);
+      expect(terms?.defaultDeposit).toBe(7500);
+    });
+
+    it('sums monthly rent and security deposit when two beds are selected', () => {
+      // bed-201-a (9000 rent, 7500 deposit) + bed-201-b (9000 rent, 7500 deposit)
+      const terms = coordinator.getBedCommercialTerms('flat-201', ['bed-201-a', 'bed-201-b']);
+      expect(terms).not.toBeNull();
+      expect(terms?.defaultRent).toBe(18000);
+      expect(terms?.defaultDeposit).toBe(15000);
+    });
+
+    it('handles partially invalid bed lists safely by summing valid beds', () => {
+      const terms = coordinator.getBedCommercialTerms('flat-201', ['bed-201-a', 'non-existent-bed']);
+      expect(terms).not.toBeNull();
+      expect(terms?.defaultRent).toBe(9000);
+      expect(terms?.defaultDeposit).toBe(7500);
+    });
+
+    it('falls back to area defaults if bed-specific rent/deposit are undefined', () => {
+      const flatWithAreaDefaults: Flat = {
+        id: 'flat-301',
+        name: '301',
+        floor: '3',
+        areas: [
+          {
+            id: 'area-301-hall',
+            name: 'Hall',
+            defaultRent: 6000,
+            defaultDeposit: 5000,
+            beds: [
+              { id: 'bed-301-h1', name: '301-H1', status: BedStatus.VACANT } as any,
+              { id: 'bed-301-h2', name: '301-H2', status: BedStatus.VACANT } as any,
+            ],
+          },
+        ],
+      };
+      const customAccomRepo = new InMemoryAccommodationRepository([flatWithAreaDefaults]);
+      const customCoordinator = new AdmissionCoordinator(reservationRepo, residentRepo, stayRepo, customAccomRepo);
+
+      const singleTerms = customCoordinator.getBedCommercialTerms('flat-301', 'bed-301-h1');
+      expect(singleTerms).not.toBeNull();
+      expect(singleTerms?.defaultRent).toBe(6000);
+      expect(singleTerms?.defaultDeposit).toBe(5000);
+
+      const multiTerms = customCoordinator.getBedCommercialTerms('flat-301', ['bed-301-h1', 'bed-301-h2']);
+      expect(multiTerms).not.toBeNull();
+      expect(multiTerms?.defaultRent).toBe(12000);
+      expect(multiTerms?.defaultDeposit).toBe(10000);
+    });
+
+    it('returns null when flat or all beds are not found or empty', () => {
+      expect(coordinator.getBedCommercialTerms('non-existent-flat', 'bed-201-a')).toBeNull();
+      expect(coordinator.getBedCommercialTerms('flat-201', 'non-existent-bed')).toBeNull();
+      expect(coordinator.getBedCommercialTerms('flat-201', ['non-existent-1', 'non-existent-2'])).toBeNull();
+      expect(coordinator.getBedCommercialTerms('flat-201', [])).toBeNull();
+    });
+  });
 });

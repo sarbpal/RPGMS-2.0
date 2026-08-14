@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Add, Apartment } from '@mui/icons-material';
 import { Alert, Button, Container, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
@@ -16,6 +17,7 @@ import { MaintenanceWorkspaceCoordinator, RegisterMaintenanceModal } from '../..
 import type { MaintenancePersonnel } from '../../maintenance';
 
 export default function AccommodationWorkspacePage() {
+  const navigate = useNavigate();
   const coordinator = useMemo(() => stayWorkflowComposition.accommodationWorkspaceCoordinator, []);
 
   const [flats, setFlats] = useState<Flat[]>(() => {
@@ -273,11 +275,16 @@ export default function AccommodationWorkspacePage() {
         flatId={selectedBed?.flatId}
         flatName={selectedBed?.flatName}
         areaName={selectedBed?.areaName}
+        residentId={selectedBed ? coordinator.getResidentIdForBed(selectedBed.bed.id) : null}
         onClose={() => setSelectedBed(null)}
         onBlockBed={handleBlockBed}
         onUnblockBed={handleUnblockBed}
         onStartMaintenance={handleStartMaintenance}
         onCompleteMaintenance={handleCompleteMaintenance}
+        onViewResident={(residentId) => {
+          setSelectedBed(null);
+          navigate(`/resident/${residentId}`);
+        }}
       />
 
       <RegisterMaintenanceModal

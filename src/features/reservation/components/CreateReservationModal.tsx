@@ -73,7 +73,7 @@ export const CreateReservationModal: React.FC<CreateReservationModalProps> = ({
       setExpectedJoiningDate(new Date().toISOString().split('T')[0]);
       setAccommodationPreference('');
       setTokenAmount('');
-      setTokenReceivedOn('');
+      setTokenReceivedOn(new Date().toISOString().split('T')[0]);
       setTokenRemarks('');
       setNotes('');
       setErrors({});

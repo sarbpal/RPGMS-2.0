@@ -43,6 +43,24 @@ describe('Reservation Domain Rules', () => {
       expect(result.isValid).toBe(false);
       expect(result.errors.expectedJoiningDate).toBe('Valid expected joining date is required.');
     });
+
+    it('accepts today as a valid expected joining date', () => {
+      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-11', '2026-08-11');
+      expect(result.isValid).toBe(true);
+      expect(result.errors.expectedJoiningDate).toBeUndefined();
+    });
+
+    it('accepts a future date as a valid expected joining date', () => {
+      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-20', '2026-08-11');
+      expect(result.isValid).toBe(true);
+      expect(result.errors.expectedJoiningDate).toBeUndefined();
+    });
+
+    it('rejects a past date as expected joining date', () => {
+      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-10', '2026-08-11');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.expectedJoiningDate).toBe('Expected joining date cannot be earlier than today.');
+    });
   });
 
   describe('calculateOverdueDays', () => {

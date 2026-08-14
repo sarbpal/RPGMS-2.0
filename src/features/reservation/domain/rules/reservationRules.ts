@@ -24,7 +24,8 @@ export function formatReservationNumber(sequenceNumber: number): string {
 export function validateReservationDraft(
   prospectName: string,
   mobileNumber: string,
-  expectedJoiningDate: string
+  expectedJoiningDate: string,
+  referenceDate: string = new Date().toISOString().split('T')[0]
 ): ReservationValidationResult {
   const errors: { prospectName?: string; mobileNumber?: string; expectedJoiningDate?: string } = {};
   let isValid = true;
@@ -42,6 +43,9 @@ export function validateReservationDraft(
 
   if (!expectedJoiningDate || isNaN(Date.parse(expectedJoiningDate))) {
     errors.expectedJoiningDate = 'Valid expected joining date is required.';
+    isValid = false;
+  } else if (expectedJoiningDate < referenceDate) {
+    errors.expectedJoiningDate = 'Expected joining date cannot be earlier than today.';
     isValid = false;
   }
 

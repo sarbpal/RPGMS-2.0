@@ -76,17 +76,31 @@ export const AdmissionWorkspacePage: React.FC = () => {
     }
   }, [reservation]);
 
-  // Pre-populate accommodation from query parameters (Direct Admission from Vacant Bed Context)
+  // Pre-populate accommodation & commercial terms from query parameters (Direct Admission from Vacant Bed Context)
   useEffect(() => {
     const flatIdParam = searchParams.get('flatId');
     const bedIdParam = searchParams.get('bedId');
+    const bedIdsParam = searchParams.get('bedIds');
+    const initialBedIds = bedIdsParam
+      ? bedIdsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : bedIdParam
+      ? [bedIdParam]
+      : [];
+
     if (flatIdParam) {
       setFlatId(flatIdParam);
     }
-    if (bedIdParam) {
-      setBedIds([bedIdParam]);
+    if (initialBedIds.length > 0) {
+      setBedIds(initialBedIds);
     }
-  }, [searchParams]);
+    if (flatIdParam && initialBedIds.length > 0) {
+      const terms = admissionCoordinator.getBedCommercialTerms(flatIdParam, initialBedIds);
+      if (terms) {
+        setAgreedRent(terms.defaultRent);
+        setAgreedDeposit(terms.defaultDeposit);
+      }
+    }
+  }, [searchParams, admissionCoordinator]);
 
   const draft: AdmissionDraft = useMemo(
     () => ({
@@ -125,6 +139,31 @@ export const AdmissionWorkspacePage: React.FC = () => {
       .map((bId) => flatBeds.find((b) => b.id === bId)?.name)
       .filter((name): name is string => Boolean(name));
   }, [selectedFlat, bedIds]);
+
+  const handleFlatIdChange = (newFlatId: string) => {
+    setFlatId(newFlatId);
+    setBedIds([]);
+    if (isWalkIn) {
+      setAgreedRent(0);
+      setAgreedDeposit(0);
+    }
+  };
+
+  const handleBedIdsChange = (newBedIds: string[]) => {
+    setBedIds(newBedIds);
+    if (isWalkIn && flatId) {
+      if (newBedIds.length > 0) {
+        const terms = admissionCoordinator.getBedCommercialTerms(flatId, newBedIds);
+        if (terms) {
+          setAgreedRent(terms.defaultRent);
+          setAgreedDeposit(terms.defaultDeposit);
+        }
+      } else {
+        setAgreedRent(0);
+        setAgreedDeposit(0);
+      }
+    }
+  };
 
   const handleValidateReadiness = () => {
     setIsValidated(true);
@@ -337,8 +376,8 @@ export const AdmissionWorkspacePage: React.FC = () => {
             <AccommodationSelectionCard
               flatId={flatId}
               bedIds={bedIds}
-              onChangeFlatId={setFlatId}
-              onChangeBedIds={setBedIds}
+              onChangeFlatId={handleFlatIdChange}
+              onChangeBedIds={handleBedIdsChange}
             />
           </Grid>
 

@@ -396,4 +396,86 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(postFailureRepoState).toEqual(initialRepoState);
     });
   });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Accommodation Issue #1 — getResidentIdForBed
+  // ────────────────────────────────────────────────────────────────────────────
+  describe('getResidentIdForBed', () => {
+    const bedId = '101-B1';
+    const residentId = 'RES-TEST-01';
+
+    it('returns the residentId when an ACTIVE stay allocates the bed', () => {
+      const stayRepo = new InMemoryStayRepository([]);
+      stayRepo.saveSync(
+        new Stay({
+          id: 'STAY-ACTIVE-01',
+          residentId,
+          stayType: 'REGULAR' as any,
+          status: StayStatus.ACTIVE,
+          checkInDate: '2026-01-01',
+          allocatedBedIds: [bedId],
+        })
+      );
+
+      const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
+      expect(coord.getResidentIdForBed(bedId)).toBe(residentId);
+    });
+
+    it('returns the residentId when an ON_NOTICE stay allocates the bed', () => {
+      const stayRepo = new InMemoryStayRepository([]);
+      stayRepo.saveSync(
+        new Stay({
+          id: 'STAY-NOTICE-01',
+          residentId,
+          stayType: 'REGULAR' as any,
+          status: StayStatus.ON_NOTICE,
+          checkInDate: '2026-01-01',
+          allocatedBedIds: [bedId],
+        })
+      );
+
+      const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
+      expect(coord.getResidentIdForBed(bedId)).toBe(residentId);
+    });
+
+    it('returns null when no stay allocates the bed at all', () => {
+      const stayRepo = new InMemoryStayRepository([]);
+      const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
+      expect(coord.getResidentIdForBed(bedId)).toBeNull();
+    });
+
+    it('returns null when the only stay for the bed is checked-out (historical)', () => {
+      const stayRepo = new InMemoryStayRepository([]);
+      stayRepo.saveSync(
+        new Stay({
+          id: 'STAY-CHECKED-OUT-01',
+          residentId,
+          stayType: 'REGULAR' as any,
+          status: StayStatus.CHECKED_OUT,
+          checkInDate: '2026-01-01',
+          allocatedBedIds: [bedId],
+        })
+      );
+
+      const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
+      expect(coord.getResidentIdForBed(bedId)).toBeNull();
+    });
+
+    it('returns null for a bed that has no matching stay even when other active stays exist for different beds', () => {
+      const stayRepo = new InMemoryStayRepository([]);
+      stayRepo.saveSync(
+        new Stay({
+          id: 'STAY-ACTIVE-OTHER',
+          residentId: 'RES-OTHER',
+          stayType: 'REGULAR' as any,
+          status: StayStatus.ACTIVE,
+          checkInDate: '2026-01-01',
+          allocatedBedIds: ['101-B2'], // different bed
+        })
+      );
+
+      const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
+      expect(coord.getResidentIdForBed(bedId)).toBeNull(); // '101-B1' has no active stay
+    });
+  });
 });

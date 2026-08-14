@@ -64,19 +64,28 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
     });
 
     it('generates Joining Date Updated and automatic Status Updated audit entries when extending date', () => {
-      // 1. Create an active reservation
-      const res = coordinator.saveReservation({
+      // 1. Seed an active reservation directly into the repository with a past joining date,
+      //    simulating a reservation that was validly created in the past and has since become overdue.
+      //    (Cannot create via coordinator.saveReservation — the new date guard correctly rejects past dates.)
+      const nowIso = new Date().toISOString();
+      const seeded = repository.saveSync({
+        id: 'resv-test-overdue',
+        reservationNumber: 'RES-000001',
         prospectName: 'Karan Mehra',
         mobileNumber: '9988776655',
         expectedJoiningDate: yesterdayStr,
+        status: ReservationStatus.ACTIVE,
+        auditLog: [{ timestamp: nowIso, action: 'Reservation Created', performedBy: 'System Operator', details: 'Reservation created' }],
+        createdAt: nowIso,
+        updatedAt: nowIso,
       });
 
       // 2. Perform self-healing check to flag as FOLLOW_UP_REQUIRED
       coordinator.loadWorkspace();
-      expect(repository.findByIdSync(res.id)?.status).toBe(ReservationStatus.FOLLOW_UP_REQUIRED);
+      expect(repository.findByIdSync(seeded.id)?.status).toBe(ReservationStatus.FOLLOW_UP_REQUIRED);
 
       // 3. Extend joining date to tomorrow
-      const followUpRes = repository.findByIdSync(res.id)!;
+      const followUpRes = repository.findByIdSync(seeded.id)!;
       const updated = coordinator.saveReservation(
         {
           ...followUpRes,
@@ -98,7 +107,7 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       expect(statusAudit?.details).toContain('Status updated from FOLLOW_UP_REQUIRED to ACTIVE'); // Refinement #6
 
       // Refinement #3: Verify repository state
-      const repoState = repository.findByIdSync(res.id);
+      const repoState = repository.findByIdSync(seeded.id);
       expect(repoState?.status).toBe(ReservationStatus.ACTIVE);
       expect(repoState?.expectedJoiningDate).toBe(tomorrowStr);
     });

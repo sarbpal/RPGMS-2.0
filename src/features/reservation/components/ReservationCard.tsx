@@ -202,7 +202,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
         <PaymentsIcon fontSize="small" sx={{ mr: 1, color: '#94a3b8' }} />
         <Typography variant="body2" sx={{ color: '#334155' }}>
-          <Box component="span" sx={{ fontWeight: 600 }}>Token: </Box>
+          <Box component="span" sx={{ fontWeight: 600 }}>Token Amount: </Box>
           {reservation.tokenAmount && reservation.tokenAmount > 0
             ? `₹${reservation.tokenAmount.toLocaleString('en-IN')}`
             : 'Waived'}

@@ -99,7 +99,8 @@ export class MaintenanceWorkspaceCoordinator {
   private async enrichRequestItem(
     r: MaintenanceRequest
   ): Promise<MaintenanceRequestItemViewModel> {
-    let locationSummary = `Flat ${r.flatId}`;
+    const flatDisplayId = r.flatId.replace(/^flat-/i, '');
+    let locationSummary = `Flat ${flatDisplayId}`;
     try {
       const flat = await this.accommodationRepo.findById(r.flatId);
       if (flat) {

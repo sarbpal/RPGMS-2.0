@@ -203,6 +203,7 @@ export default function AccommodationWorkspacePage() {
 
       <AccommodationSummary
         stats={viewModel.stats}
+        activeFilter={statusFilter}
         onCardClick={(key) => {
           if (key === 'VACANT' || key === 'OCCUPIED' || key === 'ON_NOTICE') {
             setStatusFilter(key);

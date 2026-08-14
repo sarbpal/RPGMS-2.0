@@ -5,6 +5,14 @@
 
 ## Features & Operational Services
 
+### Accommodation #5 — Global UI & Card Consistency (Implemented)
+
+#### Completed
+
+- **Card Interaction & Tactile Feedback (`BedCard`, `AccommodationSummary`):** Integrated Material-UI `CardActionArea` on interactive bed and summary cards, providing ink ripples, clear press states, and keyboard accessibility.
+- **Active Filter Visualization (`AccommodationSummary`, `AccommodationWorkspacePage`):** Connected `activeFilter` state to summary metric cards with dynamic elevation, top accent bar, active background tint, and thicker border matching `ResidentsSummaryCards`.
+- **Design Token & Typography Standardization (`FlatCard`, `BedCard`):** Replaced hardcoded color literals with MUI theme tokens (`divider`, `background.paper`, `primary.main`), standardized Flat headers to `h6` (`fontWeight: 700`), uppercase-suppressed action buttons (`textTransform: 'none'`), and standardized chip sizing (`size="small"`, `fontWeight: 700`).
+
 ### Accommodation #6 — Rent & Deposit Inheritance for Selected Bed(s) (Implemented)
 
 #### Completed

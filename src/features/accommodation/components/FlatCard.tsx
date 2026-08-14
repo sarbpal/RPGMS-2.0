@@ -48,13 +48,11 @@ export function FlatCard({
     <Card
       elevation={0}
       sx={{
-        border: '1px solid',
-        borderColor: 'grey.300',
+        border: 1,
+        borderColor: 'divider',
         bgcolor: 'background.paper',
         borderRadius: 2,
-        mb: 4,
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
-        overflow: 'hidden',
+        mb: 3,
       }}
     >
       <CardContent sx={{ p: 3 }}>
@@ -65,13 +63,13 @@ export function FlatCard({
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'flex-start', sm: 'center' },
             gap: 1.5,
-            mb: 2.5,
+            mb: 2,
           }}
         >
-          <Typography variant="h5">
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Flat {flat.name}
           </Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1 }}>
+          <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1, fontWeight: 500 }}>
             ({totalBeds} Beds &bull; {occupiedBeds} Occupied &bull; {vacantBeds} Vacant)
           </Typography>
           <Stack direction="row" spacing={1}>
@@ -80,6 +78,7 @@ export function FlatCard({
               variant="outlined"
               size="small"
               onClick={onMaintenanceClick}
+              sx={{ fontWeight: 600, textTransform: 'none' }}
             >
               Maintenance
             </Button>
@@ -89,6 +88,7 @@ export function FlatCard({
                 variant="outlined"
                 size="small"
                 onClick={onEdit}
+                sx={{ fontWeight: 600, textTransform: 'none' }}
               >
                 Edit
               </Button>
@@ -100,6 +100,7 @@ export function FlatCard({
                 color="error"
                 size="small"
                 onClick={onDelete}
+                sx={{ fontWeight: 600, textTransform: 'none' }}
               >
                 Delete
               </Button>
@@ -107,10 +108,10 @@ export function FlatCard({
           </Stack>
         </Box>
 
-        <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: 2.5 }} />
 
         {/* Nested Areas */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           {flat.areas.map((area) => (
             <AreaSection
               key={area.id}

@@ -6,6 +6,10 @@ import { balanceEngine } from '../../services/balanceEngine';
 
 describe('Sprint FR-5 — ResidentFinancialProfile & SettlementDialog Integration Suite', () => {
   beforeEach(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('rpgms_stays');
+      localStorage.removeItem('rpgms_residents');
+    }
     financeStorage.saveStoredLedgerEntries([]);
     financeStorage.saveStoredBills([]);
     financeStorage.saveStoredPayments([]);
@@ -13,7 +17,7 @@ describe('Sprint FR-5 — ResidentFinancialProfile & SettlementDialog Integratio
   });
 
   it('calculates stay balances accurately when bills and payments are recorded', () => {
-    const stayId = 'STAY-000001';
+    const stayId = 'STAY-2026-00041';
 
     // Seed bill
     defaultFinanceRepository.saveBill({
@@ -108,7 +112,7 @@ describe('Sprint FR-5 — ResidentFinancialProfile & SettlementDialog Integratio
   });
 
   it('generates Stage 1 settlement preview via settlementService for checkout dialog', () => {
-    const stayId = 'STAY-000001';
+    const stayId = 'STAY-2026-00041';
 
     // Seed Security Deposit liability entry (10,000 held)
     defaultFinanceRepository.saveLedgerEntries([

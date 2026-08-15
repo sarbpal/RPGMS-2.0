@@ -5,6 +5,10 @@ import { FinanceWorkspaceCoordinator } from '../../application/coordinator/Finan
 
 describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Integration Suite', () => {
   beforeEach(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('rpgms_stays');
+      localStorage.removeItem('rpgms_residents');
+    }
     financeStorage.saveStoredLedgerEntries([]);
     financeStorage.saveStoredBills([]);
     financeStorage.saveStoredPayments([]);
@@ -20,7 +24,7 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
     expect(vm.metrics.outstandingReceivables).toBe(0);
     expect(vm.metrics.totalMonthlyBilling).toBe(0);
     expect(vm.metrics.totalCollections).toBe(0);
-    expect(vm.metrics.pendingSettlementsCount).toBe(0);
+    expect(vm.metrics.pendingSettlementsCount).toBe(1); // 1 stay on notice (STAY-2026-00042) in canonical seed data
     expect(vm.outstandingResidents).toEqual([]);
     expect(vm.settlementsReport).toEqual([]);
     expect(vm.activity).toEqual([]);
@@ -29,11 +33,11 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
   it('updates dashboard metrics dynamically when payments and bills are posted', () => {
     const coordinator = new FinanceWorkspaceCoordinator();
 
-    // Post bill for valid active stay STAY-000001
+    // Post bill for valid active stay STAY-2026-00041
     defaultFinanceRepository.saveBill({
       id: 'bill-test-1',
       billNumber: 'INV-1001',
-      stayId: 'STAY-000001',
+      stayId: 'STAY-2026-00041',
       billType: 'MONTHLY_RENT',
       period: '2026-08',
       issueDate: '2026-08-01',
@@ -50,7 +54,7 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
     defaultFinanceRepository.saveLedgerEntries([
       {
         id: 'led-bill-1',
-        stayId: 'STAY-000001',
+        stayId: 'STAY-2026-00041',
         postingDate: '2026-08-01',
         effectiveDate: '2026-08-01',
         referenceType: 'BILL',
@@ -73,7 +77,7 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
     defaultFinanceRepository.savePayment({
       id: 'pay-test-1',
       paymentNumber: 'PAY-1001',
-      stayId: 'STAY-000001',
+      stayId: 'STAY-2026-00041',
       amount: 12000,
       paymentDate: '2026-08-05',
       paymentMethod: 'CASH',
@@ -84,7 +88,7 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
     defaultFinanceRepository.saveLedgerEntries([
       {
         id: 'led-pay-1',
-        stayId: 'STAY-000001',
+        stayId: 'STAY-2026-00041',
         postingDate: '2026-08-05',
         effectiveDate: '2026-08-05',
         referenceType: 'PAYMENT',
@@ -98,7 +102,7 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
       },
       {
         id: 'led-pay-2',
-        stayId: 'STAY-000001',
+        stayId: 'STAY-2026-00041',
         postingDate: '2026-08-05',
         effectiveDate: '2026-08-05',
         referenceType: 'PAYMENT',

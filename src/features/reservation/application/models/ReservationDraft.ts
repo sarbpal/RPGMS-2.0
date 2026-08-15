@@ -3,6 +3,8 @@ export interface ReservationDraft {
   prospectName: string;
   mobileNumber: string;
   expectedJoiningDate: string;
+  expectedMonthlyRent?: number;
+  expectedSecurityDeposit?: number;
   accommodationPreference?: string;
   tokenAmount?: number;
   tokenReceivedOn?: string;

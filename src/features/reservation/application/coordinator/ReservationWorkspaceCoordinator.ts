@@ -89,6 +89,31 @@ export class ReservationWorkspaceCoordinator {
         });
       }
 
+      // Check commercial terms update
+      const isRentChanged = draft.expectedMonthlyRent !== reservationToEdit.expectedMonthlyRent;
+      if (isRentChanged) {
+        newAuditEntries.push({
+          timestamp: nowIso,
+          action: 'Expected Rent Updated',
+          performedBy: 'System Operator',
+          details: typeof draft.expectedMonthlyRent === 'number'
+            ? `Expected monthly rent updated to ₹${draft.expectedMonthlyRent.toLocaleString('en-IN')}`
+            : 'Expected monthly rent cleared',
+        });
+      }
+
+      const isDepositChanged = draft.expectedSecurityDeposit !== reservationToEdit.expectedSecurityDeposit;
+      if (isDepositChanged) {
+        newAuditEntries.push({
+          timestamp: nowIso,
+          action: 'Expected Deposit Updated',
+          performedBy: 'System Operator',
+          details: typeof draft.expectedSecurityDeposit === 'number'
+            ? `Expected security deposit updated to ₹${draft.expectedSecurityDeposit.toLocaleString('en-IN')}`
+            : 'Expected security deposit cleared',
+        });
+      }
+
       // Check token update (Refinement #3)
       const isTokenChanged =
         draft.tokenAmount !== reservationToEdit.tokenAmount ||
@@ -121,6 +146,8 @@ export class ReservationWorkspaceCoordinator {
         prospectName: draft.prospectName.trim(),
         mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
         expectedJoiningDate: draft.expectedJoiningDate,
+        expectedMonthlyRent: typeof draft.expectedMonthlyRent === 'number' ? draft.expectedMonthlyRent : undefined,
+        expectedSecurityDeposit: typeof draft.expectedSecurityDeposit === 'number' ? draft.expectedSecurityDeposit : undefined,
         accommodationPreference: draft.accommodationPreference?.trim() || undefined,
         tokenAmount: typeof draft.tokenAmount === 'number' ? draft.tokenAmount : undefined,
         tokenReceivedOn: draft.tokenReceivedOn || undefined,
@@ -153,6 +180,8 @@ export class ReservationWorkspaceCoordinator {
         prospectName: draft.prospectName.trim(),
         mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
         expectedJoiningDate: draft.expectedJoiningDate,
+        expectedMonthlyRent: typeof draft.expectedMonthlyRent === 'number' ? draft.expectedMonthlyRent : undefined,
+        expectedSecurityDeposit: typeof draft.expectedSecurityDeposit === 'number' ? draft.expectedSecurityDeposit : undefined,
         accommodationPreference: draft.accommodationPreference?.trim() || undefined,
         tokenAmount: typeof draft.tokenAmount === 'number' ? draft.tokenAmount : undefined,
         tokenReceivedOn: draft.tokenReceivedOn || undefined,

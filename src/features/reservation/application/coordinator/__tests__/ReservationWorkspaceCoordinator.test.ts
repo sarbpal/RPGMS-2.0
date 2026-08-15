@@ -253,4 +253,132 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       expect(activeFiltered.filteredReservations).toHaveLength(3);
     });
   });
+
+  describe('Commercial Expectations Contract (RU-2A)', () => {
+    it('A. creates a reservation with commercial expectations and persists them in repository', () => {
+      const draft: ReservationDraft = {
+        prospectName: 'Anil Gupta',
+        mobileNumber: '9876501234',
+        expectedJoiningDate: tomorrowStr,
+        expectedMonthlyRent: 8500,
+        expectedSecurityDeposit: 17000,
+        accommodationPreference: 'Double Sharing, 2nd Floor',
+        tokenAmount: 1500,
+      };
+
+      const result = coordinator.saveReservation(draft);
+
+      expect(result.expectedMonthlyRent).toBe(8500);
+      expect(result.expectedSecurityDeposit).toBe(17000);
+
+      // Verify repository persistence
+      const persisted = repository.findByIdSync(result.id);
+      expect(persisted).toBeDefined();
+      expect(persisted?.expectedMonthlyRent).toBe(8500);
+      expect(persisted?.expectedSecurityDeposit).toBe(17000);
+    });
+
+    it('B. creates a reservation without commercial expectations leaving them undefined', () => {
+      const draft: ReservationDraft = {
+        prospectName: 'Rohit Sharma',
+        mobileNumber: '9876505678',
+        expectedJoiningDate: tomorrowStr,
+      };
+
+      const result = coordinator.saveReservation(draft);
+
+      expect(result.expectedMonthlyRent).toBeUndefined();
+      expect(result.expectedSecurityDeposit).toBeUndefined();
+
+      const persisted = repository.findByIdSync(result.id);
+      expect(persisted?.expectedMonthlyRent).toBeUndefined();
+      expect(persisted?.expectedSecurityDeposit).toBeUndefined();
+    });
+
+    it('C. updates commercial expectations on an existing reservation and records audit logs', () => {
+      const initial = coordinator.saveReservation({
+        prospectName: 'Sunil Verma',
+        mobileNumber: '9876509999',
+        expectedJoiningDate: tomorrowStr,
+        expectedMonthlyRent: 9000,
+        expectedSecurityDeposit: 18000,
+      });
+
+      const updated = coordinator.saveReservation(
+        {
+          ...initial,
+          expectedMonthlyRent: 9500,
+          expectedSecurityDeposit: 19000,
+        },
+        initial,
+        'Commercial renegotiation'
+      );
+
+      expect(updated.expectedMonthlyRent).toBe(9500);
+      expect(updated.expectedSecurityDeposit).toBe(19000);
+
+      const auditActions = updated.auditLog.map((a) => a.action);
+      expect(auditActions).toContain('Expected Rent Updated');
+      expect(auditActions).toContain('Expected Deposit Updated');
+
+      const rentAudit = updated.auditLog.find((a) => a.action === 'Expected Rent Updated');
+      expect(rentAudit?.details).toContain('₹9,500');
+
+      const depositAudit = updated.auditLog.find((a) => a.action === 'Expected Deposit Updated');
+      expect(depositAudit?.details).toContain('₹19,000');
+    });
+
+    it('D. verifies repository round trip for commercial expectations across multiple saves', () => {
+      const created = coordinator.saveReservation({
+        prospectName: 'Deepak Patel',
+        mobileNumber: '9876504321',
+        expectedJoiningDate: tomorrowStr,
+        expectedMonthlyRent: 11000,
+        expectedSecurityDeposit: 22000,
+      });
+
+      // Reload fresh from repository
+      const reloaded = repository.findByIdSync(created.id);
+      expect(reloaded?.expectedMonthlyRent).toBe(11000);
+      expect(reloaded?.expectedSecurityDeposit).toBe(22000);
+
+      // Clear deposit
+      const updated = coordinator.saveReservation(
+        {
+          ...reloaded!,
+          expectedSecurityDeposit: undefined,
+        },
+        reloaded!
+      );
+
+      expect(updated.expectedMonthlyRent).toBe(11000);
+      expect(updated.expectedSecurityDeposit).toBeUndefined();
+
+      const finalReload = repository.findByIdSync(created.id);
+      expect(finalReload?.expectedMonthlyRent).toBe(11000);
+      expect(finalReload?.expectedSecurityDeposit).toBeUndefined();
+    });
+
+    it('E. regression: existing reservation creation and listing continues to function seamlessly', () => {
+      const draft: ReservationDraft = {
+        prospectName: 'Existing Flow Prospect',
+        mobileNumber: '9811223344',
+        expectedJoiningDate: tomorrowStr,
+        accommodationPreference: 'Triple Sharing',
+        tokenAmount: 2000,
+        tokenReceivedOn: todayStr,
+        tokenRemarks: 'UPI',
+        notes: 'Standard entry',
+      };
+
+      const created = coordinator.saveReservation(draft);
+      expect(created.id).toBeDefined();
+      expect(created.reservationNumber).toBe('RES-000001');
+      expect(created.status).toBe(ReservationStatus.ACTIVE);
+
+      const vm = coordinator.loadWorkspace();
+      expect(vm.stats.totalActive).toBe(1);
+      expect(vm.reservations[0].prospectName).toBe('Existing Flow Prospect');
+    });
+  });
 });

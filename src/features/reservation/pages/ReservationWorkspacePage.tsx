@@ -7,7 +7,6 @@ import { ReservationUseCases } from '../application/useCases/ReservationUseCases
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import { ReservationHeader } from '../components/ReservationHeader';
 import { ReservationSummaryCard } from '../components/ReservationSummaryCard';
-import { ReservationActionsCard } from '../components/ReservationActionsCard';
 import { ProspectInformationCard } from '../components/ProspectInformationCard';
 import { ReservationDetailsCard } from '../components/ReservationDetailsCard';
 import { TokenInformationCard } from '../components/TokenInformationCard';
@@ -26,7 +25,6 @@ export const ReservationWorkspacePage: React.FC = () => {
     () => new ReservationUseCases(stayWorkflowComposition.reservationRepository),
     []
   );
-
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -61,8 +59,19 @@ export const ReservationWorkspacePage: React.FC = () => {
       alert(convertCheck.reason || 'Reservation cannot be converted.');
       return;
     }
-    // Mandatory Revision 2 & 3: Navigate to Admission Workspace (Hand-off only)
+    // Navigate to Admission Workspace (Hand-off only)
     navigate(`/admission/from-reservation/${reservation.id}`);
+  };
+
+  const handleViewAdmission = () => {
+    if (!reservation) return;
+    if (reservation.convertedStayId) {
+      navigate(`/stays/${reservation.convertedStayId}`);
+    } else if (reservation.convertedResidentId) {
+      navigate(`/resident/${reservation.convertedResidentId}`);
+    } else {
+      navigate('/stays');
+    }
   };
 
   if (!reservation) {
@@ -136,17 +145,19 @@ export const ReservationWorkspacePage: React.FC = () => {
           Back to Reservations
         </Link>
 
-        {/* Operational Workspace Top Block */}
+        {/* Operational Workspace Top Block: Identity-First Header with Compact Action Bar */}
         <Stack spacing={2}>
-          <ReservationHeader reservation={reservation} />
-          <ReservationSummaryCard reservation={reservation} />
-          {/* RA-4 Operational Action Panel */}
-          <ReservationActionsCard
+          <ReservationHeader
             reservation={reservation}
             onEdit={() => setIsEditOpen(true)}
             onCancel={() => setIsCancelOpen(true)}
             onConvert={handleConvertAdmission}
+            onViewAdmission={handleViewAdmission}
+            onViewHistory={() => {
+              // Reserved for RU-2C.4 History Drawer
+            }}
           />
+          <ReservationSummaryCard reservation={reservation} />
         </Stack>
 
         {/* Information Cards Grid */}

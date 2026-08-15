@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Container, Stack, Grid, Link, Paper, Typography, Button, Box } from '@mui/material';
+import { Container, Stack, Link, Paper, Typography, Button, Box } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import { ReservationHeader } from '../components/ReservationHeader';
-import { ReservationSummaryCard } from '../components/ReservationSummaryCard';
-import { ProspectInformationCard } from '../components/ProspectInformationCard';
-import { ReservationDetailsCard } from '../components/ReservationDetailsCard';
-import { TokenInformationCard } from '../components/TokenInformationCard';
-import { ReservationNotesCard } from '../components/ReservationNotesCard';
+import { ReservationOverviewCard } from '../components/ReservationOverviewCard';
+import { ReservationCommercialExpectations } from '../components/ReservationCommercialExpectations';
+import { ReservationNotesAccordion } from '../components/ReservationNotesAccordion';
+import { ReservationHistoryAccordion } from '../components/ReservationHistoryAccordion';
 import { EditReservationDialog } from '../components/EditReservationDialog';
 import { CancelReservationModal } from '../components/CancelReservationModal';
 import type { UpdateReservationDTO } from '../application/dtos/UpdateReservationDTO';
@@ -145,33 +144,26 @@ export const ReservationWorkspacePage: React.FC = () => {
           Back to Reservations
         </Link>
 
-        {/* Operational Workspace Top Block: Identity-First Header with Compact Action Bar */}
-        <Stack spacing={2}>
-          <ReservationHeader
-            reservation={reservation}
-            onEdit={() => setIsEditOpen(true)}
-            onCancel={() => setIsCancelOpen(true)}
-            onConvert={handleConvertAdmission}
-            onViewAdmission={handleViewAdmission}
-          />
-          <ReservationSummaryCard reservation={reservation} />
-        </Stack>
+        {/* A. HEADER: Identity + Actions */}
+        <ReservationHeader
+          reservation={reservation}
+          onEdit={() => setIsEditOpen(true)}
+          onCancel={() => setIsCancelOpen(true)}
+          onConvert={handleConvertAdmission}
+          onViewAdmission={handleViewAdmission}
+        />
 
-        {/* Information Cards Grid */}
-        <Grid container spacing={2.5}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <ProspectInformationCard reservation={reservation} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <ReservationDetailsCard reservation={reservation} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TokenInformationCard reservation={reservation} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <ReservationNotesCard reservation={reservation} />
-          </Grid>
-        </Grid>
+        {/* B. RESERVATION OVERVIEW: Single home for core reservation & contact facts */}
+        <ReservationOverviewCard reservation={reservation} />
+
+        {/* C. COMMERCIAL EXPECTATIONS: Single home for commercial terms & token */}
+        <ReservationCommercialExpectations reservation={reservation} />
+
+        {/* D. NOTES & REMARKS: Collapsed progressive disclosure */}
+        <ReservationNotesAccordion reservation={reservation} />
+
+        {/* E. RESERVATION HISTORY: Collapsed progressive disclosure */}
+        <ReservationHistoryAccordion reservation={reservation} />
 
         {/* Action Modals */}
         <EditReservationDialog

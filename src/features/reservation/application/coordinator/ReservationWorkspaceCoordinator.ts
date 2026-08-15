@@ -280,7 +280,7 @@ export class ReservationWorkspaceCoordinator {
         matchesStatus = r.status === ReservationStatus.ACTIVE;
       } else if (statusFilter === 'FOLLOW_UP_REQUIRED') {
         matchesStatus = isReservationFollowUpRequired(r, todayStr);
-      } else if (statusFilter === 'TODAY') {
+      } else if (statusFilter === 'TODAY' || statusFilter === 'ARRIVING_TODAY') {
         matchesStatus = r.status === ReservationStatus.ACTIVE && r.expectedJoiningDate === todayStr;
       } else {
         matchesStatus = r.status === statusFilter;

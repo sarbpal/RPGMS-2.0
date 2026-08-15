@@ -6,6 +6,7 @@ export * from './CreateReservationModal';
 export * from './ReservationCard';
 export * from './ReservationSummary';
 export * from './ReservationHeader';
+export * from './ReservationSummaryCards';
 export * from './ReservationSummaryCard';
 export * from './ProspectInformationCard';
 export * from './ReservationDetailsCard';

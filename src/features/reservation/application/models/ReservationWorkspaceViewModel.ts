@@ -8,6 +8,15 @@ export interface ReservationStats {
   totalCancelled: number;
 }
 
+export type ReservationPortfolioFilter =
+  | 'ALL'
+  | 'ACTIVE'
+  | 'ARRIVING_TODAY'
+  | 'TODAY'
+  | 'FOLLOW_UP_REQUIRED'
+  | 'CONVERTED'
+  | 'CANCELLED';
+
 export interface ReservationWorkspaceViewModel {
   stats: ReservationStats;
   reservations: Reservation[];

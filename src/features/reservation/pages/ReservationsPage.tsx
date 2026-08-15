@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container } from '@mui/material';
+import { Container, Stack } from '@mui/material';
 import { PageHeader } from '../../../components/PageHeader';
-import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import type { Reservation } from '../domain/entities/Reservation';
 import type { ReservationDraft } from '../application/models/ReservationDraft';
+import { ReservationSummaryCards } from '../components/ReservationSummaryCards';
 import { ReservationsToolbar } from '../components/ReservationsToolbar';
 import { ReservationsTable } from '../components/ReservationsTable';
 import { CreateReservationModal } from '../components/CreateReservationModal';
@@ -17,20 +17,17 @@ export function ReservationsPage() {
     () => stayWorkflowComposition.reservationWorkspaceCoordinator,
     []
   );
-  const reservationRepo = stayWorkflowComposition.reservationRepository;
-  const useCases = useMemo(() => new ReservationUseCases(reservationRepo), [reservationRepo]);
 
-
-  const [reservations, setReservations] = useState<Reservation[]>(() => {
-    return useCases.listReservationsSync();
-  });
-
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const totalCount = reservations.length;
-  const activeCount = useMemo(() => {
-    return reservations.filter((r) => r.status === 'ACTIVE').length;
-  }, [reservations]);
+  // Load ViewModel via composed coordinator
+  const viewModel = useMemo(() => {
+    void refreshKey;
+    return coordinator.loadWorkspace(searchQuery, activeFilter);
+  }, [coordinator, searchQuery, activeFilter, refreshKey]);
 
   const handleSelectReservation = (reservation: Reservation) => {
     navigate(`/reservations/${reservation.id}`);
@@ -46,7 +43,7 @@ export function ReservationsPage() {
 
   const handleSaveReservation = (draft: ReservationDraft) => {
     coordinator.saveReservation(draft);
-    setReservations(useCases.listReservationsSync());
+    setRefreshKey((prev) => prev + 1);
     setIsCreateModalOpen(false);
   };
 
@@ -59,30 +56,44 @@ export function ReservationsPage() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <PageHeader
-        title="Reservations"
-        subtitle="Manage future resident admissions and reservation pipeline"
-      />
+    <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
+      <Stack spacing={3}>
+        <PageHeader
+          title="Reservations"
+          subtitle="Manage prospects and upcoming arrivals."
+        />
 
-      <ReservationsToolbar
-        totalCount={totalCount}
-        activeCount={activeCount}
-        onNewReservation={handleOpenCreateModal}
-      />
+        <ReservationSummaryCards
+          stats={viewModel.stats}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
 
-      <ReservationsTable
-        reservations={reservations}
-        onSelectReservation={handleSelectReservation}
-      />
+        <ReservationsToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          onNewReservation={handleOpenCreateModal}
+        />
 
-      <CreateReservationModal
-        open={isCreateModalOpen}
-        onClose={handleCloseCreateModal}
-        onSave={handleSaveReservation}
-        onCheckDuplicate={handleCheckDuplicate}
-        onOpenExisting={handleOpenExisting}
-      />
+        <ReservationsTable
+          reservations={viewModel.filteredReservations}
+          activeFilter={activeFilter}
+          searchQuery={searchQuery}
+          onSelectReservation={handleSelectReservation}
+          onNewReservation={handleOpenCreateModal}
+          onClearSearch={() => setSearchQuery('')}
+        />
+
+        <CreateReservationModal
+          open={isCreateModalOpen}
+          onClose={handleCloseCreateModal}
+          onSave={handleSaveReservation}
+          onCheckDuplicate={handleCheckDuplicate}
+          onOpenExisting={handleOpenExisting}
+        />
+      </Stack>
     </Container>
   );
 }

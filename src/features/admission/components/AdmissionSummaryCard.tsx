@@ -1,15 +1,19 @@
 import React from 'react';
 import { Card, CardContent, Grid, Stack, Typography, Chip, Box } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PendingIcon from '@mui/icons-material/Pending';
+import GavelIcon from '@mui/icons-material/Gavel';
 import type { Reservation } from '../../reservation/domain/entities/Reservation';
+import type { AdmissionReadinessAssessment } from '../application/models/AdmissionReadinessAssessment';
 import type { AdmissionReadiness } from '../application/models/AdmissionReadiness';
 import { formatTokenDispositionLabel } from '../domain/valueObjects/TokenDisposition';
 import type { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
 
 interface AdmissionSummaryCardProps {
   reservation?: Reservation | null;
-  readiness: AdmissionReadiness;
+  assessment?: AdmissionReadinessAssessment;
+  readiness?: AdmissionReadiness;
   selectedFlatName?: string;
   selectedBedNames?: string[];
   agreedRent: number;
@@ -22,6 +26,7 @@ interface AdmissionSummaryCardProps {
 
 export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
   reservation,
+  assessment,
   readiness,
   selectedFlatName,
   selectedBedNames = [],
@@ -63,6 +68,66 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
     : (reservation.tokenAmount && reservation.tokenAmount > 0
         ? (tokenDisposition ? formatTokenDispositionLabel(tokenDisposition) : 'Pending Choice')
         : 'No Token');
+
+  const renderReadinessChip = () => {
+    if (assessment) {
+      const cat = assessment.category;
+      switch (cat) {
+        case 'READY_FOR_APPROVAL':
+          return (
+            <Chip
+              icon={<CheckCircleIcon />}
+              label="Ready for Approval"
+              color="success"
+              size="small"
+              sx={{ fontWeight: 800, px: 1 }}
+            />
+          );
+        case 'REQUIRES_REVIEW':
+          return (
+            <Chip
+              icon={<WarningAmberIcon />}
+              label="Requires Review"
+              color="warning"
+              size="small"
+              sx={{ fontWeight: 800, px: 1 }}
+            />
+          );
+        case 'PENDING_OPERATOR_DECISION':
+          return (
+            <Chip
+              icon={<GavelIcon />}
+              label="Pending Decision"
+              color="secondary"
+              size="small"
+              sx={{ fontWeight: 800, px: 1 }}
+            />
+          );
+        case 'AWAITING_INFORMATION':
+        default:
+          return (
+            <Chip
+              icon={<PendingIcon />}
+              label="Awaiting Information"
+              color="default"
+              size="small"
+              sx={{ fontWeight: 800, px: 1 }}
+            />
+          );
+      }
+    }
+
+    const isReady = Boolean(readiness?.isReadyToConfirm);
+    return (
+      <Chip
+        icon={isReady ? <CheckCircleIcon /> : <PendingIcon />}
+        label={isReady ? 'Ready for Admission' : 'Preparation Pending'}
+        color={isReady ? 'success' : 'warning'}
+        size="small"
+        sx={{ fontWeight: 800, px: 1 }}
+      />
+    );
+  };
 
   return (
     <Card
@@ -131,13 +196,7 @@ export const AdmissionSummaryCard: React.FC<AdmissionSummaryCardProps> = ({
             <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>
               Preparation Readiness:
             </Typography>
-            <Chip
-              icon={readiness.isReadyToConfirm ? <CheckCircleIcon /> : <PendingIcon />}
-              label={readiness.isReadyToConfirm ? '100% Ready for RA-6 Execution' : 'Preparation Pending'}
-              color={readiness.isReadyToConfirm ? 'success' : 'warning'}
-              size="small"
-              sx={{ fontWeight: 800, px: 1 }}
-            />
+            {renderReadinessChip()}
           </Stack>
         </Box>
       </CardContent>

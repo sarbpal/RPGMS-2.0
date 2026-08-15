@@ -63,7 +63,6 @@ export const AdmissionWorkspacePage: React.FC = () => {
   const [flatId, setFlatId] = useState<string | undefined>(undefined);
   const [bedIds, setBedIds] = useState<string[]>([]);
   const [tokenDisposition, setTokenDisposition] = useState<TokenDisposition | undefined>(undefined);
-  const [isValidated, setIsValidated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -132,6 +131,10 @@ export const AdmissionWorkspacePage: React.FC = () => {
     return admissionCoordinator.checkDuplicateResidentMobile(mobileNumber);
   }, [admissionCoordinator, mobileNumber]);
 
+  const readinessAssessment = useMemo(() => {
+    return admissionCoordinator.evaluateReadinessAssessment(draft, reservation);
+  }, [admissionCoordinator, draft, reservation]);
+
   const readiness = useMemo(() => {
     return admissionCoordinator.evaluateReadiness(draft, reservation, isWalkIn ? 'WALK_IN' : 'RESERVATION');
   }, [admissionCoordinator, draft, reservation, isWalkIn]);
@@ -174,12 +177,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
     }
   };
 
-  const handleValidateReadiness = () => {
-    setIsValidated(true);
-    setErrorMessage(null);
-  };
-
-  const handleCompleteAdmission = () => {
+  const handleApproveAndAdmit = () => {
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -188,14 +186,14 @@ export const AdmissionWorkspacePage: React.FC = () => {
         ? admissionCoordinator.confirmWalkInAdmission(draft)
         : admissionCoordinator.confirmReservedAdmission(draft, reservation!);
 
-      setSuccessToast(`Admission Completed! Created ${result.residentCode}. Redirecting...`);
+      setSuccessToast(`Admission Approved! Created ${result.residentCode}. Redirecting...`);
       
       setTimeout(() => {
         navigate(`/resident/${result.residentId}`);
       }, 750);
     } catch (err) {
       setIsSubmitting(false);
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to complete admission.');
+      setErrorMessage(err instanceof Error ? err.message : 'Admission transaction failed.');
     }
   };
 
@@ -332,18 +330,33 @@ export const AdmissionWorkspacePage: React.FC = () => {
           </Alert>
         </Snackbar>
 
-        {/* Inline Error Alert */}
+        {/* Pre-Commit Validation / Transaction Error Alert */}
         {errorMessage && (
-          <Alert severity="error" onClose={() => setErrorMessage(null)} sx={{ borderRadius: 2 }}>
-            {errorMessage}
+          <Alert
+            severity="error"
+            onClose={() => setErrorMessage(null)}
+            sx={{ borderRadius: 2, border: '1px solid #f87171' }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+              Admission Validation Failed
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              {errorMessage}
+            </Typography>
           </Alert>
         )}
 
         {/* Operational Workspace Top Block */}
         <Stack spacing={2}>
-          <AdmissionHeader reservation={reservation} isReady={readiness.isReadyToConfirm} isWalkIn={isWalkIn} />
+          <AdmissionHeader
+            reservation={reservation}
+            assessment={readinessAssessment}
+            isReady={readiness.isReadyToConfirm}
+            isWalkIn={isWalkIn}
+          />
           <AdmissionSummaryCard
             reservation={reservation}
+            assessment={readinessAssessment}
             readiness={readiness}
             selectedFlatName={selectedFlat?.name}
             selectedBedNames={selectedBedNames}
@@ -354,7 +367,11 @@ export const AdmissionWorkspacePage: React.FC = () => {
             prospectName={fullName}
             isWalkIn={isWalkIn}
           />
-          <AdmissionReadinessPanel readiness={readiness} isWalkIn={isWalkIn} />
+          <AdmissionReadinessPanel
+            assessment={readinessAssessment}
+            readiness={readiness}
+            isWalkIn={isWalkIn}
+          />
         </Stack>
 
         {/* Information Cards Grid */}
@@ -418,11 +435,10 @@ export const AdmissionWorkspacePage: React.FC = () => {
 
         {/* Operational Action Panel */}
         <AdmissionActionsCard
+          assessment={readinessAssessment}
           readiness={readiness}
-          isValidated={isValidated}
           isSubmitting={isSubmitting}
-          onValidateReadiness={handleValidateReadiness}
-          onCompleteAdmission={handleCompleteAdmission}
+          onApproveAndAdmit={handleApproveAndAdmit}
           onCancelReturn={handleCancelReturn}
         />
       </Stack>

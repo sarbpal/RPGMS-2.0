@@ -5,6 +5,7 @@ import { InMemoryReservationRepository } from '../../reservation/infrastructure/
 import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { BedStatus } from '../../accommodation/domain/valueObjects/BedStatus';
 import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordinator';
 import type { AdmissionDraft } from '../application/models/AdmissionDraft';
 import { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
@@ -472,6 +473,451 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       expect(resident!.documents![0].type).toBe('OTHER');
       expect(resident!.documents![0].documentNumber).toBe('STU-2026-99');
       expect(resident!.documents![0].customType).toBe('University Student ID');
+    });
+  });
+
+  describe('Sprint RA-8 Slice 4 — Admission Readiness & Operator Approval UI Flow', () => {
+    it('1. evaluates READY_FOR_APPROVAL posture when draft is complete and consistent', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      // Clean reservation matching bed terms
+      const cleanReservation: Reservation = {
+        ...mockReservations[0],
+        expectedMonthlyRent: vacantBed.defaultRent,
+        expectedSecurityDeposit: vacantBed.defaultDeposit,
+        accommodationPreference: undefined,
+      };
+
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: cleanReservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: vacantBed.defaultRent ?? 12000,
+        agreedDeposit: vacantBed.defaultDeposit ?? 12000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(draft, cleanReservation);
+      expect(assessment.category).toBe('READY_FOR_APPROVAL');
+      expect(assessment.sectionAssessments.SOURCE.isComplete).toBe(true);
+      expect(assessment.sectionAssessments.IDENTITY.isComplete).toBe(true);
+      expect(assessment.sectionAssessments.COMMERCIAL.isComplete).toBe(true);
+      expect(assessment.sectionAssessments.ACCOMMODATION.isComplete).toBe(true);
+      expect(assessment.sectionAssessments.TOKEN.isComplete).toBe(true);
+    });
+
+    it('2. evaluates REQUIRES_REVIEW posture when commercial terms deviate but does not block operator decision', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const cleanReservation: Reservation = {
+        ...mockReservations[0],
+        expectedMonthlyRent: vacantBed.defaultRent,
+        expectedSecurityDeposit: vacantBed.defaultDeposit,
+        accommodationPreference: undefined,
+      };
+
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: cleanReservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: (vacantBed.defaultRent ?? 10000) + 2000, // Diverges from default
+        agreedDeposit: vacantBed.defaultDeposit ?? 10000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(draft, cleanReservation);
+      expect(assessment.category).toBe('REQUIRES_REVIEW');
+      const commercialWarning = assessment.observations.find((o) => o.code === 'ADM_OBS_COMMERCIAL_RENT_DEVIATION');
+      expect(commercialWarning).toBeDefined();
+      expect(commercialWarning?.severity).toBe('REVIEW_WARNING');
+      expect(commercialWarning?.guidance).toBeDefined();
+    });
+
+    it('3. evaluates AWAITING_INFORMATION posture when mandatory operational fields are missing', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const coord = new AdmissionCoordinator(resRepo);
+
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+
+      // Incomplete draft missing ID document and accommodation
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(draft, reservation);
+      expect(assessment.category).toBe('AWAITING_INFORMATION');
+      expect(assessment.sectionAssessments.IDENTITY.isComplete).toBe(false);
+      expect(assessment.sectionAssessments.ACCOMMODATION.isComplete).toBe(false);
+    });
+
+    it('4. evaluates PENDING_OPERATOR_DECISION posture when token disposition is unselected', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
+
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const cleanReservation: Reservation = {
+        ...mockReservations[0],
+        expectedMonthlyRent: vacantBed.defaultRent,
+        expectedSecurityDeposit: vacantBed.defaultDeposit,
+        accommodationPreference: undefined,
+      };
+
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: cleanReservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: vacantBed.defaultRent ?? 12000,
+        agreedDeposit: vacantBed.defaultDeposit ?? 12000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        // tokenDisposition omitted
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(draft, cleanReservation);
+      expect(assessment.category).toBe('PENDING_OPERATOR_DECISION');
+      const tokenObs = assessment.observations.find((o) => o.code === 'ADM_OBS_TOKEN_DISPOSITION_REQUIRED');
+      expect(tokenObs).toBeDefined();
+      expect(tokenObs?.severity).toBe('DECISION_REQUIRED');
+    });
+
+    it('5. surfaces progressive resident profile observations as non-blocking INFO observations', () => {
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const accomRepo = new InMemoryAccommodationRepository();
+      const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
+
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(draft, reservation);
+      const progressiveObs = assessment.observations.filter((o) => o.severity === 'INFO' && o.section === 'IDENTITY');
+      expect(progressiveObs.length).toBeGreaterThan(0);
+      expect(progressiveObs.some((o) => o.message.toLowerCase().includes('emergency contact'))).toBe(true);
+      expect(progressiveObs.some((o) => o.message.toLowerCase().includes('permanent address'))).toBe(true);
+    });
+
+    it('6. executes Approve & Admit via AdmissionCoordinator, invoking authoritative Pre-Commit Validation', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const residentRepo = new InMemoryResidentRepository();
+      const stayRepo = new InMemoryStayRepository();
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const validDraft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      const result = coord.confirmReservedAdmission(validDraft, reservation);
+      expect(result.success).toBe(true);
+      expect(result.residentId).toBeDefined();
+      expect(result.stayId).toBeDefined();
+      expect(result.residentCode).toMatch(/^RESID-/);
+
+      // Verify Reservation converted atomically
+      const updatedRes = resRepo.findByIdSync('resv-000001');
+      expect(updatedRes?.status).toBe(ReservationStatus.CONVERTED);
+    });
+
+    it('7. halts transaction and throws on Pre-Commit Validation failure (leaving state in Preparation with 0 mutations)', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+
+      // Invalid draft missing mandatory document number
+      const invalidDraft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '', // Missing
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: 'flat-101',
+        bedIds: ['bed-101-a'],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      expect(() => coord.confirmReservedAdmission(invalidDraft, reservation)).toThrow(
+        /Admission validation failed/
+      );
+
+      // Verify ZERO business mutations occurred
+      expect(residentRepo.getAllSync()).toHaveLength(0);
+      expect(stayRepo.getAllSync()).toHaveLength(0);
+      expect(resRepo.findByIdSync('resv-000001')?.status).toBe(ReservationStatus.ACTIVE);
+    });
+
+    it('8. protects against stale Bed state when a bed is occupied during operator preparation', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+      const flat = accomRepo.findAll()[0];
+      const targetBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const draft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: flat.id,
+        bedIds: [targetBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      // Simulate external concurrent transaction marking the bed OCCUPIED in repository
+      targetBed.status = BedStatus.OCCUPIED;
+      targetBed.residentName = 'Concurrent Resident';
+      accomRepo.save(flat);
+
+      expect(() => coord.confirmReservedAdmission(draft, reservation)).toThrow(
+        /Bed.*is already OCCUPIED/
+      );
+
+      // Confirm reservation remains active
+      expect(resRepo.findByIdSync('resv-000001')?.status).toBe(ReservationStatus.ACTIVE);
+    });
+
+    it('9. supports direct Walk-in Admission with Approve & Admit flow', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository([]);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const walkInDraft: AdmissionDraft = {
+        sourceType: 'WALK_IN',
+        residentName: 'Anita Roy',
+        mobileNumber: '9123456780',
+        idProofType: 'AADHAAR',
+        idProofNumber: '9876-5432-1098',
+        checkInDate: '2026-08-20',
+        agreedRent: vacantBed.defaultRent ?? 8000,
+        agreedDeposit: vacantBed.defaultDeposit ?? 8000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+      };
+
+      const assessment = coord.evaluateReadinessAssessment(walkInDraft, null);
+      expect(assessment.category).toBe('READY_FOR_APPROVAL');
+      expect(assessment.sectionAssessments.SOURCE.isComplete).toBe(true);
+
+      const result = coord.confirmWalkInAdmission(walkInDraft);
+      expect(result.success).toBe(true);
+      expect(result.residentId).toBeDefined();
+      expect(result.stayId).toBeDefined();
+    });
+
+    it('10. demonstrates AWAITING_INFORMATION posture allows Approve & Admit to execute, with Pre-Commit Validation authoritatively rejecting missing invariants without state mutation', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const reservation = resRepo.findByIdSync('resv-000001')!;
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      // Draft with missing document number -> AWAITING_INFORMATION
+      const awaitingInfoDraft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: reservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '', // Missing
+        checkInDate: '2026-08-15',
+        agreedRent: 12000,
+        agreedDeposit: 12000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      // 1. Advisory assessment reports AWAITING_INFORMATION
+      const assessment = coord.evaluateReadinessAssessment(awaitingInfoDraft, reservation);
+      expect(assessment.category).toBe('AWAITING_INFORMATION');
+      expect(assessment.sectionAssessments.IDENTITY.isComplete).toBe(false);
+
+      // 2. Operator attempts Approve & Admit
+      let caughtError: Error | null = null;
+      try {
+        coord.confirmReservedAdmission(awaitingInfoDraft, reservation);
+      } catch (err) {
+        caughtError = err as Error;
+      }
+
+      // 3. Pre-Commit Validation authoritatively rejected the hard invariant
+      expect(caughtError).not.toBeNull();
+      expect(caughtError?.message).toContain('Admission validation failed');
+      expect(caughtError?.message).toContain('Document Number is required for AADHAAR');
+
+      // 4. Preparation remains intact with zero business mutations
+      expect(residentRepo.getAllSync()).toHaveLength(0);
+      expect(stayRepo.getAllSync()).toHaveLength(0);
+      expect(resRepo.findByIdSync('resv-000001')?.status).toBe(ReservationStatus.ACTIVE);
+    });
+
+    it('11. demonstrates REQUIRES_REVIEW posture allows operator Approve & Admit, with Pre-Commit Validation passing and completing atomic admission', () => {
+      financeStorage.saveStoredLedgerEntries([]);
+      financeStorage.saveStoredBills([]);
+      financeStorage.saveStoredPayments([]);
+      financeStorage.saveStoredSettlements([]);
+
+      const resRepo = new InMemoryReservationRepository(mockReservations);
+      const residentRepo = new InMemoryResidentRepository([]);
+      const stayRepo = new InMemoryStayRepository([]);
+      const accomRepo = new InMemoryAccommodationRepository();
+
+      const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
+      const flat = accomRepo.findAll()[0];
+      const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
+
+      const cleanReservation: Reservation = {
+        ...mockReservations[0],
+        expectedMonthlyRent: vacantBed.defaultRent,
+        expectedSecurityDeposit: vacantBed.defaultDeposit,
+        accommodationPreference: undefined,
+      };
+
+      // Draft with commercial deviation -> REQUIRES_REVIEW
+      const requiresReviewDraft: AdmissionDraft = {
+        sourceType: 'RESERVATION',
+        reservationId: cleanReservation.id,
+        residentName: 'Rahul Sharma',
+        mobileNumber: '9876543210',
+        idProofType: 'AADHAAR',
+        idProofNumber: '1234-5678-9012',
+        checkInDate: '2026-08-15',
+        agreedRent: (vacantBed.defaultRent ?? 10000) + 2500, // Commercial divergence
+        agreedDeposit: vacantBed.defaultDeposit ?? 10000,
+        flatId: flat.id,
+        bedIds: [vacantBed.id],
+        tokenDisposition: TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT,
+      };
+
+      // 1. Advisory assessment reports REQUIRES_REVIEW
+      const assessment = coord.evaluateReadinessAssessment(requiresReviewDraft, cleanReservation);
+      expect(assessment.category).toBe('REQUIRES_REVIEW');
+
+      // 2. Operator proceeds to Approve & Admit
+      const result = coord.confirmReservedAdmission(requiresReviewDraft, cleanReservation);
+
+      // 3. Pre-Commit Validation passes and atomic transaction commits
+      expect(result.success).toBe(true);
+      expect(result.residentId).toBeDefined();
+      expect(result.stayId).toBeDefined();
+      expect(residentRepo.getAllSync()).toHaveLength(1);
+      expect(stayRepo.getAllSync()).toHaveLength(1);
+      expect(resRepo.findByIdSync('resv-000001')?.status).toBe(ReservationStatus.CONVERTED);
     });
   });
 });

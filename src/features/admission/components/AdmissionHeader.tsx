@@ -2,14 +2,21 @@ import React from 'react';
 import { Card, CardContent, Box, Stack, Typography, Avatar, Chip } from '@mui/material';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import type { Reservation } from '../../reservation/domain/entities/Reservation';
+import type { AdmissionReadinessAssessment } from '../application/models/AdmissionReadinessAssessment';
 
 interface AdmissionHeaderProps {
   reservation?: Reservation | null;
-  isReady: boolean;
+  assessment?: AdmissionReadinessAssessment;
+  isReady?: boolean;
   isWalkIn?: boolean;
 }
 
-export const AdmissionHeader: React.FC<AdmissionHeaderProps> = ({ reservation, isReady, isWalkIn }) => {
+export const AdmissionHeader: React.FC<AdmissionHeaderProps> = ({
+  reservation,
+  assessment,
+  isReady = false,
+  isWalkIn,
+}) => {
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
     try {
@@ -26,6 +33,31 @@ export const AdmissionHeader: React.FC<AdmissionHeaderProps> = ({ reservation, i
   };
 
   const showWalkIn = isWalkIn || !reservation;
+
+  const renderStatusChip = () => {
+    if (assessment) {
+      const cat = assessment.category;
+      switch (cat) {
+        case 'READY_FOR_APPROVAL':
+          return <Chip label="Ready for Approval" color="success" size="small" sx={{ fontWeight: 700 }} />;
+        case 'REQUIRES_REVIEW':
+          return <Chip label="Requires Review" color="warning" size="small" sx={{ fontWeight: 700 }} />;
+        case 'PENDING_OPERATOR_DECISION':
+          return <Chip label="Decision Required" color="secondary" size="small" sx={{ fontWeight: 700 }} />;
+        case 'AWAITING_INFORMATION':
+        default:
+          return <Chip label="Preparation in Progress" color="default" size="small" sx={{ fontWeight: 700 }} />;
+      }
+    }
+    return (
+      <Chip
+        label={isReady ? 'Preparation Complete' : 'Preparation in Progress'}
+        color={isReady ? 'success' : 'warning'}
+        size="small"
+        sx={{ fontWeight: 700 }}
+      />
+    );
+  };
 
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
@@ -44,12 +76,7 @@ export const AdmissionHeader: React.FC<AdmissionHeaderProps> = ({ reservation, i
                 <Typography variant="h5" sx={{ fontWeight: 800 }}>
                   {showWalkIn ? 'Walk-in Admission Workspace' : 'Admission Preparation'}
                 </Typography>
-                <Chip
-                  label={isReady ? 'Preparation Complete' : 'Preparation in Progress'}
-                  color={isReady ? 'success' : 'warning'}
-                  size="small"
-                  sx={{ fontWeight: 700 }}
-                />
+                {renderStatusChip()}
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 600 }}>
                 {showWalkIn ? (

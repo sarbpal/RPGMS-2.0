@@ -29,6 +29,8 @@ import type { AdmissionResult } from '../models/AdmissionResult';
 
 import { AdmissionFinanceService } from '../services/admissionFinanceService';
 import { AdmissionValidationService } from '../services/AdmissionValidationService';
+import { AdmissionReadinessEvaluator } from '../services/AdmissionReadinessEvaluator';
+import type { AdmissionReadinessAssessment } from '../models/AdmissionReadinessAssessment';
 
 export class AdmissionCoordinator {
   private reservationRepo: ReservationRepository;
@@ -37,6 +39,7 @@ export class AdmissionCoordinator {
   private accommodationRepo: AccommodationRepository;
   private financeService: AdmissionFinanceService;
   private validationService: AdmissionValidationService;
+  private readinessEvaluator: AdmissionReadinessEvaluator;
 
   constructor(
     reservationRepo: ReservationRepository = new InMemoryReservationRepository(),
@@ -44,7 +47,8 @@ export class AdmissionCoordinator {
     stayRepo: StayRepository = new InMemoryStayRepository(),
     accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
     financeService?: AdmissionFinanceService,
-    validationService?: AdmissionValidationService
+    validationService?: AdmissionValidationService,
+    readinessEvaluator?: AdmissionReadinessEvaluator
   ) {
     this.reservationRepo = reservationRepo;
     this.residentRepo = residentRepo;
@@ -52,6 +56,21 @@ export class AdmissionCoordinator {
     this.accommodationRepo = accommodationRepo;
     this.financeService = financeService ?? new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
     this.validationService = validationService ?? new AdmissionValidationService();
+    this.readinessEvaluator = readinessEvaluator ?? new AdmissionReadinessEvaluator();
+  }
+
+  /**
+   * Pure advisory Admission Readiness Assessment (Sprint RA-8).
+   * Evaluates current draft against expected truth, accommodation state, and resident state.
+   */
+  public evaluateReadinessAssessment(
+    draft: AdmissionDraft,
+    reservation?: Reservation | null
+  ): AdmissionReadinessAssessment {
+    const flats = this.accommodationRepo.findAll();
+    const inMemResidentRepo = this.residentRepo as InMemoryResidentRepository;
+    const residents = inMemResidentRepo.getAllSync ? inMemResidentRepo.getAllSync() : [];
+    return this.readinessEvaluator.evaluateReadiness(draft, reservation, flats, residents);
   }
 
   /**

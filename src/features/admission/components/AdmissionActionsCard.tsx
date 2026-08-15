@@ -1,63 +1,68 @@
 import React from 'react';
-import { Card, CardContent, Grid, Stack, Typography, Button, Box, Alert, CircularProgress } from '@mui/material';
-import FactCheckIcon from '@mui/icons-material/FactCheck';
+import { Card, CardContent, Grid, Stack, Typography, Button, Box, CircularProgress, Chip } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import type { AdmissionReadinessAssessment } from '../application/models/AdmissionReadinessAssessment';
 import type { AdmissionReadiness } from '../application/models/AdmissionReadiness';
 
-interface AdmissionActionsCardProps {
-  readiness: AdmissionReadiness;
-  isValidated: boolean;
+export interface AdmissionActionsCardProps {
+  assessment?: AdmissionReadinessAssessment;
+  readiness?: AdmissionReadiness;
   isSubmitting?: boolean;
-  onValidateReadiness: () => void;
-  onCompleteAdmission: () => void;
+  onApproveAndAdmit: () => void;
   onCancelReturn: () => void;
+  // Optional backwards compatibility handlers
+  isValidated?: boolean;
+  onValidateReadiness?: () => void;
+  onCompleteAdmission?: () => void;
 }
 
 export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
-  readiness,
-  isValidated,
+  assessment,
   isSubmitting = false,
-  onValidateReadiness,
-  onCompleteAdmission,
+  onApproveAndAdmit,
   onCancelReturn,
+  onCompleteAdmission,
 }) => {
+  const handlePrimaryAction = () => {
+    if (onApproveAndAdmit) {
+      onApproveAndAdmit();
+    } else if (onCompleteAdmission) {
+      onCompleteAdmission();
+    }
+  };
+
+  const category = assessment?.category;
+  const isRequiresReview = category === 'REQUIRES_REVIEW';
+
   return (
     <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-          Admission Actions
-        </Typography>
-
-        {isValidated && (
-          <Box sx={{ mb: 2.5 }}>
-            {readiness.isReadyToConfirm ? (
-              <Alert severity="success" sx={{ borderRadius: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Admission Checklist Validated (100% Ready)
-                </Typography>
-                All preparation criteria satisfied. Click Complete Admission to finalize resident admission.
-              </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Admission Preparation Incomplete
-                </Typography>
-                Please complete all Admission Checklist criteria before attempting to Complete Admission.
-              </Alert>
-            )}
-          </Box>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            Operator Decision & Admission Actions
+          </Typography>
+          {category && (
+            <Chip
+              label={`Posture: ${category.replace(/_/g, ' ')}`}
+              color={category === 'READY_FOR_APPROVAL' ? 'success' : isRequiresReview ? 'warning' : 'default'}
+              size="small"
+              sx={{ fontWeight: 700 }}
+            />
+          )}
+        </Box>
 
         <Grid container spacing={2.5}>
-          {/* Action 1: Validate Admission */}
-          <Grid size={{ xs: 12, sm: 4 }}>
+          {/* Primary Action: Approve & Admit */}
+          <Grid size={{ xs: 12, sm: 7, md: 8 }}>
             <Box
               sx={{
-                p: 2,
+                p: 2.5,
                 borderRadius: 2,
-                border: '1px solid #e2e8f0',
-                bgcolor: 'background.paper',
+                border: '1.5px solid',
+                borderColor: isRequiresReview ? '#f59e0b' : '#16a34a',
+                bgcolor: isRequiresReview ? 'rgba(255, 251, 235, 0.6)' : 'rgba(240, 253, 244, 0.6)',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -66,73 +71,44 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
             >
               <Box>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
-                  <FactCheckIcon color="primary" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Validate Admission
+                  <HowToRegIcon sx={{ color: isRequiresReview ? '#d97706' : '#16a34a' }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isRequiresReview ? '#b45309' : '#15803d' }}>
+                    Approve & Admit Resident
                   </Typography>
                 </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  Evaluate all Admission Checklist criteria and check readiness.
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  Operator decision to formally approve admission. RPGMS validates live operational invariants immediately before committing the atomic transaction.
                 </Typography>
               </Box>
-              <Button
-                variant="outlined"
-                color="primary"
-                fullWidth
-                startIcon={<FactCheckIcon />}
-                onClick={onValidateReadiness}
-                disabled={isSubmitting}
-                sx={{ fontWeight: 700, textTransform: 'none' }}
-              >
-                Validate Admission
-              </Button>
+
+              <Box sx={{ pt: 1 }}>
+                <Button
+                  variant="contained"
+                  color={isRequiresReview ? 'warning' : 'success'}
+                  size="large"
+                  startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                  onClick={handlePrimaryAction}
+                  disabled={isSubmitting}
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    px: 3,
+                    py: 1.2,
+                    fontSize: '1rem',
+                    boxShadow: 2,
+                  }}
+                >
+                  {isSubmitting ? 'Admitting Resident...' : 'Approve & Admit'}
+                </Button>
+              </Box>
             </Box>
           </Grid>
 
-          {/* Action 2: Complete Admission */}
-          <Grid size={{ xs: 12, sm: 4 }}>
+          {/* Secondary Action: Cancel & Return */}
+          <Grid size={{ xs: 12, sm: 5, md: 4 }}>
             <Box
               sx={{
-                p: 2,
-                borderRadius: 2,
-                border: '1px solid #2e7d32',
-                bgcolor: 'success.50',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Box>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
-                  <CheckCircleIcon color="success" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
-                    Complete Admission
-                  </Typography>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  Execute atomic resident creation, stay allocation, bed occupancy, and reservation conversion.
-                </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                color="success"
-                fullWidth
-                startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <CheckCircleIcon />}
-                onClick={onCompleteAdmission}
-                disabled={!readiness.isReadyToConfirm || isSubmitting}
-                sx={{ fontWeight: 700, textTransform: 'none' }}
-              >
-                {isSubmitting ? 'Completing Admission...' : 'Complete Admission'}
-              </Button>
-            </Box>
-          </Grid>
-
-          {/* Action 3: Cancel & Return */}
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Box
-              sx={{
-                p: 2,
+                p: 2.5,
                 borderRadius: 2,
                 border: '1px solid #e2e8f0',
                 bgcolor: 'background.paper',
@@ -150,7 +126,7 @@ export const AdmissionActionsCard: React.FC<AdmissionActionsCardProps> = ({
                   </Typography>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                  Discard temporary workspace preparation state and return to Reservation Workspace.
+                  Discard temporary workspace preparation state and return to previous list.
                 </Typography>
               </Box>
               <Button

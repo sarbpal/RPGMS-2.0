@@ -26,7 +26,7 @@ export const accommodationSeedData: Flat[] = [
         defaultRent: 6500,
         defaultDeposit: 6500,
         beds: [
-          { id: '101-B1', name: 'B1', status: BedStatus.OCCUPIED, residentName: 'Arjun Sharma', defaultRent: 6500, defaultDeposit: 6500 },
+          { id: '101-B1', name: 'B1', status: BedStatus.OCCUPIED, residentName: 'Rajesh Kumar', defaultRent: 6500, defaultDeposit: 6500 },
           { id: '101-B2', name: 'B2', status: BedStatus.VACANT, defaultRent: 6500, defaultDeposit: 6500 },
         ],
       },
@@ -45,8 +45,8 @@ export const accommodationSeedData: Flat[] = [
         defaultRent: 6000,
         defaultDeposit: 6000,
         beds: [
-          { id: '102-B1', name: 'B1', status: BedStatus.OCCUPIED, residentName: 'Priya Patel', defaultRent: 6000, defaultDeposit: 6000 },
-          { id: '102-B2', name: 'B2', status: BedStatus.OCCUPIED, residentName: 'Priya Patel', defaultRent: 6000, defaultDeposit: 6000 },
+          { id: '102-B1', name: 'B1', status: BedStatus.ON_NOTICE, residentName: 'Amit Sharma', defaultRent: 6000, defaultDeposit: 6000 },
+          { id: '102-B2', name: 'B2', status: BedStatus.ON_NOTICE, residentName: 'Amit Sharma', defaultRent: 6000, defaultDeposit: 6000 },
         ],
       },
     ],

@@ -14,6 +14,10 @@ import {
 import { BedStatus } from '../../../domain/valueObjects/BedStatus';
 import { StayStatus } from '../../../../stay/domain/valueObjects/StayStatus';
 import { Stay } from '../../../../stay/domain/entities/Stay';
+// Seed data imports for consistency regression
+import { accommodationSeedData } from '../../../infrastructure/data/accommodationSeedData';
+import { staySeedData } from '../../../../stay/infrastructure/data/staySeedData';
+import { residentSeedData } from '../../../../resident/infrastructure/data/residentSeedData';
 
 describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   let repository: InMemoryAccommodationRepository;
@@ -22,9 +26,11 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   let coordinator: AccommodationWorkspaceCoordinator;
 
   beforeEach(() => {
-    repository = new InMemoryAccommodationRepository();
-    stayRepository = new InMemoryStayRepository();
-    residentRepository = new InMemoryResidentRepository();
+    // Use empty repositories so that each test controls its own data.
+    // The seed regression suite below uses its own seeded coordinator.
+    repository = new InMemoryAccommodationRepository([]);
+    stayRepository = new InMemoryStayRepository([]);
+    residentRepository = new InMemoryResidentRepository([]);
     coordinator = new AccommodationWorkspaceCoordinator(
       repository,
       stayRepository,
@@ -476,6 +482,127 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
 
       const coord = new AccommodationWorkspaceCoordinator(repository, stayRepo, residentRepository);
       expect(coord.getResidentIdForBed(bedId)).toBeNull(); // '101-B1' has no active stay
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Seed Data Consistency Regression Suite
+  // Verifies that the three seed datasets (accommodation, stay, resident) are
+  // internally consistent and that loadAndSynchronizeFlats() does NOT wipe
+  // intentionally occupied/on-notice beds to VACANT on startup.
+  // ────────────────────────────────────────────────────────────────────────────
+  describe('Seed Data Consistency — loadAndSynchronizeFlats() startup contract', () => {
+    let seedCoordinator: AccommodationWorkspaceCoordinator;
+
+    beforeEach(() => {
+      // Use real seed repositories (not empty mocks) so the test exercises
+      // the same initial state the application loads on startup.
+      const seedAccommodationRepo = new InMemoryAccommodationRepository(accommodationSeedData);
+      const seedStayRepo = new InMemoryStayRepository(staySeedData);
+      const seedResidentRepo = new InMemoryResidentRepository(residentSeedData);
+      seedCoordinator = new AccommodationWorkspaceCoordinator(
+        seedAccommodationRepo,
+        seedStayRepo,
+        seedResidentRepo
+      );
+    });
+
+    it('every active/on-notice seeded stay references an existing resident', () => {
+      const residentIds = new Set(residentSeedData.map((r) => r.id));
+      const activeStays = staySeedData.filter(
+        (s) => s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE
+      );
+      activeStays.forEach((stay) => {
+        expect(
+          residentIds.has(stay.residentId),
+          `Stay ${stay.id} references residentId '${stay.residentId}' which does not exist in residentSeedData`
+        ).toBe(true);
+      });
+    });
+
+    it('every active bed allocation in seed stays references a bed that exists in the referenced flat', () => {
+      const flatBedIndex = new Map<string, Set<string>>();
+      accommodationSeedData.forEach((flat) => {
+        const bedIds = new Set<string>();
+        flat.areas.forEach((area) => area.beds.forEach((bed) => bedIds.add(bed.id)));
+        flatBedIndex.set(flat.id, bedIds);
+      });
+
+      const activeStays = staySeedData.filter(
+        (s) => s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE
+      );
+      activeStays.forEach((stay) => {
+        stay.bedAllocations
+          .filter((ba) => ba.status === 'ACTIVE')
+          .forEach((ba) => {
+            const flatBeds = flatBedIndex.get(ba.flatId);
+            expect(
+              flatBeds,
+              `Stay ${stay.id} allocation references flat '${ba.flatId}' which does not exist in accommodationSeedData`
+            ).toBeDefined();
+            expect(
+              flatBeds?.has(ba.bedId),
+              `Stay ${stay.id} allocation references bed '${ba.bedId}' which does not exist in flat '${ba.flatId}'`
+            ).toBe(true);
+          });
+      });
+    });
+
+    it('loadAndSynchronizeFlats() preserves Flat 101 / Bed 101-B1 as OCCUPIED with resident name Rajesh Kumar', () => {
+      const flats = seedCoordinator.loadAndSynchronizeFlats();
+      const flat101 = flats.find((f) => f.id === '101');
+      expect(flat101, 'Flat 101 must exist in synchronized result').toBeDefined();
+
+      const bed = flat101!.areas
+        .flatMap((a) => a.beds)
+        .find((b) => b.id === '101-B1');
+      expect(bed, 'Bed 101-B1 must exist').toBeDefined();
+      expect(bed!.status).toBe(BedStatus.OCCUPIED);
+      expect(bed!.residentName).toBe('Rajesh Kumar');
+    });
+
+    it('loadAndSynchronizeFlats() preserves Flat 102 / Beds 102-B1 and 102-B2 as ON_NOTICE with resident name Amit Sharma', () => {
+      const flats = seedCoordinator.loadAndSynchronizeFlats();
+      const flat102 = flats.find((f) => f.id === '102');
+      expect(flat102, 'Flat 102 must exist in synchronized result').toBeDefined();
+
+      const beds = flat102!.areas.flatMap((a) => a.beds);
+
+      const bed1 = beds.find((b) => b.id === '102-B1');
+      expect(bed1, 'Bed 102-B1 must exist').toBeDefined();
+      expect(bed1!.status).toBe(BedStatus.ON_NOTICE);
+      expect(bed1!.residentName).toBe('Amit Sharma');
+
+      const bed2 = beds.find((b) => b.id === '102-B2');
+      expect(bed2, 'Bed 102-B2 must exist').toBeDefined();
+      expect(bed2!.status).toBe(BedStatus.ON_NOTICE);
+      expect(bed2!.residentName).toBe('Amit Sharma');
+    });
+
+    it('loadAndSynchronizeFlats() does NOT convert seeded OCCUPIED or ON_NOTICE beds to VACANT', () => {
+      const flats = seedCoordinator.loadAndSynchronizeFlats();
+      const allBeds = flats.flatMap((f) => f.areas.flatMap((a) => a.beds));
+
+      // 101-B1 must remain OCCUPIED (active stay from Rajesh Kumar)
+      const bed101B1 = allBeds.find((b) => b.id === '101-B1');
+      expect(bed101B1?.status).not.toBe(BedStatus.VACANT);
+
+      // 102-B1 and 102-B2 must remain ON_NOTICE (on-notice stay from Amit Sharma)
+      const bed102B1 = allBeds.find((b) => b.id === '102-B1');
+      const bed102B2 = allBeds.find((b) => b.id === '102-B2');
+      expect(bed102B1?.status).not.toBe(BedStatus.VACANT);
+      expect(bed102B2?.status).not.toBe(BedStatus.VACANT);
+    });
+
+    it('loadAndSynchronizeFlats() leaves Flat 103 beds vacant (no active stay allocated there)', () => {
+      const flats = seedCoordinator.loadAndSynchronizeFlats();
+      const flat103 = flats.find((f) => f.id === '103');
+      expect(flat103, 'Flat 103 must exist in synchronized result').toBeDefined();
+
+      flat103!.areas.flatMap((a) => a.beds).forEach((bed) => {
+        expect(bed.status).toBe(BedStatus.VACANT);
+        expect(bed.residentName).toBeUndefined();
+      });
     });
   });
 });

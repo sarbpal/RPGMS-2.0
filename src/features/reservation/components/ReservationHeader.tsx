@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -6,17 +6,10 @@ import {
   Typography,
   Chip,
   Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import CancelIcon from '@mui/icons-material/Cancel';
-import HistoryIcon from '@mui/icons-material/History';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -36,7 +29,6 @@ interface ReservationHeaderProps {
   onCancel: () => void;
   onConvert: () => void;
   onViewAdmission?: () => void;
-  onViewHistory?: () => void;
 }
 
 export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
@@ -45,19 +37,7 @@ export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
   onCancel,
   onConvert,
   onViewAdmission,
-  onViewHistory,
 }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const isMenuOpen = Boolean(anchorEl);
-
-  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
-
   const todayStr = new Date().toISOString().split('T')[0];
   const isFollowUp = isReservationFollowUpRequired(reservation, todayStr);
   const isArrivingToday =
@@ -134,6 +114,7 @@ export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
             {reservation.status === ReservationStatus.ACTIVE && (
               <>
+                {/* Primary Action */}
                 <Button
                   variant="contained"
                   color="primary"
@@ -146,6 +127,7 @@ export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
                   Convert to Admission
                 </Button>
 
+                {/* Secondary Action */}
                 <Button
                   variant="outlined"
                   size="small"
@@ -155,6 +137,19 @@ export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
                   sx={{ fontWeight: 600, textTransform: 'none' }}
                 >
                   Edit
+                </Button>
+
+                {/* Destructive Action (Directly visible, lower visual weight) */}
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  startIcon={<CancelIcon />}
+                  disabled={!cancelCheck.allowed}
+                  onClick={onCancel}
+                  sx={{ fontWeight: 600, textTransform: 'none' }}
+                >
+                  Cancel Reservation
                 </Button>
               </>
             )}
@@ -171,51 +166,6 @@ export const ReservationHeader: React.FC<ReservationHeaderProps> = ({
                 View Admission / Stay
               </Button>
             )}
-
-            {/* Overflow Menu (•••) */}
-            <IconButton
-              size="small"
-              onClick={handleOpenMenu}
-              aria-label="more reservation actions"
-              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
-
-            <Menu
-              anchorEl={anchorEl}
-              open={isMenuOpen}
-              onClose={handleCloseMenu}
-              slotProps={{ paper: { sx: { minWidth: 180, borderRadius: 2 } } }}
-            >
-              {reservation.status === ReservationStatus.ACTIVE && (
-                <MenuItem
-                  onClick={() => {
-                    handleCloseMenu();
-                    onCancel();
-                  }}
-                  disabled={!cancelCheck.allowed}
-                  sx={{ color: 'error.main' }}
-                >
-                  <ListItemIcon sx={{ color: 'error.main' }}>
-                    <CancelIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary="Cancel Reservation" />
-                </MenuItem>
-              )}
-
-              <MenuItem
-                onClick={() => {
-                  handleCloseMenu();
-                  onViewHistory?.();
-                }}
-              >
-                <ListItemIcon>
-                  <HistoryIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="View Edit History" />
-              </MenuItem>
-            </Menu>
           </Stack>
         </Stack>
       </CardContent>

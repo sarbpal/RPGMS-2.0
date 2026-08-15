@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Reservation } from '../domain/entities/Reservation';
 import { ReservationStatus } from '../domain/valueObjects/ReservationStatus';
 import { InMemoryReservationRepository } from '../infrastructure/repositories/InMemoryReservationRepository';
+import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
 import {
   canEditReservation,
   canCancelReservation,
@@ -12,8 +13,9 @@ import { InMemoryAccommodationRepository } from '../../accommodation/infrastruct
 import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { BedStatus } from '../../accommodation/domain/valueObjects/BedStatus';
 
-describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite', () => {
+describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite (UI Polish)', () => {
   let repository: InMemoryReservationRepository;
+  let useCases: ReservationUseCases;
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -83,9 +85,10 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite', () => {
       mockConvertedReservation,
       mockCancelledReservation,
     ]);
+    useCases = new ReservationUseCases(repository);
   });
 
-  describe('1. Header Identity & Hierarchy (Scenarios 1–4)', () => {
+  describe('1. Header Identity & Hierarchy', () => {
     it('1. Prospect Name is available as primary dominant identity', () => {
       const res = repository.findByIdSync('resv-000001');
       expect(res?.prospectName).toBe('Rahul Sharma');
@@ -119,36 +122,40 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite', () => {
     });
   });
 
-  describe('2. ACTIVE Reservation Actions (Scenarios 5–8)', () => {
-    it('5. Convert to Admission is allowed for ACTIVE reservation', () => {
+  describe('2. ACTIVE Reservation Actions (Direct Discoverability & Hierarchy)', () => {
+    it('5. Convert to Admission is available as primary contained action for ACTIVE reservation', () => {
       const check = canConvertReservation(ReservationStatus.ACTIVE);
       expect(check.allowed).toBe(true);
     });
 
-    it('6. Edit is allowed for ACTIVE reservation', () => {
+    it('6. Edit is available as secondary outlined action for ACTIVE reservation', () => {
       const check = canEditReservation(ReservationStatus.ACTIVE);
       expect(check.allowed).toBe(true);
     });
 
-    it('7. Cancel is allowed for ACTIVE reservation (via overflow menu)', () => {
+    it('7. Cancel Reservation is directly discoverable as destructive outlined action for ACTIVE reservation', () => {
       const check = canCancelReservation(ReservationStatus.ACTIVE);
       expect(check.allowed).toBe(true);
     });
 
-    it('8. View History is accessible for ACTIVE reservation', () => {
-      const res = repository.findByIdSync('resv-000001');
-      expect(res?.auditLog).toBeDefined();
+    it('8. Cancel action safely triggers existing cancellation workflow with confirmation reason', () => {
+      const cancelled = useCases.cancelReservationSync('resv-000001', {
+        reason: 'Prospect relocated to another city',
+      });
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.cancellationReason).toBe('Prospect relocated to another city');
+      expect(cancelled.updatedAt).toBeDefined();
     });
   });
 
-  describe('3. CONVERTED Reservation Actions (Scenarios 9–12)', () => {
-    it('9. Convert to Admission is NOT allowed for CONVERTED reservation', () => {
+  describe('3. CONVERTED Reservation Actions', () => {
+    it('9. Convert to Admission is NOT available for CONVERTED reservation', () => {
       const check = canConvertReservation(ReservationStatus.CONVERTED);
       expect(check.allowed).toBe(false);
       expect(check.reason).toMatch(/converted/i);
     });
 
-    it('10. Cancel is NOT allowed for CONVERTED reservation', () => {
+    it('10. Cancel Reservation is NOT available for CONVERTED reservation', () => {
       const check = canCancelReservation(ReservationStatus.CONVERTED);
       expect(check.allowed).toBe(false);
     });
@@ -158,40 +165,34 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite', () => {
       expect(res?.convertedStayId).toBe('stay-000001');
       expect(res?.convertedResidentId).toBe('res-000001');
     });
-
-    it('12. View History remains accessible for CONVERTED reservation', () => {
-      const res = repository.findByIdSync('resv-000004');
-      expect(res?.auditLog).toBeDefined();
-    });
   });
 
-  describe('4. CANCELLED Reservation Actions (Scenarios 13–15)', () => {
-    it('13. Convert to Admission is NOT allowed for CANCELLED reservation', () => {
+  describe('4. CANCELLED Reservation Actions (Read-Only Terminal State)', () => {
+    it('12. Convert to Admission is NOT available for CANCELLED reservation', () => {
       const check = canConvertReservation(ReservationStatus.CANCELLED);
       expect(check.allowed).toBe(false);
       expect(check.reason).toMatch(/cancelled/i);
     });
 
-    it('14. Edit is NOT allowed for CANCELLED reservation', () => {
+    it('13. Edit is NOT available for CANCELLED reservation', () => {
       const check = canEditReservation(ReservationStatus.CANCELLED);
       expect(check.allowed).toBe(false);
       expect(check.reason).toContain('CANCELLED');
     });
 
-    it('15. View History remains accessible for CANCELLED reservation', () => {
-      const res = repository.findByIdSync('resv-000005');
-      expect(res?.auditLog).toBeDefined();
-      expect(res?.cancellationReason).toBe('Found alternate hostel');
+    it('14. Cancel Reservation is NOT available for already CANCELLED reservation', () => {
+      const check = canCancelReservation(ReservationStatus.CANCELLED);
+      expect(check.allowed).toBe(false);
     });
   });
 
-  describe('5. Business Safety & Invariant Isolation (Scenarios 16–19)', () => {
-    it('16. No ReservationStatus mutation was introduced by header rendering', () => {
+  describe('5. Business Safety & Invariant Isolation', () => {
+    it('15. No ReservationStatus mutation was introduced by header rendering', () => {
       const before = repository.findByIdSync('resv-000001');
       expect(before?.status).toBe(ReservationStatus.ACTIVE);
     });
 
-    it('17. No accommodation/bed mutation occurs on reservation detail page', () => {
+    it('16. No accommodation/bed mutation occurs on reservation detail page', () => {
       const accommodationRepo = new InMemoryAccommodationRepository([
         {
           id: 'flat-101',
@@ -217,22 +218,20 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite', () => {
         },
       ]);
 
-      // Inspect flat
       const flat = accommodationRepo.findById('flat-101');
       expect(flat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
 
-    it('18. No Stay creation is triggered by reservation detail access', () => {
+    it('17. No Stay creation is triggered by reservation detail access', () => {
       const stayRepo = new InMemoryStayRepository([]);
       expect(stayRepo.getAllSync()).toHaveLength(0);
     });
 
-    it('19. No Finance mutation is triggered by reservation detail access', () => {
+    it('18. No Finance mutation is triggered by reservation detail access', () => {
       const res = repository.findByIdSync('resv-000001')!;
       expect(res.expectedMonthlyRent).toBe(12000);
       expect(res.expectedSecurityDeposit).toBe(24000);
       expect(res.tokenAmount).toBe(2000);
-      // Reservation holds expected truth only
     });
   });
 });

@@ -153,9 +153,6 @@ export const ReservationWorkspacePage: React.FC = () => {
             onCancel={() => setIsCancelOpen(true)}
             onConvert={handleConvertAdmission}
             onViewAdmission={handleViewAdmission}
-            onViewHistory={() => {
-              // Reserved for RU-2C.4 History Drawer
-            }}
           />
           <ReservationSummaryCard reservation={reservation} />
         </Stack>

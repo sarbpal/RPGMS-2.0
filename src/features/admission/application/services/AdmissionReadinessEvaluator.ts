@@ -64,21 +64,18 @@ export class AdmissionReadinessEvaluator {
           severity: 'INCOMPLETE_DATA',
           section: 'SOURCE',
           message: `Reservation ${reservation.reservationNumber} is CANCELLED.`,
-          guidance: 'Only ACTIVE or FOLLOW_UP_REQUIRED reservations can be admitted.',
+          guidance: 'Only ACTIVE reservations can be admitted.',
         });
       } else {
         const editCheck = canEditReservation(reservation.status);
-        const isValidStatus =
-          reservation.status === ReservationStatus.ACTIVE ||
-          (reservation.status as string) === 'ACTIVE' ||
-          (reservation.status as string) === 'FOLLOW_UP_REQUIRED';
+        const isValidStatus = reservation.status === ReservationStatus.ACTIVE;
 
         if (!isValidStatus || !editCheck.allowed) {
           observations.push({
             code: 'ADM_OBS_SOURCE_RESERVATION_INVALID_STATUS',
             severity: 'INCOMPLETE_DATA',
             section: 'SOURCE',
-            message: `Reservation ${reservation.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`,
+            message: `Reservation ${reservation.reservationNumber} must be ACTIVE and editable.`,
             guidance: editCheck.reason || 'Verify reservation status before proceeding.',
           });
         }

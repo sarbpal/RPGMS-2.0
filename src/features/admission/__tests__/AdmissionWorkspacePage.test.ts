@@ -186,7 +186,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       expect(readiness.isReservationValid).toBe(false);
       expect(readiness.isReadyToConfirm).toBe(false);
       expect(readiness.validationMessages).toContain(
-        `Reservation ${convertedRes.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`
+        `Reservation ${convertedRes.reservationNumber} must be ACTIVE and editable.`
       );
     });
 

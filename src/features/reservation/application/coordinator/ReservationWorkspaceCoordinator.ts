@@ -5,10 +5,9 @@ import {
   formatReservationNumber,
   validateReservationDraft,
   checkDuplicateMobile as domainCheckDuplicateMobile,
-  calculateOverdueDays,
   canEditReservation,
   canCancelReservation,
-  determineStatusRecovery,
+  isReservationFollowUpRequired,
 } from '../../domain/rules/reservationRules';
 import { InMemoryReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
 import type { ReservationDraft } from '../models/ReservationDraft';
@@ -22,41 +21,12 @@ export class ReservationWorkspaceCoordinator {
   }
 
   /**
-   * Load reservations from repository, perform self-healing overdue check, and construct ViewModel.
+   * Load reservations from repository and construct ViewModel.
+   * Pure read-only operation with zero synthetic status mutations.
    */
   public loadWorkspace(searchQuery: string = '', statusFilter: string = 'ALL'): ReservationWorkspaceViewModel {
     const allReservations = this.repository.findAllSync();
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    // Self-healing check: flag overdue ACTIVE reservations as FOLLOW_UP_REQUIRED (BR-RESV-005)
-    let hasUpdates = false;
-    const synchronizedReservations = allReservations.map((reservation) => {
-      if (reservation.status === ReservationStatus.ACTIVE) {
-        const { isOverdue } = calculateOverdueDays(reservation.expectedJoiningDate, todayStr);
-        if (isOverdue) {
-          hasUpdates = true;
-          const auditEntry: ReservationAuditEntry = {
-            timestamp: new Date().toISOString(),
-            action: 'Status Updated', // Refinement #6
-            performedBy: 'System',
-            details: `Status updated from ${ReservationStatus.ACTIVE} to ${ReservationStatus.FOLLOW_UP_REQUIRED} due to overdue joining date`,
-          };
-          return {
-            ...reservation,
-            status: ReservationStatus.FOLLOW_UP_REQUIRED,
-            auditLog: [...reservation.auditLog, auditEntry],
-            updatedAt: new Date().toISOString(),
-          };
-        }
-      }
-      return reservation;
-    });
-
-    if (hasUpdates) {
-      synchronizedReservations.forEach((res) => this.repository.saveSync(res));
-    }
-
-    return this.createViewModel(synchronizedReservations, searchQuery, statusFilter);
+    return this.createViewModel(allReservations, searchQuery, statusFilter);
   }
 
   /**
@@ -95,7 +65,6 @@ export class ReservationWorkspaceCoordinator {
     }
 
     const nowIso = new Date().toISOString();
-    const todayStr = nowIso.split('T')[0];
 
     if (reservationToEdit) {
       // Enforce read-only domain guard for CONVERTED and CANCELLED reservations
@@ -118,25 +87,6 @@ export class ReservationWorkspaceCoordinator {
             operatorReason ? `. Reason: ${operatorReason}` : ''
           }`,
         });
-      }
-
-      // Check automatic status recovery (BR-RESV-005)
-      let nextStatus = reservationToEdit.status;
-      if (reservationToEdit.status === ReservationStatus.FOLLOW_UP_REQUIRED) {
-        const recoveredStatus = determineStatusRecovery(
-          reservationToEdit.status,
-          draft.expectedJoiningDate,
-          todayStr
-        );
-        if (recoveredStatus !== reservationToEdit.status) {
-          nextStatus = recoveredStatus;
-          newAuditEntries.push({
-            timestamp: nowIso,
-            action: 'Status Updated', // Refinement #6
-            performedBy: 'System',
-            details: `Status updated from ${reservationToEdit.status} to ${recoveredStatus} (automatic status recovery)`,
-          });
-        }
       }
 
       // Check token update (Refinement #3)
@@ -176,7 +126,7 @@ export class ReservationWorkspaceCoordinator {
         tokenReceivedOn: draft.tokenReceivedOn || undefined,
         tokenRemarks: draft.tokenRemarks?.trim() || undefined,
         notes: draft.notes?.trim() || undefined,
-        status: nextStatus,
+        status: reservationToEdit.status,
         auditLog: [...reservationToEdit.auditLog, ...newAuditEntries],
         updatedAt: nowIso,
       };
@@ -219,7 +169,7 @@ export class ReservationWorkspaceCoordinator {
   }
 
   /**
-   * Cancels an active or follow-up reservation (No deletion).
+   * Cancels an active reservation (No deletion).
    */
   public cancelReservation(id: string, operatorReason?: string): Reservation {
     const reservation = this.repository.findByIdSync(id);
@@ -237,9 +187,7 @@ export class ReservationWorkspaceCoordinator {
       timestamp: nowIso,
       action: 'Reservation Cancelled',
       performedBy: 'System Operator',
-      details: operatorReason
-        ? `Reservation cancelled. Reason: ${operatorReason}`
-        : 'Reservation cancelled',
+      details: operatorReason ? `Cancelled. Reason: ${operatorReason}` : 'Reservation cancelled',
     };
 
     const cancelledReservation: Reservation = {
@@ -254,6 +202,7 @@ export class ReservationWorkspaceCoordinator {
 
   /**
    * Constructs the ViewModel with summary statistics and filtered reservation list.
+   * Derived operational metrics cleanly separate operational attention from lifecycle truth.
    */
   public createViewModel(
     reservations: Reservation[],
@@ -269,16 +218,18 @@ export class ReservationWorkspaceCoordinator {
     let totalCancelled = 0;
 
     reservations.forEach((r) => {
-      if (r.status === ReservationStatus.ACTIVE) totalActive++;
-      if (r.status === ReservationStatus.FOLLOW_UP_REQUIRED) totalFollowUp++;
-      if (r.status === ReservationStatus.CONVERTED) totalConverted++;
-      if (r.status === ReservationStatus.CANCELLED) totalCancelled++;
-
-      if (
-        (r.status === ReservationStatus.ACTIVE || r.status === ReservationStatus.FOLLOW_UP_REQUIRED) &&
-        r.expectedJoiningDate === todayStr
-      ) {
-        arrivingToday++;
+      if (r.status === ReservationStatus.ACTIVE) {
+        totalActive++;
+        if (isReservationFollowUpRequired(r, todayStr)) {
+          totalFollowUp++;
+        }
+        if (r.expectedJoiningDate === todayStr) {
+          arrivingToday++;
+        }
+      } else if (r.status === ReservationStatus.CONVERTED) {
+        totalConverted++;
+      } else if (r.status === ReservationStatus.CANCELLED) {
+        totalCancelled++;
       }
     });
 
@@ -296,10 +247,12 @@ export class ReservationWorkspaceCoordinator {
       let matchesStatus = false;
       if (statusFilter === 'ALL') {
         matchesStatus = true;
+      } else if (statusFilter === 'ACTIVE') {
+        matchesStatus = r.status === ReservationStatus.ACTIVE;
+      } else if (statusFilter === 'FOLLOW_UP_REQUIRED') {
+        matchesStatus = isReservationFollowUpRequired(r, todayStr);
       } else if (statusFilter === 'TODAY') {
-        matchesStatus =
-          (r.status === ReservationStatus.ACTIVE || r.status === ReservationStatus.FOLLOW_UP_REQUIRED) &&
-          r.expectedJoiningDate === todayStr;
+        matchesStatus = r.status === ReservationStatus.ACTIVE && r.expectedJoiningDate === todayStr;
       } else {
         matchesStatus = r.status === statusFilter;
       }

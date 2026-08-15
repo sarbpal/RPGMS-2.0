@@ -84,12 +84,13 @@ describe('REF-003 Reservation Workspace UX Consistency Verification Suite', () =
       expect(readiness.isReadyToConfirm).toBe(true);
     });
 
-    it('allows Convert to Admission for FOLLOW_UP_REQUIRED reservations (REF-003 Requirement 1)', () => {
-      const followUpRes = createDummyReservation('res-2', 'RES-000002', ReservationStatus.FOLLOW_UP_REQUIRED);
+    it('allows Convert to Admission for overdue ACTIVE reservations requiring operational follow-up (REF-003 Requirement 1)', () => {
+      const overdueActiveRes = createDummyReservation('res-2', 'RES-000002', ReservationStatus.ACTIVE);
+      overdueActiveRes.expectedJoiningDate = '2026-07-01'; // Overdue date
       const draft: AdmissionDraft = {
-        reservationId: followUpRes.id,
-        residentName: followUpRes.prospectName,
-        mobileNumber: followUpRes.mobileNumber,
+        reservationId: overdueActiveRes.id,
+        residentName: overdueActiveRes.prospectName,
+        mobileNumber: overdueActiveRes.mobileNumber,
         emergencyContactName: 'Father',
         emergencyContactRelationship: 'Father',
         emergencyContactPhone: '9111111111',
@@ -102,7 +103,7 @@ describe('REF-003 Reservation Workspace UX Consistency Verification Suite', () =
         bedIds: ['bed-1'],
       };
 
-      const readiness = admissionCoordinator.evaluateReadiness(draft, followUpRes);
+      const readiness = admissionCoordinator.evaluateReadiness(draft, overdueActiveRes);
       expect(readiness.isReadyToConfirm).toBe(true);
     });
 
@@ -124,7 +125,7 @@ describe('REF-003 Reservation Workspace UX Consistency Verification Suite', () =
 
       const readiness = admissionCoordinator.evaluateReadiness(draft, convertedRes);
       expect(readiness.isReadyToConfirm).toBe(false);
-      expect(readiness.validationMessages.some((msg) => msg.includes('must be ACTIVE or FOLLOW_UP_REQUIRED'))).toBe(true);
+      expect(readiness.validationMessages.some((msg) => msg.includes('must be ACTIVE and editable'))).toBe(true);
     });
 
     it('disallows Convert to Admission for CANCELLED reservations', () => {
@@ -145,17 +146,13 @@ describe('REF-003 Reservation Workspace UX Consistency Verification Suite', () =
 
       const readiness = admissionCoordinator.evaluateReadiness(draft, cancelledRes);
       expect(readiness.isReadyToConfirm).toBe(false);
-      expect(readiness.validationMessages.some((msg) => msg.includes('must be ACTIVE or FOLLOW_UP_REQUIRED'))).toBe(true);
+      expect(readiness.validationMessages.some((msg) => msg.includes('must be ACTIVE and editable'))).toBe(true);
     });
   });
 
   describe('2. Edit Action Consistency & Read-Only Guards', () => {
     it('returns allowed: true for ACTIVE reservations edit guard', () => {
       expect(canEditReservation(ReservationStatus.ACTIVE).allowed).toBe(true);
-    });
-
-    it('returns allowed: true for FOLLOW_UP_REQUIRED reservations edit guard', () => {
-      expect(canEditReservation(ReservationStatus.FOLLOW_UP_REQUIRED).allowed).toBe(true);
     });
 
     it('enforces read-only immutability for CONVERTED reservations', () => {

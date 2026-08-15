@@ -523,13 +523,14 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
       );
     });
 
-    it('21. valid ACTIVE or FOLLOW_UP_REQUIRED reservation passes validation', () => {
-      const followUpRes: Reservation = {
+    it('21. valid ACTIVE reservation (including overdue follow-up) passes validation', () => {
+      const overdueActiveRes: Reservation = {
         ...sampleReservation,
-        status: 'FOLLOW_UP_REQUIRED' as any,
+        expectedJoiningDate: '2026-08-01', // Overdue relative to current date
+        status: ReservationStatus.ACTIVE,
       };
 
-      const result = validationService.validate(validReservationDraft, followUpRes, 'RESERVATION', accommodationRepo, residentRepo);
+      const result = validationService.validate(validReservationDraft, overdueActiveRes, 'RESERVATION', accommodationRepo, residentRepo);
       expect(result.isValid).toBe(true);
     });
   });

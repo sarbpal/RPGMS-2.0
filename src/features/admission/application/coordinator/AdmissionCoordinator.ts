@@ -179,15 +179,10 @@ export class AdmissionCoordinator {
       isReservationValid = true; // Direct walk-in is a valid admission source
     } else if (reservation) {
       const editCheck = canEditReservation(reservation.status);
-      if (
-        (reservation.status === ReservationStatus.ACTIVE ||
-          (reservation.status as string) === 'ACTIVE' ||
-          (reservation.status as string) === 'FOLLOW_UP_REQUIRED') &&
-        editCheck.allowed
-      ) {
+      if (reservation.status === ReservationStatus.ACTIVE && editCheck.allowed) {
         isReservationValid = true;
       } else {
-        validationMessages.push(`Reservation ${reservation.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`);
+        validationMessages.push(`Reservation ${reservation.reservationNumber} must be ACTIVE and editable.`);
       }
     } else {
       validationMessages.push('Active reservation is required.');

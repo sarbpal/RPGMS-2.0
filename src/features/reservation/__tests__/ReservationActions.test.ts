@@ -33,7 +33,7 @@ describe('Sprint RA-4 — Reservation Actions Unit & Integration Suite', () => {
       mobileNumber: '9812345678',
       expectedJoiningDate: '2026-07-01', // Overdue date
       expectedMonthlyRent: 15000,
-      status: ReservationStatus.FOLLOW_UP_REQUIRED,
+      status: ReservationStatus.ACTIVE,
       auditLog: [],
       createdAt: '2026-06-15T10:00:00.000Z',
       updatedAt: '2026-06-15T10:00:00.000Z',
@@ -121,7 +121,6 @@ describe('Sprint RA-4 — Reservation Actions Unit & Integration Suite', () => {
 
   it('validates convert to admission eligibility guards (hand-off requirement)', () => {
     expect(canConvertReservation(ReservationStatus.ACTIVE).allowed).toBe(true);
-    expect(canConvertReservation(ReservationStatus.FOLLOW_UP_REQUIRED).allowed).toBe(true);
     expect(canConvertReservation(ReservationStatus.CONVERTED).allowed).toBe(false);
     expect(canConvertReservation(ReservationStatus.CANCELLED).allowed).toBe(false);
   });

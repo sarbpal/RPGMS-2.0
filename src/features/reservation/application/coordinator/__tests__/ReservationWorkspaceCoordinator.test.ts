@@ -63,10 +63,8 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       );
     });
 
-    it('generates Joining Date Updated and automatic Status Updated audit entries when extending date', () => {
-      // 1. Seed an active reservation directly into the repository with a past joining date,
-      //    simulating a reservation that was validly created in the past and has since become overdue.
-      //    (Cannot create via coordinator.saveReservation — the new date guard correctly rejects past dates.)
+    it('preserves ACTIVE lifecycle without synthetic mutations or audit churn when reservation is overdue', () => {
+      // 1. Seed an active reservation directly into the repository with a past joining date
       const nowIso = new Date().toISOString();
       const seeded = repository.saveSync({
         id: 'resv-test-overdue',
@@ -80,36 +78,35 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
         updatedAt: nowIso,
       });
 
-      // 2. Perform self-healing check to flag as FOLLOW_UP_REQUIRED
-      coordinator.loadWorkspace();
-      expect(repository.findByIdSync(seeded.id)?.status).toBe(ReservationStatus.FOLLOW_UP_REQUIRED);
+      // 2. Load workspace: verifies status remains ACTIVE and zero synthetic audit log entries are generated
+      const vm = coordinator.loadWorkspace();
+      const repoStateAfterLoad = repository.findByIdSync(seeded.id)!;
+      expect(repoStateAfterLoad.status).toBe(ReservationStatus.ACTIVE);
+      expect(repoStateAfterLoad.auditLog).toHaveLength(1); // Only the creation audit log
+      expect(vm.stats.totalFollowUp).toBe(1); // Derived operational metric
 
-      // 3. Extend joining date to tomorrow
-      const followUpRes = repository.findByIdSync(seeded.id)!;
+      // 3. Extend joining date to tomorrow (genuine operator action)
       const updated = coordinator.saveReservation(
         {
-          ...followUpRes,
+          ...repoStateAfterLoad,
           expectedJoiningDate: tomorrowStr,
         },
-        followUpRes,
+        repoStateAfterLoad,
         'Exams delayed'
       );
 
-      // Verify automatic status recovery to ACTIVE (BR-RESV-005)
+      // Verify status remains ACTIVE
       expect(updated.status).toBe(ReservationStatus.ACTIVE);
 
-      // Verify audit events generated (Joining Date Updated, Status Updated)
+      // Verify audit events: contains only genuine operator event 'Joining Date Updated', NO synthetic 'Status Updated'
       const auditActions = updated.auditLog.map((a) => a.action);
       expect(auditActions).toContain('Joining Date Updated');
-      expect(auditActions).toContain('Status Updated');
+      expect(auditActions).not.toContain('Status Updated');
 
-      const statusAudit = updated.auditLog.find((a) => a.details?.includes('automatic status recovery'));
-      expect(statusAudit?.details).toContain('Status updated from FOLLOW_UP_REQUIRED to ACTIVE'); // Refinement #6
-
-      // Refinement #3: Verify repository state
-      const repoState = repository.findByIdSync(seeded.id);
-      expect(repoState?.status).toBe(ReservationStatus.ACTIVE);
-      expect(repoState?.expectedJoiningDate).toBe(tomorrowStr);
+      // Verify repository state
+      const finalRepoState = repository.findByIdSync(seeded.id);
+      expect(finalRepoState?.status).toBe(ReservationStatus.ACTIVE);
+      expect(finalRepoState?.expectedJoiningDate).toBe(tomorrowStr);
     });
 
     it('generates Token Updated audit entry when token details are modified (Refinement #3)', () => {
@@ -213,7 +210,9 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
   });
 
   describe('loadWorkspace and createViewModel', () => {
-    it('calculates summary statistics accurately including Arriving Today', () => {
+    it('calculates summary statistics accurately including Arriving Today and Follow-up Required', () => {
+      const nowIso = new Date().toISOString();
+
       coordinator.saveReservation({
         prospectName: 'Active 1',
         mobileNumber: '9000000001',
@@ -226,9 +225,32 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
         expectedJoiningDate: todayStr,
       });
 
+      // Seed an overdue active reservation
+      repository.saveSync({
+        id: 'resv-overdue-1',
+        reservationNumber: 'RES-000003',
+        prospectName: 'Overdue Prospect',
+        mobileNumber: '9000000003',
+        expectedJoiningDate: yesterdayStr,
+        status: ReservationStatus.ACTIVE,
+        auditLog: [],
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+
       const viewModel = coordinator.loadWorkspace();
-      expect(viewModel.stats.totalActive).toBe(2);
+      expect(viewModel.stats.totalActive).toBe(3); // All 3 are ACTIVE
       expect(viewModel.stats.arrivingToday).toBe(1);
+      expect(viewModel.stats.totalFollowUp).toBe(1); // Exactly 1 requires follow-up
+
+      // Verify filtering by FOLLOW_UP_REQUIRED returns only the overdue active reservation
+      const followUpFiltered = coordinator.loadWorkspace('', 'FOLLOW_UP_REQUIRED');
+      expect(followUpFiltered.filteredReservations).toHaveLength(1);
+      expect(followUpFiltered.filteredReservations[0].prospectName).toBe('Overdue Prospect');
+
+      // Verify filtering by ACTIVE returns all 3 active reservations
+      const activeFiltered = coordinator.loadWorkspace('', 'ACTIVE');
+      expect(activeFiltered.filteredReservations).toHaveLength(3);
     });
   });
 });

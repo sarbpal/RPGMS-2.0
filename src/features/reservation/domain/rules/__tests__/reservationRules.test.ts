@@ -8,6 +8,7 @@ import {
   canEditReservation,
   canCancelReservation,
   canConvertReservation,
+  isReservationFollowUpRequired,
 } from '../reservationRules';
 
 describe('Reservation Domain Rules', () => {
@@ -122,6 +123,60 @@ describe('Reservation Domain Rules', () => {
       expect(canConvertReservation(ReservationStatus.ACTIVE).allowed).toBe(true);
       expect(canConvertReservation(ReservationStatus.CONVERTED).allowed).toBe(false);
       expect(canConvertReservation(ReservationStatus.CANCELLED).allowed).toBe(false);
+    });
+  });
+
+  describe('isReservationFollowUpRequired', () => {
+    it('returns false for ACTIVE reservation with future joining date', () => {
+      expect(
+        isReservationFollowUpRequired(
+          { status: ReservationStatus.ACTIVE, expectedJoiningDate: '2026-08-20' },
+          '2026-08-11'
+        )
+      ).toBe(false);
+    });
+
+    it('returns false for ACTIVE reservation with today as joining date', () => {
+      expect(
+        isReservationFollowUpRequired(
+          { status: ReservationStatus.ACTIVE, expectedJoiningDate: '2026-08-11' },
+          '2026-08-11'
+        )
+      ).toBe(false);
+    });
+
+    it('returns true for ACTIVE reservation with past joining date (overdue)', () => {
+      expect(
+        isReservationFollowUpRequired(
+          { status: ReservationStatus.ACTIVE, expectedJoiningDate: '2026-08-01' },
+          '2026-08-11'
+        )
+      ).toBe(true);
+    });
+
+    it('returns false for CONVERTED reservation even if joining date was in the past', () => {
+      expect(
+        isReservationFollowUpRequired(
+          { status: ReservationStatus.CONVERTED, expectedJoiningDate: '2026-08-01' },
+          '2026-08-11'
+        )
+      ).toBe(false);
+    });
+
+    it('returns false for CANCELLED reservation even if joining date was in the past', () => {
+      expect(
+        isReservationFollowUpRequired(
+          { status: ReservationStatus.CANCELLED, expectedJoiningDate: '2026-08-01' },
+          '2026-08-11'
+        )
+      ).toBe(false);
+    });
+  });
+
+  describe('ReservationStatus Enum Integrity', () => {
+    it('contains strictly 3 canonical lifecycle states (ACTIVE, CONVERTED, CANCELLED)', () => {
+      expect(Object.keys(ReservationStatus)).toEqual(['ACTIVE', 'CONVERTED', 'CANCELLED']);
+      expect(Object.values(ReservationStatus)).toEqual(['ACTIVE', 'CONVERTED', 'CANCELLED']);
     });
   });
 });

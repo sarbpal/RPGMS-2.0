@@ -53,15 +53,12 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
   const isTomorrow = reservation.expectedJoiningDate === tomorrowStr;
 
   const isEditable = canEditReservation(reservation.status).allowed;
-  const isFollowUpRequired = reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED;
   const isActive = reservation.status === ReservationStatus.ACTIVE;
 
   const getStatusChip = (status: ReservationStatus) => {
     switch (status) {
       case ReservationStatus.ACTIVE:
         return <Chip label="ACTIVE" size="small" color="primary" sx={{ fontWeight: 700 }} />;
-      case ReservationStatus.FOLLOW_UP_REQUIRED:
-        return <Chip label="FOLLOW-UP REQUIRED" size="small" color="warning" sx={{ fontWeight: 700 }} />;
       case ReservationStatus.CONVERTED:
         return <Chip label="CONVERTED" size="small" color="success" sx={{ fontWeight: 700 }} />;
       case ReservationStatus.CANCELLED:
@@ -108,7 +105,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
       {/* Decision Support Badges */}
       <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        {isOverdue && (reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && (
+        {isOverdue && isActive && (
           <Chip
             icon={<WarningAmberIcon />}
             label={`Overdue by ${overdueDays} ${overdueDays === 1 ? 'day' : 'days'}`}
@@ -121,7 +118,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
             }}
           />
         )}
-        {isToday && (reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && (
+        {isToday && isActive && (
           <Chip
             label="Arriving Today"
             size="small"
@@ -133,7 +130,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
             }}
           />
         )}
-        {isTomorrow && (reservation.status === ReservationStatus.ACTIVE || reservation.status === ReservationStatus.FOLLOW_UP_REQUIRED) && (
+        {isTomorrow && isActive && (
           <Chip
             label="Arriving Tomorrow"
             size="small"
@@ -209,8 +206,8 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
         </Typography>
       </Box>
 
-      {/* Primary Convert to Admission Action for ACTIVE and FOLLOW_UP_REQUIRED Reservations (CR-2.4 & REF-003) */}
-      {(isActive || isFollowUpRequired) && onConvertAdmission && (
+      {/* Primary Convert to Admission Action for ACTIVE Reservations */}
+      {isActive && onConvertAdmission && (
         <Box sx={{ mb: 1.5 }}>
           <Button
             variant="contained"

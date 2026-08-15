@@ -91,17 +91,18 @@ export function calculateOverdueDays(
 }
 
 /**
- * Domain Rule: Determines automatic status recovery when updating joining date.
+ * Domain Rule: Determines whether an active reservation requires operational follow-up due to an overdue expected joining date.
+ * Operational Attention Condition: Must be ACTIVE and expected joining date is before reference date (today).
  */
-export function determineStatusRecovery(
-  currentStatus: ReservationStatus,
-  newJoiningDate: string,
+export function isReservationFollowUpRequired(
+  reservation: { status: ReservationStatus; expectedJoiningDate: string },
   referenceDate: string = new Date().toISOString().split('T')[0]
-): ReservationStatus {
-  if ((currentStatus as string) === 'FOLLOW_UP_REQUIRED' && newJoiningDate >= referenceDate) {
-    return StatusEnum.ACTIVE;
+): boolean {
+  if (reservation.status !== StatusEnum.ACTIVE) {
+    return false;
   }
-  return currentStatus;
+  const { isOverdue } = calculateOverdueDays(reservation.expectedJoiningDate, referenceDate);
+  return isOverdue;
 }
 
 /**
@@ -125,16 +126,8 @@ export function canTransitionStatus(
     return { allowed: false, reason: 'CANCELLED reservations are permanent read-only records and cannot be modified.' };
   }
 
-  if (
-    currentStatus === StatusEnum.ACTIVE ||
-    (currentStatus as string) === 'FOLLOW_UP_REQUIRED'
-  ) {
-    if (
-      targetStatus === StatusEnum.ACTIVE ||
-      targetStatus === StatusEnum.CONVERTED ||
-      targetStatus === StatusEnum.CANCELLED ||
-      (targetStatus as string) === 'FOLLOW_UP_REQUIRED'
-    ) {
+  if (currentStatus === StatusEnum.ACTIVE) {
+    if (targetStatus === StatusEnum.CONVERTED || targetStatus === StatusEnum.CANCELLED) {
       return { allowed: true };
     }
   }
@@ -153,7 +146,7 @@ export function canEditReservation(status: ReservationStatus): { allowed: boolea
   if (status === StatusEnum.CANCELLED) {
     return { allowed: false, reason: 'Reservation is CANCELLED and is read-only.' };
   }
-  return { allowed: true };
+  return { allowed: status === StatusEnum.ACTIVE };
 }
 
 /**
@@ -166,7 +159,7 @@ export function canCancelReservation(status: ReservationStatus): { allowed: bool
   if (status === StatusEnum.CANCELLED) {
     return { allowed: false, reason: 'Reservation is already cancelled.' };
   }
-  return { allowed: true };
+  return { allowed: status === StatusEnum.ACTIVE };
 }
 
 /**
@@ -179,5 +172,5 @@ export function canConvertReservation(status: ReservationStatus): { allowed: boo
   if (status === StatusEnum.CANCELLED) {
     return { allowed: false, reason: 'Cancelled reservations cannot be converted.' };
   }
-  return { allowed: true };
+  return { allowed: status === StatusEnum.ACTIVE };
 }

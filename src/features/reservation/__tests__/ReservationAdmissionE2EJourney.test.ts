@@ -110,7 +110,7 @@ describe('CR-2.5 End-to-End Business Journey Regression Test Suite', () => {
     expect(tokenUpdatedRes.auditLog.map((a) => a.action)).toContain('Token Updated');
 
     // -------------------------------------------------------------------------
-    // STEP 4: Self-Healing Overdue Transition
+    // STEP 4: Overdue Operational Follow-Up Calculation
     // -------------------------------------------------------------------------
     // Set expected joining date to yesterday
     reservationRepo.saveSync({
@@ -118,13 +118,14 @@ describe('CR-2.5 End-to-End Business Journey Regression Test Suite', () => {
       expectedJoiningDate: yesterdayStr,
     });
 
-    // Loading workspace triggers self-healing status update (BR-RESV-005)
-    reservationCoordinator.loadWorkspace();
+    // Loading workspace derives follow-up operational attention without lifecycle mutation
+    const vm = reservationCoordinator.loadWorkspace();
     const overdueRes = reservationRepo.findByIdSync(createdRes.id)!;
-    expect(overdueRes.status).toBe(ReservationStatus.FOLLOW_UP_REQUIRED);
+    expect(overdueRes.status).toBe(ReservationStatus.ACTIVE); // Lifecycle strictly preserved
+    expect(vm.stats.totalFollowUp).toBe(1); // Derived operational metric
 
     // -------------------------------------------------------------------------
-    // STEP 5: Extend Joining Date & Automatic Status Recovery
+    // STEP 5: Extend Joining Date (Genuine Operator Action)
     // -------------------------------------------------------------------------
     const extendDateDraft: ReservationDraft = {
       ...tokenUpdateDraft,
@@ -137,7 +138,7 @@ describe('CR-2.5 End-to-End Business Journey Regression Test Suite', () => {
 
     const auditActions = recoveredRes.auditLog.map((a) => a.action);
     expect(auditActions).toContain('Joining Date Updated');
-    expect(auditActions).toContain('Status Updated');
+    expect(auditActions).not.toContain('Status Updated'); // Zero synthetic lifecycle churn
 
     // -------------------------------------------------------------------------
     // STEP 6: Admission Conversion Workflow

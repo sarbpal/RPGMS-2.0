@@ -22,10 +22,6 @@ export function ReservationStatusChip({ status }: ReservationStatusChipProps) {
       label = 'Cancelled';
       color = 'error';
       break;
-    case 'FOLLOW_UP_REQUIRED':
-      label = 'Follow Up Required';
-      color = 'warning';
-      break;
     default:
       label = status;
       color = 'default';

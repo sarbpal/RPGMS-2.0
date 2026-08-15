@@ -57,16 +57,13 @@ export class AdmissionValidationService {
           });
         } else {
           const editCheck = canEditReservation(reservation.status);
-          const isValidStatus =
-            reservation.status === ReservationStatus.ACTIVE ||
-            (reservation.status as string) === 'ACTIVE' ||
-            (reservation.status as string) === 'FOLLOW_UP_REQUIRED';
+          const isValidStatus = reservation.status === ReservationStatus.ACTIVE;
 
           if (!isValidStatus || !editCheck.allowed) {
             errors.push({
               code: 'ADM_VAL_RESERVATION_INVALID_STATUS',
               field: 'reservationStatus',
-              message: `Reservation ${reservation.reservationNumber} must be ACTIVE or FOLLOW_UP_REQUIRED and editable.`,
+              message: `Reservation ${reservation.reservationNumber} must be ACTIVE and editable.`,
             });
           }
         }

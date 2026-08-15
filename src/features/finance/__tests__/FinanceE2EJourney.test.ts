@@ -61,6 +61,8 @@ describe('Sprint FR-5 — End-to-End Complete Financial Lifecycle Journey', () =
       reservationId: 'resv-e2e-001',
       residentName: 'Anand Verma',
       mobileNumber: '9988776655',
+      idProofType: 'AADHAAR',
+      idProofNumber: '1234-5678-9012',
       checkInDate: '2026-08-01',
       agreedRent: 10000,
       agreedDeposit: 10000,

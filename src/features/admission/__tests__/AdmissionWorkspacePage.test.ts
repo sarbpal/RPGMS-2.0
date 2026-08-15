@@ -118,6 +118,8 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       reservationId: 'resv-000001',
       residentName: 'Rahul Sharma',
       mobileNumber: '9876543210',
+      idProofType: 'AADHAAR',
+      idProofNumber: '1234-5678-9012',
       checkInDate: '2026-08-15',
       agreedRent: 12000,
       agreedDeposit: 12000,
@@ -208,7 +210,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       };
 
       expect(() => coordinator.confirmReservedAdmission(draft, convertedRes)).toThrow(
-        'Admission readiness check failed'
+        'Admission validation failed'
       );
     });
 

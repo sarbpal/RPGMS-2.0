@@ -297,7 +297,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
 
       expect(() =>
         coordinator.confirmReservedAdmission(validDraft, cancelledRes)
-      ).toThrow('Admission readiness check failed');
+      ).toThrow('Admission validation failed');
     });
 
     it('rejects admission if selected bed is already OCCUPIED', () => {
@@ -332,7 +332,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
 
       expect(() =>
         coordinator.confirmReservedAdmission(invalidDraft, sampleActiveReservation)
-      ).toThrow('Admission readiness check failed');
+      ).toThrow('Admission validation failed');
 
       // Verify zero orphan entities created
       expect(residentRepo.getAllSync()).toHaveLength(0);

@@ -28,6 +28,7 @@ import type { AdmissionReadiness } from '../models/AdmissionReadiness';
 import type { AdmissionResult } from '../models/AdmissionResult';
 
 import { AdmissionFinanceService } from '../services/admissionFinanceService';
+import { AdmissionValidationService } from '../services/AdmissionValidationService';
 
 export class AdmissionCoordinator {
   private reservationRepo: ReservationRepository;
@@ -35,19 +36,22 @@ export class AdmissionCoordinator {
   private stayRepo: StayRepository;
   private accommodationRepo: AccommodationRepository;
   private financeService: AdmissionFinanceService;
+  private validationService: AdmissionValidationService;
 
   constructor(
     reservationRepo: ReservationRepository = new InMemoryReservationRepository(),
     residentRepo: ResidentRepository = new InMemoryResidentRepository(),
     stayRepo: StayRepository = new InMemoryStayRepository(),
     accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
-    financeService?: AdmissionFinanceService
+    financeService?: AdmissionFinanceService,
+    validationService?: AdmissionValidationService
   ) {
     this.reservationRepo = reservationRepo;
     this.residentRepo = residentRepo;
     this.stayRepo = stayRepo;
     this.accommodationRepo = accommodationRepo;
     this.financeService = financeService ?? new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
+    this.validationService = validationService ?? new AdmissionValidationService();
   }
 
   /**
@@ -344,9 +348,16 @@ export class AdmissionCoordinator {
     _flatNumber?: string,
     _bedNumbers?: string[]
   ): AdmissionResult {
-    const readiness = this.evaluateReadiness(draft, reservation);
-    if (!readiness.isReadyToConfirm) {
-      throw new Error(`Admission readiness check failed: ${readiness.validationMessages.join(' ')}`);
+    const validationResult = this.validationService.validate(
+      draft,
+      reservation,
+      'RESERVATION',
+      this.accommodationRepo,
+      this.residentRepo
+    );
+    if (!validationResult.isValid) {
+      const errorDetails = validationResult.errors.map((e) => e.message).join(' ');
+      throw new Error(`Admission validation failed: ${errorDetails}`);
     }
 
     const nowIso = new Date().toISOString();
@@ -545,9 +556,16 @@ export class AdmissionCoordinator {
    * No Reservation involvement.
    */
   public confirmWalkInAdmission(draft: AdmissionDraft): AdmissionResult {
-    const readiness = this.evaluateReadiness(draft, null, 'WALK_IN');
-    if (!readiness.isReadyToConfirm) {
-      throw new Error(`Walk-in admission readiness check failed: ${readiness.validationMessages.join(' ')}`);
+    const validationResult = this.validationService.validate(
+      draft,
+      null,
+      'WALK_IN',
+      this.accommodationRepo,
+      this.residentRepo
+    );
+    if (!validationResult.isValid) {
+      const errorDetails = validationResult.errors.map((e) => e.message).join(' ');
+      throw new Error(`Walk-in admission validation failed: ${errorDetails}`);
     }
 
     const nowIso = new Date().toISOString();

@@ -11,6 +11,7 @@ describe('stayWorkflowComposition', () => {
 
     const result = admissionCoordinator.confirmWalkInAdmission({
       sourceType: 'WALK_IN', residentName: 'Composition Test Resident', mobileNumber: '7012345678',
+      idProofType: 'AADHAAR', idProofNumber: '1234-5678-9012',
       checkInDate: '2026-08-10', agreedRent: 10000, agreedDeposit: 20000,
       flatId: flat!.id, bedIds: [bed!.id],
     });

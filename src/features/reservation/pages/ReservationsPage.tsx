@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container } from '@mui/material';
 import { PageHeader } from '../../../components/PageHeader';
 import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
-import { ReservationWorkspaceCoordinator } from '../application/coordinator/ReservationWorkspaceCoordinator';
-import { InMemoryReservationRepository } from '../infrastructure/repositories/InMemoryReservationRepository';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import type { Reservation } from '../domain/entities/Reservation';
 import type { ReservationDraft } from '../application/models/ReservationDraft';
 import { ReservationsToolbar } from '../components/ReservationsToolbar';
@@ -14,12 +13,13 @@ import { CreateReservationModal } from '../components/CreateReservationModal';
 export function ReservationsPage() {
   const navigate = useNavigate();
 
-  const reservationRepo = useMemo(() => new InMemoryReservationRepository(), []);
-  const useCases = useMemo(() => new ReservationUseCases(reservationRepo), [reservationRepo]);
   const coordinator = useMemo(
-    () => new ReservationWorkspaceCoordinator(reservationRepo),
-    [reservationRepo]
+    () => stayWorkflowComposition.reservationWorkspaceCoordinator,
+    []
   );
+  const reservationRepo = stayWorkflowComposition.reservationRepository;
+  const useCases = useMemo(() => new ReservationUseCases(reservationRepo), [reservationRepo]);
+
 
   const [reservations, setReservations] = useState<Reservation[]>(() => {
     return useCases.listReservationsSync();

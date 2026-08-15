@@ -6,6 +6,7 @@ import { InMemoryResidentRepository } from '../../features/resident/infrastructu
 import { ResidentWorkspaceCoordinator } from '../../features/resident/application/coordinator/ResidentWorkspaceCoordinator';
 import { InMemoryStayRepository } from '../../features/stay/infrastructure/repositories/InMemoryStayRepository';
 import { StayWorkspaceCoordinator } from '../../features/stay/application/coordinator/StayWorkspaceCoordinator';
+import { ReservationWorkspaceCoordinator } from '../../features/reservation/application/coordinator/ReservationWorkspaceCoordinator';
 
 const stayRepository = new InMemoryStayRepository();
 const accommodationRepository = new InMemoryAccommodationRepository();
@@ -21,4 +22,5 @@ export const stayWorkflowComposition = {
   accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(accommodationRepository, stayRepository, residentRepository),
   residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(residentRepository, stayRepository),
   admissionCoordinator: new AdmissionCoordinator(reservationRepository, residentRepository, stayRepository, accommodationRepository),
+  reservationWorkspaceCoordinator: new ReservationWorkspaceCoordinator(reservationRepository),
 };

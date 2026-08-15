@@ -4,7 +4,7 @@ import { Container, Stack, Grid, Link, Paper, Typography, Button, Box } from '@m
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
-import { InMemoryReservationRepository } from '../infrastructure/repositories/InMemoryReservationRepository';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import { ReservationHeader } from '../components/ReservationHeader';
 import { ReservationSummaryCard } from '../components/ReservationSummaryCard';
 import { ReservationActionsCard } from '../components/ReservationActionsCard';
@@ -23,9 +23,10 @@ export const ReservationWorkspacePage: React.FC = () => {
   const navigate = useNavigate();
 
   const useCases = useMemo(
-    () => new ReservationUseCases(new InMemoryReservationRepository()),
+    () => new ReservationUseCases(stayWorkflowComposition.reservationRepository),
     []
   );
+
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);

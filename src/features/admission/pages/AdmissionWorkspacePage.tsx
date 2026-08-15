@@ -6,7 +6,6 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import { ReservationUseCases } from '../../reservation/application/useCases/ReservationUseCases';
-import { InMemoryReservationRepository } from '../../reservation/infrastructure/repositories/InMemoryReservationRepository';
 import type { Reservation } from '../../reservation/domain/entities/Reservation';
 import { ReservationStatus } from '../../reservation/domain/valueObjects/ReservationStatus';
 import { AdmissionHeader } from '../components/AdmissionHeader';
@@ -19,7 +18,6 @@ import { CommercialTermsCard } from '../components/CommercialTermsCard';
 import { AccommodationSelectionCard } from '../components/AccommodationSelectionCard';
 import { TokenReviewCard } from '../components/TokenReviewCard';
 import { AdmissionActionsCard } from '../components/AdmissionActionsCard';
-import { AdmissionCoordinator } from '../application/coordinator/AdmissionCoordinator';
 import type { AdmissionDraft } from '../application/models/AdmissionDraft';
 import type { TokenDisposition } from '../domain/valueObjects/TokenDisposition';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
@@ -31,9 +29,7 @@ export const AdmissionWorkspacePage: React.FC = () => {
 
   const isWalkIn = !id;
 
-  const reservationRepo = useMemo(() => new InMemoryReservationRepository(), []);
-  const residentRepo = stayWorkflowComposition.residentRepository;
-  const stayRepo = stayWorkflowComposition.stayRepository;
+  const reservationRepo = stayWorkflowComposition.reservationRepository;
   const accommodationRepo = stayWorkflowComposition.accommodationRepository;
 
   const reservationUseCases = useMemo(
@@ -42,9 +38,12 @@ export const AdmissionWorkspacePage: React.FC = () => {
   );
 
   const admissionCoordinator = useMemo(
-    () => new AdmissionCoordinator(reservationRepo, residentRepo, stayRepo, accommodationRepo),
-    [reservationRepo, residentRepo, stayRepo, accommodationRepo]
+    () => stayWorkflowComposition.admissionCoordinator,
+    []
   );
+
+
+
 
   const reservation: Reservation | null = useMemo(() => {
     if (!id) return null;

@@ -26,6 +26,7 @@ import type { FlatDraft } from '../models/FlatDraft';
 export interface BedOccupantInput {
   fullName: string;
   status: string;
+  stayId?: string;
   allocatedBedIds?: string[];
 }
 
@@ -93,6 +94,7 @@ export class AccommodationWorkspaceCoordinator {
           const fullBedId = `${draft.flatNumber}-${bedId}`;
           let existingBedStatus: BedStatus = BedStatus.VACANT;
           let existingResidentName: string | undefined = undefined;
+          let existingStayId: string | undefined = undefined;
 
           if (flatToEdit) {
             const foundBed = flatToEdit.areas
@@ -101,6 +103,7 @@ export class AccommodationWorkspaceCoordinator {
             if (foundBed) {
               existingBedStatus = foundBed.status;
               existingResidentName = foundBed.residentName;
+              existingStayId = foundBed.stayId;
             }
           }
 
@@ -109,6 +112,7 @@ export class AccommodationWorkspaceCoordinator {
             name: bedId,
             status: existingBedStatus,
             residentName: existingResidentName,
+            stayId: existingStayId,
             defaultRent: area.defaultRent,
             defaultDeposit: area.defaultDeposit,
           };
@@ -273,15 +277,18 @@ export class AccommodationWorkspaceCoordinator {
       return { synchronizedFlats: [], hasUpdates: false };
     }
 
-    const occupantMap = new Map<string, { fullName: string; status: string }>();
+    const occupantMap = new Map<string, { fullName: string; status: string; stayId?: string }>();
 
     if (occupants && occupants.length > 0) {
       occupants.forEach((occ) => {
         const isOccupying =
-          occ.status === StayStatus.ACTIVE || occ.status === StayStatus.ON_NOTICE || occ.status === 'ACTIVE' || occ.status === 'ON_NOTICE';
+          occ.status === StayStatus.ACTIVE ||
+          occ.status === StayStatus.ON_NOTICE ||
+          occ.status === 'ACTIVE' ||
+          occ.status === 'ON_NOTICE';
         if (isOccupying && occ.allocatedBedIds) {
           occ.allocatedBedIds.forEach((bedId) => {
-            occupantMap.set(bedId, { fullName: occ.fullName, status: occ.status });
+            occupantMap.set(bedId, { fullName: occ.fullName, status: occ.status, stayId: occ.stayId });
           });
         }
       });
@@ -302,11 +309,12 @@ export class AccommodationWorkspaceCoordinator {
 
       stays.forEach((stay) => {
         const isOccupying = stay.status === StayStatus.ACTIVE || stay.status === StayStatus.ON_NOTICE;
-        if (isOccupying && stay.allocatedBedIds) {
+        if (isOccupying) {
           const res = residentLookup.get(stay.residentId);
           const fullName = res ? res.fullName : 'Occupied Bed';
-          stay.allocatedBedIds.forEach((bedId) => {
-            occupantMap.set(bedId, { fullName, status: stay.status });
+          const bedIds = stay.allocatedBedIds || [];
+          bedIds.forEach((bedId) => {
+            occupantMap.set(bedId, { fullName, status: stay.status, stayId: stay.id });
           });
         }
       });

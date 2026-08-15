@@ -72,7 +72,7 @@ export class StayCheckoutCoordinator {
             ...area,
             beds: area.beds.map((b) => {
               if (bedIdsToRelease.includes(b.id)) {
-                return { ...b, status: BedStatus.VACANT, residentName: undefined };
+                return { ...b, status: BedStatus.VACANT, residentName: undefined, stayId: undefined };
               }
               return b;
             }),

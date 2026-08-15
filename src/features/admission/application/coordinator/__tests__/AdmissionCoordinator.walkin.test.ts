@@ -214,7 +214,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
   });
 
   describe('Happy Path Walk-in Admission Execution', () => {
-    it('creates brand new Resident, Stay, updates Bed status to OCCUPIED, and records WALK_IN business event', () => {
+    it('creates brand new Resident, Stay, updates Bed status to OCCUPIED with residentName and stayId, and records WALK_IN business event', () => {
       const result = coordinator.confirmWalkInAdmission(validWalkInDraft);
 
       expect(result.success).toBe(true);
@@ -240,13 +240,40 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       expect(createdStay?.businessEvents[0].eventType).toBe('ADMISSION');
       expect(createdStay?.businessEvents[0].metadata).toEqual({ admissionSource: 'WALK_IN' });
 
-      // Verify Bed status updated to OCCUPIED
+      // Verify Bed status, residentName and stayId updated in AccommodationRepository
       const updatedFlat = accommodationRepo.findById('flat-201');
       const allocatedBed = updatedFlat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
       expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);
+      expect(allocatedBed?.residentName).toBe('Anand Kumar');
+      expect(allocatedBed?.stayId).toBe('stay-000001');
 
       // Verify Reservation repo was never modified
       expect(reservationRepo.findAllSync()).toHaveLength(0);
+    });
+
+    it('multi-bed walk-in admission assigns same residentName and stayId to all allocated beds', () => {
+      const multiWalkInDraft: AdmissionDraft = {
+        ...validWalkInDraft,
+        bedIds: ['bed-201-a', 'bed-201-b'],
+        agreedRent: 18000,
+        agreedDeposit: 15000,
+      };
+
+      const result = coordinator.confirmWalkInAdmission(multiWalkInDraft);
+      expect(result.success).toBe(true);
+
+      const flat = accommodationRepo.findById('flat-201');
+      const beds = flat?.areas.flatMap((a) => a.beds) || [];
+      const bed1 = beds.find((b) => b.id === 'bed-201-a');
+      const bed2 = beds.find((b) => b.id === 'bed-201-b');
+
+      expect(bed1?.status).toBe(BedStatus.OCCUPIED);
+      expect(bed1?.residentName).toBe('Anand Kumar');
+      expect(bed1?.stayId).toBe(result.stayId);
+
+      expect(bed2?.status).toBe(BedStatus.OCCUPIED);
+      expect(bed2?.residentName).toBe('Anand Kumar');
+      expect(bed2?.stayId).toBe(result.stayId);
     });
   });
 
@@ -268,6 +295,42 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       const flat = accommodationRepo.findById('flat-201');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
       expect(bed?.status).toBe(BedStatus.VACANT);
+    });
+
+    it('restores bed projection mutations (status, residentName, stayId) on walk-in admission if finance step fails', () => {
+      const failingFinanceService = {
+        initializeAdmissionFinance: () => ({
+          success: false,
+          depositLedgerEntries: [],
+          rentBill: null,
+          advanceCreditEntries: [],
+          errors: ['Simulated walk-in finance failure after accommodation mutation'],
+        }),
+        rollbackAdmissionFinance: () => ({ success: true, rolledBackEntriesCount: 0 }),
+      } as any;
+
+      const failingCoordinator = new AdmissionCoordinator(
+        reservationRepo,
+        residentRepo,
+        stayRepo,
+        accommodationRepo,
+        failingFinanceService
+      );
+
+      expect(() => failingCoordinator.confirmWalkInAdmission(validWalkInDraft)).toThrow(
+        'Walk-in admission financial initialization failed: Simulated walk-in finance failure after accommodation mutation'
+      );
+
+      // Verify zero orphan resident or stay entities
+      expect(residentRepo.getAllSync()).toHaveLength(0);
+      expect(stayRepo.getAllSync()).toHaveLength(0);
+
+      // Verify Bed projection state was fully rolled back to pre-admission snapshot
+      const flat = accommodationRepo.findById('flat-201');
+      const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
+      expect(bed?.status).toBe(BedStatus.VACANT);
+      expect(bed?.residentName).toBeUndefined();
+      expect(bed?.stayId).toBeUndefined();
     });
   });
 

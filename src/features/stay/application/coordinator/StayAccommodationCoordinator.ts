@@ -130,7 +130,7 @@ export class StayAccommodationCoordinator {
         ...area,
         beds: area.beds.map((b) => {
           if (b.id === input.bedId) {
-            return { ...b, status: BedStatus.OCCUPIED, residentName };
+            return { ...b, status: BedStatus.OCCUPIED, residentName, stayId: stay.id };
           }
           return b;
         }),
@@ -181,7 +181,7 @@ export class StayAccommodationCoordinator {
           ...area,
           beds: area.beds.map((b) => {
             if (b.id === input.bedId) {
-              return { ...b, status: BedStatus.VACANT, residentName: undefined };
+              return { ...b, status: BedStatus.VACANT, residentName: undefined, stayId: undefined };
             }
             return b;
           }),
@@ -251,10 +251,10 @@ export class StayAccommodationCoordinator {
         ...area,
         beds: area.beds.map((b) => {
           if (b.id === input.fromBedId) {
-            return { ...b, status: BedStatus.VACANT, residentName: undefined };
+            return { ...b, status: BedStatus.VACANT, residentName: undefined, stayId: undefined };
           }
           if (b.id === input.toBedId) {
-            return { ...b, status: BedStatus.OCCUPIED, residentName };
+            return { ...b, status: BedStatus.OCCUPIED, residentName, stayId: stay.id };
           }
           return b;
         }),
@@ -323,7 +323,7 @@ export class StayAccommodationCoordinator {
           ...area,
           beds: area.beds.map((b) => {
             if (previousActiveBedIds.includes(b.id)) {
-              return { ...b, status: BedStatus.VACANT, residentName: undefined };
+              return { ...b, status: BedStatus.VACANT, residentName: undefined, stayId: undefined };
             }
             return b;
           }),
@@ -336,7 +336,7 @@ export class StayAccommodationCoordinator {
         ...area,
         beds: area.beds.map((b) => {
           if (input.newBedIds.includes(b.id)) {
-            return { ...b, status: BedStatus.OCCUPIED, residentName };
+            return { ...b, status: BedStatus.OCCUPIED, residentName, stayId: stay.id };
           }
           return b;
         }),

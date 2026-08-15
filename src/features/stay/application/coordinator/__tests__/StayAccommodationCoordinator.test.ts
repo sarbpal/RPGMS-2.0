@@ -103,6 +103,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       const bedB = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-b');
       expect(bedB?.status).toBe(BedStatus.OCCUPIED);
       expect(bedB?.residentName).toBe('Rohan Sharma');
+      expect(bedB?.stayId).toBe('stay-000001');
     });
 
     it('rejects allocating non-vacant bed', () => {
@@ -118,7 +119,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
   });
 
   describe('releaseBed', () => {
-    it('releases bed from multi-bed Stay and updates physical bed status to VACANT', () => {
+    it('releases bed from multi-bed Stay and updates physical bed status to VACANT and clears stayId', () => {
       // First allocate second bed so we have 2 active beds
       coordinator.allocateAdditionalBed({
         stayId: 'stay-000001',
@@ -140,6 +141,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       const bedB = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-b');
       expect(bedB?.status).toBe(BedStatus.VACANT);
       expect(bedB?.residentName).toBeUndefined();
+      expect(bedB?.stayId).toBeUndefined();
     });
   });
 
@@ -161,8 +163,10 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
 
       expect(bedA?.status).toBe(BedStatus.VACANT);
       expect(bedA?.residentName).toBeUndefined();
+      expect(bedA?.stayId).toBeUndefined();
       expect(bedB?.status).toBe(BedStatus.OCCUPIED);
       expect(bedB?.residentName).toBe('Rohan Sharma');
+      expect(bedB?.stayId).toBe('stay-000001');
     });
   });
 
@@ -183,11 +187,13 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       const prevBedA = prevFlat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       expect(prevBedA?.status).toBe(BedStatus.VACANT);
       expect(prevBedA?.residentName).toBeUndefined();
+      expect(prevBedA?.stayId).toBeUndefined();
 
       const newFlat = accommodationRepo.findById('flat-102');
       const newBedA = newFlat?.areas[0].beds.find((b) => b.id === 'bed-102-a');
       expect(newBedA?.status).toBe(BedStatus.OCCUPIED);
       expect(newBedA?.residentName).toBe('Rohan Sharma');
+      expect(newBedA?.stayId).toBe('stay-000001');
     });
   });
 

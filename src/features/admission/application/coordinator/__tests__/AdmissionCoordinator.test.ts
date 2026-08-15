@@ -195,11 +195,13 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(stay?.agreedRent).toBe(8000);
       expect(stay?.allocatedBedIds).toEqual(['bed-101-a']);
 
-      // Verify Accommodation Repository State (Bed allocated to OCCUPIED)
+      // Verify Accommodation Repository State (Bed allocated to OCCUPIED with residentName and stayId)
       const updatedFlat = accommodationRepo.findById('flat-101');
       const allFlatBeds = updatedFlat?.areas.flatMap((a) => a.beds) || [];
       const allocatedBed = allFlatBeds.find((b) => b.id === 'bed-101-a');
       expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);
+      expect(allocatedBed?.residentName).toBe('Vikram Singh');
+      expect(allocatedBed?.stayId).toBe('stay-000001');
 
       // Verify Reservation Repository State (Status CONVERTED)
       const reservation = reservationRepo.findByIdSync('resv-000001');
@@ -257,7 +259,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
   });
 
   describe('Multi-Bed Admission', () => {
-    it('allocates multiple beds within the same flat and marks all as OCCUPIED', () => {
+    it('allocates multiple beds within the same flat and marks all as OCCUPIED with matching residentName and stayId', () => {
       const multiBedDraft: AdmissionDraft = {
         ...validDraft,
         bedIds: ['bed-101-a', 'bed-101-b'],
@@ -277,7 +279,12 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       const flat = accommodationRepo.findById('flat-101');
       const allFlatBeds = flat?.areas.flatMap((a) => a.beds) || [];
       expect(allFlatBeds[0].status).toBe(BedStatus.OCCUPIED);
+      expect(allFlatBeds[0].residentName).toBe('Vikram Singh');
+      expect(allFlatBeds[0].stayId).toBe('stay-000001');
+
       expect(allFlatBeds[1].status).toBe(BedStatus.OCCUPIED);
+      expect(allFlatBeds[1].residentName).toBe('Vikram Singh');
+      expect(allFlatBeds[1].stayId).toBe('stay-000001');
     });
   });
 
@@ -339,6 +346,48 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       // Verify Reservation unchanged (remains ACTIVE)
       const res = reservationRepo.findByIdSync('resv-000001');
       expect(res?.status).toBe(ReservationStatus.ACTIVE);
+    });
+
+    it('restores bed projection mutations (status, residentName, stayId) if a post-accommodation step fails', () => {
+      const failingFinanceService = {
+        initializeAdmissionFinance: () => ({
+          success: false,
+          depositLedgerEntries: [],
+          rentBill: null,
+          advanceCreditEntries: [],
+          errors: ['Simulated finance failure after accommodation mutation'],
+        }),
+        rollbackAdmissionFinance: () => ({ success: true, rolledBackEntriesCount: 0 }),
+      } as any;
+
+      const failingCoordinator = new AdmissionCoordinator(
+        reservationRepo,
+        residentRepo,
+        stayRepo,
+        accommodationRepo,
+        failingFinanceService
+      );
+
+      expect(() =>
+        failingCoordinator.confirmReservedAdmission(validDraft, sampleActiveReservation)
+      ).toThrow('Admission financial initialization failed: Simulated finance failure after accommodation mutation');
+
+      // Verify zero orphan entities created
+      expect(residentRepo.getAllSync()).toHaveLength(0);
+      expect(stayRepo.getAllSync()).toHaveLength(0);
+
+      // Verify Bed projection state was fully rolled back to pre-admission snapshot
+      const flat = accommodationRepo.findById('flat-101');
+      const targetBed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a');
+      expect(targetBed?.status).toBe(BedStatus.VACANT);
+      expect(targetBed?.residentName).toBeUndefined();
+      expect(targetBed?.stayId).toBeUndefined();
+
+      // Verify Reservation was rolled back to ACTIVE
+      const res = reservationRepo.findByIdSync('resv-000001');
+      expect(res?.status).toBe(ReservationStatus.ACTIVE);
+      expect(res?.convertedResidentId).toBeUndefined();
+      expect(res?.convertedStayId).toBeUndefined();
     });
   });
 });

@@ -68,10 +68,14 @@ export function createMockFlatDraft(overrides?: Partial<FlatDraft>): FlatDraft {
 }
 
 export function createMockStay(overrides?: Partial<StayProps>): Stay {
+  const stayId = overrides?.id || 'stay-1';
+  const flatId = overrides?.flatId || '101';
+  const allocatedBedIds = overrides?.allocatedBedIds || ['101-B1', '101-B2'];
+
   const defaultCommercial = [
     new CommercialAgreement({
-      id: 'ca-stay-1-1',
-      stayId: 'stay-1',
+      id: `ca-${stayId}-1`,
+      stayId,
       rent: 5000,
       securityDeposit: 10000,
       effectiveFrom: '2026-01-01',
@@ -80,29 +84,22 @@ export function createMockStay(overrides?: Partial<StayProps>): Stay {
     }),
   ];
 
-  const defaultAllocations = [
+  const defaultAllocations = overrides?.bedAllocations || allocatedBedIds.map((bedId, idx) => (
     new BedAllocation({
-      id: 'ba-stay-1-1',
-      stayId: 'stay-1',
-      flatId: '101',
-      bedId: '101-B1',
+      id: `ba-${stayId}-${idx + 1}`,
+      stayId,
+      flatId,
+      bedId,
       allocatedFrom: '2026-01-01',
       status: 'ACTIVE',
-    }),
-    new BedAllocation({
-      id: 'ba-stay-1-2',
-      stayId: 'stay-1',
-      flatId: '101',
-      bedId: '101-B2',
-      allocatedFrom: '2026-01-01',
-      status: 'ACTIVE',
-    }),
-  ];
+    })
+  ));
 
   return new Stay({
-    id: 'stay-1',
+    id: stayId,
     residentId: 'res-1',
     checkInDate: '2026-01-01',
+    flatId,
     stayType: StayType.REGULAR,
     status: StayStatus.ACTIVE,
     commercialAgreements: defaultCommercial,

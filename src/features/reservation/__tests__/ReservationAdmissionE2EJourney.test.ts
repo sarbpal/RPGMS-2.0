@@ -190,6 +190,8 @@ describe('CR-2.5 End-to-End Business Journey Regression Test Suite', () => {
     const allFlatBeds = updatedFlat?.areas.flatMap((a) => a.beds) || [];
     const allocatedBed = allFlatBeds.find((b) => b.id === 'bed-101-a');
     expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);
+    expect(allocatedBed?.residentName).toBe('Aditya Verma');
+    expect(allocatedBed?.stayId).toBe('stay-000001');
 
     // Reservation Repository
     const finalReservation = reservationRepo.findByIdSync(createdRes.id);

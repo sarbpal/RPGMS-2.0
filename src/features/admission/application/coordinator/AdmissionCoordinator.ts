@@ -492,7 +492,11 @@ export class AdmissionCoordinator {
       if (targetFlat) {
         draft.bedIds?.forEach((bedId) => {
           const bed = targetFlat.areas.flatMap((a) => a.beds).find((b) => b.id === bedId);
-          if (bed) bed.status = BedStatus.OCCUPIED;
+          if (bed) {
+            bed.status = BedStatus.OCCUPIED;
+            bed.residentName = newResident.fullName;
+            bed.stayId = createdStayId || stayId;
+          }
         });
         this.accommodationRepo.save(targetFlat);
       }
@@ -674,7 +678,11 @@ export class AdmissionCoordinator {
       if (targetFlat) {
         draft.bedIds?.forEach((bedId) => {
           const bed = targetFlat.areas.flatMap((a) => a.beds).find((b) => b.id === bedId);
-          if (bed) bed.status = BedStatus.OCCUPIED;
+          if (bed) {
+            bed.status = BedStatus.OCCUPIED;
+            bed.residentName = resident.fullName;
+            bed.stayId = createdStayId || stayId;
+          }
         });
         this.accommodationRepo.save(targetFlat);
       }

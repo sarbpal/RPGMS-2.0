@@ -81,6 +81,7 @@ describe('StayCheckoutCoordinator Integration Suite (CR-3.6)', () => {
     const bedA = flat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
     expect(bedA?.status).toBe(BedStatus.VACANT);
     expect(bedA?.residentName).toBeUndefined();
+    expect(bedA?.stayId).toBeUndefined();
   });
 
   it('throws error if target Stay does not exist', () => {

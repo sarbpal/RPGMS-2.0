@@ -83,14 +83,14 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       );
     });
 
-    it('preserves existing bed status and occupant details when updating an existing flat draft', () => {
+    it('preserves existing bed status, occupant details, and stayId when updating an existing flat draft', () => {
       const existingFlat = createMockFlat({
         id: '101',
         name: '101',
         areas: [
           createMockArea({
             beds: [
-              createMockBed({ id: '101-B1', status: BedStatus.OCCUPIED, residentName: 'Jane Doe' }),
+              createMockBed({ id: '101-B1', status: BedStatus.OCCUPIED, residentName: 'Jane Doe', stayId: 'stay-101' }),
               createMockBed({ id: '101-B2', status: BedStatus.VACANT }),
             ],
           }),
@@ -108,11 +108,13 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(updatedFlat.description).toBe('Updated Description');
       expect(updatedFlat.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(updatedFlat.areas[0].beds[0].residentName).toBe('Jane Doe');
+      expect(updatedFlat.areas[0].beds[0].stayId).toBe('stay-101');
 
       // Refinement 3: Verify repository state
       const repoState = repository.findById('101');
       expect(repoState?.description).toBe('Updated Description');
       expect(repoState?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
+      expect(repoState?.areas[0].beds[0].stayId).toBe('stay-101');
     });
   });
 
@@ -175,7 +177,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   });
 
   describe('loadAndSynchronizeFlats', () => {
-    it('synchronizes bed status against active stays in StayRepository & ResidentRepository', async () => {
+    it('synchronizes bed status, residentName, and stayId against active stays in StayRepository & ResidentRepository', async () => {
       const flat = createMockFlat({
         id: '101',
         areas: [
@@ -206,11 +208,84 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       const targetBed = synchronized[0].areas[0].beds.find((b) => b.id === '101-B1');
       expect(targetBed?.status).toBe(BedStatus.OCCUPIED);
       expect(targetBed?.residentName).toBe('Jane Doe');
+      expect(targetBed?.stayId).toBe('stay-1');
 
       // Refinement 3: Verify repository state
       const repoFlat = repository.findById('101');
       expect(repoFlat?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(repoFlat?.areas[0].beds[0].residentName).toBe('Jane Doe');
+      expect(repoFlat?.areas[0].beds[0].stayId).toBe('stay-1');
+    });
+
+    it('synchronizes bed status to ON_NOTICE with residentName and stayId when stay is ON_NOTICE', async () => {
+      const flat = createMockFlat({
+        id: '102',
+        areas: [
+          createMockArea({
+            beds: [createMockBed({ id: '102-B1', status: BedStatus.VACANT })],
+          }),
+        ],
+      });
+      repository.save(flat);
+
+      const resident = createMockResident({ id: 'res-2', fullName: 'John Notice' });
+      await residentRepository.save(resident);
+
+      const stay = createMockStay({
+        id: 'stay-notice-1',
+        residentId: 'res-2',
+        flatId: '102',
+        allocatedBedIds: ['102-B1'],
+        status: StayStatus.ON_NOTICE,
+      });
+      await stayRepository.save(stay);
+
+      const synchronized = coordinator.loadAndSynchronizeFlats();
+      const bed = synchronized[0].areas[0].beds.find((b) => b.id === '102-B1');
+      expect(bed?.status).toBe(BedStatus.ON_NOTICE);
+      expect(bed?.residentName).toBe('John Notice');
+      expect(bed?.stayId).toBe('stay-notice-1');
+    });
+
+    it('clears residentName and stayId when a previously occupied or on-notice stay is checked out', async () => {
+      const flat = createMockFlat({
+        id: '101',
+        areas: [
+          createMockArea({
+            beds: [
+              createMockBed({ id: '101-B1', status: BedStatus.OCCUPIED, residentName: 'Jane Doe', stayId: 'stay-1' }),
+              createMockBed({ id: '101-B2', status: BedStatus.ON_NOTICE, residentName: 'John Notice', stayId: 'stay-2' }),
+            ],
+          }),
+        ],
+      });
+      repository.save(flat);
+
+      // Stays in repository are CHECKED_OUT (no active stays)
+      const resident = createMockResident({ id: 'res-1', fullName: 'Jane Doe' });
+      await residentRepository.save(resident);
+
+      const checkedOutStay = createMockStay({
+        id: 'stay-1',
+        residentId: 'res-1',
+        flatId: '101',
+        allocatedBedIds: ['101-B1'],
+        status: StayStatus.CHECKED_OUT,
+      });
+      await stayRepository.save(checkedOutStay);
+
+      const synchronized = coordinator.loadAndSynchronizeFlats();
+      const beds = synchronized[0].areas[0].beds;
+
+      const bed1 = beds.find((b) => b.id === '101-B1');
+      expect(bed1?.status).toBe(BedStatus.VACANT);
+      expect(bed1?.residentName).toBeUndefined();
+      expect(bed1?.stayId).toBeUndefined();
+
+      const bed2 = beds.find((b) => b.id === '101-B2');
+      expect(bed2?.status).toBe(BedStatus.VACANT);
+      expect(bed2?.residentName).toBeUndefined();
+      expect(bed2?.stayId).toBeUndefined();
     });
   });
 
@@ -507,6 +582,16 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       );
     });
 
+    it('accommodationSeedData does not contain explicit stayId values (Stay is single source of truth)', () => {
+      const allSeededBeds = accommodationSeedData.flatMap((f) => f.areas.flatMap((a) => a.beds));
+      allSeededBeds.forEach((bed) => {
+        expect(
+          bed.stayId,
+          `Seeded bed ${bed.id} must not have an explicit stayId in accommodationSeedData`
+        ).toBeUndefined();
+      });
+    });
+
     it('every active/on-notice seeded stay references an existing resident', () => {
       const residentIds = new Set(residentSeedData.map((r) => r.id));
       const activeStays = staySeedData.filter(
@@ -548,7 +633,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       });
     });
 
-    it('loadAndSynchronizeFlats() preserves Flat 101 / Bed 101-B1 as OCCUPIED with resident name Rajesh Kumar', () => {
+    it('loadAndSynchronizeFlats() reconstructs Flat 101 / Bed 101-B1 as OCCUPIED with resident name Rajesh Kumar and stayId STAY-2026-00041 from staySeedData', () => {
       const flats = seedCoordinator.loadAndSynchronizeFlats();
       const flat101 = flats.find((f) => f.id === '101');
       expect(flat101, 'Flat 101 must exist in synchronized result').toBeDefined();
@@ -559,9 +644,10 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed, 'Bed 101-B1 must exist').toBeDefined();
       expect(bed!.status).toBe(BedStatus.OCCUPIED);
       expect(bed!.residentName).toBe('Rajesh Kumar');
+      expect(bed!.stayId).toBe('STAY-2026-00041');
     });
 
-    it('loadAndSynchronizeFlats() preserves Flat 102 / Beds 102-B1 and 102-B2 as ON_NOTICE with resident name Amit Sharma', () => {
+    it('loadAndSynchronizeFlats() preserves Flat 102 / Beds 102-B1 and 102-B2 as ON_NOTICE with resident name Amit Sharma and stayId STAY-2026-00042', () => {
       const flats = seedCoordinator.loadAndSynchronizeFlats();
       const flat102 = flats.find((f) => f.id === '102');
       expect(flat102, 'Flat 102 must exist in synchronized result').toBeDefined();
@@ -572,11 +658,13 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed1, 'Bed 102-B1 must exist').toBeDefined();
       expect(bed1!.status).toBe(BedStatus.ON_NOTICE);
       expect(bed1!.residentName).toBe('Amit Sharma');
+      expect(bed1!.stayId).toBe('STAY-2026-00042');
 
       const bed2 = beds.find((b) => b.id === '102-B2');
       expect(bed2, 'Bed 102-B2 must exist').toBeDefined();
       expect(bed2!.status).toBe(BedStatus.ON_NOTICE);
       expect(bed2!.residentName).toBe('Amit Sharma');
+      expect(bed2!.stayId).toBe('STAY-2026-00042');
     });
 
     it('loadAndSynchronizeFlats() does NOT convert seeded OCCUPIED or ON_NOTICE beds to VACANT', () => {
@@ -586,12 +674,15 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       // 101-B1 must remain OCCUPIED (active stay from Rajesh Kumar)
       const bed101B1 = allBeds.find((b) => b.id === '101-B1');
       expect(bed101B1?.status).not.toBe(BedStatus.VACANT);
+      expect(bed101B1?.stayId).toBe('STAY-2026-00041');
 
       // 102-B1 and 102-B2 must remain ON_NOTICE (on-notice stay from Amit Sharma)
       const bed102B1 = allBeds.find((b) => b.id === '102-B1');
       const bed102B2 = allBeds.find((b) => b.id === '102-B2');
       expect(bed102B1?.status).not.toBe(BedStatus.VACANT);
+      expect(bed102B1?.stayId).toBe('STAY-2026-00042');
       expect(bed102B2?.status).not.toBe(BedStatus.VACANT);
+      expect(bed102B2?.stayId).toBe('STAY-2026-00042');
     });
 
     it('loadAndSynchronizeFlats() leaves Flat 103 beds vacant (no active stay allocated there)', () => {
@@ -602,6 +693,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       flat103!.areas.flatMap((a) => a.beds).forEach((bed) => {
         expect(bed.status).toBe(BedStatus.VACANT);
         expect(bed.residentName).toBeUndefined();
+        expect(bed.stayId).toBeUndefined();
       });
     });
   });

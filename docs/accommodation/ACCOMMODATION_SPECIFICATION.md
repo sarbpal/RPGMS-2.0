@@ -892,12 +892,19 @@ Throughout these operational changes, the Bed remains part of the Accommodation 
 
 The following information is derived from operational business domains and is not owned by the Bed itself:
 
-- Current Resident
-- Current Stay
+- Current Resident (`Bed.residentName`)
+- Current Stay (`Bed.stayId`)
 - Date of Occupancy
 - Date of Vacancy
 - Financial Balance
 - Police Compliance Status
+
+**Authoritative Ownership and Synchronization Architecture:**
+- Accommodation owns the physical Bed and its operational availability.
+- Stay owns the authoritative occupancy and `BedAllocation` relationship.
+- `Bed.residentName` and `Bed.stayId` are derived operational projection and reference values maintained for UI presentation and operational querying.
+- `loadAndSynchronizeFlats()` and synchronization mechanisms reconstruct these values from active and on-notice Stay allocations.
+- Stale `residentName` and `stayId` values are cleared (and Bed status restored to `VACANT`) when the Bed is no longer associated with an active or on-notice Stay.
 
 The Bed owns only its physical identity and operational availability.
 

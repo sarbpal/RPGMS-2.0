@@ -6,6 +6,7 @@ import { BedStatus } from '../valueObjects/BedStatus';
 export interface ResidentOccupancyInput {
   fullName: string;
   status: string;
+  stayId?: string;
 }
 
 /**
@@ -46,8 +47,8 @@ export function canDeleteFlat(flat: Flat): { canDelete: boolean; occupiedBeds: B
 }
 
 /**
- * Domain Rule: Determines the synchronized status and pricing state of a Bed 
- * given the presence and status of an occupying resident.
+ * Domain Rule: Determines the synchronized status, residentName, stayId and pricing state of a Bed
+ * given the presence and status of an occupying resident stay.
  */
 export function synchronizeBedOccupancy(
   bed: Bed,
@@ -57,14 +58,17 @@ export function synchronizeBedOccupancy(
 ): { synchronizedBed: Bed; isChanged: boolean } {
   let expectedStatus: BedStatus;
   let expectedResidentName: string | undefined;
+  let expectedStayId: string | undefined;
   const expectedBedRent = bed.defaultRent !== undefined ? bed.defaultRent : areaDefaultRent;
   const expectedBedDeposit = bed.defaultDeposit !== undefined ? bed.defaultDeposit : areaDefaultDeposit;
 
   if (resident) {
     expectedStatus = resident.status === 'ON_NOTICE' ? BedStatus.ON_NOTICE : BedStatus.OCCUPIED;
     expectedResidentName = resident.fullName;
+    expectedStayId = resident.stayId;
   } else {
     expectedResidentName = undefined;
+    expectedStayId = undefined;
     if (bed.status === BedStatus.OCCUPIED || bed.status === BedStatus.ON_NOTICE) {
       expectedStatus = BedStatus.VACANT;
     } else {
@@ -75,6 +79,7 @@ export function synchronizeBedOccupancy(
   const isChanged =
     bed.status !== expectedStatus ||
     bed.residentName !== expectedResidentName ||
+    bed.stayId !== expectedStayId ||
     bed.defaultRent !== expectedBedRent ||
     bed.defaultDeposit !== expectedBedDeposit;
 
@@ -83,6 +88,7 @@ export function synchronizeBedOccupancy(
         ...bed,
         status: expectedStatus,
         residentName: expectedResidentName,
+        stayId: expectedStayId,
         defaultRent: expectedBedRent,
         defaultDeposit: expectedBedDeposit,
       }

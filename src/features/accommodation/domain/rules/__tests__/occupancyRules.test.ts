@@ -84,9 +84,9 @@ describe('occupancyRules Domain Module', () => {
   });
 
   describe('synchronizeBedOccupancy', () => {
-    it('synchronizes vacant bed to OCCUPIED when active resident occupant input is provided', () => {
+    it('synchronizes vacant bed to OCCUPIED with residentName and stayId when active resident occupant input is provided', () => {
       const bed = createMockBed({ status: BedStatus.VACANT });
-      const residentInput = { fullName: 'Jane Doe', status: 'ACTIVE' };
+      const residentInput = { fullName: 'Jane Doe', status: 'ACTIVE', stayId: 'STAY-1001' };
 
       const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
         bed,
@@ -98,13 +98,14 @@ describe('occupancyRules Domain Module', () => {
       expect(isChanged).toBe(true);
       expect(synchronizedBed.status).toBe(BedStatus.OCCUPIED);
       expect(synchronizedBed.residentName).toBe('Jane Doe');
+      expect(synchronizedBed.stayId).toBe('STAY-1001');
       expect(synchronizedBed.defaultRent).toBe(5000);
       expect(synchronizedBed.defaultDeposit).toBe(10000);
     });
 
-    it('synchronizes vacant bed to ON_NOTICE when on-notice resident occupant input is provided', () => {
+    it('synchronizes vacant bed to ON_NOTICE with residentName and stayId when on-notice resident occupant input is provided', () => {
       const bed = createMockBed({ status: BedStatus.VACANT });
-      const residentInput = { fullName: 'John Smith', status: 'ON_NOTICE' };
+      const residentInput = { fullName: 'John Smith', status: 'ON_NOTICE', stayId: 'STAY-1002' };
 
       const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
         bed,
@@ -116,12 +117,14 @@ describe('occupancyRules Domain Module', () => {
       expect(isChanged).toBe(true);
       expect(synchronizedBed.status).toBe(BedStatus.ON_NOTICE);
       expect(synchronizedBed.residentName).toBe('John Smith');
+      expect(synchronizedBed.stayId).toBe('STAY-1002');
     });
 
-    it('synchronizes occupied bed back to VACANT when resident occupant input is removed', () => {
+    it('synchronizes occupied bed back to VACANT and clears residentName & stayId when resident occupant input is removed', () => {
       const bed = createMockBed({
         status: BedStatus.OCCUPIED,
         residentName: 'Jane Doe',
+        stayId: 'STAY-1001',
         defaultRent: 5000,
         defaultDeposit: 10000,
       });
@@ -136,16 +139,40 @@ describe('occupancyRules Domain Module', () => {
       expect(isChanged).toBe(true);
       expect(synchronizedBed.status).toBe(BedStatus.VACANT);
       expect(synchronizedBed.residentName).toBeUndefined();
+      expect(synchronizedBed.stayId).toBeUndefined();
+    });
+
+    it('synchronizes on-notice bed back to VACANT and clears residentName & stayId upon checkout release', () => {
+      const bed = createMockBed({
+        status: BedStatus.ON_NOTICE,
+        residentName: 'John Smith',
+        stayId: 'STAY-1002',
+        defaultRent: 5000,
+        defaultDeposit: 10000,
+      });
+
+      const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
+        bed,
+        undefined,
+        5000,
+        10000
+      );
+
+      expect(isChanged).toBe(true);
+      expect(synchronizedBed.status).toBe(BedStatus.VACANT);
+      expect(synchronizedBed.residentName).toBeUndefined();
+      expect(synchronizedBed.stayId).toBeUndefined();
     });
 
     it('returns isChanged: false when bed state is already synchronized', () => {
       const bed = createMockBed({
         status: BedStatus.OCCUPIED,
         residentName: 'Jane Doe',
+        stayId: 'STAY-1001',
         defaultRent: 5000,
         defaultDeposit: 10000,
       });
-      const residentInput = { fullName: 'Jane Doe', status: 'ACTIVE' };
+      const residentInput = { fullName: 'Jane Doe', status: 'ACTIVE', stayId: 'STAY-1001' };
 
       const { synchronizedBed, isChanged } = synchronizeBedOccupancy(
         bed,

@@ -19,6 +19,38 @@ export function formatReservationNumber(sequenceNumber: number): string {
 }
 
 /**
+ * Domain Rule: Converts user-entered prospect names into clean, human-readable Title Case.
+ * Trims leading/trailing whitespace, collapses internal whitespace, and handles hyphens & apostrophes
+ * conservatively without guessing surname-specific conventions (e.g. McDonald).
+ */
+export function normalizeProspectName(name: string): string {
+  if (!name) return '';
+  const trimmed = name.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+
+  return trimmed
+    .split(' ')
+    .map((word) =>
+      word
+        .split('-')
+        .map((hyphenPart) =>
+          hyphenPart
+            .split("'")
+            .map((apostrophePart) => {
+              if (!apostrophePart) return '';
+              return (
+                apostrophePart.charAt(0).toUpperCase() +
+                apostrophePart.slice(1).toLowerCase()
+              );
+            })
+            .join("'")
+        )
+        .join('-')
+    )
+    .join(' ');
+}
+
+/**
  * Domain Rule: Validates lightweight reservation creation/update input.
  */
 export function validateReservationDraft(
@@ -35,9 +67,9 @@ export function validateReservationDraft(
     isValid = false;
   }
 
-  const cleanedMobile = mobileNumber.trim().replace(/\D/g, '');
-  if (!cleanedMobile || cleanedMobile.length !== 10) {
-    errors.mobileNumber = 'Mobile number must be a valid 10-digit number.';
+  const trimmedMobile = mobileNumber ? mobileNumber.trim() : '';
+  if (!trimmedMobile || !/^\d{10}$/.test(trimmedMobile)) {
+    errors.mobileNumber = 'Mobile number must be exactly 10 digits.';
     isValid = false;
   }
 

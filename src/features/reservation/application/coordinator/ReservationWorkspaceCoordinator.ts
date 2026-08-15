@@ -3,6 +3,7 @@ import type { ReservationRepository } from '../../domain/interfaces/ReservationR
 import { ReservationStatus } from '../../domain/valueObjects/ReservationStatus';
 import {
   formatReservationNumber,
+  normalizeProspectName,
   validateReservationDraft,
   checkDuplicateMobile as domainCheckDuplicateMobile,
   canEditReservation,
@@ -53,9 +54,11 @@ export class ReservationWorkspaceCoordinator {
    * Saves a new or updated reservation entity with business-friendly audit logs and automatic status recovery.
    */
   public saveReservation(draft: ReservationDraft, reservationToEdit?: Reservation, operatorReason?: string): Reservation {
+    const normalizedProspectName = normalizeProspectName(draft.prospectName);
+
     // 1. Validate required inputs
     const validation = validateReservationDraft(
-      draft.prospectName,
+      normalizedProspectName,
       draft.mobileNumber,
       draft.expectedJoiningDate
     );
@@ -143,7 +146,7 @@ export class ReservationWorkspaceCoordinator {
 
       const updatedReservation: Reservation = {
         ...reservationToEdit,
-        prospectName: draft.prospectName.trim(),
+        prospectName: normalizedProspectName,
         mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
         expectedJoiningDate: draft.expectedJoiningDate,
         expectedMonthlyRent: typeof draft.expectedMonthlyRent === 'number' ? draft.expectedMonthlyRent : undefined,
@@ -177,7 +180,7 @@ export class ReservationWorkspaceCoordinator {
       const newReservation: Reservation = {
         id: `resv-${String(sequenceNumber).padStart(6, '0')}`,
         reservationNumber,
-        prospectName: draft.prospectName.trim(),
+        prospectName: normalizedProspectName,
         mobileNumber: draft.mobileNumber.trim().replace(/\D/g, ''),
         expectedJoiningDate: draft.expectedJoiningDate,
         expectedMonthlyRent: typeof draft.expectedMonthlyRent === 'number' ? draft.expectedMonthlyRent : undefined,

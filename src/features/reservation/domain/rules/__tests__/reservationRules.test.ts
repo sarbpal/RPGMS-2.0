@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ReservationStatus } from '../../valueObjects/ReservationStatus';
 import {
   formatReservationNumber,
+  normalizeProspectName,
   validateReservationDraft,
   calculateOverdueDays,
   canTransitionStatus,
@@ -20,6 +21,46 @@ describe('Reservation Domain Rules', () => {
     });
   });
 
+  describe('normalizeProspectName', () => {
+    it('1. converts lowercase name to title case', () => {
+      expect(normalizeProspectName('harsh singh')).toBe('Harsh Singh');
+    });
+
+    it('2. converts uppercase name to title case', () => {
+      expect(normalizeProspectName('HARSH SINGH')).toBe('Harsh Singh');
+    });
+
+    it('3. collapses repeated internal whitespace', () => {
+      expect(normalizeProspectName('harsh    singh')).toBe('Harsh Singh');
+    });
+
+    it('4. removes leading and trailing whitespace', () => {
+      expect(normalizeProspectName('   harsh singh   ')).toBe('Harsh Singh');
+    });
+
+    it('5. preserves sensible apostrophe handling', () => {
+      expect(normalizeProspectName("o'connor")).toBe("O'Connor");
+      expect(normalizeProspectName("O'CONNOR")).toBe("O'Connor");
+      expect(normalizeProspectName("d'souza")).toBe("D'Souza");
+    });
+
+    it('6. preserves sensible hyphenated name handling', () => {
+      expect(normalizeProspectName('singh-gill')).toBe('Singh-Gill');
+      expect(normalizeProspectName('SINGH-GILL')).toBe('Singh-Gill');
+    });
+
+    it('7. uses conservative generic title casing without surname-specific Mc/Mac inference', () => {
+      expect(normalizeProspectName('mcdonald')).toBe('Mcdonald');
+      expect(normalizeProspectName('macdonald')).toBe('Macdonald');
+      expect(normalizeProspectName('mcintosh')).toBe('Mcintosh');
+    });
+
+    it('handles empty and whitespace-only inputs gracefully', () => {
+      expect(normalizeProspectName('')).toBe('');
+      expect(normalizeProspectName('   ')).toBe('');
+    });
+  });
+
   describe('validateReservationDraft', () => {
     it('validates a valid reservation draft', () => {
       const result = validateReservationDraft('Rahul Sharma', '9876543210', '2026-08-15');
@@ -33,10 +74,46 @@ describe('Reservation Domain Rules', () => {
       expect(result.errors.prospectName).toBe('Prospect name is required.');
     });
 
-    it('rejects invalid mobile numbers', () => {
-      const resultShort = validateReservationDraft('Rahul', '123', '2026-08-15');
-      expect(resultShort.isValid).toBe(false);
-      expect(resultShort.errors.mobileNumber).toBe('Mobile number must be a valid 10-digit number.');
+    it('8. rejects empty mobile', () => {
+      const result = validateReservationDraft('Rahul', '', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('9. rejects fewer than 10 digits (9 digits)', () => {
+      const result = validateReservationDraft('Rahul', '987654321', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('10. rejects more than 10 digits (11 digits)', () => {
+      const result = validateReservationDraft('Rahul', '98765432101', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('11. rejects alphabetic mobile', () => {
+      const result = validateReservationDraft('Rahul', 'abcdefghij', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('12. rejects alphanumeric mobile', () => {
+      const result = validateReservationDraft('Rahul', '98765abcde', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('13. rejects non-numeric characters', () => {
+      const result = validateReservationDraft('Rahul', '98765-43210', '2026-08-15');
+      expect(result.isValid).toBe(false);
+      expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
+    });
+
+    it('14. accepts valid 10-digit mobile', () => {
+      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-15');
+      expect(result.isValid).toBe(true);
+      expect(result.errors.mobileNumber).toBeUndefined();
     });
 
     it('rejects invalid expected joining date', () => {

@@ -170,8 +170,8 @@ export class BillingRun {
   }
 
   requestStop(timestamp?: string): void {
-    if (this._status !== 'PROCESSING') {
-      throw new Error(`Cannot request stop on BillingRun ${this.id} from status ${this._status}. Must be PROCESSING.`);
+    if (this._status !== 'PROCESSING' && this._status !== 'CONFIRMED') {
+      throw new Error(`Cannot request stop on BillingRun ${this.id} from status ${this._status}. Must be PROCESSING or CONFIRMED.`);
     }
     const now = timestamp || new Date().toISOString();
     this._status = 'STOPPING';

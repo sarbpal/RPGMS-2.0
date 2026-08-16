@@ -20,4 +20,5 @@ export interface BillLineItem {
   description: string;
   amount: number;
   category: 'RENT' | 'SECURITY_DEPOSIT' | 'UTILITIES' | 'MAINTENANCE' | 'OTHER';
+  obligationKey?: string;
 }

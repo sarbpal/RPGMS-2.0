@@ -6,6 +6,7 @@ export * from './entities/BillingClaim';
 export * from './entities/BillingOperation';
 export * from './entities/BillingRun';
 export * from './rules/BillingClaimRules';
+export * from './rules/MaterialChangeRules';
 export * from './interfaces/BillingRunRepository';
 export * from './interfaces/BillingClaimRepository';
 export * from './interfaces/ChargeDiscoveryProvider';

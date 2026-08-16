@@ -1196,6 +1196,27 @@ Generated from:
 
 ---
 
+## 12.5.1 Billing Engine Orchestration Model
+
+### Purpose
+
+The Billing Engine is an Architectural Service that coordinates the discovery, claim locking, and financial batching of billable obligations across Stays. It does not own underlying business pricing or ledger balances.
+
+### Core Concepts
+
+- **`BillingRun`**: An immutable historical record representing an operator-executed billing workflow over a selected processing period (Preview → Revalidate → Confirm → Claim → Process).
+- **`BillingOperation`**: Represents the exclusive processing scope and execution outcome for one Stay within a Billing Run.
+- **`BillingClaim`**: An ephemeral operational lock (`CLAIM_ACQUIRED` → `CLAIM_COMMITTED` / `CLAIM_RELEASED`) guaranteeing that an uncommitted obligation cannot be billed more than once across concurrent or overlapping runs ("First Claim Wins").
+- **`DiscoveredObligation`**: A normalized read-only representation of an upstream domain obligation (Rent cycle, Electricity participant share, Laundry fee) exposed via domain discovery adapters, carrying financial commitment status (`UNCOMMITTED` vs `COMMITTED`).
+
+### Business Rules
+
+- The Billing Engine orchestrates execution; it does not calculate rent pricing, utility tariffs, or ledger totals.
+- Domain-posted invoices (such as Electricity supplier bill allocations confirmed under BR-E-45) remain independent Finance Bills and are never re-billed or mutated by Billing Runs.
+- Financial obligations are attributed to the historical Stay regardless of operational status (permitting post-checkout and alumni utility billing under BR-E-42 and BR-E-43).
+
+---
+
 ## 12.6 Credits
 
 Credits represent negative Charges.

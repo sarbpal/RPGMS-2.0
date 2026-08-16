@@ -1896,6 +1896,68 @@ Financial history must remain accurate and auditable.
 
 ---
 
+## BR-413 Billing Engine Orchestration Boundary
+
+### Rule
+
+The Billing Engine shall orchestrate the discovery, claim locking, batching, and execution of billable obligations without creating, calculating, allocating, or altering the underlying business obligations.
+
+Underlying pricing, commercial terms, and allocation rules belong to their respective business domains (Stay, Electricity, Operations).
+
+### Reason
+
+Separates execution orchestration from business pricing rules and financial truth (BCR-005, BCR-007).
+
+### Applies To
+
+- Billing
+- Finance
+- Commercial Management
+- Electricity
+
+---
+
+## BR-414 Domain-Posted Invoice Independence
+
+### Rule
+
+Financial invoices generated and posted directly by owning business domains (such as Electricity supplier bill allocations confirmed under BR-E-45) shall remain independent Finance Bill entities and shall not be mutated, duplicated, or subsumed into subsequent Billing Runs.
+
+Billing Run batch consolidation shall apply exclusively to unbilled obligations claimed and billed simultaneously within that specific Billing Run.
+
+### Reason
+
+Preserves the immutability of domain-confirmed financial transactions and prevents duplicate billing (BR-412, BR-442, BR-E-46).
+
+### Applies To
+
+- Billing
+- Electricity
+- Finance
+
+---
+
+## BR-415 Historical Stay Financial Attribution
+
+### Rule
+
+Financial obligations shall be attributed to the authoritative historical Stay regardless of current operational status, permitting valid utility, damage, and adjustment charges against Checked-out, Closed, or Alumni-associated Stays.
+
+Billing discovery shall query historical Stay occupancy overlap and shall not enforce a generic active-status filter across utility or adjustment charge types.
+
+### Reason
+
+Residency obligations survive operational departure until financial settlement is complete (BR-460, BR-E-42, BR-E-43).
+
+### Applies To
+
+- Billing
+- Electricity
+- Finance
+- Stay
+
+---
+
 # Payments
 
 Payments represent money received from the Resident.

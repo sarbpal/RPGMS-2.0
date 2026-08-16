@@ -743,10 +743,45 @@ The broader architecture defines the Billing Engine as an Architectural Service 
 
 ---
 
+## ADR-026 — Billing Engine Charge Ownership, Discovery Contracts, and Cross-Domain Financial Reconciliation
+
+**Status:** Accepted
+
+### Context
+
+Following the reconciliation between the generic Billing Engine architecture (ADR-025, `docs/BILLING_ENGINE_ARCHITECTURE.md`) and the approved Electricity Business Rules & Domain Design (`docs/ELECTRICITY_BUSINESS_RULES_AND_DOMAIN_DESIGN.md`), explicit architectural boundaries are required to govern cross-domain charge ownership, financial invoice independence, generic discovery contracts, and historical stay financial attribution.
+
+Specifically, the Electricity domain already posts authoritative utility receivable bills to Finance upon operator confirmation. The Billing Engine must not duplicate, mutate, or subsume domain-posted bills, nor should it enforce universal single-bill consolidation or filter out checked-out/alumni stays from legitimate utility billing.
+
+### Decision
+
+1. **Constitutional Orchestration Principle:** The Billing Engine orchestrates billable obligations; it does not create, calculate, allocate, or alter the underlying business obligation. Commercial pricing remains in Stay/Commercial, supplier bill allocation remains in Electricity, and service pricing remains in Operations.
+2. **Domain-Posted Bill Independence (Amended D-5):** Financial bills generated and posted directly by owning business domains (such as Electricity supplier bill allocations confirmed under BR-E-45) remain independent Finance `Bill` records. The Billing Engine acknowledges them as `COMMITTED` and never mutates, consolidates, or recreates them.
+3. **Billing Run Batch Consolidation Scope:** A `BillingRun` consolidates into a single `Bill` *only* those unbilled obligations that are claimed and dispatched simultaneously within that specific Billing Run (e.g., Monthly Rent + unbilled Laundry Service Charges).
+4. **Historical Stay Financial Attribution:** Financial obligations are attributed to the authoritative historical `Stay` rather than current operational status alone. Legitimate utility and adjustment obligations may be billed against `CHECKED_OUT`, `CLOSED`, or `ALUMNI`-associated Stays (preserving BR-E-42 and BR-E-43).
+5. **Generic Financial Commitment Contract:** Billing discovery uses a normalized `DiscoveredObligation` contract distinguishing `UNCOMMITTED` (eligible for claim/dispatch) from `COMMITTED` (already financially authoritative, carries `financialReferenceId`).
+6. **Decoupled Period Semantics:** The system explicitly distinguishes Billing Engine Processing Period (operator scope), Rent Cycle / Billing Anniversary (Stay commercial term), and Electricity Supplier Bill Period (supplier invoice date range).
+7. **Read-Only Discovery Adapters:** Domain discovery adapters (e.g. `ElectricityDiscoveryAdapter`, `RentDiscoveryAdapter`, `LaundryDiscoveryAdapter`) are strictly read-only translators. They do not calculate tariffs, reconstruct occupancy, or perform financial writes.
+
+### Consequences
+
+#### Advantages:
+- Eliminates risk of duplicate financial posting for domain-posted utility bills.
+- Preserves absolute immutability of Finance `Bill` and `LedgerEntry` records.
+- Supports valid post-checkout utility ingestion without resurrecting operational Stays.
+- Provides a clean, extensible `ChargeDiscoveryProvider` contract for future charge types.
+
+#### Trade-offs:
+- Resident Financial Profile and Ledgers display multiple independent bills when obligations originate from distinct domain workflows.
+- Discovery queries must support date-overlap and historical Stay lookups rather than simple active-status filtering.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.0 | August 2026 | Added ADR-026 (Billing Engine Charge Ownership, Discovery Contracts, and Cross-Domain Financial Reconciliation). |
 | 2.9 | August 2026 | Added ADR-025 (Billing Engine Controlled Run, Claim, Recovery and Retry Architecture). |
 | 2.8 | August 2026 | Added ADR-024 (Running Deposit Account Lifecycle, Partial Returns, and Decoupled Settlement). |
 | 2.7 | August 2026 | Added ADR-023 (Electricity Allocation Reversal, Audit Integrity & Controlled Financial Adjustment). |
@@ -757,6 +792,3 @@ The broader architecture defines the Billing Engine as an Architectural Service 
 | 2.2 | August 2026 | Added ADR-018 (Synchronous Admission Finance Initialization & Compensating Rollback). |
 | 2.1 | August 2026 | Added proposed ADR-015 (Bidirectional Resident to Reservation Traceability). |
 | 2.0 | July 2026 | Rewritten using a structured ADR format aligned with the RPGMS business architecture. |
-
----
-

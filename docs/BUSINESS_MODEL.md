@@ -1725,26 +1725,36 @@ Financial obligations may be recurring or one-time.
 
 ## 14.5 Billing
 
-Billing converts financial obligations into billable charges.
+Billing coordinates and converts financial obligations into billable charges.
 
 Billing may occur:
 
 - Automatically
-- On Schedule
+- On Schedule (Controlled Billing Runs)
 - On Demand
-- Through approved manual processes
+- Through approved domain-specific confirmation workflows (e.g. Electricity supplier bill allocation)
 
 Each billing operation generates financial transactions and Business Events.
 
 ---
 
-## FI-004 Billing Independence
+## FI-004 Billing Orchestration & Independence
 
-The Billing Engine determines when charges are created.
+The Billing Engine orchestrates the discovery, claim locking, and execution of billable obligations without creating or altering underlying commercial or allocation rules.
 
-Payment collection is independent of Billing.
+Payment collection is independent of Billing. Creating a bill does not imply payment has been received.
 
-Creating a bill does not imply payment has been received.
+---
+
+## FI-005 Domain Invoice Independence
+
+Invoices generated and posted directly by owning business domains (such as Electricity supplier bill allocations) remain independent Finance Bill entities and are not re-billed or mutated by subsequent Billing Runs.
+
+---
+
+## FI-006 Historical Stay Financial Attribution
+
+Financial obligations attach to the authoritative historical Stay, permitting legitimate utility, damage, and adjustment charges against Checked-out, Closed, or Alumni-associated Stays.
 
 ---
 

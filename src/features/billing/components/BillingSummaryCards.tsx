@@ -9,9 +9,10 @@ import type { BillingWorkspaceSummaryViewModel } from '../application/models/Bil
 
 interface BillingSummaryCardsProps {
   readonly summary: BillingWorkspaceSummaryViewModel | null;
+  readonly onOpenRecovery?: () => void;
 }
 
-export function BillingSummaryCards({ summary }: BillingSummaryCardsProps) {
+export function BillingSummaryCards({ summary, onOpenRecovery }: BillingSummaryCardsProps) {
   const activeRun = summary?.activeRun;
   const totalBilled = summary?.totalAmountBilledAllTime || 0;
   const completedRuns = summary?.completedRunsCount || 0;
@@ -80,9 +81,18 @@ export function BillingSummaryCards({ summary }: BillingSummaryCardsProps) {
         </Card>
       </Grid>
 
-      {/* 4. Recovery Required Count (Read-only status) */}
+      {/* 4. Recovery Required Count (Interactive Workbench entry) */}
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Card sx={{ height: '100%', borderColor: recoveryCount > 0 ? 'warning.main' : undefined }}>
+        <Card
+          sx={{
+            height: '100%',
+            borderColor: recoveryCount > 0 ? 'warning.main' : undefined,
+            cursor: recoveryCount > 0 && onOpenRecovery ? 'pointer' : 'default',
+            '&:hover': recoveryCount > 0 && onOpenRecovery ? { bgcolor: 'warning.50', borderColor: 'warning.dark' } : undefined,
+            transition: 'all 0.2s ease-in-out',
+          }}
+          onClick={recoveryCount > 0 && onOpenRecovery ? onOpenRecovery : undefined}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <WarningAmberOutlined color={recoveryCount > 0 ? 'warning' : 'action'} sx={{ mr: 1 }} />
@@ -98,7 +108,7 @@ export function BillingSummaryCards({ summary }: BillingSummaryCardsProps) {
               {recoveryCount}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {recoveryCount > 0 ? 'Uncertain outcomes needing attention' : 'Zero recovery exceptions'}
+              {recoveryCount > 0 ? 'Click to open Recovery Workbench' : 'Zero recovery exceptions'}
             </Typography>
           </CardContent>
         </Card>

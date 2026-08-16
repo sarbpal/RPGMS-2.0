@@ -202,6 +202,57 @@ export class BillingOperation {
     this._updatedAt = this._completedAt;
   }
 
+  /**
+   * Resolves an uncertain operation as COMMITTED after verifying authoritative Finance evidence.
+   * Transitions status to SUCCESS, attaches the financialBillId, and preserves audit notes.
+   */
+  resolveCommitted(financialBillId: string, notes: string, timestamp?: string): void {
+    if (this._status !== 'RECOVERY_REQUIRED') {
+      throw new Error(
+        `Cannot resolve operation ${this.id} as COMMITTED from status ${this._status}. Must be in RECOVERY_REQUIRED.`
+      );
+    }
+    if (!financialBillId || financialBillId.trim() === '') {
+      throw new Error('resolveCommitted requires a valid, non-empty financialBillId.');
+    }
+
+    const now = timestamp || new Date().toISOString();
+    this._status = 'SUCCESS';
+    this._financialBillId = financialBillId.trim();
+    this._recoveryNotes = notes
+      ? this._recoveryNotes
+        ? `${this._recoveryNotes} | Resolved COMMITTED: ${notes.trim()}`
+        : `Resolved COMMITTED: ${notes.trim()}`
+      : this._recoveryNotes;
+    this._completedAt = now;
+    this._updatedAt = now;
+  }
+
+  /**
+   * Resolves an uncertain operation as NOT_COMMITTED after conclusive verification that no financial posting occurred.
+   * Transitions status to FAILED and records mandatory operator reason.
+   */
+  resolveNotCommitted(reason: string, notes?: string, timestamp?: string): void {
+    if (this._status !== 'RECOVERY_REQUIRED') {
+      throw new Error(
+        `Cannot resolve operation ${this.id} as NOT_COMMITTED from status ${this._status}. Must be in RECOVERY_REQUIRED.`
+      );
+    }
+    if (!reason || reason.trim() === '') {
+      throw new Error('resolveNotCommitted requires a valid reason explaining why no financial commitment occurred.');
+    }
+
+    const now = timestamp || new Date().toISOString();
+    this._status = 'FAILED';
+    this._failureReason = reason.trim();
+    const resolutionAudit = notes ? `${reason.trim()} (${notes.trim()})` : reason.trim();
+    this._recoveryNotes = this._recoveryNotes
+      ? `${this._recoveryNotes} | Resolved NOT_COMMITTED: ${resolutionAudit}`
+      : `Resolved NOT_COMMITTED: ${resolutionAudit}`;
+    this._completedAt = now;
+    this._updatedAt = now;
+  }
+
   toJSON(): BillingOperationProps {
     return {
       id: this.id,

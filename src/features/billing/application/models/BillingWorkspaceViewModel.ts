@@ -94,3 +94,81 @@ export interface BillingWorkspaceSummaryViewModel {
   readonly totalAmountBilledAllTime: number;
   readonly recentRuns: readonly BillingRunSummaryViewModel[];
 }
+
+export type RecoveryAssessment = 'COMMITTED' | 'NOT_COMMITTED' | 'UNKNOWN';
+
+export type RecoveryRecommendedAction =
+  | 'RESOLVE_COMMITTED'
+  | 'RESOLVE_NOT_COMMITTED'
+  | 'MANUAL_INVESTIGATION_REQUIRED';
+
+export interface MatchedFinanceBillViewModel {
+  readonly id: string;
+  readonly billNumber: string;
+  readonly stayId: string;
+  readonly period: string;
+  readonly totalAmount: number;
+  readonly status: string;
+  readonly issueDate: string;
+  readonly dueDate: string;
+  readonly lineItems: readonly {
+    readonly id: string;
+    readonly description: string;
+    readonly amount: number;
+    readonly category: string;
+    readonly obligationKey?: string;
+  }[];
+  readonly remarks?: string;
+}
+
+export interface MatchedLedgerEntryViewModel {
+  readonly id: string;
+  readonly stayId: string;
+  readonly postingDate: string;
+  readonly effectiveDate: string;
+  readonly referenceType: string;
+  readonly referenceId: string;
+  readonly account: string;
+  readonly debit: number;
+  readonly credit: number;
+  readonly remarks: string;
+}
+
+export interface RecoveryEvidenceViewModel {
+  readonly operation: BillingOperationDetailViewModel;
+  readonly stayId: string;
+  readonly residentId: string;
+  readonly residentCode: string;
+  readonly residentName: string;
+  readonly matchedBills: readonly MatchedFinanceBillViewModel[];
+  readonly matchedLedgerEntries: readonly MatchedLedgerEntryViewModel[];
+  readonly assessment: RecoveryAssessment;
+  readonly assessmentExplanation: string;
+  readonly recommendedAction: RecoveryRecommendedAction;
+  readonly recommendedBillId?: string;
+}
+
+export interface RetryStayScopeItem {
+  readonly stayId: string;
+  readonly residentId: string;
+  readonly residentCode: string;
+  readonly residentName: string;
+  readonly originalOperationId: string;
+  readonly originalStatus: BillingOperationOutcome;
+  readonly isEligible: boolean;
+  readonly exclusionReason?: string;
+}
+
+export interface RetryRunScopeViewModel {
+  readonly originalRunId: string;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly totalStaysInOriginalRun: number;
+  readonly eligibleStaysCount: number;
+  readonly excludedStaysCount: number;
+  readonly hasUnresolvedRecovery: boolean;
+  readonly unresolvedRecoveryCount: number;
+  readonly canCreateRetry: boolean;
+  readonly blockingReason?: string;
+  readonly stays: readonly RetryStayScopeItem[];
+}

@@ -460,6 +460,27 @@ export interface CreateBilledInvoicePayload {
 - **`CLAIM_FAILED`**: Lost concurrency race to another run during confirmation. Bypassed in current run.
 - **`RECOVERY_REQUIRED`**: Unhandled crash, timeout, or partial write. Claim remains **protected and locked** until resolved via the Recovery Workbench.
 
+### 15.1 Recovery Resolution & Retry Lineage (Slice 4B)
+
+The Recovery Workbench and Retry Run engine enforce the following conclusive rules:
+
+1. **Authoritative Evidence Correlation**:
+   The Recovery Service queries the authoritative `FinanceRepository` by `stayId`, matching against `obligationKey`(s), `remarks` containing the Billing Run ID and Stay ID, billing period, and total amounts.
+   - **`COMMITTED`**: An active (non-cancelled) Finance Bill exists with verified, balanced double-entry `LedgerEntry` postings.
+   - **`NOT_COMMITTED`**: Zero Bills and zero ledger entries exist in Finance for these obligations.
+   - **`UNKNOWN`**: Inconclusive evidence (e.g. cancelled bills, unbalanced ledgers, partial writes, or amount mismatches).
+
+2. **Resolution Semantics**:
+   - `resolveAsCommitted(financialBillId, notes)`: Transitions operation to `SUCCESS`, records `financialBillId`, commits associated claims to `CLAIM_COMMITTED`, and permanently bars the operation from entering any retry run.
+   - `resolveAsNotCommitted(reason, notes)`: Requires a mandatory operator reason, transitions operation to `FAILED`, releases associated claims to `CLAIM_RELEASED`, and returns obligations to the eligible pool for retry.
+   - **Strict Gating**: No force-resolution is permitted for `UNKNOWN` evidence. Both resolution actions are locked until manual audit resolves financial certainty.
+
+3. **Immutable Retry Lineage**:
+   - A Retry Run is instantiated as an independent, immutable `BillingRun` with `retryOfRunId = originalRun.id`.
+   - **Scope Invariants**: Includes only `FAILED`, `CLAIM_FAILED`, `NOT_PROCESSED`, and resolved `NOT_COMMITTED` operations. Strictly excludes `SUCCESS` (already billed) and `NO_CHARGES`.
+   - **Blocking Invariant**: Any unresolved `RECOVERY_REQUIRED` operation in the parent run blocks Retry Run creation until explicitly resolved in the Recovery Workbench.
+   - **Lifecycle Guarantee**: A Retry Run enters `DRAFT_PREVIEW` and must follow the standard preview → revalidation → confirmation → execution workflow.
+
 ---
 
 # 16. Security Deposit Boundary

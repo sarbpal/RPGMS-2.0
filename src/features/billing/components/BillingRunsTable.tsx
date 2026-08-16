@@ -9,17 +9,24 @@ import {
   Chip,
   Button,
   Typography,
+  Tooltip,
 } from '@mui/material';
-import { VisibilityOutlined, HistoryEduOutlined } from '@mui/icons-material';
+import { VisibilityOutlined, HistoryEduOutlined, ReplayOutlined } from '@mui/icons-material';
 import type { BillingRunSummaryViewModel } from '../application/models/BillingWorkspaceViewModel';
 
 interface BillingRunsTableProps {
   readonly runs: readonly BillingRunSummaryViewModel[];
   readonly onViewDetails: (runId: string) => void;
+  readonly onOpenRetryModal?: (runId: string) => void;
   readonly onCreateFirstRun: () => void;
 }
 
-export function BillingRunsTable({ runs, onViewDetails, onCreateFirstRun }: BillingRunsTableProps) {
+export function BillingRunsTable({
+  runs,
+  onViewDetails,
+  onOpenRetryModal,
+  onCreateFirstRun,
+}: BillingRunsTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
@@ -76,7 +83,15 @@ export function BillingRunsTable({ runs, onViewDetails, onCreateFirstRun }: Bill
               <TableCell sx={{ fontWeight: 600 }}>
                 {run.id}
                 {run.retryOfRunId && (
-                  <Chip label="Retry" size="small" variant="outlined" color="info" sx={{ ml: 1, height: 20 }} />
+                  <Tooltip title={`Retry of original run: ${run.retryOfRunId}`} arrow>
+                    <Chip
+                      label="Retry"
+                      size="small"
+                      variant="outlined"
+                      color="info"
+                      sx={{ ml: 1, height: 20, cursor: 'help' }}
+                    />
+                  </Tooltip>
                 )}
               </TableCell>
               <TableCell>{run.periodStart} → {run.periodEnd}</TableCell>
@@ -103,9 +118,22 @@ export function BillingRunsTable({ runs, onViewDetails, onCreateFirstRun }: Bill
                   size="small"
                   startIcon={<VisibilityOutlined />}
                   onClick={() => onViewDetails(run.id)}
+                  sx={{ mr: onOpenRetryModal ? 0.5 : 0 }}
                 >
                   Details
                 </Button>
+                {onOpenRetryModal &&
+                  (run.status === 'PARTIALLY_COMPLETED' || run.status === 'FAILED') && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<ReplayOutlined />}
+                      onClick={() => onOpenRetryModal(run.id)}
+                    >
+                      Retry
+                    </Button>
+                  )}
               </TableCell>
             </TableRow>
           ))}

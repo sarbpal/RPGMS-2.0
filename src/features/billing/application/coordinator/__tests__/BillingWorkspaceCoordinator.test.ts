@@ -267,4 +267,50 @@ describe('BillingWorkspaceCoordinator', () => {
       expect(stoppedSummary.status).toBe('STOPPING');
     });
   });
+
+  describe('4. Recovery & Retry Coordination', () => {
+    it('inspects and resolves recovery operations, and creates retry runs', async () => {
+      setupStay('STAY-106', 15000);
+
+      // Create run with an uncertain operation
+      const preview = await coordinator.generatePreview({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        operatorId: 'OP-01',
+        stayIds: ['STAY-106'],
+      });
+
+      const run = await runRepo.getById(preview.runId);
+      const op = run?.operations[0];
+      op?.markRecoveryRequired('Network timeout during dispatch');
+      if (run) await runRepo.save(run);
+
+      // 1. Coordinator lists unresolved recovery operations
+      const unresolved = await coordinator.getUnresolvedRecoveryOperations();
+      expect(unresolved).toHaveLength(1);
+      expect(unresolved[0].id).toBe(op?.id);
+
+      // 2. Inspect evidence (NOT_COMMITTED)
+      const evidence = await coordinator.inspectRecoveryEvidence(op!.id);
+      expect(evidence.assessment).toBe('NOT_COMMITTED');
+
+      // 3. Resolve as NOT_COMMITTED
+      const resolved = await coordinator.resolveRecoveryAsNotCommitted(
+        op!.id,
+        'OP-ADMIN',
+        'Invoice was not created in Finance'
+      );
+      expect(resolved.status).toBe('FAILED');
+
+      // 4. Inspect retry scope
+      const scope = await coordinator.getRetryScope(preview.runId);
+      expect(scope.canCreateRetry).toBe(true);
+      expect(scope.eligibleStaysCount).toBe(1);
+
+      // 5. Create Retry Run
+      const retryPreview = await coordinator.createRetryRun(preview.runId, 'OP-ADMIN', 'Second cycle');
+      expect(retryPreview.runId).toContain('RUN-RETRY-');
+      expect(retryPreview.eligibleStaysCount).toBe(1);
+    });
+  });
 });

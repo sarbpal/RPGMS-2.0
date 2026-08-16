@@ -6,6 +6,7 @@ import { BillingExecutionService } from '../services/BillingExecutionService';
 import { BillingDiscoveryService } from '../services/BillingDiscoveryService';
 import { BillingEligibilityService } from '../services/BillingEligibilityService';
 import { BillingClaimService } from '../services/BillingClaimService';
+import { BillingRecoveryService } from '../services/BillingRecoveryService';
 import { RentDiscoveryAdapter } from '../../infrastructure/adapters/RentDiscoveryAdapter';
 import { ElectricityDiscoveryAdapter } from '../../infrastructure/adapters/ElectricityDiscoveryAdapter';
 import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
@@ -24,6 +25,8 @@ import type {
   BillingRunSummaryViewModel,
   BillingRunDetailViewModel,
   BillingOperationDetailViewModel,
+  RecoveryEvidenceViewModel,
+  RetryRunScopeViewModel,
 } from '../models/BillingWorkspaceViewModel';
 
 export interface CreatePreviewInput {
@@ -36,11 +39,12 @@ export interface CreatePreviewInput {
 
 /**
  * Application Coordinator for the Billing Workspace.
- * Orchestrates operator workflows (preview, confirmation, execution, graceful stop, history, details)
+ * Orchestrates operator workflows (preview, confirmation, execution, graceful stop, history, details, recovery, retry)
  * and projects domain state into presentation-ready ViewModels.
  */
 export class BillingWorkspaceCoordinator {
   private readonly executionService: BillingExecutionService;
+  private readonly recoveryService: BillingRecoveryService;
   private readonly discoveryService: BillingDiscoveryService;
   private readonly eligibilityService: BillingEligibilityService;
   private readonly claimService: BillingClaimService;
@@ -55,7 +59,8 @@ export class BillingWorkspaceCoordinator {
     residentRepository: ResidentRepository = new InMemoryResidentRepository(),
     electricityRepository = defaultElectricityRepository,
     financeRepository = defaultFinanceRepository,
-    executionService?: BillingExecutionService
+    executionService?: BillingExecutionService,
+    recoveryService?: BillingRecoveryService
   ) {
     this.billingRunRepository = billingRunRepository;
     this.stayRepository = stayRepository;
@@ -79,6 +84,17 @@ export class BillingWorkspaceCoordinator {
         this.claimService,
         financeService
       );
+
+    this.recoveryService =
+      recoveryService ||
+      new BillingRecoveryService({
+        billingRunRepository: this.billingRunRepository,
+        claimRepository,
+        claimService: this.claimService,
+        stayRepository: this.stayRepository,
+        residentRepository: this.residentRepository,
+        financeRepository,
+      });
   }
 
   /**
@@ -226,6 +242,113 @@ export class BillingWorkspaceCoordinator {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit)
       .map((r) => this.toRunSummaryViewModel(r));
+  }
+
+  /**
+   * Retrieves all unresolved RECOVERY_REQUIRED operations across runs.
+   */
+  async getUnresolvedRecoveryOperations(): Promise<BillingOperationDetailViewModel[]> {
+    const items = await this.recoveryService.getUnresolvedRecoveryOperations();
+    return items.map(({ operation, residentName }) => ({
+      id: operation.id,
+      billingRunId: operation.billingRunId,
+      stayId: operation.stayId,
+      residentId: operation.residentId,
+      residentCode: operation.residentCode,
+      residentName,
+      status: operation.status,
+      totalAmount: operation.totalAmount,
+      financialBillId: operation.financialBillId,
+      failureReason: operation.failureReason,
+      recoveryNotes: operation.recoveryNotes,
+      obligationKeys: operation.obligationKeys,
+      createdAt: operation.createdAt,
+      updatedAt: operation.updatedAt,
+    }));
+  }
+
+  /**
+   * Inspects authoritative Finance evidence for a RECOVERY_REQUIRED operation.
+   */
+  async inspectRecoveryEvidence(operationId: string): Promise<RecoveryEvidenceViewModel> {
+    return this.recoveryService.inspectRecoveryEvidence(operationId);
+  }
+
+  /**
+   * Resolves a RECOVERY_REQUIRED operation as COMMITTED after verifying Finance evidence.
+   */
+  async resolveRecoveryAsCommitted(
+    operationId: string,
+    financialBillId: string,
+    operatorId: string,
+    notes: string
+  ): Promise<BillingOperationDetailViewModel> {
+    const op = await this.recoveryService.resolveAsCommitted(operationId, financialBillId, operatorId, notes);
+    const resident = await this.residentRepository.getById(op.residentId);
+    return {
+      id: op.id,
+      billingRunId: op.billingRunId,
+      stayId: op.stayId,
+      residentId: op.residentId,
+      residentCode: op.residentCode,
+      residentName: resident?.fullName || `Resident ${op.residentCode || op.residentId}`,
+      status: op.status,
+      totalAmount: op.totalAmount,
+      financialBillId: op.financialBillId,
+      failureReason: op.failureReason,
+      recoveryNotes: op.recoveryNotes,
+      obligationKeys: op.obligationKeys,
+      createdAt: op.createdAt,
+      updatedAt: op.updatedAt,
+    };
+  }
+
+  /**
+   * Resolves a RECOVERY_REQUIRED operation as NOT_COMMITTED after confirming absence of Finance postings.
+   */
+  async resolveRecoveryAsNotCommitted(
+    operationId: string,
+    operatorId: string,
+    reason: string,
+    notes?: string
+  ): Promise<BillingOperationDetailViewModel> {
+    const op = await this.recoveryService.resolveAsNotCommitted(operationId, operatorId, reason, notes);
+    const resident = await this.residentRepository.getById(op.residentId);
+    return {
+      id: op.id,
+      billingRunId: op.billingRunId,
+      stayId: op.stayId,
+      residentId: op.residentId,
+      residentCode: op.residentCode,
+      residentName: resident?.fullName || `Resident ${op.residentCode || op.residentId}`,
+      status: op.status,
+      totalAmount: op.totalAmount,
+      financialBillId: op.financialBillId,
+      failureReason: op.failureReason,
+      recoveryNotes: op.recoveryNotes,
+      obligationKeys: op.obligationKeys,
+      createdAt: op.createdAt,
+      updatedAt: op.updatedAt,
+    };
+  }
+
+  /**
+   * Evaluates the retry scope for an existing historical run.
+   */
+  async getRetryScope(originalRunId: string): Promise<RetryRunScopeViewModel> {
+    return this.recoveryService.getRetryScope(originalRunId);
+  }
+
+  /**
+   * Creates a new Retry BillingRun scoped to eligible failed stays and generates its preview.
+   */
+  async createRetryRun(
+    originalRunId: string,
+    operatorId: string,
+    notes?: string
+  ): Promise<BillingPreviewViewModel> {
+    const retryRun = await this.recoveryService.createRetryRun(originalRunId, operatorId, notes);
+    return this.buildPreviewViewModel(retryRun, false, []);
   }
 
   private async buildPreviewViewModel(

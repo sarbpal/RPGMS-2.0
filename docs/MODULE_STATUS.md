@@ -49,7 +49,7 @@ Current development is focused on delivering the Operational Services capability
 | Reservation & Admission | 🟢 Complete |
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
 | Electricity | 🟢 MVP Complete (CR-4 / Stage 1–5 Complete) |
-| Billing | 🟢 Slices 1–4A Complete (CR-4) |
+| Billing | 🟢 Slices 1–4B Complete (CR-4) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
 
@@ -525,17 +525,17 @@ Manages electricity supplier bills, sub-meter readings, monthly consumption, his
 
 # Billing Module
 
-**Status:** 🟢 Slices 1–4A Complete (Normal Billing Operator Workspace Operational)
+**Status:** 🟢 Slices 1–4B Complete (Normal Billing & Recovery/Retry Workbenches Complete)
 
 **State:** Active Operational Capability (CR-4)
 
 ## Purpose
 
-Orchestrates controlled billing cycles across Stays and uncommitted domain charges (Rent, Ancillary), discovers billable obligations, enforces first-claim-wins concurrency, revalidates live state against material changes at eligibility cutoff, and dispatches consolidated billing batches to Finance without duplicating domain-posted invoices (e.g. Confirmed Electricity).
+Orchestrates controlled billing cycles across Stays and uncommitted domain charges (Rent, Ancillary), discovers billable obligations, enforces first-claim-wins concurrency, revalidates live state against material changes at eligibility cutoff, dispatches consolidated billing batches to Finance without duplicating domain-posted invoices (e.g. Confirmed Electricity), resolves uncertain financial dispatch outcomes (`RECOVERY_REQUIRED`) against authoritative Finance evidence, and enables safe, non-duplicating retry runs with immutable lineage.
 
 ---
 
-## Completed (Slices 1–4A)
+## Completed (Slices 1–4B)
 
 ### Domain & Claims (Slice 1)
 - `BillingRun`, `BillingOperation`, `BillingClaim` aggregates
@@ -569,15 +569,24 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 - Historical runs table (`BillingRunsTable`)
 - Dedicated workspace page (`BillingPage`) registered at `/billing` and sidebar
 
+### Recovery & Retry Workbench (Slice 4B)
+- Application recovery service (`BillingRecoveryService`)
+- Authoritative Finance evidence correlation (matched Bills & balanced double-entry ledger postings)
+- Evidence classification (`COMMITTED`, `NOT_COMMITTED`, `UNKNOWN`)
+- Conclusive recovery resolution methods on `BillingOperation` (`resolveCommitted`, `resolveNotCommitted`)
+- Gated resolution semantics: `resolveAsCommitted` (commits claims, transitions to `SUCCESS`, permanently prevents retry) vs. `resolveAsNotCommitted` (releases claims, transitions to `FAILED`, enables retry)
+- Strict prohibition of force-resolving `UNKNOWN` or inconclusive evidence
+- Immutable Retry Run creation (`retryOfRunId = originalRun.id`) with strict exclusion of `SUCCESS`, `NO_CHARGES`, and blocking of unresolved `RECOVERY_REQUIRED` operations
+- Interactive Recovery Workbench modal (`RecoveryWorkbenchModal`) and Retry Run modal (`CreateRetryRunModal`)
+
 ---
 
-## Deferred Scope (Slice 4B & Future)
+## Deferred Scope (Future Capabilities)
 
-- **Slice 4B:** Recovery Workbench UI (investigating `RECOVERY_REQUIRED` operations against Finance repository evidence and manual resolution).
-- **Slice 4B:** Retry Run creation workflow.
 - **Future:** Operational Laundry discovery (pending Laundry domain creation).
 - **Future:** Maintenance / Penalty billing (pending Maintenance commercial architecture).
 - **Future:** PostgreSQL / Supabase SQL schema & repository persistence migration.
+- **Future:** Automated / Cron scheduled billing cycles and AI recovery heuristics.
 
 ---
 

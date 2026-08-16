@@ -15,12 +15,15 @@ import { BillingRunsTable } from '../components/BillingRunsTable';
 import { CreateRunModal } from '../components/CreateRunModal';
 import { PreviewConfirmationModal } from '../components/PreviewConfirmationModal';
 import { RunDetailsModal } from '../components/RunDetailsModal';
+import { RecoveryWorkbenchModal } from '../components/RecoveryWorkbenchModal';
+import { CreateRetryRunModal } from '../components/CreateRetryRunModal';
 
 export function BillingPage() {
   const {
     summary,
     preview,
     selectedRunDetails,
+    unresolvedRecoveryOps,
     isLoading,
     isSubmitting,
     error,
@@ -28,16 +31,28 @@ export function BillingPage() {
     isCreateModalOpen,
     isPreviewModalOpen,
     isDetailsModalOpen,
+    isRecoveryModalOpen,
+    isRetryModalOpen,
+    targetRetryRunId,
     refreshSummary,
     openCreateModal,
     closeCreateModal,
     closePreviewModal,
     openDetailsModal,
     closeDetailsModal,
+    openRecoveryModal,
+    closeRecoveryModal,
+    openRetryModal,
+    closeRetryModal,
     generatePreview,
     revalidatePreview,
     confirmAndStartRun,
     requestStop,
+    inspectRecoveryEvidence,
+    resolveRecoveryAsCommitted,
+    resolveRecoveryAsNotCommitted,
+    getRetryScope,
+    createRetryRun,
     clearMessages,
   } = useBillingWorkspace();
 
@@ -103,7 +118,10 @@ export function BillingPage() {
       />
 
       {/* 4. KPI Summary Cards */}
-      <BillingSummaryCards summary={summary} />
+      <BillingSummaryCards
+        summary={summary}
+        onOpenRecovery={openRecoveryModal}
+      />
 
       {/* 5. Historical Billing Runs */}
       <Box sx={{ mt: 4 }}>
@@ -113,6 +131,7 @@ export function BillingPage() {
         <BillingRunsTable
           runs={summary?.recentRuns || []}
           onViewDetails={openDetailsModal}
+          onOpenRetryModal={openRetryModal}
           onCreateFirstRun={openCreateModal}
         />
       </Box>
@@ -138,6 +157,25 @@ export function BillingPage() {
         open={isDetailsModalOpen}
         runDetails={selectedRunDetails}
         onClose={closeDetailsModal}
+      />
+
+      <RecoveryWorkbenchModal
+        open={isRecoveryModalOpen}
+        isSubmitting={isSubmitting}
+        unresolvedOperations={unresolvedRecoveryOps}
+        onClose={closeRecoveryModal}
+        onInspectEvidence={inspectRecoveryEvidence}
+        onResolveCommitted={resolveRecoveryAsCommitted}
+        onResolveNotCommitted={resolveRecoveryAsNotCommitted}
+      />
+
+      <CreateRetryRunModal
+        open={isRetryModalOpen}
+        originalRunId={targetRetryRunId || ''}
+        isSubmitting={isSubmitting}
+        onClose={closeRetryModal}
+        onGetRetryScope={getRetryScope}
+        onCreateRetryRun={createRetryRun}
       />
     </Box>
   );

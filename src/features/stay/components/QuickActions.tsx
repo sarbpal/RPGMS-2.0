@@ -20,22 +20,46 @@ const actions = [
 ];
 
 export interface QuickActionsProps {
+  onRecordPayment?: () => void;
+  onGenerateRent?: () => void;
+  onAddLaundry?: () => void;
+  onAddElectricity?: () => void;
   onTransferBed?: () => void;
+  onGiveNotice?: () => void;
+  onBeginCheckout?: () => void;
   onTransferFlat?: () => void;
   onAllocateAdditionalBed?: () => void;
   onReleaseBed?: () => void;
 }
 
 export function QuickActions({
+  onRecordPayment,
+  onGenerateRent,
+  onAddLaundry,
+  onAddElectricity,
   onTransferBed,
+  onGiveNotice,
+  onBeginCheckout,
   onTransferFlat,
   onAllocateAdditionalBed,
   onReleaseBed,
 }: QuickActionsProps = {}) {
   const getClickHandler = (label: string) => {
     switch (label) {
+      case 'Record Payment':
+        return onRecordPayment;
+      case 'Generate Monthly Rent':
+        return onGenerateRent;
+      case 'Add Laundry Charges':
+        return onAddLaundry;
+      case 'Add Electricity Charges':
+        return onAddElectricity;
       case 'Transfer Bed':
         return onTransferBed;
+      case 'Give Notice':
+        return onGiveNotice;
+      case 'Begin Checkout':
+        return onBeginCheckout;
       case 'Transfer Flat':
         return onTransferFlat;
       case 'Allocate Additional Bed':

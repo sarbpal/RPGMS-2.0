@@ -9,5 +9,6 @@ export * from './components/TimelinePanel';
 export * from './components/SupportingInformationPanel';
 export * from './components/BillingCycleHistoryCard';
 export * from './components/ChangeBillingCycleModal';
-export { default as StayWorkspacePage } from './pages/StayWorkspacePage';
+export * from './components/TransferBedModal';
+export * from './components/GiveNoticeModal';
 export { StaysRegistryPage } from './pages/StaysRegistryPage';

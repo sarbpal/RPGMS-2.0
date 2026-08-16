@@ -11,7 +11,8 @@ import { MaintenancePage } from '../features/maintenance';
 import { ReportsPage } from '../features/reports';
 import { ResidentsPage, ResidentWorkspacePage } from '../features/resident';
 import { SettingsPage } from '../features/settings';
-import { StayWorkspacePage, StaysRegistryPage } from '../features/stay';
+import StayWorkspacePage from '../features/stay/pages/StayWorkspacePage';
+import { StaysRegistryPage } from '../features/stay';
 import { ReservationsPage, ReservationWorkspacePage } from '../features/reservation';
 
 export const router = createBrowserRouter([

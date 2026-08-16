@@ -812,10 +812,45 @@ Following the implementation of Billing Slices 1–4B, end-to-end manual testing
 
 ---
 
+## ADR-028 — Stay Workspace Contextual Quick Actions Integration & Coordinator Delegation
+
+**Status:** Accepted
+
+### Context
+
+In the Stay Workspace (`/stay/:stayId`), seven Quick Action buttons (*Record Payment*, *Generate Monthly Rent*, *Add Laundry Charges*, *Add Electricity Charges*, *Transfer Bed*, *Give Notice*, *Begin Checkout*) were rendered by `QuickActions.tsx`, but lacked callback wiring in `StayWorkspacePage.tsx`.
+
+The Stay Workspace already holds the authoritative Stay aggregate, Resident entity, commercial terms (agreed rent and deposit), and live balance metrics. The target application services (`paymentService`, `billingService`, `settlementService`, `StayAccommodationCoordinator`, `StayNoticeCoordinator`, `StayCheckoutCoordinator`) and modals (`ReceivePaymentModal`, `GenerateRentModal`, `AddLaundryModal`, `SettlementDialog`) were already established.
+
+### Decision
+
+1. **Context-Driven Presentation Wiring:**
+   - `StayWorkspacePage.tsx` directly supplies the authentic `stayId`, `resident`, `stayDomainEntity`, and computed `balances` to target dialogs without requiring manual resident/stay reselection or constructing fake placeholder accounts (such as `"Global Finance Account"`).
+2. **Coordinator & Service Delegation:**
+   - Financial operations (`Record Payment`, `Generate Monthly Rent`, `Add Laundry Charges`, `Begin Checkout`) delegate to `paymentService`, `billingService`, and `settlementService` across established Finance boundaries.
+   - Stay lifecycle operations (`Transfer Bed`, `Give Notice`) delegate to `StayAccommodationCoordinator` and `StayNoticeCoordinator`.
+   - Electricity action routes the operator directly to `/electricity` (preserving Electricity domain ownership of share calculation and bill confirmation).
+3. **Live State Refresh:**
+   - Successful completion of any action triggers state re-projection in `StayWorkspaceCoordinator` (`setRefreshTrigger`), immediately updating header, summary cards, and the activity timeline.
+
+### Consequences
+
+#### Advantages:
+- Restores full operational functionality to all 7 Quick Actions in the Stay Workspace.
+- 100% preservation of domain ownership (Finance owns double-entry ledgers, Stay owns lifecycle/bed allocation, Electricity owns meter calculations).
+- Eliminates placeholder/dummy resident construction.
+- Comprehensive end-to-end integration test coverage.
+
+#### Trade-offs:
+- None.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.2 | August 2026 | Added ADR-028 (Stay Workspace Contextual Quick Actions Integration & Coordinator Delegation). |
 | 3.1 | August 2026 | Added ADR-027 (Authoritative Runtime Repository Graph Unification & Property-Wide Billing Discovery Semantics). |
 | 3.0 | August 2026 | Added ADR-026 (Billing Engine Charge Ownership, Discovery Contracts, and Cross-Domain Financial Reconciliation). |
 | 2.9 | August 2026 | Added ADR-025 (Billing Engine Controlled Run, Claim, Recovery and Retry Architecture). |

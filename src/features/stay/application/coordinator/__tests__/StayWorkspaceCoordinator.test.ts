@@ -94,4 +94,19 @@ describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
     expect(viewModel.timeline[0].title).toBe('Operational Checkout Completed');
     expect(viewModel.timeline[0].type).toBe('CHECKOUT');
   });
+
+  it('resolves authoritative Flat via findFlat from AccommodationRepository', () => {
+    // Flat 101 exists in accommodation seed data
+    const flat = coordinator.findFlat('101');
+    expect(flat).not.toBeNull();
+    expect(flat?.name).toBe('101');
+
+    // Non-existent flat
+    const missingFlat = coordinator.findFlat('NON_EXISTENT_FLAT');
+    expect(missingFlat).toBeNull();
+
+    // Unassigned flat string
+    const unassignedFlat = coordinator.findFlat('Unassigned');
+    expect(unassignedFlat).toBeNull();
+  });
 });

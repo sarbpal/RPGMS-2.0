@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Container, Link, Stack, Box } from '@mui/material';
+import { Container, Link, Stack, Box, Snackbar, Alert } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { QuickActions } from '../components/QuickActions';
 import { StayHeader } from '../components/StayHeader';
@@ -10,12 +10,29 @@ import { SupportingInformationPanel } from '../components/SupportingInformationP
 import { TimelinePanel } from '../components/TimelinePanel';
 import { BillingCycleHistoryCard } from '../components/BillingCycleHistoryCard';
 import { ChangeBillingCycleModal } from '../components/ChangeBillingCycleModal';
+import { TransferBedModal } from '../components/TransferBedModal';
+import { GiveNoticeModal } from '../components/GiveNoticeModal';
+import { ReceivePaymentModal } from '../../finance/components/ReceivePaymentModal';
+import { GenerateRentModal } from '../../finance/components/GenerateRentModal';
+import { AddLaundryModal } from '../../finance/components/AddLaundryModal';
+import { SettlementDialog } from '../../finance/components/SettlementDialog';
+import { useStayFinance } from '../../finance/hooks/useStayFinance';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 
 export default function StayWorkspacePage() {
   const { stayId } = useParams<{ stayId: string }>();
+  const navigate = useNavigate();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Dialog Visibility States
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isRentModalOpen, setIsRentModalOpen] = useState(false);
+  const [isLaundryModalOpen, setIsLaundryModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   const coordinator = useMemo(() => stayWorkflowComposition.stayWorkspaceCoordinator, []);
   const viewModel = useMemo(
@@ -30,6 +47,54 @@ export default function StayWorkspacePage() {
     void refreshTrigger;
     return coordinator.findStay(stayId || '');
   }, [coordinator, stayId, refreshTrigger]);
+
+  const resident = useMemo(() => {
+    const resId = stayDomainEntity?.residentId || viewModel.header.residentId;
+    return resId ? coordinator.findResident(resId) : null;
+  }, [coordinator, stayDomainEntity?.residentId, viewModel.header.residentId, refreshTrigger]);
+
+  const selectedFlat = useMemo(() => {
+    void refreshTrigger;
+    return stayDomainEntity?.flatId ? coordinator.findFlat(stayDomainEntity.flatId) : null;
+  }, [coordinator, stayDomainEntity?.flatId, refreshTrigger]);
+
+  const modalResident = useMemo(() => {
+    if (!resident) return null;
+    return {
+      ...resident,
+      allocatedBedIds: stayDomainEntity?.allocatedBedIds || [],
+      agreedRent: stayDomainEntity?.agreedRent || 0,
+      agreedDeposit: stayDomainEntity?.agreedDeposit || 0,
+    };
+  }, [resident, stayDomainEntity]);
+
+  // Retrieve stay financial metrics via application hook
+  const { balances, bills, payments, refresh: refreshFinance } = useStayFinance(stayId);
+
+  const currentMonthStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  const currentMonthCharges = useMemo(() => {
+    return bills
+      .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+      .reduce((sum, b) => sum + b.totalAmount, 0);
+  }, [bills, currentMonthStr]);
+
+  const lastPaymentDateText = useMemo(() => {
+    if (!payments || payments.length === 0) return 'No payments recorded';
+    const sorted = [...payments].sort(
+      (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+    );
+    return sorted[0]?.paymentDate || 'No payments recorded';
+  }, [payments]);
+
+  const handleActionSuccess = (message: string) => {
+    setRefreshTrigger((prev) => prev + 1);
+    refreshFinance();
+    setSnackbarMessage(message);
+  };
 
   const parentResidentPath = viewModel.header.residentId
     ? `/resident/${viewModel.header.residentId}`
@@ -82,7 +147,15 @@ export default function StayWorkspacePage() {
         <StayHeader data={viewModel.header} />
 
         {/* 2. Quick Actions */}
-        <QuickActions />
+        <QuickActions
+          onRecordPayment={() => setIsPaymentModalOpen(true)}
+          onGenerateRent={() => setIsRentModalOpen(true)}
+          onAddLaundry={() => setIsLaundryModalOpen(true)}
+          onAddElectricity={() => navigate('/electricity')}
+          onTransferBed={() => setIsTransferModalOpen(true)}
+          onGiveNotice={() => setIsNoticeModalOpen(true)}
+          onBeginCheckout={() => setIsCheckoutModalOpen(true)}
+        />
 
         {/* 3. Responsive Grid with Stay Summary and Financial Summary */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
@@ -94,22 +167,117 @@ export default function StayWorkspacePage() {
           </Box>
         </Box>
 
-        {/* 4. Billing Cycle History Card */}
+        {/* 4. Stay Timeline */}
+        <TimelinePanel events={viewModel.timeline} />
+
+        {/* 5. Supporting Information (Documents & Emergency Contact) */}
+        <SupportingInformationPanel data={viewModel.supportingInformation} />
+
+        {/* 6. Billing Cycle History Card */}
         {stayDomainEntity && (
           <BillingCycleHistoryCard
             stay={stayDomainEntity}
             onChangeBillingCycle={() => setIsBillingModalOpen(true)}
           />
         )}
-
-        {/* 5. Timeline Panel */}
-        <TimelinePanel events={viewModel.timeline} />
-
-        {/* 6. Supporting Information Panel */}
-        <SupportingInformationPanel data={viewModel.supportingInformation} />
       </Stack>
 
-      {/* Change Billing Cycle Modal */}
+      {/* ========================================================================= */}
+      {/* Interactive Modal Dialogs (Preserving Clean Architecture & Domain Boundaries) */}
+      {/* ========================================================================= */}
+
+      {/* 1. Record Payment Modal */}
+      {isPaymentModalOpen && modalResident && (
+        <ReceivePaymentModal
+          open={isPaymentModalOpen}
+          resident={modalResident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          balances={balances}
+          currentMonthCharges={currentMonthCharges}
+          lastPaymentDateText={lastPaymentDateText}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsPaymentModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+        />
+      )}
+
+      {/* 2. Generate Monthly Rent Modal */}
+      {isRentModalOpen && modalResident && (
+        <GenerateRentModal
+          open={isRentModalOpen}
+          resident={modalResident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          onClose={() => setIsRentModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsRentModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+        />
+      )}
+
+      {/* 3. Add Laundry Modal */}
+      {isLaundryModalOpen && modalResident && (
+        <AddLaundryModal
+          open={isLaundryModalOpen}
+          resident={modalResident}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          balances={balances}
+          onClose={() => setIsLaundryModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsLaundryModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+        />
+      )}
+
+      {/* 4. Transfer Bed Modal */}
+      {isTransferModalOpen && stayDomainEntity && (
+        <TransferBedModal
+          open={isTransferModalOpen}
+          stay={stayDomainEntity}
+          onClose={() => setIsTransferModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsTransferModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+          onTransferBed={(input) => coordinator.transferBed(input)}
+        />
+      )}
+
+      {/* 5. Give Notice Modal */}
+      {isNoticeModalOpen && stayDomainEntity && (
+        <GiveNoticeModal
+          open={isNoticeModalOpen}
+          stay={stayDomainEntity}
+          onClose={() => setIsNoticeModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsNoticeModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+          onGiveNotice={(input) => coordinator.giveNotice(input)}
+        />
+      )}
+
+      {/* 6. Settlement / Checkout Dialog */}
+      {isCheckoutModalOpen && (
+        <SettlementDialog
+          open={isCheckoutModalOpen}
+          resident={modalResident || resident}
+          stayId={stayId}
+          onClose={() => setIsCheckoutModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsCheckoutModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+        />
+      )}
+
+      {/* 7. Change Billing Cycle Modal */}
       {stayDomainEntity && (
         <ChangeBillingCycleModal
           open={isBillingModalOpen}
@@ -117,11 +285,28 @@ export default function StayWorkspacePage() {
           onClose={() => setIsBillingModalOpen(false)}
           onSuccess={() => {
             setIsBillingModalOpen(false);
-            setRefreshTrigger((prev) => prev + 1);
+            handleActionSuccess('Billing cycle changed successfully.');
           }}
           onChangeBillingCycle={(input) => coordinator.changeBillingCycle(input)}
         />
       )}
+
+      {/* Success Notification Snackbar */}
+      <Snackbar
+        open={Boolean(snackbarMessage)}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarMessage(null)}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

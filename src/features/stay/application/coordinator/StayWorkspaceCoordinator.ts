@@ -10,6 +10,17 @@ import type { AccommodationRepository } from '../../../accommodation/domain/inte
 import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { StayBillingCycleCoordinator, type ChangeBillingCycleInput } from './StayBillingCycleCoordinator';
 import { StayLifecycleCoordinator, type ActivateStayInput, type CancelPlannedStayInput, type CloseStayInput } from './StayLifecycleCoordinator';
+import {
+  StayAccommodationCoordinator,
+  type TransferBedInput,
+  type TransferFlatInput,
+  type AllocateAdditionalBedInput,
+  type ReleaseBedInput,
+} from './StayAccommodationCoordinator';
+import { StayNoticeCoordinator, type GiveNoticeInput } from './StayNoticeCoordinator';
+import { StayCheckoutCoordinator, type ProcessCheckoutInput } from './StayCheckoutCoordinator';
+import type { Resident } from '../../../resident/domain/entities/Resident';
+import type { Flat } from '../../../accommodation/domain/entities/Flat';
 
 export class StayWorkspaceCoordinator {
   private stayRepository: StayRepository;
@@ -30,6 +41,16 @@ export class StayWorkspaceCoordinator {
     return this.stayRepository.findByIdSync(stayId);
   }
 
+  public findResident(residentId: string): Resident | null {
+    const inMem = this.residentRepository as InMemoryResidentRepository;
+    return inMem.getByIdSync ? inMem.getByIdSync(residentId) : null;
+  }
+
+  public findFlat(flatId: string): Flat | null {
+    if (!flatId || flatId === 'Unassigned') return null;
+    return this.accommodationRepository.findById(flatId);
+  }
+
   public getStaysForResident(residentId: string): Stay[] {
     return this.stayRepository.getAllSync().filter((stay) => stay.residentId === residentId);
   }
@@ -46,6 +67,24 @@ export class StayWorkspaceCoordinator {
   }
   public closeStay(input: CloseStayInput): CurrentProjection {
     return new StayLifecycleCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).closeStay(input);
+  }
+  public transferBed(input: TransferBedInput): CurrentProjection {
+    return new StayAccommodationCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).transferBed(input);
+  }
+  public transferFlat(input: TransferFlatInput): CurrentProjection {
+    return new StayAccommodationCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).transferFlat(input);
+  }
+  public allocateAdditionalBed(input: AllocateAdditionalBedInput): CurrentProjection {
+    return new StayAccommodationCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).allocateAdditionalBed(input);
+  }
+  public releaseBed(input: ReleaseBedInput): CurrentProjection {
+    return new StayAccommodationCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).releaseBed(input);
+  }
+  public giveNotice(input: GiveNoticeInput): CurrentProjection {
+    return new StayNoticeCoordinator(this.stayRepository).giveNotice(input);
+  }
+  public processCheckout(input: ProcessCheckoutInput): CurrentProjection {
+    return new StayCheckoutCoordinator(this.stayRepository, this.accommodationRepository).processCheckout(input);
   }
 
   public createViewModel(stayId: string): StayWorkspaceViewModel {
@@ -88,9 +127,18 @@ export class StayWorkspaceCoordinator {
     const residentName = this.resolveResidentName(projection.residentId);
 
     // Format Flat & Bed Allocation details
-    const formattedFlat = projection.flatId.startsWith('FLAT-')
-      ? `Flat ${projection.flatId.replace('FLAT-', '')}`
-      : projection.flatId;
+    const flatEntity = projection.flatId && projection.flatId !== 'Unassigned'
+      ? this.accommodationRepository.findById(projection.flatId)
+      : null;
+
+    let formattedFlat = projection.flatId;
+    if (flatEntity) {
+      formattedFlat = flatEntity.name.startsWith('Flat ') ? flatEntity.name : `Flat ${flatEntity.name}`;
+    } else if (projection.flatId.startsWith('FLAT-')) {
+      formattedFlat = `Flat ${projection.flatId.replace('FLAT-', '')}`;
+    } else if (projection.flatId !== 'Unassigned' && !projection.flatId.startsWith('Flat ')) {
+      formattedFlat = `Flat ${projection.flatId}`;
+    }
 
     const formattedBeds =
       projection.activeBedIds.length > 0

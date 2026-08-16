@@ -267,7 +267,7 @@ The Stay Module records where a resident is staying, the period of occupancy, ac
 ### User Experience
 
 - Parent-child workspace navigation
-- Quick Actions
+- Interactive Quick Actions (Record Payment, Generate Monthly Rent, Add Laundry Charges, Add Electricity Charges navigation, Transfer Bed, Give Notice, Begin Checkout)
 - Operational workspace layout
 - Current Stay projection
 - Consistent workspace sections

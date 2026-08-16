@@ -12,20 +12,57 @@ import type {
   StayBalance,
   TimelineSummary,
 } from '../../types';
+import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
+import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
+import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
+import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import type { Resident } from '../../../resident/domain/entities/Resident';
+import type { Flat } from '../../../accommodation/domain/entities/Flat';
+import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
+
+export interface SelectableStayItem {
+  stayId: string;
+  residentId: string;
+  residentName: string;
+  residentCode: string;
+  phone?: string;
+  flatId: string;
+  flatName: string;
+  allocatedBedsLabel: string;
+  status: string;
+  checkInDate: string;
+  agreedRent: number;
+  agreedDeposit: number;
+  currentBalance: number;
+  balances: StayBalance;
+  resident: Resident;
+  flat: Flat | null;
+}
 
 export class FinanceWorkspaceCoordinator {
   private reportingService: ReportingApplicationService;
   private timelineService: TimelineApplicationService;
   private balanceEngine: BalanceApplicationService;
+  private stayRepository: StayRepository;
+  private residentRepository: ResidentRepository;
+  private accommodationRepository: AccommodationRepository;
 
   constructor(
     reportingService: ReportingApplicationService = defaultReportingService,
     timelineService: TimelineApplicationService = defaultTimelineService,
-    balanceEngine: BalanceApplicationService = defaultBalanceEngine
+    balanceEngine: BalanceApplicationService = defaultBalanceEngine,
+    stayRepository: StayRepository = defaultStayRepository,
+    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
+    accommodationRepository: AccommodationRepository = new InMemoryAccommodationRepository()
   ) {
     this.reportingService = reportingService;
     this.timelineService = timelineService;
     this.balanceEngine = balanceEngine;
+    this.stayRepository = stayRepository;
+    this.residentRepository = residentRepository;
+    this.accommodationRepository = accommodationRepository;
   }
 
   /**
@@ -74,5 +111,75 @@ export class FinanceWorkspaceCoordinator {
       timeline,
       summary,
     };
+  }
+
+  /**
+   * Retrieves all active/on-notice stays enriched with resident and accommodation data for finance selection.
+   */
+  public getActiveStaysForSelection(): SelectableStayItem[] {
+    const stays = this.stayRepository.getAllSync();
+    const residents = this.residentRepository.getAllSync();
+    const flats = this.accommodationRepository.findAll();
+
+    const residentMap = new Map<string, Resident>();
+    residents.forEach((r) => residentMap.set(r.id, r));
+
+    const flatMap = new Map<string, Flat>();
+    flats.forEach((f) => flatMap.set(f.id, f));
+
+    const selectableStays: SelectableStayItem[] = [];
+
+    stays.forEach((stay) => {
+      // Selection candidates: ACTIVE, ON_NOTICE (exclude CHECKED_OUT, CLOSED, CANCELLED)
+      if (stay.status !== StayStatus.ACTIVE && stay.status !== StayStatus.ON_NOTICE) {
+        return;
+      }
+
+      const resident = residentMap.get(stay.residentId);
+      if (!resident) return;
+
+      const flat = stay.flatId ? flatMap.get(stay.flatId) || null : null;
+      const flatName = flat
+        ? (flat.name.startsWith('Flat ') ? flat.name : `Flat ${flat.name}`)
+        : (stay.flatId && stay.flatId !== 'Unassigned'
+            ? (stay.flatId.startsWith('Flat ') ? stay.flatId : `Flat ${stay.flatId}`)
+            : 'Unassigned');
+
+      const allocatedBeds =
+        stay.allocatedBedIds && stay.allocatedBedIds.length > 0
+          ? stay.allocatedBedIds.map((b) => b.replace(/^BED-/i, '')).join(', ')
+          : 'None';
+      const allocatedBedsLabel = `Bed ${allocatedBeds}`;
+
+      const balances = this.balanceEngine.calculateStayBalances(stay.id);
+
+      const enrichedResident: Resident = {
+        ...resident,
+        allocatedBedIds: stay.allocatedBedIds || [],
+        agreedRent: stay.agreedRent || 0,
+        agreedDeposit: stay.agreedDeposit || 0,
+      } as Resident;
+
+      selectableStays.push({
+        stayId: stay.id,
+        residentId: resident.id,
+        residentName: resident.fullName,
+        residentCode: resident.residentCode,
+        phone: resident.mobileNumber,
+        flatId: stay.flatId || '',
+        flatName,
+        allocatedBedsLabel,
+        status: stay.status,
+        checkInDate: stay.checkInDate,
+        agreedRent: stay.agreedRent || 0,
+        agreedDeposit: stay.agreedDeposit || 0,
+        currentBalance: balances.receivableBalance,
+        balances,
+        resident: enrichedResident,
+        flat,
+      });
+    });
+
+    return selectableStays;
   }
 }

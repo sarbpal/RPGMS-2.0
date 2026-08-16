@@ -842,7 +842,38 @@ The Stay Workspace already holds the authoritative Stay aggregate, Resident enti
 - Comprehensive end-to-end integration test coverage.
 
 #### Trade-offs:
-- None.
+## ADR-029 — Finance Workspace Global Action Stay Selection & Elimination of Scaffolding Placeholder
+
+**Status:** Accepted
+
+### Context
+
+On the top-level Finance Dashboard (`/finance`), header action buttons (*Receive Payment*, *Generate Rent*, *Add Extra Charge*, *Process Settlement*) were previously wired with a temporary UI scaffolding fallback (`targetResident` as `"Global Finance Account"`, `RES-GLOBAL`, `res_global`, with `dummyBalances`).
+
+Because RPGMS 2.0 financial domain operations (bills, payments, ledger postings, settlements) are strictly Stay-scoped domain operations, executing actions against `RES-GLOBAL` resulted in disabled buttons (e.g. *Generate Rent* failed validation due to `agreedRent = 0` and missing `stayId`) or threatened to post orphaned records.
+
+### Decision
+
+1. **Elimination of Scaffolding Placeholder:**
+   - Completely removed `Global Finance Account`, `RES-GLOBAL`, and `res_global` from `FinanceWorkspacePage.tsx`. No synthetic or fallback Resident/Stay objects are permitted in operational workflows.
+2. **Authoritative Stay Selection Step (Option A):**
+   - When an operator clicks a top-level action button on `/finance`, `SelectStayModal` opens, presenting all active and on-notice stays resolved via `FinanceWorkspaceCoordinator.getActiveStaysForSelection()`.
+   - The selector displays resident name/code, flat and bed allocations, stay status (`ACTIVE` / `ON_NOTICE`), monthly rent, and current outstanding balance.
+3. **Seamless Context Propagation:**
+   - Upon selecting a stay, the target action modal (`ReceivePaymentModal`, `GenerateRentModal`, `AddLaundryModal`, `SettlementDialog`) opens directly with the authentic `Resident`, `stayId`, `Flat`, `Bed`, agreed rent, and live balances.
+4. **Preservation of Row-Level Context Actions:**
+   - Contextual table row actions (e.g. `Receive Payment` for an outstanding resident) already possess authoritative context and directly bypass the selector modal.
+
+### Consequences
+
+#### Advantages:
+- Eliminates placeholder/dummy resident construction from the Finance Workspace.
+- Guarantees that every bill, payment, and settlement is bound to a valid, authoritative `Stay` aggregate.
+- Prevents invalid or disabled modal states.
+- Clean separation between global dashboard discovery and contextual execution.
+
+#### Trade-offs:
+- Requires one additional selection click when initiating financial transactions from the top-level property dashboard without a row selection.
 
 ---
 
@@ -850,6 +881,7 @@ The Stay Workspace already holds the authoritative Stay aggregate, Resident enti
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.3 | August 2026 | Added ADR-029 (Finance Workspace Global Action Stay Selection & Elimination of Scaffolding Placeholder). |
 | 3.2 | August 2026 | Added ADR-028 (Stay Workspace Contextual Quick Actions Integration & Coordinator Delegation). |
 | 3.1 | August 2026 | Added ADR-027 (Authoritative Runtime Repository Graph Unification & Property-Wide Billing Discovery Semantics). |
 | 3.0 | August 2026 | Added ADR-026 (Billing Engine Charge Ownership, Discovery Contracts, and Cross-Domain Financial Reconciliation). |

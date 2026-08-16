@@ -437,6 +437,7 @@ Manages the complete financial lifecycle of residents, including rent, running s
 ### Workspaces & Components
 
 - Finance Dashboard & Workspace (`FinanceWorkspacePage.tsx`)
+- Authoritative Stay Selector Dialog (`SelectStayModal.tsx`)
 - Resident Financial Profile (`ResidentFinancialProfile.tsx`)
 - Deposit Ledger Table (`DepositLedgerTable.tsx`)
 - Partial Deposit Return Modal (`PartialDepositReturnModal.tsx`)
@@ -446,6 +447,7 @@ Manages the complete financial lifecycle of residents, including rent, running s
 ### Business Capabilities
 
 - Double-entry ledger architecture (`LedgerApplicationService`, `BalanceEngine`)
+- Authoritative Stay-scoped selection for all global dashboard actions (eliminated placeholder `RES-GLOBAL`)
 - Monthly rent bill generation & category accounting
 - Security Deposit liability account & category routing (`AccountType.SECURITY_DEPOSIT_LIABILITY`)
 - Running Deposit Account ledger (`DepositTransaction`)

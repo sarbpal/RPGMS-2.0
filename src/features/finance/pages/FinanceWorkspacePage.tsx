@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Stack,
   Typography,
@@ -29,15 +29,16 @@ import {
   ExitToApp,
 } from '@mui/icons-material';
 
-import { useFinanceWorkspace } from '../hooks/useFinanceWorkspace';
+import { useFinanceWorkspace, type FinanceModalType } from '../hooks/useFinanceWorkspace';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { ReceivePaymentModal } from '../components/ReceivePaymentModal';
 import { GenerateRentModal } from '../components/GenerateRentModal';
 import { AddLaundryModal } from '../components/AddLaundryModal';
 import { SettlementDialog } from '../components/SettlementDialog';
+import { SelectStayModal } from '../components/SelectStayModal';
+import type { SelectableStayItem } from '../application/coordinator/FinanceWorkspaceCoordinator';
 import { formatCurrency } from '../utils/currencyFormatters';
 import type { Resident } from '../../resident';
-import type { StayBalance } from '../domain';
 import type { OutstandingResidentReportItem, SettlementReportItem } from '../types';
 
 export default function FinanceWorkspacePage() {
@@ -48,6 +49,8 @@ export default function FinanceWorkspacePage() {
     selectedResident,
     selectedStayId,
     selectedFlat,
+    selectedBalances,
+    coordinator,
     openModal,
     closeModal,
     refresh,
@@ -55,8 +58,33 @@ export default function FinanceWorkspacePage() {
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<FinanceModalType>(null);
 
   const { metrics, outstandingResidents, settlementsReport } = viewModel;
+
+  const selectableStays = useMemo(() => {
+    return coordinator.getActiveStaysForSelection();
+  }, [coordinator, activity, viewModel]);
+
+  const handleGlobalActionClick = (actionType: FinanceModalType) => {
+    setPendingAction(actionType);
+    setIsSelectorOpen(true);
+  };
+
+  const handleStaySelected = (stayItem: SelectableStayItem) => {
+    setIsSelectorOpen(false);
+    if (pendingAction) {
+      openModal(
+        pendingAction,
+        stayItem.resident,
+        stayItem.stayId,
+        stayItem.flat,
+        stayItem.balances
+      );
+    }
+    setPendingAction(null);
+  };
 
   const handleSuccess = (message: string) => {
     refresh();
@@ -75,25 +103,6 @@ export default function FinanceWorkspacePage() {
       default:
         return 'default';
     }
-  };
-
-  // Construct dummy / target resident object when triggered globally without a specific row selection
-  const targetResident: Resident = selectedResident || {
-    id: selectedStayId || 'res_global',
-    residentCode: 'RES-GLOBAL',
-    fullName: 'Global Finance Account',
-    status: 'ACTIVE' as const,
-    mobileNumber: '9999999999',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  const dummyBalances: StayBalance = {
-    receivableBalance: metrics.outstandingReceivables,
-    securityDepositHeld: 0,
-    advanceCreditBalance: 0,
-    refundPayable: 0,
-    netBalance: metrics.outstandingReceivables,
   };
 
   return (
@@ -116,7 +125,7 @@ export default function FinanceWorkspacePage() {
               variant="contained"
               color="success"
               startIcon={<Payments />}
-              onClick={() => openModal('RECEIVE_PAYMENT')}
+              onClick={() => handleGlobalActionClick('RECEIVE_PAYMENT')}
               sx={{ fontWeight: 700 }}
             >
               Receive Payment
@@ -125,7 +134,7 @@ export default function FinanceWorkspacePage() {
               variant="outlined"
               color="primary"
               startIcon={<MonetizationOn />}
-              onClick={() => openModal('GENERATE_RENT')}
+              onClick={() => handleGlobalActionClick('GENERATE_RENT')}
               sx={{ fontWeight: 600 }}
             >
               Generate Rent
@@ -134,7 +143,7 @@ export default function FinanceWorkspacePage() {
               variant="outlined"
               color="info"
               startIcon={<LocalLaundryService />}
-              onClick={() => openModal('ADD_LAUNDRY')}
+              onClick={() => handleGlobalActionClick('ADD_LAUNDRY')}
               sx={{ fontWeight: 600 }}
             >
               Add Extra Charge
@@ -143,7 +152,7 @@ export default function FinanceWorkspacePage() {
               variant="outlined"
               color="warning"
               startIcon={<ExitToApp />}
-              onClick={() => openModal('PROCESS_SETTLEMENT')}
+              onClick={() => handleGlobalActionClick('PROCESS_SETTLEMENT')}
               sx={{ fontWeight: 600 }}
             >
               Process Settlement
@@ -327,7 +336,20 @@ export default function FinanceWorkspacePage() {
                               <IconButton
                                 size="small"
                                 color="success"
-                                onClick={() => openModal('RECEIVE_PAYMENT', rowResident, row.stayId)}
+                                onClick={() => {
+                                  const matchingStay = selectableStays.find((s) => s.stayId === row.stayId);
+                                  if (matchingStay) {
+                                    openModal(
+                                      'RECEIVE_PAYMENT',
+                                      matchingStay.resident,
+                                      matchingStay.stayId,
+                                      matchingStay.flat,
+                                      matchingStay.balances
+                                    );
+                                  } else {
+                                    openModal('RECEIVE_PAYMENT', rowResident, row.stayId);
+                                  }
+                                }}
                               >
                                 <Payments fontSize="small" />
                               </IconButton>
@@ -411,44 +433,76 @@ export default function FinanceWorkspacePage() {
       </Paper>
 
       {/* Modal Dialogs */}
-      {activeModal === 'RECEIVE_PAYMENT' && (
+      {/* 0. Target Stay Selector Dialog */}
+      <SelectStayModal
+        open={isSelectorOpen}
+        actionType={pendingAction}
+        stays={selectableStays}
+        onSelectStay={handleStaySelected}
+        onClose={() => {
+          setIsSelectorOpen(false);
+          setPendingAction(null);
+        }}
+      />
+
+      {/* 1. Receive Payment Modal */}
+      {activeModal === 'RECEIVE_PAYMENT' && selectedResident && selectedStayId && (
         <ReceivePaymentModal
           open={activeModal === 'RECEIVE_PAYMENT'}
           onClose={closeModal}
-          resident={targetResident}
+          resident={selectedResident}
           selectedFlat={selectedFlat}
           stayId={selectedStayId}
-          balances={dummyBalances}
+          balances={
+            selectedBalances || {
+              receivableBalance: 0,
+              securityDepositHeld: 0,
+              advanceCreditBalance: 0,
+              refundPayable: 0,
+              netBalance: 0,
+            }
+          }
           currentMonthCharges={metrics.totalMonthlyBilling}
-          lastPaymentDateText="Active Account"
+          lastPaymentDateText="Current Account"
           onSuccess={handleSuccess}
         />
       )}
 
-      {activeModal === 'GENERATE_RENT' && (
+      {/* 2. Generate Rent Modal */}
+      {activeModal === 'GENERATE_RENT' && selectedResident && selectedStayId && (
         <GenerateRentModal
           open={activeModal === 'GENERATE_RENT'}
           onClose={closeModal}
-          resident={targetResident}
+          resident={selectedResident}
           selectedFlat={selectedFlat}
           stayId={selectedStayId}
           onSuccess={handleSuccess}
         />
       )}
 
-      {activeModal === 'ADD_LAUNDRY' && (
+      {/* 3. Add Laundry Modal */}
+      {activeModal === 'ADD_LAUNDRY' && selectedResident && selectedStayId && (
         <AddLaundryModal
           open={activeModal === 'ADD_LAUNDRY'}
           onClose={closeModal}
-          resident={targetResident}
+          resident={selectedResident}
           selectedFlat={selectedFlat}
           stayId={selectedStayId}
-          balances={dummyBalances}
+          balances={
+            selectedBalances || {
+              receivableBalance: 0,
+              securityDepositHeld: 0,
+              advanceCreditBalance: 0,
+              refundPayable: 0,
+              netBalance: 0,
+            }
+          }
           onSuccess={handleSuccess}
         />
       )}
 
-      {activeModal === 'PROCESS_SETTLEMENT' && (
+      {/* 4. Process Settlement Dialog */}
+      {activeModal === 'PROCESS_SETTLEMENT' && selectedResident && selectedStayId && (
         <SettlementDialog
           open={activeModal === 'PROCESS_SETTLEMENT'}
           onClose={closeModal}

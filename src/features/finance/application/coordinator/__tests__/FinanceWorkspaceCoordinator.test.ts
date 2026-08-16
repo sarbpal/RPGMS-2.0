@@ -73,7 +73,9 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
     coordinator = new FinanceWorkspaceCoordinator(
       reportingService,
       timelineService,
-      balanceEngine
+      balanceEngine,
+      stayRepo,
+      residentRepo
     );
   });
 
@@ -130,6 +132,51 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
       expect(stayVm.timeline).toHaveLength(1);
       expect(stayVm.summary.totalBillsCount).toBe(1);
       expect(stayVm.summary.settlementStatus).toBe('NONE');
+    });
+  });
+
+  describe('getActiveStaysForSelection', () => {
+    it('returns active and on-notice stays enriched with resident and accommodation data, excluding checked-out stays', () => {
+      const onNoticeStay = new Stay({
+        id: 'stay-coord-on-notice',
+        residentId: sampleResident.id,
+        stayType: 'REGULAR',
+        status: StayStatus.ON_NOTICE,
+        checkInDate: '2026-06-01',
+        flatId: '101',
+        allocatedBedIds: ['101-B1'],
+        agreedRent: 15000,
+        agreedDeposit: 15000,
+      });
+
+      const checkedOutStay = new Stay({
+        id: 'stay-coord-closed',
+        residentId: sampleResident.id,
+        stayType: 'REGULAR',
+        status: StayStatus.CHECKED_OUT,
+        checkInDate: '2025-01-01',
+        flatId: '102',
+        allocatedBedIds: ['102-B1'],
+      });
+
+      stayRepo.saveSync(onNoticeStay);
+      stayRepo.saveSync(checkedOutStay);
+
+      const selectableStays = coordinator.getActiveStaysForSelection();
+
+      // Only ACTIVE and ON_NOTICE
+      const stayIds = selectableStays.map((s) => s.stayId);
+      expect(stayIds).toContain('stay-coord-1');
+      expect(stayIds).toContain('stay-coord-on-notice');
+      expect(stayIds).not.toContain('stay-coord-closed');
+
+      const noticeItem = selectableStays.find((s) => s.stayId === 'stay-coord-on-notice');
+      expect(noticeItem).toBeDefined();
+      expect(noticeItem?.residentName).toBe('Ananya Verma');
+      expect(noticeItem?.status).toBe(StayStatus.ON_NOTICE);
+      expect(noticeItem?.agreedRent).toBe(15000);
+      expect(noticeItem?.agreedDeposit).toBe(15000);
+      expect(noticeItem?.allocatedBedsLabel).toBe('Bed 101-B1');
     });
   });
 });

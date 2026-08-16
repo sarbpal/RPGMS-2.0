@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { FinanceTimelineEvent } from '../types';
+import type { FinanceTimelineEvent, StayBalance } from '../types';
 import type { FinanceWorkspaceViewModel } from '../application/models/FinanceWorkspaceViewModel';
 import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
@@ -20,11 +20,14 @@ export interface UseFinanceWorkspaceReturn {
   selectedResident: Resident | null;
   selectedStayId: string | undefined;
   selectedFlat: Flat | null;
+  selectedBalances: StayBalance | null;
+  coordinator: FinanceWorkspaceCoordinator;
   openModal: (
     modalType: FinanceModalType,
     resident?: Resident | null,
     stayId?: string,
-    flat?: Flat | null
+    flat?: Flat | null,
+    balances?: StayBalance | null
   ) => void;
   closeModal: () => void;
   refresh: () => void;
@@ -39,6 +42,7 @@ export function useFinanceWorkspace(
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [selectedStayId, setSelectedStayId] = useState<string | undefined>(undefined);
   const [selectedFlat, setSelectedFlat] = useState<Flat | null>(null);
+  const [selectedBalances, setSelectedBalances] = useState<StayBalance | null>(null);
 
   const activeCoordinator = useMemo(
     () => coordinator || new FinanceWorkspaceCoordinator(),
@@ -64,11 +68,13 @@ export function useFinanceWorkspace(
       modalType: FinanceModalType,
       resident: Resident | null = null,
       stayId?: string,
-      flat: Flat | null = null
+      flat: Flat | null = null,
+      balances: StayBalance | null = null
     ) => {
       setSelectedResident(resident);
       setSelectedStayId(stayId);
       setSelectedFlat(flat);
+      setSelectedBalances(balances);
       setActiveModal(modalType);
     },
     []
@@ -79,6 +85,7 @@ export function useFinanceWorkspace(
     setSelectedResident(null);
     setSelectedStayId(undefined);
     setSelectedFlat(null);
+    setSelectedBalances(null);
   }, []);
 
   return {
@@ -89,6 +96,8 @@ export function useFinanceWorkspace(
     selectedResident,
     selectedStayId,
     selectedFlat,
+    selectedBalances,
+    coordinator: activeCoordinator,
     openModal,
     closeModal,
     refresh,

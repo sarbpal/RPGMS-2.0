@@ -122,4 +122,21 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
     expect(vmAfterPay.outstandingResidents.length).toBe(0);
     expect(vmAfterPay.activity.length).toBeGreaterThan(0);
   });
+
+  describe('Global Action Flow & Stay Selection UI', () => {
+    it('provides getActiveStaysForSelection with active and on-notice seed stays', () => {
+      const coordinator = new FinanceWorkspaceCoordinator();
+      const stays = coordinator.getActiveStaysForSelection();
+
+      expect(stays.length).toBeGreaterThanOrEqual(2);
+      const rajesh = stays.find((s) => s.residentName.includes('Rajesh'));
+      expect(rajesh).toBeDefined();
+      expect(rajesh?.flatName).toContain('101');
+      expect(rajesh?.allocatedBedsLabel).toContain('101-B1');
+
+      const amit = stays.find((s) => s.residentName.includes('Amit'));
+      expect(amit).toBeDefined();
+      expect(amit?.status).toBe('ON_NOTICE');
+    });
+  });
 });

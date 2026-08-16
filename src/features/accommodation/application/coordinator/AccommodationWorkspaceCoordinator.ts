@@ -12,11 +12,11 @@ import {
   validateFlatAreaConfigs,
 } from '../../domain';
 import type { AccommodationRepository } from '../../domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../infrastructure/repositories/InMemoryAccommodationRepository';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultStayRepository, InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultResidentRepository, InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import type { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import type { Resident } from '../../../resident/domain/entities/Resident';
@@ -31,18 +31,34 @@ export interface BedOccupantInput {
 }
 
 export class AccommodationWorkspaceCoordinator {
-  private repository: AccommodationRepository;
-  private stayRepository: StayRepository;
-  private residentRepository: ResidentRepository;
+  private _repository: AccommodationRepository;
+  private _stayRepository: StayRepository;
+  private _residentRepository: ResidentRepository;
 
   constructor(
-    repository: AccommodationRepository = new InMemoryAccommodationRepository(),
-    stayRepository: StayRepository = new InMemoryStayRepository(),
-    residentRepository: ResidentRepository = new InMemoryResidentRepository()
+    repository: AccommodationRepository = defaultAccommodationRepository,
+    stayRepository: StayRepository = defaultStayRepository,
+    residentRepository: ResidentRepository = defaultResidentRepository
   ) {
-    this.repository = repository;
-    this.stayRepository = stayRepository;
-    this.residentRepository = residentRepository;
+    this._repository = repository;
+    this._stayRepository = stayRepository;
+    this._residentRepository = residentRepository;
+  }
+
+  public get repository(): AccommodationRepository {
+    return this._repository;
+  }
+
+  public get accommodationRepository(): AccommodationRepository {
+    return this._repository;
+  }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepository;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._residentRepository;
   }
 
   /**

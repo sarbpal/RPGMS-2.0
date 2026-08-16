@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { Meter, MeterReading } from '../domain';
 import { defaultElectricityRepository } from '../infrastructure';
-import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import type { Flat } from '../../accommodation/domain/entities/Flat';
 
 export interface MeterWithFlatInfo {
@@ -12,7 +12,7 @@ export interface MeterWithFlatInfo {
 
 export function useElectricityWorkspace(
   repo = defaultElectricityRepository,
-  accomRepo = new InMemoryAccommodationRepository()
+  accomRepo = defaultAccommodationRepository
 ) {
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const [activeModalMeter, setActiveModalMeter] = useState<Meter | null>(null);

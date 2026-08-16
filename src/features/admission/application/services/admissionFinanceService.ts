@@ -5,7 +5,7 @@ import { TokenDisposition } from '../../domain/valueObjects/TokenDisposition';
 import type { AdmissionDraft } from '../models/AdmissionDraft';
 import type { AdmissionResult } from '../models/AdmissionResult';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { BillingApplicationService } from '../../../finance/services/billingService';
 import { LedgerApplicationService } from '../../../finance/services/ledgerService';
 
@@ -25,7 +25,7 @@ export class AdmissionFinanceService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
     billingService?: BillingApplicationService,
     ledgerService?: LedgerApplicationService
   ) {

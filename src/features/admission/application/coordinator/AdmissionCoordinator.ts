@@ -2,22 +2,22 @@ import type { Reservation } from '../../../reservation/domain/entities/Reservati
 import type { ReservationRepository } from '../../../reservation/domain/interfaces/ReservationRepository';
 import { ReservationStatus } from '../../../reservation/domain/valueObjects/ReservationStatus';
 import { canEditReservation } from '../../../reservation/domain/rules/reservationRules';
-import { InMemoryReservationRepository } from '../../../reservation/infrastructure/repositories/InMemoryReservationRepository';
+import { defaultReservationRepository } from '../../../reservation/infrastructure/repositories/InMemoryReservationRepository';
 
 import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
 import { ResidentStatus } from '../../../resident/domain/valueObjects/ResidentStatus';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository, InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 
 import { Stay } from '../../../stay/domain/entities/Stay';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import { CommercialAgreement } from '../../../stay/domain/valueObjects/CommercialAgreement';
 import { BedAllocation } from '../../../stay/domain/valueObjects/BedAllocation';
 import { BusinessEvent } from '../../../stay/domain/valueObjects/BusinessEvent';
-import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository, InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { BedStatus } from '../../../accommodation/domain/valueObjects/BedStatus';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
 
@@ -33,30 +33,74 @@ import { AdmissionReadinessEvaluator } from '../services/AdmissionReadinessEvalu
 import type { AdmissionReadinessAssessment } from '../models/AdmissionReadinessAssessment';
 
 export class AdmissionCoordinator {
-  private reservationRepo: ReservationRepository;
-  private residentRepo: ResidentRepository;
-  private stayRepo: StayRepository;
-  private accommodationRepo: AccommodationRepository;
-  private financeService: AdmissionFinanceService;
-  private validationService: AdmissionValidationService;
-  private readinessEvaluator: AdmissionReadinessEvaluator;
+  private _reservationRepo: ReservationRepository;
+  private _residentRepo: ResidentRepository;
+  private _stayRepo: StayRepository;
+  private _accommodationRepo: AccommodationRepository;
+  private _financeService: AdmissionFinanceService;
+  private _validationService: AdmissionValidationService;
+  private _readinessEvaluator: AdmissionReadinessEvaluator;
 
   constructor(
-    reservationRepo: ReservationRepository = new InMemoryReservationRepository(),
-    residentRepo: ResidentRepository = new InMemoryResidentRepository(),
-    stayRepo: StayRepository = new InMemoryStayRepository(),
-    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
+    reservationRepo: ReservationRepository = defaultReservationRepository,
+    residentRepo: ResidentRepository = defaultResidentRepository,
+    stayRepo: StayRepository = defaultStayRepository,
+    accommodationRepo: AccommodationRepository = defaultAccommodationRepository,
     financeService?: AdmissionFinanceService,
     validationService?: AdmissionValidationService,
     readinessEvaluator?: AdmissionReadinessEvaluator
   ) {
-    this.reservationRepo = reservationRepo;
-    this.residentRepo = residentRepo;
-    this.stayRepo = stayRepo;
-    this.accommodationRepo = accommodationRepo;
-    this.financeService = financeService ?? new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
-    this.validationService = validationService ?? new AdmissionValidationService();
-    this.readinessEvaluator = readinessEvaluator ?? new AdmissionReadinessEvaluator();
+    this._reservationRepo = reservationRepo;
+    this._residentRepo = residentRepo;
+    this._stayRepo = stayRepo;
+    this._accommodationRepo = accommodationRepo;
+    this._financeService = financeService ?? new AdmissionFinanceService(defaultFinanceRepository, stayRepo);
+    this._validationService = validationService ?? new AdmissionValidationService();
+    this._readinessEvaluator = readinessEvaluator ?? new AdmissionReadinessEvaluator();
+  }
+
+  public get reservationRepository(): ReservationRepository {
+    return this._reservationRepo;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._residentRepo;
+  }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepo;
+  }
+
+  public get accommodationRepository(): AccommodationRepository {
+    return this._accommodationRepo;
+  }
+
+  public get financeService(): AdmissionFinanceService {
+    return this._financeService;
+  }
+
+  public get reservationRepo(): ReservationRepository {
+    return this._reservationRepo;
+  }
+
+  public get residentRepo(): ResidentRepository {
+    return this._residentRepo;
+  }
+
+  public get stayRepo(): StayRepository {
+    return this._stayRepo;
+  }
+
+  public get accommodationRepo(): AccommodationRepository {
+    return this._accommodationRepo;
+  }
+
+  public get validationService(): AdmissionValidationService {
+    return this._validationService;
+  }
+
+  public get readinessEvaluator(): AdmissionReadinessEvaluator {
+    return this._readinessEvaluator;
   }
 
   /**

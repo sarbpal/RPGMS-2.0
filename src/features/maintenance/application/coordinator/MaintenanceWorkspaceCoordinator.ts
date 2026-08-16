@@ -6,9 +6,9 @@ import type { ResidentRepository } from '../../../resident';
 
 import { InMemoryMaintenanceRepository } from '../../infrastructure/repositories/InMemoryMaintenanceRepository';
 import { InMemoryMaintenancePersonnelRepository } from '../../infrastructure/repositories/InMemoryMaintenancePersonnelRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation';
-import { InMemoryStayRepository } from '../../../stay';
-import { InMemoryResidentRepository } from '../../../resident';
+import { defaultAccommodationRepository } from '../../../accommodation';
+import { defaultStayRepository } from '../../../stay';
+import { defaultResidentRepository } from '../../../resident';
 
 import type { MaintenanceRequest } from '../../domain/entities/MaintenanceRequest';
 import type {
@@ -44,9 +44,9 @@ export class MaintenanceWorkspaceCoordinator {
   ) {
     this.maintenanceRepo = maintenanceRepo || new InMemoryMaintenanceRepository();
     this.personnelRepo = personnelRepo || new InMemoryMaintenancePersonnelRepository();
-    this.accommodationRepo = accommodationRepo || new InMemoryAccommodationRepository();
-    this.stayRepo = stayRepo || new InMemoryStayRepository();
-    this.residentRepo = residentRepo || new InMemoryResidentRepository();
+    this.accommodationRepo = accommodationRepo || defaultAccommodationRepository;
+    this.stayRepo = stayRepo || defaultStayRepository;
+    this.residentRepo = residentRepo || defaultResidentRepository;
 
     this.registerUseCase = new RegisterMaintenanceRequestUseCase(this.maintenanceRepo);
     this.updateStatusUseCase = new UpdateMaintenanceStatusUseCase(this.maintenanceRepo);

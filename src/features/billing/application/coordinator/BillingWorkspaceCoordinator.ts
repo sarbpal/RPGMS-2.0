@@ -12,7 +12,7 @@ import { ElectricityDiscoveryAdapter } from '../../infrastructure/adapters/Elect
 import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { defaultElectricityRepository } from '../../../electricity/infrastructure/repositories/InMemoryElectricityRepository';
 import { defaultFinanceRepository } from '../../../finance/infrastructure/repositories/InMemoryFinanceRepository';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { BillingApplicationService } from '../../../finance/services/billingService';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
@@ -49,30 +49,30 @@ export class BillingWorkspaceCoordinator {
   private readonly eligibilityService: BillingEligibilityService;
   private readonly claimService: BillingClaimService;
   private readonly billingRunRepository: BillingRunRepository;
-  private readonly stayRepository: StayRepository;
-  private readonly residentRepository: ResidentRepository;
+  private readonly _stayRepository: StayRepository;
+  private readonly _residentRepository: ResidentRepository;
 
   constructor(
     billingRunRepository: BillingRunRepository = defaultBillingRunRepository,
     claimRepository: BillingClaimRepository = defaultBillingClaimRepository,
     stayRepository: StayRepository = defaultStayRepository,
-    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
+    residentRepository: ResidentRepository = defaultResidentRepository,
     electricityRepository = defaultElectricityRepository,
     financeRepository = defaultFinanceRepository,
     executionService?: BillingExecutionService,
     recoveryService?: BillingRecoveryService
   ) {
     this.billingRunRepository = billingRunRepository;
-    this.stayRepository = stayRepository;
-    this.residentRepository = residentRepository;
+    this._stayRepository = stayRepository;
+    this._residentRepository = residentRepository;
 
-    const rentAdapter = new RentDiscoveryAdapter(this.stayRepository, this.residentRepository);
+    const rentAdapter = new RentDiscoveryAdapter(this._stayRepository, this._residentRepository);
     const elecAdapter = new ElectricityDiscoveryAdapter(electricityRepository);
     this.discoveryService = new BillingDiscoveryService([rentAdapter, elecAdapter]);
     this.eligibilityService = new BillingEligibilityService(claimRepository);
     this.claimService = new BillingClaimService(claimRepository);
 
-    const financeService = new BillingApplicationService(financeRepository, this.stayRepository);
+    const financeService = new BillingApplicationService(financeRepository, this._stayRepository);
 
     this.executionService =
       executionService ||
@@ -91,11 +91,20 @@ export class BillingWorkspaceCoordinator {
         billingRunRepository: this.billingRunRepository,
         claimRepository,
         claimService: this.claimService,
-        stayRepository: this.stayRepository,
-        residentRepository: this.residentRepository,
+        stayRepository: this._stayRepository,
+        residentRepository: this._residentRepository,
         financeRepository,
       });
   }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepository;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._residentRepository;
+  }
+
 
   /**
    * Retrieves summary metrics and active/recent runs for the Billing Workspace dashboard.

@@ -2,12 +2,12 @@ import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
 import { defaultStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository, InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import type { StayWorkspaceViewModel, TimelineEventViewModel } from '../models/StayWorkspaceViewModel';
 import type { BusinessEvent } from '../../domain/valueObjects/BusinessEvent';
 import type { CurrentProjection } from '../../domain/valueObjects/CurrentProjection';
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { StayBillingCycleCoordinator, type ChangeBillingCycleInput } from './StayBillingCycleCoordinator';
 import { StayLifecycleCoordinator, type ActivateStayInput, type CancelPlannedStayInput, type CloseStayInput } from './StayLifecycleCoordinator';
 import {
@@ -23,22 +23,34 @@ import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
 
 export class StayWorkspaceCoordinator {
-  private stayRepository: StayRepository;
-  private residentRepository: ResidentRepository;
-  private accommodationRepository: AccommodationRepository;
+  private _stayRepository: StayRepository;
+  private _residentRepository: ResidentRepository;
+  private _accommodationRepository: AccommodationRepository;
 
   constructor(
     stayRepository: StayRepository = defaultStayRepository,
-    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
-    accommodationRepository: AccommodationRepository = new InMemoryAccommodationRepository()
+    residentRepository: ResidentRepository = defaultResidentRepository,
+    accommodationRepository: AccommodationRepository = defaultAccommodationRepository
   ) {
-    this.stayRepository = stayRepository;
-    this.residentRepository = residentRepository;
-    this.accommodationRepository = accommodationRepository;
+    this._stayRepository = stayRepository;
+    this._residentRepository = residentRepository;
+    this._accommodationRepository = accommodationRepository;
+  }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepository;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._residentRepository;
+  }
+
+  public get accommodationRepository(): AccommodationRepository {
+    return this._accommodationRepository;
   }
 
   public findStay(stayId: string): Stay | null {
-    return this.stayRepository.findByIdSync(stayId);
+    return this._stayRepository.findByIdSync(stayId);
   }
 
   public findResident(residentId: string): Resident | null {

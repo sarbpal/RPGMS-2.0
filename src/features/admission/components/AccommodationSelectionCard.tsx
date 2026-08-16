@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import SingleBedIcon from '@mui/icons-material/SingleBed';
-import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { BedStatus } from '../../accommodation/domain/valueObjects/BedStatus';
 
 interface AccommodationSelectionCardProps {
@@ -32,7 +32,7 @@ export const AccommodationSelectionCard: React.FC<AccommodationSelectionCardProp
   onChangeFlatId,
   onChangeBedIds,
 }) => {
-  const repo = useMemo(() => new InMemoryAccommodationRepository(), []);
+  const repo = defaultAccommodationRepository;
   const flats = useMemo(() => repo.findAll(), [repo]);
 
   const selectedFlat = useMemo(() => {

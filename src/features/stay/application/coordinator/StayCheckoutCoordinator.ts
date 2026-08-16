@@ -1,8 +1,8 @@
 import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository, InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { BedStatus } from '../../../accommodation/domain/valueObjects/BedStatus';
 import type { CurrentProjection } from '../../domain/valueObjects/CurrentProjection';
 
@@ -17,8 +17,8 @@ export class StayCheckoutCoordinator {
   private accommodationRepo: AccommodationRepository;
 
   constructor(
-    stayRepo: StayRepository = new InMemoryStayRepository(),
-    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository()
+    stayRepo: StayRepository = defaultStayRepository,
+    accommodationRepo: AccommodationRepository = defaultAccommodationRepository
   ) {
     this.stayRepo = stayRepo;
     this.accommodationRepo = accommodationRepo;

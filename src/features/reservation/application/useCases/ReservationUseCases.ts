@@ -10,7 +10,7 @@ import {
   validateReservationCancellation,
 } from '../../domain/rules/reservationRules';
 
-import { InMemoryReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
+import { defaultReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
 import type { CreateReservationDTO } from '../dtos/CreateReservationDTO';
 import type { UpdateReservationDTO } from '../dtos/UpdateReservationDTO';
 import type { CancelReservationDTO } from '../dtos/CancelReservationDTO';
@@ -18,7 +18,7 @@ import type { CancelReservationDTO } from '../dtos/CancelReservationDTO';
 export class ReservationUseCases {
   private repository: ReservationRepository;
 
-  constructor(repository: ReservationRepository = new InMemoryReservationRepository()) {
+  constructor(repository: ReservationRepository = defaultReservationRepository) {
     this.repository = repository;
   }
 

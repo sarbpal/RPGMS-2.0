@@ -2,7 +2,7 @@
 
 # Module Status
 
-**Document Version:** 3.1
+**Document Version:** 3.2
 **Status:** Active  
 **Last Updated:** August 2026
 
@@ -50,6 +50,7 @@ Current development is focused on delivering the Operational Services capability
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
 | Electricity | 🟢 MVP Complete (CR-4 / Stage 1–5 Complete) |
 | Billing | 🟢 Slices 1–4B Complete (CR-4) |
+| Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
 
@@ -737,9 +738,10 @@ Current objectives:
 | Stay | 🟢 MVP Complete | Frozen |
 | Reservation | 🟢 Complete | Frozen |
 | Admission | 🟢 Complete | Frozen |
-| Finance | 🔵 Active Development | Active (CR-3) |
+| Finance | 🟢 Complete (CR-3) | Frozen |
 | Electricity | 🟢 MVP Complete | Active (CR-4) |
-| Billing | 🟢 Slices 1–4A Complete | Active (CR-4) |
+| Billing | 🟢 Slices 1–4B Complete | Active (CR-4) |
+| Population Unification | 🟢 Complete (ADR-030) | Stable |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
 

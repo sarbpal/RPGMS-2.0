@@ -11,10 +11,10 @@ import { AccountType, SettlementOutcome, deriveSettlementPreview } from '../doma
 import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
 import type { StayRepository } from '../../stay';
-import { InMemoryStayRepository, StayStatus } from '../../stay';
+import { defaultStayRepository, StayStatus } from '../../stay';
 
 import type { ResidentRepository, Resident } from '../../resident';
-import { InMemoryResidentRepository, ResidentStatus } from '../../resident';
+import { defaultResidentRepository, ResidentStatus } from '../../resident';
 import { LedgerApplicationService } from './ledgerService';
 
 export interface GeneratePreviewResult {
@@ -37,9 +37,9 @@ export class SettlementApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
     ledgerService?: LedgerApplicationService,
-    residentRepository: ResidentRepository = new InMemoryResidentRepository()
+    residentRepository: ResidentRepository = defaultResidentRepository
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;

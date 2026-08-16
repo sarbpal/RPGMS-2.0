@@ -1,6 +1,6 @@
 import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository, InMemoryStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { CurrentProjection } from '../../domain/valueObjects/CurrentProjection';
 
 export interface ReviseRentInput {
@@ -28,7 +28,7 @@ export interface ReviseCommercialTermsInput {
 export class StayCommercialCoordinator {
   private stayRepo: StayRepository;
 
-  constructor(stayRepo: StayRepository = new InMemoryStayRepository()) {
+  constructor(stayRepo: StayRepository = defaultStayRepository) {
     this.stayRepo = stayRepo;
   }
 

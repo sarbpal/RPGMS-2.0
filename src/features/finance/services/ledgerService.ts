@@ -34,7 +34,7 @@ export interface ResidentLedgerViewModel {
 }
 
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 
 export class LedgerApplicationService {
   private repository: FinanceRepository;
@@ -42,7 +42,7 @@ export class LedgerApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository()
+    stayRepository: StayRepository = defaultStayRepository
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;

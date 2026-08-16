@@ -2,9 +2,9 @@ import { Stay } from '../../domain/entities/Stay';
 import type { StayRepository } from '../../domain/interfaces/StayRepository';
 import { InMemoryStayRepository, defaultStayRepository } from '../../infrastructure/repositories/InMemoryStayRepository';
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository, InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { BedStatus } from '../../../accommodation/domain/valueObjects/BedStatus';
 import type { CurrentProjection } from '../../domain/valueObjects/CurrentProjection';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
@@ -47,8 +47,8 @@ export class StayLifecycleCoordinator {
 
   constructor(
     stayRepo: StayRepository = defaultStayRepository,
-    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
-    residentRepo: ResidentRepository = new InMemoryResidentRepository()
+    accommodationRepo: AccommodationRepository = defaultAccommodationRepository,
+    residentRepo: ResidentRepository = defaultResidentRepository
   ) {
     this.stayRepo = stayRepo;
     this.accommodationRepo = accommodationRepo;

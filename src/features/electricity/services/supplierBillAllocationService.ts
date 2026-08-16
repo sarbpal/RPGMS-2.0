@@ -1,9 +1,9 @@
 import type { ElectricityRepository } from '../domain/interfaces/ElectricityRepository';
 import { defaultElectricityRepository } from '../infrastructure/repositories/InMemoryElectricityRepository';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import type { ResidentRepository } from '../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { BillingApplicationService, billingService as defaultBillingService } from '../../finance/services/billingService';
 import { LedgerApplicationService, ledgerService as defaultLedgerService } from '../../finance/services/ledgerService';
 import type { FinanceRepository } from '../../finance/domain/interfaces/FinanceRepository';
@@ -46,8 +46,8 @@ export class SupplierBillAllocationService {
 
   constructor(
     electricityRepo: ElectricityRepository = defaultElectricityRepository,
-    stayRepo: StayRepository = new InMemoryStayRepository(),
-    residentRepo: ResidentRepository = new InMemoryResidentRepository(),
+    stayRepo: StayRepository = defaultStayRepository,
+    residentRepo: ResidentRepository = defaultResidentRepository,
     financeService: BillingApplicationService = defaultBillingService,
     financeRepo: FinanceRepository = defaultFinanceRepository,
     discoveryService?: ParticipantDiscoveryService,

@@ -62,3 +62,6 @@ export class InMemoryResidentRepository implements ResidentRepository {
     this.residents = this.residents.filter((r) => r.id !== id);
   }
 }
+
+// Application-wide in-memory composition root singleton.
+export const defaultResidentRepository = new InMemoryResidentRepository();

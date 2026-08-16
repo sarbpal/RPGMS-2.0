@@ -1,26 +1,23 @@
 import { AdmissionCoordinator } from '../../features/admission/application/coordinator/AdmissionCoordinator';
 import { AccommodationWorkspaceCoordinator } from '../../features/accommodation/application/coordinator/AccommodationWorkspaceCoordinator';
-import { InMemoryAccommodationRepository } from '../../features/accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
-import { InMemoryReservationRepository } from '../../features/reservation/infrastructure/repositories/InMemoryReservationRepository';
-import { InMemoryResidentRepository } from '../../features/resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultAccommodationRepository } from '../../features/accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultReservationRepository } from '../../features/reservation/infrastructure/repositories/InMemoryReservationRepository';
+import { defaultResidentRepository } from '../../features/resident/infrastructure/repositories/InMemoryResidentRepository';
 import { ResidentWorkspaceCoordinator } from '../../features/resident/application/coordinator/ResidentWorkspaceCoordinator';
-import { InMemoryStayRepository } from '../../features/stay/infrastructure/repositories/InMemoryStayRepository';
+import { ResidentsListCoordinator } from '../../features/resident/application/coordinator/ResidentsListCoordinator';
+import { defaultStayRepository } from '../../features/stay/infrastructure/repositories/InMemoryStayRepository';
 import { StayWorkspaceCoordinator } from '../../features/stay/application/coordinator/StayWorkspaceCoordinator';
 import { ReservationWorkspaceCoordinator } from '../../features/reservation/application/coordinator/ReservationWorkspaceCoordinator';
 
-const stayRepository = new InMemoryStayRepository();
-const accommodationRepository = new InMemoryAccommodationRepository();
-const residentRepository = new InMemoryResidentRepository();
-const reservationRepository = new InMemoryReservationRepository();
-
 export const stayWorkflowComposition = {
-  stayRepository,
-  accommodationRepository,
-  residentRepository,
-  reservationRepository,
-  stayWorkspaceCoordinator: new StayWorkspaceCoordinator(stayRepository, residentRepository, accommodationRepository),
-  accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(accommodationRepository, stayRepository, residentRepository),
-  residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(residentRepository, stayRepository),
-  admissionCoordinator: new AdmissionCoordinator(reservationRepository, residentRepository, stayRepository, accommodationRepository),
-  reservationWorkspaceCoordinator: new ReservationWorkspaceCoordinator(reservationRepository),
+  stayRepository: defaultStayRepository,
+  accommodationRepository: defaultAccommodationRepository,
+  residentRepository: defaultResidentRepository,
+  reservationRepository: defaultReservationRepository,
+  stayWorkspaceCoordinator: new StayWorkspaceCoordinator(defaultStayRepository, defaultResidentRepository, defaultAccommodationRepository),
+  accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(defaultAccommodationRepository, defaultStayRepository, defaultResidentRepository),
+  residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(defaultResidentRepository, defaultStayRepository),
+  residentsListCoordinator: new ResidentsListCoordinator(defaultResidentRepository, defaultStayRepository),
+  admissionCoordinator: new AdmissionCoordinator(defaultReservationRepository, defaultResidentRepository, defaultStayRepository, defaultAccommodationRepository),
+  reservationWorkspaceCoordinator: new ReservationWorkspaceCoordinator(defaultReservationRepository),
 };

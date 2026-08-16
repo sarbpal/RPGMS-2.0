@@ -877,10 +877,48 @@ Because RPGMS 2.0 financial domain operations (bills, payments, ledger postings,
 
 ---
 
+## ADR-030 — Cross-Workspace Operational Population Unification & Canonical Repository Singletons
+
+**Status:** Accepted
+
+### Context
+
+RPGMS 2.0 creates complete Resident, Stay, Bed Allocation, and Financial records during walk-in admissions and reservation conversions through `AdmissionCoordinator`. However, runtime testing identified population disconnection across workspaces:
+1. Different workspaces (`/residents`, `/resident/:id`, `/stay/:id`, `/finance`, `/billing`, `/electricity`) read from disparate in-memory repository instances due to independent constructor instantiations and composition root divergence.
+2. Presentation components (such as `ResidentFinancialProfile.tsx` and `AccommodationSelectionCard.tsx`) constructed unseeded or isolated in-memory repositories during render.
+3. The Residents workspace lacked a direct, prominent entry point for initiating a new Walk-in Admission (`/admission/walk-in`).
+
+### Decision
+
+1. **Canonical Repository Singletons:**
+   - Established authoritative exported singleton instances: `defaultResidentRepository`, `defaultStayRepository`, `defaultAccommodationRepository`, `defaultReservationRepository`, `defaultFinanceRepository`, `defaultElectricityRepository`, `defaultBillingRunRepository`, and `defaultBillingClaimRepository`.
+2. **Strict Object Identity Invariant:**
+   - Enforced strict reference equality (`===`) across all operational coordinators (`AdmissionCoordinator`, `ResidentsListCoordinator`, `ResidentWorkspaceCoordinator`, `StayWorkspaceCoordinator`, `FinanceWorkspaceCoordinator`, `BillingWorkspaceCoordinator`, `AccommodationWorkspaceCoordinator`, `ReservationWorkspaceCoordinator`, `MaintenanceWorkspaceCoordinator`) and the central composition root (`stayWorkflowComposition.ts`).
+3. **Elimination of Rogue In-Memory Instantiations:**
+   - Removed all ad-hoc `new InMemoryStayRepository()`, `new InMemoryResidentRepository()`, and `new InMemoryAccommodationRepository()` calls in runtime UI components and hook defaults, binding them strictly to canonical singletons.
+4. **Primary Admission Entry Point on Residents Page:**
+   - Added a `New Admission (Walk-in)` primary action button in the header of `ResidentsPage.tsx` navigating directly to `/admission/walk-in`.
+5. **Preservation of Architectural & Financial Contracts:**
+   - Preserved all baseline seed data (`RES-00124`, `RES-00125`, `RES-00101`, `STAY-2026-00041`, `STAY-2026-00042`, `STAY-2026-00010`).
+   - Preserved Finance Global Action Stay selection (`SelectStayModal.tsx`, ADR-029) and eliminated all synthetic placeholders (`RES-GLOBAL`).
+   - Preserved Billing property-wide discovery semantics (`stayIds === undefined || stayIds.length === 0`, ADR-027).
+   - Preserved hermetic test isolation by allowing unit/integration tests to inject mock or fresh repository instances when explicitly instantiated with arguments.
+
+### Consequences
+
+#### Advantages:
+- **Unified Operational Population:** Any resident admitted via walk-in or converted from a reservation is immediately visible in the Residents List, Resident Workspace, Stay Workspace, Finance Stay Selector, and Billing Discovery.
+- **Intuitive Workflow Navigation:** Operators can initiate walk-in admissions directly from the Residents workspace.
+- **Zero Data Drift:** Eliminates disconnected runtime state while preserving strict architectural layering and double-entry ledger integrity.
+- **Complete Test Verification:** Verified via end-to-end cross-workspace integration tests (`CrossWorkspacePopulationIntegration.test.ts`) with 100% test pass rate across all 94 suites.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.4 | August 2026 | Added ADR-030 (Cross-Workspace Operational Population Unification & Canonical Repository Singletons). |
 | 3.3 | August 2026 | Added ADR-029 (Finance Workspace Global Action Stay Selection & Elimination of Scaffolding Placeholder). |
 | 3.2 | August 2026 | Added ADR-028 (Stay Workspace Contextual Quick Actions Integration & Coordinator Delegation). |
 | 3.1 | August 2026 | Added ADR-027 (Authoritative Runtime Repository Graph Unification & Property-Wide Billing Discovery Semantics). |

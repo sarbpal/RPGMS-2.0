@@ -13,8 +13,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Search, SearchOff } from '@mui/icons-material';
-import { ResidentsListCoordinator } from '../application/coordinator/ResidentsListCoordinator';
+import { Search, SearchOff, PersonAdd } from '@mui/icons-material';
+import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import type { ResidentListFilter } from '../application/models/ResidentsListViewModel';
 import { ResidentsSummaryCards } from '../components/ResidentsSummaryCards';
 import { ResidentCardItem } from '../components/ResidentCardItem';
@@ -22,7 +22,7 @@ import { ResidentCardItem } from '../components/ResidentCardItem';
 export function ResidentsPage() {
   const navigate = useNavigate();
 
-  const coordinator = useMemo(() => new ResidentsListCoordinator(), []);
+  const coordinator = useMemo(() => stayWorkflowComposition.residentsListCoordinator, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<ResidentListFilter>('ALL');
 
@@ -44,7 +44,7 @@ export function ResidentsPage() {
     <Container maxWidth="xl" sx={{ pt: 12, pb: 4 }}>
       <Stack spacing={3}>
         {/* Page Header */}
-        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" color="text.primary" sx={{ fontWeight: 800 }}>
               Residents
@@ -53,6 +53,15 @@ export function ResidentsPage() {
               Operational list workspace for locating and managing hostel residents.
             </Typography>
           </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAdd />}
+            onClick={() => navigate('/admission/walk-in')}
+            sx={{ fontWeight: 700, textTransform: 'none' }}
+          >
+            New Admission (Walk-in)
+          </Button>
         </Stack>
 
         {/* 1. Summary Cards */}

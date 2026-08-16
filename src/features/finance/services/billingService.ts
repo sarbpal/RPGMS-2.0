@@ -9,7 +9,7 @@ import type {
 import { AccountType, LedgerReferenceType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { LedgerApplicationService } from './ledgerService';
 
 export interface CreateBillResult {
@@ -25,7 +25,7 @@ export class BillingApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
     ledgerService?: LedgerApplicationService
   ) {
     this.repository = repository;

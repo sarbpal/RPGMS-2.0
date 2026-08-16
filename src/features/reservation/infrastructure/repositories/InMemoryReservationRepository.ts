@@ -74,3 +74,6 @@ export class InMemoryReservationRepository implements ReservationRepository {
     this.deleteSync(id);
   }
 }
+
+// Application-wide in-memory composition root singleton.
+export const defaultReservationRepository = new InMemoryReservationRepository();

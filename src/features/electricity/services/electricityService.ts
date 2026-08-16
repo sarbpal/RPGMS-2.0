@@ -3,9 +3,9 @@ import { validateMeterReadingMonotonicity, calculateOccupantEqualSplit } from '.
 import type { ElectricityRepository } from '../domain/interfaces/ElectricityRepository';
 import { defaultElectricityRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import type { AccommodationRepository } from '../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import { BillingApplicationService } from '../../finance/services/billingService';
 import { defaultFinanceRepository } from '../../finance/infrastructure';
 import { StayStatus } from '../../stay/domain/valueObjects/StayStatus';
@@ -38,8 +38,8 @@ export class ElectricityApplicationService {
 
   constructor(
     electricityRepo: ElectricityRepository = defaultElectricityRepository,
-    stayRepo: StayRepository = new InMemoryStayRepository(),
-    accommodationRepo: AccommodationRepository = new InMemoryAccommodationRepository(),
+    stayRepo: StayRepository = defaultStayRepository,
+    accommodationRepo: AccommodationRepository = defaultAccommodationRepository,
     billingService?: BillingApplicationService
   ) {
     this.electricityRepo = electricityRepo;

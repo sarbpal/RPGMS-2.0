@@ -15,9 +15,9 @@ import type {
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import type { AccommodationRepository } from '../../../accommodation/domain/interfaces/AccommodationRepository';
-import { InMemoryAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
+import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
@@ -42,27 +42,51 @@ export interface SelectableStayItem {
 }
 
 export class FinanceWorkspaceCoordinator {
-  private reportingService: ReportingApplicationService;
-  private timelineService: TimelineApplicationService;
-  private balanceEngine: BalanceApplicationService;
-  private stayRepository: StayRepository;
-  private residentRepository: ResidentRepository;
-  private accommodationRepository: AccommodationRepository;
+  private _reportingService: ReportingApplicationService;
+  private _timelineService: TimelineApplicationService;
+  private _balanceEngine: BalanceApplicationService;
+  private _stayRepository: StayRepository;
+  private _residentRepository: ResidentRepository;
+  private _accommodationRepository: AccommodationRepository;
 
   constructor(
     reportingService: ReportingApplicationService = defaultReportingService,
     timelineService: TimelineApplicationService = defaultTimelineService,
     balanceEngine: BalanceApplicationService = defaultBalanceEngine,
     stayRepository: StayRepository = defaultStayRepository,
-    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
-    accommodationRepository: AccommodationRepository = new InMemoryAccommodationRepository()
+    residentRepository: ResidentRepository = defaultResidentRepository,
+    accommodationRepository: AccommodationRepository = defaultAccommodationRepository
   ) {
-    this.reportingService = reportingService;
-    this.timelineService = timelineService;
-    this.balanceEngine = balanceEngine;
-    this.stayRepository = stayRepository;
-    this.residentRepository = residentRepository;
-    this.accommodationRepository = accommodationRepository;
+    this._reportingService = reportingService;
+    this._timelineService = timelineService;
+    this._balanceEngine = balanceEngine;
+    this._stayRepository = stayRepository;
+    this._residentRepository = residentRepository;
+    this._accommodationRepository = accommodationRepository;
+  }
+
+  public get reportingService(): ReportingApplicationService {
+    return this._reportingService;
+  }
+
+  public get timelineService(): TimelineApplicationService {
+    return this._timelineService;
+  }
+
+  public get balanceEngine(): BalanceApplicationService {
+    return this._balanceEngine;
+  }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepository;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._residentRepository;
+  }
+
+  public get accommodationRepository(): AccommodationRepository {
+    return this._accommodationRepository;
   }
 
   /**

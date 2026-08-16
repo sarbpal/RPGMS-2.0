@@ -13,9 +13,9 @@ import { SettlementApplicationService } from './settlementService';
 import { TimelineApplicationService } from './timelineService';
 import { defaultFinanceRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import type { ResidentRepository } from '../../resident/domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository } from '../../resident/infrastructure/repositories/InMemoryResidentRepository';
 
 export class ReportingApplicationService {
   private repository: FinanceRepository;
@@ -28,8 +28,8 @@ export class ReportingApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
-    residentRepository: ResidentRepository = new InMemoryResidentRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
+    residentRepository: ResidentRepository = defaultResidentRepository,
     billingService?: BillingApplicationService,
     paymentService?: PaymentApplicationService,
     settlementService?: SettlementApplicationService,

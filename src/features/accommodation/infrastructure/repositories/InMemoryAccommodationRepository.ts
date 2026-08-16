@@ -71,3 +71,6 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     this.persist();
   }
 }
+
+// Application-wide in-memory composition root singleton.
+export const defaultAccommodationRepository = new InMemoryAccommodationRepository();

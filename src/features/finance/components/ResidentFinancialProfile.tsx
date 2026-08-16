@@ -47,7 +47,7 @@ import {
 
 import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
-import { InMemoryStayRepository, StayStatus } from '../../stay';
+import { defaultStayRepository, StayStatus } from '../../stay';
 import { useStayFinance } from '../hooks/useStayFinance';
 import { formatCurrency } from '../utils/currencyFormatters';
 
@@ -82,11 +82,10 @@ export function ResidentFinancialProfile({
     agreedDeposit?: number;
   };
 
-  // Fetch active stay for resident
+  // Fetch active stay for resident from authoritative Stay repository
   const activeStay = useMemo(() => {
-    const stayRepo = new InMemoryStayRepository();
     return (
-      stayRepo
+      defaultStayRepository
         .getAllSync()
         .find(
           (s) =>

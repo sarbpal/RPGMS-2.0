@@ -10,18 +10,26 @@ import {
   isReservationFollowUpRequired,
 } from '../../domain/rules/reservationRules';
 
-import { InMemoryReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
+import { defaultReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
 import { ReservationUseCases } from '../useCases/ReservationUseCases';
 import type { ReservationDraft } from '../models/ReservationDraft';
 import type { ReservationWorkspaceViewModel, ReservationStats } from '../models/ReservationWorkspaceViewModel';
 
 export class ReservationWorkspaceCoordinator {
-  private repository: ReservationRepository;
+  private _repository: ReservationRepository;
   private useCases: ReservationUseCases;
 
-  constructor(repository: ReservationRepository = new InMemoryReservationRepository()) {
-    this.repository = repository;
+  constructor(repository: ReservationRepository = defaultReservationRepository) {
+    this._repository = repository;
     this.useCases = new ReservationUseCases(repository);
+  }
+
+  public get repository(): ReservationRepository {
+    return this._repository;
+  }
+
+  public get reservationRepository(): ReservationRepository {
+    return this._repository;
   }
 
 

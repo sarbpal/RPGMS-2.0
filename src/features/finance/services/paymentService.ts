@@ -10,7 +10,7 @@ import { AccountType } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { BillingApplicationService } from './billingService';
 import { LedgerApplicationService } from './ledgerService';
 
@@ -28,7 +28,7 @@ export class PaymentApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
     billingService?: BillingApplicationService,
     ledgerService?: LedgerApplicationService
   ) {

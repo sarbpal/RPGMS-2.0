@@ -1,8 +1,8 @@
 import type { Resident } from '../../domain/entities/Resident';
 import type { ResidentRepository } from '../../domain/interfaces/ResidentRepository';
-import { InMemoryResidentRepository } from '../../infrastructure/repositories/InMemoryResidentRepository';
+import { defaultResidentRepository } from '../../infrastructure/repositories/InMemoryResidentRepository';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
-import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
+import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import type { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 import type {
@@ -13,15 +13,27 @@ import type {
 } from '../models/ResidentsListViewModel';
 
 export class ResidentsListCoordinator {
-  private repository: ResidentRepository;
-  private stayRepository: StayRepository;
+  private _repository: ResidentRepository;
+  private _stayRepository: StayRepository;
 
   constructor(
-    repository: ResidentRepository = new InMemoryResidentRepository(),
-    stayRepository: StayRepository = new InMemoryStayRepository()
+    repository: ResidentRepository = defaultResidentRepository,
+    stayRepository: StayRepository = defaultStayRepository
   ) {
-    this.repository = repository;
-    this.stayRepository = stayRepository;
+    this._repository = repository;
+    this._stayRepository = stayRepository;
+  }
+
+  public get repository(): ResidentRepository {
+    return this._repository;
+  }
+
+  public get residentRepository(): ResidentRepository {
+    return this._repository;
+  }
+
+  public get stayRepository(): StayRepository {
+    return this._stayRepository;
   }
 
   public createViewModel(

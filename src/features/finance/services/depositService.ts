@@ -12,7 +12,7 @@ import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
 import { LedgerApplicationService } from './ledgerService';
 import type { StayRepository } from '../../stay';
-import { InMemoryStayRepository } from '../../stay';
+import { defaultStayRepository } from '../../stay';
 
 export interface DepositTransactionResult {
   success: boolean;
@@ -27,7 +27,7 @@ export class DepositApplicationService {
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
-    stayRepository: StayRepository = new InMemoryStayRepository(),
+    stayRepository: StayRepository = defaultStayRepository,
     ledgerService?: LedgerApplicationService
   ) {
     this.repository = repository;

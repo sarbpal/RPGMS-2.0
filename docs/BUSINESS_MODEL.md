@@ -734,6 +734,15 @@ Reservation history shall be preserved through Business Events.
 
 ---
 
+## RS-007 Cancellation Token Disposition
+
+Cancellation of an Active Reservation with an advance Reservation Token requires an explicit Token Disposition decision (`REFUND` or `FORFEIT` for the full token amount in MVP).
+
+The Reservation domain owns the business disposition and cancellation timestamp (`cancelledAt`); financial posting remains the responsibility of Finance. Partial/editable refunds are deferred to V2.
+
+---
+
+
 # 10. Admission Model
 
 ## 10.1 Purpose

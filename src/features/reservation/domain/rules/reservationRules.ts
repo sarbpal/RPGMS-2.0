@@ -206,3 +206,34 @@ export function canConvertReservation(status: ReservationStatus): { allowed: boo
   }
   return { allowed: status === StatusEnum.ACTIVE };
 }
+
+/**
+ * Domain Rule: Validates cancellation parameters for an active reservation.
+ * Enforces mandatory cancellation reason, and mandatory token disposition (REFUND or FORFEIT) when a token is present.
+ */
+export function validateReservationCancellation(
+  reservation: { status: ReservationStatus; tokenAmount?: number },
+  reason?: string,
+  tokenDisposition?: 'REFUND' | 'FORFEIT'
+): { isValid: boolean; error?: string } {
+  const cancelCheck = canCancelReservation(reservation.status);
+  if (!cancelCheck.allowed) {
+    return { isValid: false, error: cancelCheck.reason };
+  }
+
+  if (!reason || reason.trim().length === 0) {
+    return { isValid: false, error: 'Cancellation reason is required.' };
+  }
+
+  const hasToken = typeof reservation.tokenAmount === 'number' && reservation.tokenAmount > 0;
+  if (hasToken) {
+    if (!tokenDisposition || (tokenDisposition !== 'REFUND' && tokenDisposition !== 'FORFEIT')) {
+      return {
+        isValid: false,
+        error: 'Token disposition choice (REFUND or FORFEIT) is required when cancelling a reservation with a token.',
+      };
+    }
+  }
+
+  return { isValid: true };
+}

@@ -141,11 +141,15 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite (UI Polish)'
     it('8. Cancel action safely triggers existing cancellation workflow with confirmation reason', () => {
       const cancelled = useCases.cancelReservationSync('resv-000001', {
         reason: 'Prospect relocated to another city',
+        tokenDisposition: 'REFUND',
       });
       expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
       expect(cancelled.cancellationReason).toBe('Prospect relocated to another city');
+      expect(cancelled.tokenDisposition?.outcome).toBe('REFUND');
+      expect(cancelled.cancelledAt).toBeDefined();
       expect(cancelled.updatedAt).toBeDefined();
     });
+
   });
 
   describe('3. CONVERTED Reservation Actions', () => {

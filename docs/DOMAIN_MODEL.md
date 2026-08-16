@@ -723,6 +723,9 @@ A Reservation Token is distinct from a Security Deposit.
 - Reservation Tokens belong exclusively to the Reservation Domain.
 - Reservation Tokens never become Security Deposits automatically.
 - Business policy determines whether a Reservation Token is adjusted, refunded, or forfeited.
+- **Cancellation Disposition (MVP):** When cancelling an Active Reservation with a token, the operator must select either `REFUND` (full token amount) or `FORFEIT` (full token amount). Partial/editable refunds are deferred to V2.
+- The Reservation domain preserves the structured Token Disposition outcome (`outcome`, `amount`, `decidedOn`) and cancellation timestamp (`cancelledAt`); financial postings remain the responsibility of Finance.
+
 
 ---
 

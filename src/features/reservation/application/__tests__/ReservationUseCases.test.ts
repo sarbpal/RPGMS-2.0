@@ -107,26 +107,106 @@ describe('ReservationUseCases Application Service', () => {
   });
 
   describe('cancelReservation', () => {
-    it('cancels an active reservation and sets cancellation reason', async () => {
+    it('cancels an active reservation without token and sets cancellation reason and cancelledAt', async () => {
       const cancelled = await useCases.cancelReservation('resv-000001', {
         reason: 'Guest relocated to another city',
       });
 
       expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
       expect(cancelled.cancellationReason).toBe('Guest relocated to another city');
+      expect(cancelled.cancelledAt).toBeDefined();
+      expect(cancelled.tokenDisposition).toBeUndefined();
 
       const found = await repository.findById('resv-000001');
       expect(found?.status).toBe(ReservationStatus.CANCELLED);
+      expect(found?.cancelledAt).toBe(cancelled.cancelledAt);
+    });
+
+    it('requires token disposition when cancelling an active reservation with token', async () => {
+      const resWithToken = await useCases.createReservation({
+        prospectName: 'Token Guest',
+        mobileNumber: '9888877777',
+        expectedJoiningDate: '2026-09-01',
+        tokenAmount: 2000,
+      });
+
+      await expect(
+        useCases.cancelReservation(resWithToken.id, {
+          reason: 'No longer interested',
+        })
+      ).rejects.toThrow(
+        'Token disposition choice (REFUND or FORFEIT) is required when cancelling a reservation with a token.'
+      );
+    });
+
+    it('records full token amount with REFUND disposition upon cancellation', async () => {
+      const resWithToken = await useCases.createReservation({
+        prospectName: 'Refund Guest',
+        mobileNumber: '9888866666',
+        expectedJoiningDate: '2026-09-01',
+        tokenAmount: 3000,
+      });
+
+      const cancelled = await useCases.cancelReservation(resWithToken.id, {
+        reason: 'Requested refund due to cancellation',
+        tokenDisposition: 'REFUND',
+      });
+
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.tokenDisposition).toEqual({
+        outcome: 'REFUND',
+        amount: 3000,
+        decidedOn: expect.any(String),
+      });
+      expect(cancelled.cancelledAt).toBeDefined();
+
+      const lastAudit = cancelled.auditLog[cancelled.auditLog.length - 1];
+      expect(lastAudit.action).toBe('Reservation Cancelled');
+      expect(lastAudit.details).toContain('Token disposition: REFUND. Token amount: ₹3,000.');
+    });
+
+    it('records full token amount with FORFEIT disposition upon cancellation', async () => {
+      const resWithToken = await useCases.createReservation({
+        prospectName: 'Forfeit Guest',
+        mobileNumber: '9888855555',
+        expectedJoiningDate: '2026-09-01',
+        tokenAmount: 1500,
+      });
+
+      const cancelled = await useCases.cancelReservation(resWithToken.id, {
+        reason: 'No-show on joining date',
+        tokenDisposition: 'FORFEIT',
+      });
+
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.tokenDisposition).toEqual({
+        outcome: 'FORFEIT',
+        amount: 1500,
+        decidedOn: expect.any(String),
+      });
+
+
+      const lastAudit = cancelled.auditLog[cancelled.auditLog.length - 1];
+      expect(lastAudit.action).toBe('Reservation Cancelled');
+      expect(lastAudit.details).toContain('Token disposition: FORFEIT. Token amount: ₹1,500.');
+    });
+
+    it('rejects cancellation without reason', async () => {
+      await expect(
+        useCases.cancelReservation('resv-000001', {
+          reason: '  ',
+        })
+      ).rejects.toThrow('Cancellation reason is required.');
     });
 
     it('rejects cancelling an already converted or cancelled reservation', async () => {
-      await expect(useCases.cancelReservation('resv-000002')).rejects.toThrow(
-        'Converted reservations cannot be cancelled.'
-      );
+      await expect(
+        useCases.cancelReservation('resv-000002', { reason: 'Test' })
+      ).rejects.toThrow('Converted reservations cannot be cancelled.');
 
-      await expect(useCases.cancelReservation('resv-000003')).rejects.toThrow(
-        'Reservation is already cancelled.'
-      );
+      await expect(
+        useCases.cancelReservation('resv-000003', { reason: 'Test' })
+      ).rejects.toThrow('Reservation is already cancelled.');
     });
   });
 

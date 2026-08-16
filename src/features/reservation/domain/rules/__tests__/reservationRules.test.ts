@@ -10,6 +10,7 @@ import {
   canCancelReservation,
   canConvertReservation,
   isReservationFollowUpRequired,
+  validateReservationCancellation,
 } from '../reservationRules';
 
 describe('Reservation Domain Rules', () => {
@@ -63,55 +64,55 @@ describe('Reservation Domain Rules', () => {
 
   describe('validateReservationDraft', () => {
     it('validates a valid reservation draft', () => {
-      const result = validateReservationDraft('Rahul Sharma', '9876543210', '2026-08-15');
+      const result = validateReservationDraft('Rahul Sharma', '9876543210', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual({});
     });
 
     it('rejects empty prospect name', () => {
-      const result = validateReservationDraft('  ', '9876543210', '2026-08-15');
+      const result = validateReservationDraft('  ', '9876543210', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.prospectName).toBe('Prospect name is required.');
     });
 
     it('8. rejects empty mobile', () => {
-      const result = validateReservationDraft('Rahul', '', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('9. rejects fewer than 10 digits (9 digits)', () => {
-      const result = validateReservationDraft('Rahul', '987654321', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '987654321', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('10. rejects more than 10 digits (11 digits)', () => {
-      const result = validateReservationDraft('Rahul', '98765432101', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '98765432101', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('11. rejects alphabetic mobile', () => {
-      const result = validateReservationDraft('Rahul', 'abcdefghij', '2026-08-15');
+      const result = validateReservationDraft('Rahul', 'abcdefghij', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('12. rejects alphanumeric mobile', () => {
-      const result = validateReservationDraft('Rahul', '98765abcde', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '98765abcde', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('13. rejects non-numeric characters', () => {
-      const result = validateReservationDraft('Rahul', '98765-43210', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '98765-43210', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(false);
       expect(result.errors.mobileNumber).toBe('Mobile number must be exactly 10 digits.');
     });
 
     it('14. accepts valid 10-digit mobile', () => {
-      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-15');
+      const result = validateReservationDraft('Rahul', '9876543210', '2026-08-15', '2026-08-01');
       expect(result.isValid).toBe(true);
       expect(result.errors.mobileNumber).toBeUndefined();
     });
@@ -254,6 +255,76 @@ describe('Reservation Domain Rules', () => {
     it('contains strictly 3 canonical lifecycle states (ACTIVE, CONVERTED, CANCELLED)', () => {
       expect(Object.keys(ReservationStatus)).toEqual(['ACTIVE', 'CONVERTED', 'CANCELLED']);
       expect(Object.values(ReservationStatus)).toEqual(['ACTIVE', 'CONVERTED', 'CANCELLED']);
+    });
+  });
+
+  describe('validateReservationCancellation', () => {
+    it('validates active reservation with token and REFUND disposition', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.ACTIVE, tokenAmount: 1000 },
+        'Found another accommodation',
+        'REFUND'
+      );
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('validates active reservation with token and FORFEIT disposition', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.ACTIVE, tokenAmount: 1000 },
+        'No show',
+        'FORFEIT'
+      );
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('rejects cancellation of active reservation with token when disposition is missing', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.ACTIVE, tokenAmount: 1000 },
+        'Found another accommodation'
+      );
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe(
+        'Token disposition choice (REFUND or FORFEIT) is required when cancelling a reservation with a token.'
+      );
+    });
+
+    it('validates active reservation without token without requiring disposition', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.ACTIVE, tokenAmount: undefined },
+        'Found another PG'
+      );
+      expect(result.isValid).toBe(true);
+    });
+
+    it('rejects empty or whitespace-only cancellation reason', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.ACTIVE, tokenAmount: 0 },
+        '   '
+      );
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Cancellation reason is required.');
+    });
+
+    it('rejects cancellation for CONVERTED reservation', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.CONVERTED, tokenAmount: 1000 },
+        'Reason',
+        'REFUND'
+      );
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Converted reservations cannot be cancelled.');
+    });
+
+    it('rejects cancellation for already CANCELLED reservation', () => {
+      const result = validateReservationCancellation(
+        { status: ReservationStatus.CANCELLED, tokenAmount: 1000 },
+        'Reason',
+        'REFUND'
+      );
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Reservation is already cancelled.');
     });
   });
 });

@@ -18,3 +18,4 @@ export * from './ReservationOverviewCard';
 export * from './ReservationCommercialExpectations';
 export * from './ReservationNotesAccordion';
 export * from './ReservationHistoryAccordion';
+export * from './ReservationCancellationOutcome';

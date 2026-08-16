@@ -16,7 +16,7 @@ describe('Sprint RA-4 — Reservation Actions Unit & Integration Suite', () => {
       reservationNumber: 'RES-000001',
       prospectName: 'Rahul Sharma',
       mobileNumber: '9876543210',
-      expectedJoiningDate: '2026-08-15',
+      expectedJoiningDate: '2026-09-15',
       expectedMonthlyRent: 12000,
       expectedSecurityDeposit: 12000,
       accommodationPreference: 'Double Sharing',
@@ -26,6 +26,7 @@ describe('Sprint RA-4 — Reservation Actions Unit & Integration Suite', () => {
       createdAt: '2026-08-01T10:00:00.000Z',
       updatedAt: '2026-08-01T10:00:00.000Z',
     },
+
     {
       id: 'resv-000002',
       reservationNumber: 'RES-000002',
@@ -95,17 +96,22 @@ describe('Sprint RA-4 — Reservation Actions Unit & Integration Suite', () => {
     ).toThrow(/CANCELLED/);
   });
 
-  it('cancels an active reservation with mandatory cancellation reason', () => {
+  it('cancels an active reservation with mandatory cancellation reason and token disposition', () => {
     const repo = new InMemoryReservationRepository(mockReservations);
     const useCases = new ReservationUseCases(repo);
 
     const cancelled = useCases.cancelReservationSync('resv-000001', {
       reason: 'Prospect relocated to another city',
+      tokenDisposition: 'REFUND',
     });
 
     expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
     expect(cancelled.cancellationReason).toBe('Prospect relocated to another city');
+    expect(cancelled.tokenDisposition?.outcome).toBe('REFUND');
+    expect(cancelled.tokenDisposition?.amount).toBe(2000);
+    expect(cancelled.cancelledAt).toBeDefined();
   });
+
 
   it('rejects cancelling an already cancelled or converted reservation', () => {
     const repo = new InMemoryReservationRepository(mockReservations);

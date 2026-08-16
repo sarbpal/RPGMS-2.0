@@ -1,14 +1,15 @@
-import type { Reservation } from '../../domain/entities/Reservation';
+import type { Reservation, ReservationTokenDisposition, ReservationAuditEntry } from '../../domain/entities/Reservation';
 import type { ReservationRepository } from '../../domain/interfaces/ReservationRepository';
 import { ReservationStatus } from '../../domain/valueObjects/ReservationStatus';
 import {
   formatReservationNumber,
   validateReservationDraft,
   canEditReservation,
-  canCancelReservation,
   canConvertReservation,
   canTransitionStatus,
+  validateReservationCancellation,
 } from '../../domain/rules/reservationRules';
+
 import { InMemoryReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
 import type { CreateReservationDTO } from '../dtos/CreateReservationDTO';
 import type { UpdateReservationDTO } from '../dtos/UpdateReservationDTO';
@@ -20,6 +21,7 @@ export class ReservationUseCases {
   constructor(repository: ReservationRepository = new InMemoryReservationRepository()) {
     this.repository = repository;
   }
+
 
   /**
    * Application Use Case: Checks for an active reservation with the given mobile number.
@@ -150,9 +152,13 @@ export class ReservationUseCases {
       throw new Error(`Reservation with ID ${id} not found.`);
     }
 
-    const cancelCheck = canCancelReservation(existing.status);
-    if (!cancelCheck.allowed) {
-      throw new Error(cancelCheck.reason);
+    const cancelValidation = validateReservationCancellation(
+      existing,
+      dto?.reason,
+      dto?.tokenDisposition
+    );
+    if (!cancelValidation.isValid) {
+      throw new Error(cancelValidation.error);
     }
 
     const transitionCheck = canTransitionStatus(existing.status, ReservationStatus.CANCELLED);
@@ -161,10 +167,38 @@ export class ReservationUseCases {
     }
 
     const nowIso = new Date().toISOString();
+    const hasToken = typeof existing.tokenAmount === 'number' && existing.tokenAmount > 0;
+
+    let tokenDisposition: ReservationTokenDisposition | undefined = undefined;
+    if (hasToken && dto?.tokenDisposition) {
+      tokenDisposition = {
+        outcome: dto.tokenDisposition,
+        amount: existing.tokenAmount!,
+        decidedOn: nowIso,
+      };
+    }
+
+
+    const trimmedReason = dto!.reason.trim();
+    let auditDetails = `Reservation cancelled. Reason: ${trimmedReason}.`;
+    if (tokenDisposition) {
+      auditDetails += ` Token disposition: ${tokenDisposition.outcome}. Token amount: ₹${tokenDisposition.amount.toLocaleString('en-IN')}.`;
+    }
+
+    const auditEntry: ReservationAuditEntry = {
+      timestamp: nowIso,
+      action: 'Reservation Cancelled',
+      performedBy: 'System Operator',
+      details: auditDetails,
+    };
+
     const cancelled: Reservation = {
       ...existing,
       status: ReservationStatus.CANCELLED,
-      cancellationReason: dto?.reason?.trim() || undefined,
+      cancelledAt: nowIso,
+      cancellationReason: trimmedReason,
+      tokenDisposition,
+      auditLog: [...(existing.auditLog || []), auditEntry],
       updatedAt: nowIso,
     };
 
@@ -174,6 +208,7 @@ export class ReservationUseCases {
   public async cancelReservation(id: string, dto?: CancelReservationDTO): Promise<Reservation> {
     return this.cancelReservationSync(id, dto);
   }
+
 
   /**
    * Application Use Case: Convert a Reservation upon Admission.

@@ -6,6 +6,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { ReservationUseCases } from '../application/useCases/ReservationUseCases';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 import { ReservationHeader } from '../components/ReservationHeader';
+import { ReservationCancellationOutcome } from '../components/ReservationCancellationOutcome';
 import { ReservationOverviewCard } from '../components/ReservationOverviewCard';
 import { ReservationCommercialExpectations } from '../components/ReservationCommercialExpectations';
 import { ReservationNotesAccordion } from '../components/ReservationNotesAccordion';
@@ -13,7 +14,7 @@ import { ReservationHistoryAccordion } from '../components/ReservationHistoryAcc
 import { EditReservationDialog } from '../components/EditReservationDialog';
 import { CancelReservationModal } from '../components/CancelReservationModal';
 import type { UpdateReservationDTO } from '../application/dtos/UpdateReservationDTO';
-import type { Reservation } from '../domain/entities/Reservation';
+import type { Reservation, TokenCancellationDisposition } from '../domain/entities/Reservation';
 import { canConvertReservation } from '../domain/rules/reservationRules';
 
 export const ReservationWorkspacePage: React.FC = () => {
@@ -46,10 +47,15 @@ export const ReservationWorkspacePage: React.FC = () => {
     handleRefresh();
   };
 
-  const handleConfirmCancel = (resId: string, reason?: string) => {
-    useCases.cancelReservationSync(resId, { reason });
+  const handleConfirmCancel = (
+    resId: string,
+    reason: string,
+    tokenDisposition?: TokenCancellationDisposition
+  ) => {
+    useCases.cancelReservationSync(resId, { reason, tokenDisposition });
     handleRefresh();
   };
+
 
   const handleConvertAdmission = () => {
     if (!reservation) return;
@@ -153,8 +159,12 @@ export const ReservationWorkspacePage: React.FC = () => {
           onViewAdmission={handleViewAdmission}
         />
 
+        {/* Cancellation Outcome (when CANCELLED) */}
+        <ReservationCancellationOutcome reservation={reservation} />
+
         {/* B. RESERVATION OVERVIEW: Single home for core reservation & contact facts */}
         <ReservationOverviewCard reservation={reservation} />
+
 
         {/* C. COMMERCIAL EXPECTATIONS: Single home for commercial terms & token */}
         <ReservationCommercialExpectations reservation={reservation} />

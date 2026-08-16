@@ -1,4 +1,4 @@
-import type { Reservation, ReservationAuditEntry } from '../../domain/entities/Reservation';
+import type { Reservation, ReservationAuditEntry, TokenCancellationDisposition } from '../../domain/entities/Reservation';
 import type { ReservationRepository } from '../../domain/interfaces/ReservationRepository';
 import { ReservationStatus } from '../../domain/valueObjects/ReservationStatus';
 import {
@@ -7,19 +7,23 @@ import {
   validateReservationDraft,
   checkDuplicateMobile as domainCheckDuplicateMobile,
   canEditReservation,
-  canCancelReservation,
   isReservationFollowUpRequired,
 } from '../../domain/rules/reservationRules';
+
 import { InMemoryReservationRepository } from '../../infrastructure/repositories/InMemoryReservationRepository';
+import { ReservationUseCases } from '../useCases/ReservationUseCases';
 import type { ReservationDraft } from '../models/ReservationDraft';
 import type { ReservationWorkspaceViewModel, ReservationStats } from '../models/ReservationWorkspaceViewModel';
 
 export class ReservationWorkspaceCoordinator {
   private repository: ReservationRepository;
+  private useCases: ReservationUseCases;
 
   constructor(repository: ReservationRepository = new InMemoryReservationRepository()) {
     this.repository = repository;
+    this.useCases = new ReservationUseCases(repository);
   }
+
 
   /**
    * Load reservations from repository and construct ViewModel.
@@ -201,36 +205,20 @@ export class ReservationWorkspaceCoordinator {
   }
 
   /**
-   * Cancels an active reservation (No deletion).
+   * Cancels an active reservation (delegating to ReservationUseCases).
    */
-  public cancelReservation(id: string, operatorReason?: string): Reservation {
-    const reservation = this.repository.findByIdSync(id);
-    if (!reservation) {
-      throw new Error(`Reservation ${id} not found.`);
-    }
-
-    const cancelCheck = canCancelReservation(reservation.status);
-    if (!cancelCheck.allowed) {
-      throw new Error(cancelCheck.reason);
-    }
-
-    const nowIso = new Date().toISOString();
-    const auditEntry: ReservationAuditEntry = {
-      timestamp: nowIso,
-      action: 'Reservation Cancelled',
-      performedBy: 'System Operator',
-      details: operatorReason ? `Cancelled. Reason: ${operatorReason}` : 'Reservation cancelled',
-    };
-
-    const cancelledReservation: Reservation = {
-      ...reservation,
-      status: ReservationStatus.CANCELLED,
-      auditLog: [...reservation.auditLog, auditEntry],
-      updatedAt: nowIso,
-    };
-
-    return this.repository.saveSync(cancelledReservation);
+  public cancelReservation(
+    id: string,
+    operatorReason?: string,
+    tokenDisposition?: TokenCancellationDisposition
+  ): Reservation {
+    return this.useCases.cancelReservationSync(id, {
+      reason: operatorReason || '',
+      tokenDisposition,
+    });
   }
+
+
 
   /**
    * Constructs the ViewModel with summary statistics and filtered reservation list.

@@ -7,6 +7,14 @@ export interface ReservationAuditEntry {
   details?: string;
 }
 
+export type TokenCancellationDisposition = 'REFUND' | 'FORFEIT';
+
+export interface ReservationTokenDisposition {
+  outcome: TokenCancellationDisposition;
+  amount: number;
+  decidedOn: string;
+}
+
 export interface Reservation {
   id: string;
   reservationNumber: string; // Format: RES-000001
@@ -17,11 +25,13 @@ export interface Reservation {
   expectedSecurityDeposit?: number;
   accommodationPreference?: string;
   tokenAmount?: number;
-  tokenReceivedOn?: string; // YYYY-MM-DD
+  tokenReceivedOn?: string;
   tokenRemarks?: string;
   status: ReservationStatus;
   notes?: string;
+  cancelledAt?: string;
   cancellationReason?: string;
+  tokenDisposition?: ReservationTokenDisposition;
   convertedResidentId?: string;
   convertedStayId?: string;
   auditLog: ReservationAuditEntry[];

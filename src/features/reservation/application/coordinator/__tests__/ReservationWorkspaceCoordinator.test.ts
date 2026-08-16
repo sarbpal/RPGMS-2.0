@@ -135,7 +135,7 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
   });
 
   describe('cancelReservation Operations', () => {
-    it('cancels an active reservation, updates status to CANCELLED, and logs audit event', () => {
+    it('cancels an active reservation without token, updates status to CANCELLED, and logs audit event', () => {
       const res = coordinator.saveReservation({
         prospectName: 'John Doe',
         mobileNumber: '9876543210',
@@ -145,13 +145,79 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       const cancelled = coordinator.cancelReservation(res.id, 'Found alternative accommodation');
 
       expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.cancellationReason).toBe('Found alternative accommodation');
+      expect(cancelled.cancelledAt).toBeDefined();
+      expect(cancelled.tokenDisposition).toBeUndefined();
+
       const lastAudit = cancelled.auditLog[cancelled.auditLog.length - 1];
       expect(lastAudit.action).toBe('Reservation Cancelled');
       expect(lastAudit.details).toContain('Reason: Found alternative accommodation');
 
-      // Refinement #3: Verify repository state after cancellation
+      // Verify repository state after cancellation
       const repoState = repository.findByIdSync(res.id);
       expect(repoState?.status).toBe(ReservationStatus.CANCELLED);
+    });
+
+    it('cancels an active reservation with token and REFUND disposition', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'Token Refund Prospect',
+        mobileNumber: '9876543211',
+        expectedJoiningDate: tomorrowStr,
+        tokenAmount: 2500,
+      });
+
+      const cancelled = coordinator.cancelReservation(
+        res.id,
+        'Found alternative PG',
+        'REFUND'
+      );
+
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.tokenDisposition).toEqual({
+        outcome: 'REFUND',
+        amount: 2500,
+        decidedOn: expect.any(String),
+      });
+
+      const lastAudit = cancelled.auditLog[cancelled.auditLog.length - 1];
+      expect(lastAudit.action).toBe('Reservation Cancelled');
+      expect(lastAudit.details).toContain('Token disposition: REFUND. Token amount: ₹2,500.');
+    });
+
+    it('cancels an active reservation with token and FORFEIT disposition', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'Token Forfeit Prospect',
+        mobileNumber: '9876543212',
+        expectedJoiningDate: tomorrowStr,
+        tokenAmount: 1000,
+      });
+
+      const cancelled = coordinator.cancelReservation(
+        res.id,
+        'No-show',
+        'FORFEIT'
+      );
+
+      expect(cancelled.status).toBe(ReservationStatus.CANCELLED);
+      expect(cancelled.tokenDisposition).toEqual({
+        outcome: 'FORFEIT',
+        amount: 1000,
+        decidedOn: expect.any(String),
+      });
+    });
+
+
+    it('requires token disposition when cancelling an active reservation with token', () => {
+      const res = coordinator.saveReservation({
+        prospectName: 'Token Prospect',
+        mobileNumber: '9876543213',
+        expectedJoiningDate: tomorrowStr,
+        tokenAmount: 1000,
+      });
+
+      expect(() => coordinator.cancelReservation(res.id, 'No disposition')).toThrow(
+        'Token disposition choice (REFUND or FORFEIT) is required when cancelling a reservation with a token.'
+      );
     });
 
     it('prevents cancelling an already CANCELLED reservation', () => {
@@ -160,9 +226,11 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
         mobileNumber: '9876543210',
         expectedJoiningDate: tomorrowStr,
       });
-      coordinator.cancelReservation(res.id);
+      coordinator.cancelReservation(res.id, 'First cancellation');
 
-      expect(() => coordinator.cancelReservation(res.id)).toThrow('Reservation is already cancelled');
+      expect(() => coordinator.cancelReservation(res.id, 'Second cancellation')).toThrow(
+        'Reservation is already cancelled'
+      );
     });
   });
 
@@ -184,7 +252,9 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       );
 
       // Attempt cancel
-      expect(() => coordinator.cancelReservation(res.id)).toThrow('Converted reservations cannot be cancelled');
+      expect(() => coordinator.cancelReservation(res.id, 'Cancel attempt')).toThrow(
+        'Converted reservations cannot be cancelled'
+      );
 
       // Verify repository state remains completely unchanged
       const finalRepoState = repository.findByIdSync(res.id);
@@ -192,6 +262,7 @@ describe('ReservationWorkspaceCoordinator Integration Suite', () => {
       expect(finalRepoState?.status).toBe(ReservationStatus.CONVERTED);
     });
   });
+
 
   describe('checkDuplicateMobile', () => {
     it('returns warning details when an active reservation exists for the mobile number', () => {

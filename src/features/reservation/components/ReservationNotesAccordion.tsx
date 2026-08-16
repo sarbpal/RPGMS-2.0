@@ -6,8 +6,8 @@ import {
   Typography,
   Stack,
   Box,
-  Chip,
 } from '@mui/material';
+
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NotesIcon from '@mui/icons-material/Notes';
 import type { Reservation } from '../domain/entities/Reservation';
@@ -48,13 +48,6 @@ export const ReservationNotesAccordion: React.FC<ReservationNotesAccordionProps>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
             Notes & Operator Remarks
           </Typography>
-          <Chip
-            label={hasNotes ? '1 entry' : 'None'}
-            size="small"
-            color={hasNotes ? 'primary' : 'default'}
-            variant={hasNotes ? 'filled' : 'outlined'}
-            sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, ml: 'auto', mr: 1 }}
-          />
         </Stack>
       </AccordionSummary>
       <AccordionDetails sx={{ px: { xs: 2, sm: 3 }, pb: 3, pt: 0.5 }}>

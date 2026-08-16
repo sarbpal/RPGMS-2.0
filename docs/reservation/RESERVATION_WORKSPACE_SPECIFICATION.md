@@ -1490,7 +1490,17 @@ Concludes the Reservation when the expected Admission will no longer occur.
 
 Cancellation records the business outcome together with an appropriate cancellation reason.
 
-The Reservation becomes a permanent historical record.
+**MVP Business Rule — Token Disposition on Cancellation:**
+- Active Reservation with token (`tokenAmount > 0`): The operator must explicitly select exactly one token disposition:
+  1. `REFUND` (Full token amount)
+  2. `FORFEIT` (Full token amount)
+- Partial or editable refunds are not supported in MVP and are explicitly deferred to V2.
+- Active Reservation without token: Cancellation requires only a mandatory cancellation reason; token disposition controls are omitted.
+- The Reservation domain authoritatively owns and persists the structured token disposition (`outcome`, `amount`, `decidedOn`) and dedicated cancellation timestamp (`cancelledAt`).
+- Actual financial postings remain the responsibility of Finance; the Reservation records the business disposition decision.
+
+The Reservation becomes a permanent immutable historical record.
+
 
 ---
 

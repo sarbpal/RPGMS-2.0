@@ -1558,6 +1558,17 @@ A cancelled Reservation shall preserve complete business history.
 
 Cancellation shall not remove historical Reservation records.
 
+A cancellation requires a mandatory cancellation reason.
+
+When cancelling an Active Reservation with an advance Reservation Token (`tokenAmount > 0`), the operator must explicitly choose a Token Disposition:
+- `REFUND`: Full original token amount is designated for refund.
+- `FORFEIT`: Full original token amount is designated for forfeiture.
+
+MVP does not support partial or editable refund amounts (deferred to V2).
+
+The Reservation domain owns and preserves the structured Token Disposition and dedicated cancellation timestamp (`cancelledAt`). Monetary posting remains the responsibility of Finance.
+
+
 ---
 
 ## BR-307 Reservation Business Events

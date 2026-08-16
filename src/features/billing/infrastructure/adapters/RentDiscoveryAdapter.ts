@@ -3,6 +3,7 @@ import type { ChargeType } from '../../domain/valueObjects/BillingTypes';
 import { DiscoveredObligation } from '../../domain/valueObjects/DiscoveredObligation';
 import { ObligationKey } from '../../domain/valueObjects/ObligationKey';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
+import type { Stay } from '../../../stay/domain/entities/Stay';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
 
 /**
@@ -26,17 +27,23 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
   }
 
   async discoverObligations(
-    stayIds: string[],
+    stayIds: string[] | undefined,
     periodStart: string,
     periodEnd: string,
     _cutoffTimestamp: string
   ): Promise<DiscoveredObligation[]> {
     const obligations: DiscoveredObligation[] = [];
 
-    for (const stayId of stayIds) {
-      const stay = await this.stayRepository.findById(stayId);
-      if (!stay) continue;
+    // If explicit stayIds provided, evaluate only those; otherwise discover across all candidate Stays in repository
+    let targetStays: Stay[];
+    if (stayIds && stayIds.length > 0) {
+      const fetched = await Promise.all(stayIds.map((id) => this.stayRepository.findById(id)));
+      targetStays = fetched.filter((s): s is Stay => s !== null);
+    } else {
+      targetStays = this.stayRepository.getAllSync();
+    }
 
+    for (const stay of targetStays) {
       // Authoritative commercial agreement check
       const rentAmount = stay.agreedRent;
       if (typeof rentAmount !== 'number' || rentAmount <= 0) continue;
@@ -96,6 +103,9 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
     const [startYear, startMonth] = periodStart.split('-').map(Number);
     const [endYear, endMonth] = periodEnd.split('-').map(Number);
 
+    const normalizedCheckIn = this.normalizeToIsoDate(checkInDate);
+    const normalizedCheckout = actualCheckoutDate ? this.normalizeToIsoDate(actualCheckoutDate) : undefined;
+
     let currentYear = startYear;
     let currentMonth = startMonth;
 
@@ -109,8 +119,8 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}`;
 
       // Check boundaries
-      const isAfterOrOnCheckIn = dateStr >= checkInDate;
-      const isBeforeOrOnCheckout = !actualCheckoutDate || dateStr <= actualCheckoutDate;
+      const isAfterOrOnCheckIn = dateStr >= normalizedCheckIn;
+      const isBeforeOrOnCheckout = !normalizedCheckout || dateStr <= normalizedCheckout;
       const isInPeriod = dateStr >= periodStart && dateStr <= periodEnd;
 
       if (isAfterOrOnCheckIn && isBeforeOrOnCheckout && isInPeriod) {
@@ -125,5 +135,17 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
     }
 
     return dates;
+  }
+
+  private normalizeToIsoDate(dateStr: string): string {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear();
+      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return dateStr;
   }
 }

@@ -777,10 +777,46 @@ Specifically, the Electricity domain already posts authoritative utility receiva
 
 ---
 
+## ADR-027 — Authoritative Runtime Repository Graph Unification & Property-Wide Billing Discovery Semantics
+
+**Status:** Accepted
+
+### Context
+
+Following the implementation of Billing Slices 1–4B, end-to-end manual testing of the running UI identified two runtime integration issues:
+1. When operators created a Billing Run from the UI without specifying target `stayIds` (intending a property-wide run), the omitted parameter became an empty array and discovery short-circuited immediately to zero obligations.
+2. In-memory repository singletons were fragmented across modules: Admission/Stay/Accommodation operated on one set of repository instances created by `stayWorkflowComposition`, while Billing coordinators and Finance services defaulted to independently instantiated in-memory repositories. As a result, newly admitted Stays or operational updates were invisible across module boundaries.
+
+### Decision
+
+1. **Unified Authoritative Runtime Repository Graph:**
+   - The application composition root (`stayWorkflowComposition.ts` and module repository exports) binds all operational workflows (Admission, Stay, Resident, Accommodation, Electricity, Finance, and Billing) to single authoritative runtime repository singletons (`defaultStayRepository`, `defaultResidentRepository`, `defaultAccommodationRepository`, `defaultReservationRepository`, `defaultFinanceRepository`, `defaultElectricityRepository`, `defaultBillingRunRepository`, `defaultBillingClaimRepository`).
+   - Any Stay created via Admission or updated in the Stay Registry is immediately and synchronously visible to Billing Discovery and Finance services.
+   - Isolated unit and integration tests continue to supply distinct, isolated repository instances to preserve hermetic test execution.
+
+2. **Property-Wide Discovery Semantics:**
+   - In `ChargeDiscoveryProvider`, `BillingDiscoveryService`, `RentDiscoveryAdapter`, and `ElectricityDiscoveryAdapter`, an omitted, empty, or undefined `stayIds` parameter explicitly indicates **property-wide discovery**.
+   - When `stayIds` is omitted, discovery adapters evaluate all candidate Stays available in the authoritative `StayRepository` whose billing anniversary or utility period falls within the target date range.
+   - When explicit `stayIds` are supplied, discovery remains strictly constrained to only those specified Stays.
+
+### Consequences
+
+#### Advantages:
+- Enables full end-to-end manual testing across Admission → Stay Registry → Electricity Allocation → Billing Workspace → Finance Ledgers.
+- Property managers can execute standard monthly billing runs across the entire property without manually specifying individual stay IDs.
+- Zero duplication of domain entities or repository instances at runtime.
+- 100% preservation of test isolation for hermetic automated tests.
+
+#### Trade-offs:
+- Property-wide discovery processes all candidate stays in memory for the selected date range.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.1 | August 2026 | Added ADR-027 (Authoritative Runtime Repository Graph Unification & Property-Wide Billing Discovery Semantics). |
 | 3.0 | August 2026 | Added ADR-026 (Billing Engine Charge Ownership, Discovery Contracts, and Cross-Domain Financial Reconciliation). |
 | 2.9 | August 2026 | Added ADR-025 (Billing Engine Controlled Run, Claim, Recovery and Retry Architecture). |
 | 2.8 | August 2026 | Added ADR-024 (Running Deposit Account Lifecycle, Partial Returns, and Decoupled Settlement). |

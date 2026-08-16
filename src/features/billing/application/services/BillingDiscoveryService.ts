@@ -28,15 +28,15 @@ export class BillingDiscoveryService {
   }
 
   /**
-   * Discovers obligations across all registered providers for the given Stays and date range.
+   * Discovers obligations across all registered providers for the given Stays (or property-wide if omitted/empty) and date range.
    */
   async discoverAll(
-    stayIds: string[],
+    stayIds: string[] | undefined,
     periodStart: string,
     periodEnd: string,
     cutoffTimestamp?: string
   ): Promise<DiscoveredObligation[]> {
-    if (stayIds.length === 0 || this.providers.size === 0) {
+    if (this.providers.size === 0) {
       return [];
     }
 

@@ -153,4 +153,129 @@ describe('RentDiscoveryAdapter (Authoritative Rent & Anniversary Cycle Discovery
 
     expect(obligations).toHaveLength(0);
   });
+
+  it('discovers rent obligations across all candidate Stays when stayIds is undefined or empty', async () => {
+    const stay1 = new Stay({
+      id: 'STAY-PW-1',
+      residentId: 'RES-101',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '2026-05-12',
+      billingAnchorDay: 12,
+      agreedRent: 10000,
+    });
+    const stay2 = new Stay({
+      id: 'STAY-PW-2',
+      residentId: 'RES-101',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '2026-06-20',
+      billingAnchorDay: 20,
+      agreedRent: 15000,
+    });
+    mockStays.set(stay1.id, stay1);
+    mockStays.set(stay2.id, stay2);
+
+    const obligations = await adapter.discoverObligations(
+      undefined,
+      '2026-08-01',
+      '2026-08-31',
+      '2026-08-31T23:59:59.000Z'
+    );
+
+    expect(obligations).toHaveLength(2);
+    expect(obligations.map((o) => o.stayId).sort()).toEqual(['STAY-PW-1', 'STAY-PW-2']);
+  });
+
+  it('TEST 1 & 3: normalizes persisted non-ISO dates (e.g. 12-Mar-2026) and discovers obligations correctly', async () => {
+    const stayNonIso = new Stay({
+      id: 'STAY-NON-ISO',
+      residentId: 'RES-NON-ISO',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '12-Mar-2026',
+      billingAnchorDay: 12,
+      agreedRent: 8500,
+    });
+    mockStays.set(stayNonIso.id, stayNonIso);
+
+    const obligations = await adapter.discoverObligations(
+      ['STAY-NON-ISO'],
+      '2026-08-01',
+      '2026-08-31',
+      '2026-08-31T23:59:59.000Z'
+    );
+
+    expect(obligations).toHaveLength(1);
+    expect(obligations[0].obligationKey).toBe('RENT:STAY-NON-ISO:2026-08-12');
+    expect(obligations[0].amount).toBe(8500);
+    expect(obligations[0].businessDate).toBe('2026-08-12');
+  });
+
+  it('TEST 2: filters discovery strictly to explicit stayIds when supplied', async () => {
+    const stayA = new Stay({
+      id: 'STAY-FILTER-A',
+      residentId: 'RES-A',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '2026-01-01',
+      billingAnchorDay: 1,
+      agreedRent: 9000,
+    });
+    const stayB = new Stay({
+      id: 'STAY-FILTER-B',
+      residentId: 'RES-B',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '2026-01-01',
+      billingAnchorDay: 1,
+      agreedRent: 9500,
+    });
+    mockStays.set(stayA.id, stayA);
+    mockStays.set(stayB.id, stayB);
+
+    const obligations = await adapter.discoverObligations(
+      ['STAY-FILTER-A'],
+      '2026-08-01',
+      '2026-08-31',
+      '2026-08-31T23:59:59.000Z'
+    );
+
+    expect(obligations).toHaveLength(1);
+    expect(obligations[0].stayId).toBe('STAY-FILTER-A');
+    expect(obligations[0].amount).toBe(9000);
+  });
+
+  it('TEST 4: respects checkout boundaries for historical stays with non-ISO check-in/checkout dates', async () => {
+    const historicalNonIso = new Stay({
+      id: 'STAY-HIST-NON-ISO',
+      residentId: 'RES-HIST',
+      stayType: 'REGULAR',
+      status: 'CHECKED_OUT',
+      checkInDate: '10-Jan-2026',
+      actualCheckoutDate: '15-Aug-2026',
+      billingAnchorDay: 10,
+      agreedRent: 11000,
+    });
+    mockStays.set(historicalNonIso.id, historicalNonIso);
+
+    // August 10 is before August 15 checkout -> discovered
+    const augObligations = await adapter.discoverObligations(
+      ['STAY-HIST-NON-ISO'],
+      '2026-08-01',
+      '2026-08-31',
+      '2026-08-31T23:59:59.000Z'
+    );
+    expect(augObligations).toHaveLength(1);
+    expect(augObligations[0].obligationKey).toBe('RENT:STAY-HIST-NON-ISO:2026-08-10');
+
+    // September 10 is after August 15 checkout -> NOT discovered
+    const septObligations = await adapter.discoverObligations(
+      ['STAY-HIST-NON-ISO'],
+      '2026-09-01',
+      '2026-09-30',
+      '2026-09-30T23:59:59.000Z'
+    );
+    expect(septObligations).toHaveLength(0);
+  });
 });

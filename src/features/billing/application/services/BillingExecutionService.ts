@@ -91,9 +91,9 @@ export class BillingExecutionService {
     }
 
     const runId = `RUN-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const targetStayIds = params.stayIds ? [...params.stayIds] : [];
+    const targetStayIds = params.stayIds && params.stayIds.length > 0 ? [...params.stayIds] : undefined;
 
-    // Discover obligations for the target Stays
+    // Discover obligations for the target Stays (or property-wide if targetStayIds is undefined)
     const discovered = await this.discoveryService.discoverAll(
       targetStayIds,
       params.periodStart,
@@ -101,7 +101,7 @@ export class BillingExecutionService {
     );
 
     // Identify unique Stays to instantiate operations for
-    const stayIdSet = new Set<string>(targetStayIds);
+    const stayIdSet = new Set<string>(targetStayIds || []);
     for (const ob of discovered) {
       stayIdSet.add(ob.stayId);
     }

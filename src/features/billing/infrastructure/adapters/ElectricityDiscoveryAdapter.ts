@@ -27,13 +27,14 @@ export class ElectricityDiscoveryAdapter implements ChargeDiscoveryProvider {
   }
 
   async discoverObligations(
-    stayIds: string[],
+    stayIds: string[] | undefined,
     periodStart: string,
     periodEnd: string,
     _cutoffTimestamp: string
   ): Promise<DiscoveredObligation[]> {
     const obligations: DiscoveredObligation[] = [];
-    const targetStaySet = new Set(stayIds);
+    const hasStayFilter = Boolean(stayIds && stayIds.length > 0);
+    const targetStaySet = hasStayFilter ? new Set(stayIds) : null;
 
     // Read all allocations from the authoritative Electricity Repository
     const allAllocations = this.electricityRepository.getAllocations();
@@ -48,7 +49,7 @@ export class ElectricityDiscoveryAdapter implements ChargeDiscoveryProvider {
 
     for (const allocation of confirmedAllocations) {
       for (const participant of allocation.participants) {
-        if (!targetStaySet.has(participant.stayId)) continue;
+        if (targetStaySet && !targetStaySet.has(participant.stayId)) continue;
         if (participant.allocatedAmount <= 0) continue;
 
         // Invariant: Confirmed Electricity allocations are domain-committed and cannot be claimed by Billing

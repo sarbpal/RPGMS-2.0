@@ -26,7 +26,7 @@ describe('BillingExecutionService', () => {
     providerKey: 'MOCK_PROVIDER',
     chargeType: 'RENT',
     discoverObligations: async (stayIds) => {
-      return mockDiscoveredObligations.filter((o) => stayIds.includes(o.stayId));
+      return mockDiscoveredObligations.filter((o) => !stayIds || stayIds.includes(o.stayId));
     },
   });
 

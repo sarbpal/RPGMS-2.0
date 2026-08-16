@@ -186,7 +186,7 @@ describe('Billing Slice 3: Execution Orchestration & Finance Integration End-to-
         providerKey: 'ANCILLARY_PROVIDER',
         chargeType: 'OTHER',
         discoverObligations: async (stayIds) => {
-          if (!stayIds.includes('STAY-102')) return [];
+          if (!stayIds || !stayIds.includes('STAY-102')) return [];
           return [
             new DiscoveredObligation({
               obligationKey: 'OTHER:STAY-102:SRV-01',

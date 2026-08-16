@@ -579,6 +579,11 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 - Immutable Retry Run creation (`retryOfRunId = originalRun.id`) with strict exclusion of `SUCCESS`, `NO_CHARGES`, and blocking of unresolved `RECOVERY_REQUIRED` operations
 - Interactive Recovery Workbench modal (`RecoveryWorkbenchModal`) and Retry Run modal (`CreateRetryRunModal`)
 
+### Property-Wide Discovery Substrate (Repair 1)
+- Contractual support for `stayIds: undefined` across `ChargeDiscoveryProvider`, `BillingDiscoveryService`, `RentDiscoveryAdapter`, and `ElectricityDiscoveryAdapter` for property-wide runs.
+- Chronological date normalization (`normalizeToIsoDate`) in `RentDiscoveryAdapter` supporting both ISO and persisted human-readable date formats (e.g. `12-Mar-2026`).
+- End-to-end integration tests proving property-wide run creation against shared seed repository records without requiring manual stay ID selection.
+
 ---
 
 ## Deferred Scope (Future Capabilities)

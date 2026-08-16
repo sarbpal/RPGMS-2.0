@@ -114,3 +114,5 @@ export class InMemoryBillingClaimRepository implements BillingClaimRepository {
     this.obligationToClaimMap.clear();
   }
 }
+
+export const defaultBillingClaimRepository = new InMemoryBillingClaimRepository();

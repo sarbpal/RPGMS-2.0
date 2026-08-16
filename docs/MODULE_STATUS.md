@@ -49,6 +49,7 @@ Current development is focused on delivering the Operational Services capability
 | Reservation & Admission | 🟢 Complete |
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
 | Electricity | 🟢 MVP Complete (CR-4 / Stage 1–5 Complete) |
+| Billing | 🟢 Slices 1–4A Complete (CR-4) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
 
@@ -522,6 +523,79 @@ Manages electricity supplier bills, sub-meter readings, monthly consumption, his
 
 ---
 
+# Billing Module
+
+**Status:** 🟢 Slices 1–4A Complete (Normal Billing Operator Workspace Operational)
+
+**State:** Active Operational Capability (CR-4)
+
+## Purpose
+
+Orchestrates controlled billing cycles across Stays and uncommitted domain charges (Rent, Ancillary), discovers billable obligations, enforces first-claim-wins concurrency, revalidates live state against material changes at eligibility cutoff, and dispatches consolidated billing batches to Finance without duplicating domain-posted invoices (e.g. Confirmed Electricity).
+
+---
+
+## Completed (Slices 1–4A)
+
+### Domain & Claims (Slice 1)
+- `BillingRun`, `BillingOperation`, `BillingClaim` aggregates
+- Deterministic identity (`ObligationKey`)
+- Atomic claim repository (`tryAcquireClaim`, first-claim-wins)
+- Validation rules (`BillingClaimRules`)
+
+### Discovery & Eligibility (Slice 2)
+- Multi-provider discovery engine (`BillingDiscoveryService`)
+- Source-domain adapters (`RentDiscoveryAdapter`, `ElectricityDiscoveryAdapter`)
+- Eligibility evaluation & breakdown (`BillingEligibilityService`)
+- Read-only observation of confirmed Electricity (`COMMITTED`)
+
+### Execution Orchestration & Finance Integration (Slice 3)
+- Execution orchestrator (`BillingExecutionService`)
+- Material change detection (`MaterialChangeRules`)
+- Final pre-dispatch revalidation & all-or-nothing dispatch
+- Consolidated Finance dispatch via `BillingApplicationService.createBill()`
+- Clean failure release vs. uncertainty (`RECOVERY_REQUIRED`) claim retention
+- Graceful stop mechanics & immutable retry lineage
+
+### Normal Operator Workspace (Slice 4A)
+- Presentation coordinator (`BillingWorkspaceCoordinator`)
+- Strongly typed view models (`BillingWorkspaceViewModel`)
+- React state hook (`useBillingWorkspace`)
+- Dashboard KPI summary cards (`BillingSummaryCards`)
+- Active run execution & graceful stop banner (`ActiveRunBanner`)
+- Run creation dialog (`CreateRunModal`)
+- Interactive preview & drilldown with material change alert (`PreviewConfirmationModal`)
+- Historical run audit dialog (`RunDetailsModal`)
+- Historical runs table (`BillingRunsTable`)
+- Dedicated workspace page (`BillingPage`) registered at `/billing` and sidebar
+
+---
+
+## Deferred Scope (Slice 4B & Future)
+
+- **Slice 4B:** Recovery Workbench UI (investigating `RECOVERY_REQUIRED` operations against Finance repository evidence and manual resolution).
+- **Slice 4B:** Retry Run creation workflow.
+- **Future:** Operational Laundry discovery (pending Laundry domain creation).
+- **Future:** Maintenance / Penalty billing (pending Maintenance commercial architecture).
+- **Future:** PostgreSQL / Supabase SQL schema & repository persistence migration.
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Stay
+- Resident
+- Accommodation
+- Electricity
+
+### Downstream
+
+- Finance
+
+---
+
 # Maintenance Module
 
 **Status:** 🟢 MVP Complete (CR-4 / Maintenance Foundation Implemented)
@@ -649,6 +723,7 @@ Current objectives:
 | Admission | 🟢 Complete | Frozen |
 | Finance | 🔵 Active Development | Active (CR-3) |
 | Electricity | 🟢 MVP Complete | Active (CR-4) |
+| Billing | 🟢 Slices 1–4A Complete | Active (CR-4) |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
 

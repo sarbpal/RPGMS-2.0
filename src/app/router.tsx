@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { AccommodationWorkspacePage } from '../features/accommodation';
 import { AdmissionWorkspacePage } from '../features/admission';
+import { BillingPage } from '../features/billing';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ElectricityPage } from '../features/electricity';
 import { FinanceWorkspacePage } from '../features/finance';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'reservations/:id', element: <ReservationWorkspacePage /> },
       { path: 'admission/from-reservation/:id', element: <AdmissionWorkspacePage /> },
       { path: 'admission/walk-in', element: <AdmissionWorkspacePage /> },
+      { path: 'billing', element: <BillingPage /> },
       { path: 'finance', element: <FinanceWorkspacePage /> },
       { path: 'electricity', element: <ElectricityPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },

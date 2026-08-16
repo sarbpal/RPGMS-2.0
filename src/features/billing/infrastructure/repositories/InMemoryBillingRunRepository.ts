@@ -37,3 +37,5 @@ export class InMemoryBillingRunRepository implements BillingRunRepository {
     this.runs.clear();
   }
 }
+
+export const defaultBillingRunRepository = new InMemoryBillingRunRepository();

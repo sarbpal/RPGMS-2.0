@@ -9,6 +9,7 @@ import {
   Settings,
   EventAvailable,
   Hotel,
+  ReceiptLong,
 } from '@mui/icons-material';
 import {
   Drawer,
@@ -28,6 +29,7 @@ const menuItems = [
   { label: 'Reservations', icon: <EventAvailable />, to: '/reservations' },
   { label: 'Residents', icon: <People />, to: '/residents' },
   { label: 'Stays', icon: <Hotel />, to: '/stays' },
+  { label: 'Billing', icon: <ReceiptLong />, to: '/billing' },
   { label: 'Finance', icon: <AccountBalanceWallet />, to: '/finance' },
   { label: 'Electricity', icon: <Bolt />, to: '/electricity' },
   { label: 'Maintenance', icon: <Build />, to: '/maintenance' },

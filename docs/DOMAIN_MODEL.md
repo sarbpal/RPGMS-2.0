@@ -225,6 +225,25 @@ The following business terms are used consistently throughout the project.
 | Security Deposit | Refundable liability held during a Stay |
 | Ledger Entry | Derived accounting representation of financial events |
 | Business Event | Cross-domain conceptual model representing an immutable record of completed business activity |
+| Laundry Item | A recognized physical category of laundry (not an individually tracked garment identity) |
+| Laundry Service | An operational service requested for a Laundry Item (e.g. Cleaning, Ironing) |
+| Laundry Charge Master | Commercial rate configuration applicable to a Laundry Item + Service combination |
+| Rate Snapshot | Historical copy of applicable Charge Master rate captured at Collection Confirmation |
+| Laundry Transaction | The complete operational container for one laundry collection relationship for a Stay |
+| Garment Line | A quantity of the same Laundry Item sharing the same requested services and Rate Snapshots |
+| Physical Quantity | The actual piece count of laundry (counted once regardless of the number of services) |
+| Collection Confirmation | Point where collection facts, quantities, services, and rate snapshots become immutable |
+| Condition Observation | Physical condition or defect noted during pre-processing inspection |
+| Processing Route | Operational path for laundry processing (IN_HOUSE or EXTERNAL_VENDOR) |
+| Laundry Return | Physical return of processed laundry back into RPGMS custody, verified by staff count |
+| Handover Method | Method of physical delivery (DIRECT_HANDOVER to resident or ROOM_PLACEMENT) |
+| Resident Verification | Whether resident personally checked laundry; separate from physical delivery |
+| Laundry Exception | Operational discrepancy, missing item, damage, or service issue requiring investigation |
+| Exception Resolution | Operational outcome determining physical resolution or operational basis for financial action |
+| Resolved Quantity | Physical quantity conclusively accounted for where delivery will not occur (e.g. lost) |
+| Service Fulfillment | Operational confirmation that a requested service has actually been performed |
+| Chargeable Laundry Service | Service that has been fulfilled AND whose affected physical quantity has been delivered |
+| Laundry Charge Event | `LaundryChargeRaised` domain event communicating chargeable service facts to Finance |
 
 These terms form the common language used throughout the project.
 
@@ -270,6 +289,7 @@ Business Processes coordinate interactions between domains without transferring 
 | Reservation | Reservation, Reservation Preference, Reservation Token |
 | Resident Lifecycle | Resident, Stay, Bed Allocation, Notice (Informational Event Concept) |
 | Finance | Commercial Agreement, Commercial Amendment (Domain Event Concept), Charge, Payment, Payment Allocation, Security Deposit, Ledger Entry |
+| Laundry (Operational Support) | Laundry Transaction, Garment Line, Rate Snapshot, Laundry Return, Laundry Delivery, Laundry Exception, Exception Resolution |
 | Cross-Domain | Business Event (Cross-Domain Conceptual Model) |
 
 
@@ -328,6 +348,24 @@ Responsible for:
 - Payment Allocation
 - Security Deposits
 - Ledger Entries
+
+---
+
+## Operational Support Domains — Laundry
+
+Models specialised resident service workflows that support day-to-day operations.
+
+Responsible for:
+
+- Laundry Item, Service, and Charge Masters
+- Laundry Transactions and Garment Lines
+- Collection Confirmation and Photographic Evidence
+- Inspection and Condition Observations
+- Processing Route Selection and Release
+- Physical Return Verification and Count Reconciliation
+- Physical Delivery Handover (Direct Handover, Room Placement)
+- Exceptions, Investigations, and Resolutions
+- Service Fulfillment Tracking and Chargeability Determination
 
 ---
 
@@ -1365,6 +1403,93 @@ These values are derived from Charges, Payments and Payment Allocations.
 
 ---
 
+# Operational Support Domain — Laundry
+
+## Purpose
+
+The Laundry Domain models the complete operational lifecycle of resident laundry services within RPGMS.
+
+It provides a unified operational model supporting both in-house processing and external vendor processing, preserving physical counting, rate snapshots, inspection evidence, returns verification, physical delivery handovers, exception investigations, and service-level chargeability determination.
+
+---
+
+## Aggregate Root
+
+The Aggregate Root of the Laundry Domain is:
+
+**`LaundryTransaction`**
+
+The `LaundryTransaction` protects the operational consistency of all Garment Lines, Rate Snapshots, Return records, Delivery records, and Exceptions that it owns.
+
+---
+
+## Core Entities and Domain Concepts
+
+| Concept | Nature | Responsibility |
+|---|---|---|
+| `LaundryTransaction` | Aggregate Root | Represents the complete operational relationship for one laundry collection during a Stay |
+| `GarmentLine` | Entity | Represents a physical piece quantity of a Laundry Item with uniform requested services |
+| `RateSnapshot` | Value Object | Preserves the historical Charge Master rates applicable at Collection Confirmation |
+| `ConditionObservation` | Entity / Value Object | Records pre-processing physical condition or pre-existing defects |
+| `LaundryReturn` | Entity | Records physical quantities received back into RPGMS custody verified by staff count |
+| `LaundryDelivery` | Entity | Records physical handover of returned laundry via Direct Handover or Room Placement |
+| `DeliveryLine` | Entity / Value Object | Specific garment line quantity included in a physical delivery |
+| `LaundryException` | Entity | Records operational issues (missing, damaged, disputes, service failures) with independent lifecycle |
+| `ExceptionResolution` | Entity / Value Object | Final business outcome of an exception investigation |
+
+---
+
+## Master Data
+
+- **Laundry Item Master**: Configurable catalog of recognized laundry items (e.g. Shirt, Trouser).
+- **Laundry Service Master**: Configurable catalog of available resident services (e.g. Cleaning, Ironing).
+- **Laundry Charge Master**: Configurable rate matrix for Item + Service combinations with effective periods.
+
+---
+
+## Domain Ownership
+
+The Laundry Domain owns:
+
+- Laundry Item Master, Service Master, Charge Master, and Rate Snapshots
+- Laundry Transactions, Garment Lines, and piece counts
+- Collection Confirmation and photographic evidence
+- Condition Observations and pre-processing inspections
+- Processing Route selection (IN_HOUSE / EXTERNAL_VENDOR) and Processing Release
+- Verified physical Returns and count reconciliation
+- Physical Deliveries and Handover Methods (DIRECT_HANDOVER, ROOM_PLACEMENT)
+- Laundry Exceptions, Investigations, and Resolutions
+- Service Fulfillment tracking and operational chargeability determination
+- Emission of `LaundryChargeRaised` domain events
+
+The Laundry Domain does **not** own:
+
+- Resident identity (owned by Resident domain)
+- Stay lifecycle and occupancy (owned by Stay domain)
+- Room/bed allocation (owned by Accommodation domain)
+- Financial Charges, Payments, and Ledger entries (owned by Finance domain)
+
+---
+
+## Physical Reconciliation Invariant
+
+$$\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$$
+
+- **Physical Completion**: Occurs strictly when $\text{Outstanding} = 0$.
+- **Resolved Quantity**: Physical pieces conclusively accounted for through Exception Resolution where physical delivery will no longer occur (such as permanently lost laundry).
+- **Separation of Facts**: $\text{Returned} \neq \text{Delivered}$.
+
+---
+
+## Chargeability and Finance Integration
+
+1. **Chargeability Rule**: A service is chargeable only when fulfilled AND the affected physical quantity has been delivered.
+2. **Event Emission**: Laundry emits `LaundryChargeRaised` upon confirmed delivery of fulfilled services.
+3. **Finance Authority**: Finance creates the authoritative Charge in the Unified Stay Ledger. Laundry never maintains a parallel financial ledger.
+4. **Billing Engine**: The Billing Engine discovers unbilled obligations via `LaundryDiscoveryAdapter` without calculating laundry rates or altering pricing.
+
+---
+
 # 13. Cross-Domain Architecture
 
 ## 13.1 Aggregate Overview
@@ -1378,6 +1503,7 @@ The Domain Model contains the following Aggregate Roots.
 | Resident Lifecycle | Resident |
 | Resident Lifecycle | Stay |
 | Finance | Commercial Agreement |
+| Laundry | LaundryTransaction |
 
 Aggregate Roots protect business consistency within their boundaries.
 
@@ -1507,6 +1633,18 @@ The following business rules must always remain true.
 - Payment Allocation preserves settlement history.
 - Security Deposits remain separate from revenue.
 
+### Laundry
+
+- Physical laundry is counted once per garment regardless of the number of requested services.
+- Confirmed collection quantities, requested services, and Rate Snapshots become immutable at Collection Confirmation.
+- Historical Rate Snapshots never reprice when the Laundry Charge Master changes.
+- Processing Route is an operational choice and does not determine resident pricing.
+- Deliverable quantity shall never exceed verified physically returned and available quantity.
+- Physical completion occurs strictly when $\text{Collected} - \text{Delivered} - \text{Resolved} = 0$.
+- A requested service becomes chargeable only when fulfilled and the affected physical quantity is delivered.
+- No physical quantity shall be charged more than once for the same service.
+- Laundry emits `LaundryChargeRaised`; Finance creates and owns the authoritative financial Charge.
+
 Violating these invariants would compromise the integrity of the business model.
 
 ---
@@ -1523,6 +1661,9 @@ The Domain Model distinguishes between relatively static reference information a
 - Bed
 - Resident
 - Commercial Agreement
+- Laundry Item Master
+- Laundry Service Master
+- Laundry Charge Master
 
 ### Transaction Data
 
@@ -1533,6 +1674,13 @@ The Domain Model distinguishes between relatively static reference information a
 - Payment
 - Payment Allocation
 - Security Deposit
+- Laundry Transaction
+- Garment Line
+- Rate Snapshot
+- Laundry Return
+- Laundry Delivery
+- Laundry Exception
+- Exception Resolution
 
 Master Data defines the business.
 
@@ -1619,6 +1767,8 @@ Billing & Charges    Bed Allocations /      Commercial Amendments   Notice of In
 The RPGMS Domain Model is expected to evolve as the business grows.
 
 Future enhancements should extend the existing model while preserving the principles, Aggregate boundaries, and business responsibilities defined in this document.
+
+The Laundry domain has formally transitioned from a future candidate to an approved Operational Support Domain specification (`docs/LAUNDRY_SPECIFICATION.md`).
 
 Potential future domains include:
 

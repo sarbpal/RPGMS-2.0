@@ -333,6 +333,24 @@ Accommodation never performs financial calculations directly.
 
 ---
 
+### Laundry Domain
+
+Provides:
+
+- Chargeable Laundry Service Facts
+- Rate Snapshots and Calculated Amounts
+- Service Delivery References
+
+Triggers:
+
+- `LaundryChargeRaised` (Domain Event)
+- Finance Charge Creation
+- Financial Billing and Ledger Posting
+
+Laundry determines operational chargeability based on fulfilled services and delivered physical quantities (`docs/LAUNDRY_SPECIFICATION.md`). Finance receives `LaundryChargeRaised` and creates the authoritative Charge in the Unified Stay Ledger. Laundry never maintains a parallel financial ledger, creates Finance Charges directly, or calculates financial balances. Finance processes `LaundryChargeRaised` idempotently to guarantee that retries never produce duplicate charges.
+
+---
+
 ### Reporting Domain
 
 Consumes financial information only.

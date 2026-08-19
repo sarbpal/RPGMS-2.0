@@ -53,6 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
+| Laundry | 🔵 Design Complete (Pre-Implementation) |
 
 ---
 
@@ -591,7 +592,7 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 ## Deferred Scope (Future Capabilities)
 
-- **Future:** Operational Laundry discovery (pending Laundry domain creation).
+- **Future:** Operational Laundry discovery via `LaundryDiscoveryAdapter` (aligned with approved `LAUNDRY_SPECIFICATION.md` domain design).
 - **Future:** Maintenance / Penalty billing (pending Maintenance commercial architecture).
 - **Future:** PostgreSQL / Supabase SQL schema & repository persistence migration.
 - **Future:** Automated / Cron scheduled billing cycles and AI recovery heuristics.
@@ -610,6 +611,63 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 ### Downstream
 
 - Finance
+
+---
+
+# Laundry Module
+
+**Status:** 🔵 Design Complete (Business Specification Approved)
+
+**State:** Pre-Implementation
+
+## Purpose
+
+Manages the complete operational lifecycle of resident laundry services, from collection, garment lines, rate snapshots, pre-processing inspection, routing (in-house vs external vendor), return count verification, delivery handovers (direct vs room placement), exceptions, investigation, resolution, and determination of chargeable laundry services emitting `LaundryChargeRaised` domain events to Finance.
+
+---
+
+## Planned Features
+
+### Workspaces & Dashboards
+
+- Laundry Operations Dashboard & Workspace
+- Collection Workspace (item & service entry, photography evidence, confirmation)
+- Inspection & Condition Observation Workspace
+- Processing Route Selection & Release
+- Return Verification & Count Reconciliation Workspace
+- Delivery & Handover Workspace (Direct Handover, Room Placement)
+- Exceptions & Investigation Workspace
+- Exception Resolution & Operational Basis Workflow
+- Service Fulfillment & Chargeability View
+
+### Business Features
+
+- Master Data: Laundry Item Master, Laundry Service Master, Laundry Charge Master
+- Immutable Rate Snapshots captured at Collection Confirmation
+- Physical counting distinct from service selection (Garment Lines)
+- Processing Route selection (`IN_HOUSE` / `EXTERNAL_VENDOR`) without impacting resident rates
+- Authoritative return count based on verified physical return
+- Multi-handover & partial delivery support
+- Physical reconciliation invariant ($\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$)
+- Service-level chargeability determination ($\text{Service Fulfilled} + \text{Affected Quantity Delivered}$)
+- Cross-domain integration: emitting `LaundryChargeRaised` domain event to Finance
+- Prevention of double-charging and duplicate event processing
+
+---
+
+## Dependencies
+
+### Upstream
+
+- Stay
+- Resident
+- Accommodation
+
+### Downstream
+
+- Finance
+- Billing (read-only discovery)
+- Reports
 
 ---
 
@@ -744,6 +802,7 @@ Current objectives:
 | Population Unification | 🟢 Complete (ADR-030) | Stable |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
+| Laundry | 🔵 Design Complete | Pre-Implementation |
 
 ---
 

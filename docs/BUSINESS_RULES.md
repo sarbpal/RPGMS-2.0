@@ -37,6 +37,7 @@ These include:
 - Reservation
 - Admission
 - Financial Management
+- Laundry
 - Billing
 - Compliance
 - Roles & Permissions
@@ -192,6 +193,7 @@ Each domain owns a dedicated range of rule identifiers.
 | Reservation | BR-300 – BR-349 |
 | Admission | BR-350 – BR-399 |
 | Financial Architecture | BR-400 – BR-599 |
+| Laundry | BR-L-001 – BR-L-099 |
 | Roles & Permissions | BR-600 – BR-649 |
 | Configuration | BR-650 – BR-699 |
 | Audit & Events | BR-700 – BR-749 |
@@ -2263,6 +2265,355 @@ Security Deposits are maintained independently.
 Financial Settlement concludes the financial lifecycle of the Stay.
 
 Historical financial information shall remain immutable and permanently auditable.
+
+---
+
+# Laundry
+
+The Laundry domain governs the complete operational lifecycle of resident laundry services, from collection through processing, return, physical delivery, exception handling, and operational chargeability determination.
+
+---
+
+## BR-L-001 Laundry Domain Ownership
+
+### Rule
+
+The Laundry domain shall own the operational lifecycle of resident laundry services, including item and service masters, charge master rates, rate snapshots, garment lines, physical collections, pre-processing inspections, condition observations, processing routing, returns verification, physical deliveries, exception management, service fulfillment tracking, and operational chargeability determination.
+
+The Laundry domain shall not own resident identity, stay occupancy, physical accommodation, financial Charges, Payments, Payment Allocations, Adjustments, or the resident financial ledger.
+
+### Reason
+
+Enforces strict domain ownership separation between operational service execution and authoritative financial accounting (AP-003, BAP-006, LAUNDRY_SPECIFICATION §3).
+
+### Applies To
+
+- Laundry Management
+- Stay Management
+- Finance
+
+---
+
+## BR-L-002 Laundry Transaction and Stay Association
+
+### Rule
+
+Every Laundry Transaction shall belong to exactly one Stay.
+
+A resident may have multiple sequential or concurrent Laundry Transactions during an active Stay.
+
+### Reason
+
+Laundry services are operational services provided within the context of an active resident Stay (LAUNDRY_SPECIFICATION §4.1, §10.2).
+
+### Applies To
+
+- Laundry Management
+- Stay Management
+
+---
+
+## BR-L-003 Physical Quantity Counting
+
+### Rule
+
+Physical laundry shall be counted by actual garments (pieces). Each physical piece shall be counted exactly once regardless of the number of requested services applied to it.
+
+Multiple requested services on the same piece of laundry shall not increase the physical garment count.
+
+### Reason
+
+Prevents distortion of physical inventory and ensures reconciliation integrity (LAUNDRY_SPECIFICATION §6.1, §7.8, §11.2).
+
+### Applies To
+
+- Laundry Collection
+- Laundry Inspection
+- Laundry Processing
+
+---
+
+## BR-L-004 Collection Confirmation Baseline
+
+### Rule
+
+Collection Confirmation shall establish an immutable historical baseline for collected physical quantities, garment lines, requested services, applicable rate snapshots, and collection evidence.
+
+After Collection Confirmation, original collection facts shall not be silently overwritten or modified without a controlled amendment record.
+
+### Reason
+
+Preserves historical truth and provides an auditable baseline for subsequent reconciliation (BP-001, LAUNDRY_SPECIFICATION §13, §16).
+
+### Applies To
+
+- Laundry Collection
+- Audit
+
+---
+
+## BR-L-005 Rate Snapshot Capture
+
+### Rule
+
+Applicable Laundry Charge Master rates shall be captured as immutable Rate Snapshots at the time of Collection Confirmation.
+
+Subsequent modifications or deactivations of rates in the Laundry Charge Master shall not alter the Rate Snapshots of existing or historical Laundry Transactions.
+
+Laundry rates shall never be hard-coded in application logic.
+
+### Reason
+
+Protects historical commercial terms from future master data price revisions (LAUNDRY_SPECIFICATION §7.5, §8.4, §8.5, §13.2).
+
+### Applies To
+
+- Laundry Master Data
+- Laundry Collection
+- Billing
+
+---
+
+## BR-L-006 Processing Route Independence
+
+### Rule
+
+The Processing Route (IN_HOUSE or EXTERNAL_VENDOR) shall be an operational decision selected by the operator and shall not alter the resident's commercial laundry rates or Rate Snapshots.
+
+Once laundry has been released for processing, the selected Processing Route shall become immutable for that processing cycle and shall not be silently modified.
+
+### Reason
+
+Separates operational processing mechanisms from commercial resident pricing (BAP-006, LAUNDRY_SPECIFICATION §6.3, §18.3, §24).
+
+### Applies To
+
+- Laundry Operations
+- Vendor Management
+
+---
+
+## BR-L-007 Verified Physical Return
+
+### Rule
+
+Returned laundry quantities shall be recorded strictly based on physical pieces actually received and verified by RPGMS staff.
+
+The system shall never assume that an external vendor or in-house facility returned the full collected quantity.
+
+### Reason
+
+Guarantees that missing items are accurately identified and prevented from premature delivery or billing (LAUNDRY_SPECIFICATION §20.3, §33.1, §33.3).
+
+### Applies To
+
+- Laundry Operations
+- Exception Management
+
+---
+
+## BR-L-008 Physical Delivery and Handover Methods
+
+### Rule
+
+Laundry Delivery shall record the physical handover of returned laundry via DIRECT_HANDOVER (to resident) or ROOM_PLACEMENT (under prior resident instruction).
+
+Deliverable quantity shall never exceed the physically verified returned and available quantity.
+
+Physical Delivery and Resident Verification shall remain independent business facts; delivery via ROOM_PLACEMENT shall be valid without requiring immediate resident verification.
+
+### Reason
+
+Reflects physical operations while maintaining strict deliverable quantity bounds (LAUNDRY_SPECIFICATION §34, §35, §36).
+
+### Applies To
+
+- Laundry Delivery
+- Accommodation Management
+
+---
+
+## BR-L-009 Physical Reconciliation Invariant
+
+### Rule
+
+Every Laundry Transaction shall maintain the physical quantity reconciliation invariant:
+
+$$\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$$
+
+A Laundry Transaction shall achieve physical completion only when $\text{Outstanding} = 0$.
+
+Resolved quantity shall represent physical pieces conclusively accounted for through Exception Resolution where physical delivery will no longer occur (such as permanently lost laundry).
+
+### Reason
+
+Ensures 100% accounting of all collected items without conflating physical delivery with exception resolution (LAUNDRY_SPECIFICATION §41, §45, §100.6).
+
+### Applies To
+
+- Laundry Operations
+- Exception Management
+- Audit
+
+---
+
+## BR-L-010 Operational Chargeability Determination
+
+### Rule
+
+A requested Laundry Service shall become operationally chargeable only when both conditions are satisfied:
+
+1. The service has been fulfilled for the affected quantity; and
+2. The affected physical quantity has been delivered.
+
+Chargeability shall be evaluated independently for each requested service and each physical quantity.
+
+### Reason
+
+Prevents charging residents for unfulfilled services or undelivered items (LAUNDRY_SPECIFICATION §69, §70, §71).
+
+### Applies To
+
+- Laundry Operations
+- Finance
+- Billing
+
+---
+
+## BR-L-011 No Double Charging
+
+### Rule
+
+The same physical quantity shall never be charged more than once for the same Laundry Service.
+
+Corrective rework (e.g. re-cleaning or re-ironing an unsatisfactory item) and replacement items shall not create duplicate or additional resident charges.
+
+### Reason
+
+Preserves commercial integrity and prevents double-billing for service corrections (LAUNDRY_SPECIFICATION §77, §95, §96).
+
+### Applies To
+
+- Laundry Operations
+- Finance
+- Billing
+
+---
+
+## BR-L-012 Cross-Domain Charge Event (LaundryChargeRaised)
+
+### Rule
+
+The Laundry domain shall publish a `LaundryChargeRaised` domain event when an eligible fulfilled Laundry Service quantity and delivered physical quantity become chargeable, carrying the applicable Rate Snapshot and sufficient pricing context for Finance.
+
+The event shall contain the Stay reference, Laundry Transaction ID, Garment Line, Item, Service, chargeable quantity, Rate Snapshot, calculated amount, and delivery reference.
+
+The event shall be uniquely identifiable and Finance shall process it idempotently to prevent duplicate charges upon retries.
+
+### Reason
+
+Maintains clean event-driven integration across domain boundaries without coupling Finance to Laundry pricing internals (BAP-002, LAUNDRY_SPECIFICATION §74, §114, §114.1).
+
+### Applies To
+
+- Laundry Operations
+- Finance
+- Integration
+
+---
+
+## BR-L-013 Authoritative Financial Charge Creation
+
+### Rule
+
+Finance shall receive the `LaundryChargeRaised` domain event and create the authoritative financial Charge within the Unified Stay Ledger.
+
+The Laundry domain shall not directly create Finance Charges, alter ledger balances, or maintain a parallel financial ledger.
+
+### Reason
+
+Preserves Finance as the single source of financial truth (AP-003, BRP-005, LAUNDRY_SPECIFICATION §4.3, §75).
+
+### Applies To
+
+- Finance
+- Unified Stay Ledger
+
+---
+
+## BR-L-014 Billing Engine Pricing Boundary
+
+### Rule
+
+The Billing Engine may discover and batch unbilled laundry obligations via domain discovery adapters, but it shall never calculate Laundry-specific commercial rates or alter Laundry pricing rules.
+
+### Reason
+
+Enforces architectural separation between batch orchestration and domain-owned pricing calculations (BR-413, LAUNDRY_SPECIFICATION §4.4, §90).
+
+### Applies To
+
+- Billing
+- Finance
+- Laundry Operations
+
+---
+
+## BR-L-015 Exceptions and Historical Integrity
+
+### Rule
+
+Laundry Exceptions shall record operational problems (missing, damaged, disputes, service failures) and follow an independent lifecycle (OPEN → UNDER_INVESTIGATION → RESOLVED).
+
+Exceptions and Exception Resolutions shall not overwrite historical collection, return, or delivery records.
+
+Operational determination of a responsible party shall not automatically create a financial liability.
+
+### Reason
+
+Preserves immutable history while supporting independent problem investigation and resolution (BP-001, LAUNDRY_SPECIFICATION §6.5, §47.2, §53.2, §60).
+
+### Applies To
+
+- Exception Management
+- Audit
+- Finance
+
+---
+
+## BR-L-016 Collection Cancellation Boundary
+
+### Rule
+
+A confirmed Laundry Transaction may be cancelled only before Processing Release and only when the physical laundry is returned to the resident.
+
+Cancelled transactions shall remain permanently in the historical record with state CANCELLED.
+
+Cancellation shall not automatically alter or refund any prior payment recorded by Finance; financial adjustments shall be handled exclusively by Finance.
+
+### Reason
+
+Maintains an auditable cancellation boundary before external/internal processing commitment (LAUNDRY_SPECIFICATION §15, §101.7).
+
+### Applies To
+
+- Laundry Operations
+- Finance
+- Audit
+
+---
+
+# Laundry Summary
+
+The Laundry domain governs the operational management of resident laundry services while Finance owns authoritative financial charges.
+
+Laundry Transactions belong to Stays and progress through controlled lifecycles.
+
+Rate Snapshots protect historical pricing.
+
+Physical reconciliation enforces $\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved} = 0$.
+
+Chargeability requires fulfilled service plus delivered quantity, communicating via `LaundryChargeRaised`.
 
 ---
 

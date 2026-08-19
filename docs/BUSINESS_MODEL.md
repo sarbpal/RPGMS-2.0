@@ -3310,23 +3310,31 @@ Business Rules
 Collected
     │
     ▼
-Sent
+Inspection & Condition Observation
     │
     ▼
-Returned
+Processing Route Selected (In-House / External Vendor)
     │
     ▼
-Delivered
+Processing Released
     │
     ▼
-Closed
+Returned (Verified Staff Count)
+    │
+    ▼
+Delivered (Direct Handover / Room Placement)
+    │
+    ▼
+Completed (Collected − Delivered − Resolved = 0)
 ```
 
 Business Rules
 
-- Laundry remains operational until Delivered.
-- Charges are generated independently by the Finance domain.
-- Laundry photographs may be retained according to organisational policy.
+- Physical reconciliation invariant: $\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved} = 0$.
+- Returned and Delivered are distinct physical facts ($\text{Returned} \neq \text{Delivered}$).
+- Chargeability requires fulfilled service plus delivered physical quantity, communicating via `LaundryChargeRaised` domain events.
+- Finance owns the authoritative financial Charge; Laundry determines operational chargeability.
+- Collection photographs are retained until physical completion unless active exceptions apply.
 
 ---
 

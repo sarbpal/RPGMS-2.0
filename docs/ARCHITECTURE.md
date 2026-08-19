@@ -2141,11 +2141,11 @@ These principles preserve clear business ownership, minimise coupling between So
 
 ### Purpose
 
-The Laundry Domain owns the complete lifecycle of laundry services provided to residents.
+The Laundry Domain owns the complete operational lifecycle of laundry services provided to residents.
 
-It is responsible for recording laundry items, tracking service requests, calculating service charges and maintaining a history of laundry transactions.
+It is responsible for maintaining Laundry master data (items, services, charge rates), recording physical collections, capturing rate snapshots and collection evidence, performing pre-processing inspections, managing processing routes (in-house vs external vendor), verifying physical returns, executing physical deliveries via direct handover or room placement, managing exceptions and resolutions, tracking service fulfillment, and determining operational chargeability.
 
-The Laundry Domain provides an operational support service and does not own resident occupancy or financial accounting.
+The Laundry Domain provides an operational support service and does not own resident occupancy, accommodation plans, or financial accounting.
 
 ---
 
@@ -2153,12 +2153,17 @@ The Laundry Domain provides an operational support service and does not own resi
 
 The Laundry Domain is responsible for:
 
-- Laundry service requests
-- Laundry item recording
-- Laundry service tracking
-- Laundry charge calculation
-- Laundry transaction history
-- Laundry validation
+- Laundry Item Master, Service Master, and Charge Master maintenance
+- Rate Snapshot capture at Collection Confirmation
+- Laundry collection, garment lines, and physical piece counting
+- Pre-processing inspection, photographic evidence, and Condition Observations
+- Processing Route selection (`IN_HOUSE`, `EXTERNAL_VENDOR`) and Processing Release
+- Physical return verification and piece count reconciliation
+- Physical delivery handovers (`DIRECT_HANDOVER`, `ROOM_PLACEMENT`) and resident verification tracking
+- Laundry Exception raising, investigation, and Resolution
+- Physical quantity reconciliation ($\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$)
+- Service fulfillment tracking and operational chargeability determination
+- Publishing `LaundryChargeRaised` domain events to Finance
 
 ---
 
@@ -2166,8 +2171,17 @@ The Laundry Domain is responsible for:
 
 The Laundry Domain owns:
 
-- Laundry Transactions
-- Laundry Service Records
+- Laundry Transactions (Aggregate Root)
+- Garment Lines
+- Laundry Item Master
+- Laundry Service Master
+- Laundry Charge Master
+- Rate Snapshots
+- Collection Evidence & Photographs
+- Condition Observations
+- Laundry Returns
+- Laundry Deliveries & Delivery Lines
+- Laundry Exceptions & Resolutions
 - Laundry Domain Events
 
 ---
@@ -2176,11 +2190,14 @@ The Laundry Domain owns:
 
 The Laundry Domain does **not** own:
 
-- Resident identity
-- Stay lifecycle
-- Financial Accounts
-- Accommodation
-- Security Deposits
+- Resident identity (owned by Resident domain)
+- Stay lifecycle and occupancy (owned by Stay domain)
+- Accommodation ownership and room allocation (owned by Accommodation domain)
+- Financial Accounts, Charges, and Bills (owned by Finance domain)
+- Payments and Payment Allocations (owned by Finance domain)
+- Financial Adjustments and Credits (owned by Finance domain)
+- Security Deposits and deposit liabilities (owned by Finance/Deposit domain)
+- Unified Stay Ledger and financial balances (owned by Finance domain)
 
 These responsibilities belong to their respective Software Domains.
 
@@ -2188,12 +2205,19 @@ These responsibilities belong to their respective Software Domains.
 
 ### Domain Events
 
-The Laundry Domain publishes Domain Events including:
+The Laundry Domain publishes 11 immutable Domain Events (`docs/LAUNDRY_SPECIFICATION.md` §105–§117):
 
-- LaundryRecorded
-- LaundryChargeCalculated
-- LaundryChargeRaised
-- LaundryTransactionCorrected
+- `LaundryTransactionCreated`
+- `LaundryCollectionConfirmed`
+- `LaundryConditionObserved`
+- `LaundryProcessingReleased`
+- `LaundryReturned`
+- `LaundryDelivered`
+- `LaundryExceptionRaised`
+- `LaundryExceptionResolved`
+- `LaundryChargeRaised`
+- `LaundryTransactionCompleted`
+- `LaundryTransactionCancelled`
 
 ---
 
@@ -2202,18 +2226,18 @@ The Laundry Domain publishes Domain Events including:
 The Laundry Domain references:
 
 - Resident Domain for resident identity.
-- Stay Domain for operational occupancy.
-- Finance Domain for financial charge processing.
+- Stay Domain for operational occupancy context.
+- Accommodation Domain for room placement delivery context.
+- Finance Domain for financial charge creation from `LaundryChargeRaised`.
 
 ---
 
-### Architectural Principle
+### Architectural Principles
 
-The Laundry Domain owns the laundry service lifecycle.
-
-Financial responsibility for laundry charges belongs to the Finance Domain.
-
-Operational responsibility for resident occupancy belongs to the Stay Domain.
+1. **Service Lifecycle Ownership**: The Laundry Domain owns the operational laundry service lifecycle, physical reconciliation, and chargeability determination.
+2. **Authoritative Financial Truth**: Financial responsibility for creating authoritative Charges, posting to the ledger, and allocating payments belongs exclusively to the Finance Domain.
+3. **Idempotent Charge Events**: When services become chargeable upon delivery, Laundry publishes `LaundryChargeRaised`. Finance consumes this event idempotently to prevent duplicate charges upon retry.
+4. **Billing Engine Boundary**: The Billing Engine orchestrates discovery and claim locking of unbilled charges, but must never calculate Laundry-specific pricing or commercial rates.
 
 ---
 
@@ -3652,7 +3676,7 @@ Examples include:
 | Stay | StayStarted, StayExtended, StayCompleted |
 | Finance | ChargeRaised, PaymentRecorded, FinancialSettlementCompleted |
 | Deposit | DepositCollected, DepositAdjusted, DepositRefundCompleted |
-| Laundry | LaundryRecorded, LaundryChargeRaised |
+| Laundry | LaundryTransactionCreated, LaundryCollectionConfirmed, LaundryDelivered, LaundryChargeRaised, LaundryTransactionCompleted |
 | Internet | InternetServiceProvisioned, InternetServiceTerminated |
 | Maintenance | MaintenanceRequested, MaintenanceCompleted |
 | Complaints | ComplaintRegistered, ComplaintResolved |
@@ -3676,6 +3700,7 @@ Each Software Domain continues to own and manage only its own business capabilit
 Examples include:
 
 - Finance consumes StayStarted to create financial obligations.
+- Finance consumes LaundryChargeRaised to create authoritative financial charges.
 - Notification consumes PaymentRecorded to deliver payment confirmations.
 - Audit consumes significant Domain Events to maintain an immutable audit trail.
 - Reporting consumes Domain Events to update analytical information.
@@ -3702,7 +3727,11 @@ StayStarted
         │
         ├────────────► ChargeRaised
         │
-        ├────────────► LaundryRecorded
+        ├────────────► LaundryCollectionConfirmed
+        │
+        ├────────────► LaundryDelivered
+        │
+        ├────────────► LaundryChargeRaised
         │
         ├────────────► MaintenanceRequested
         │

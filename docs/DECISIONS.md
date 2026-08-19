@@ -914,10 +914,61 @@ RPGMS 2.0 creates complete Resident, Stay, Bed Allocation, and Financial records
 
 ---
 
+## ADR-031 — Laundry Operational Support Domain Architecture & Finance Boundary Reconciliation
+
+**Status:** Accepted
+
+### Context
+
+Laundry management is a high-volume operational service required for residents during their stay. Previously, laundry was represented merely as a generic charge type within the Finance domain (or manually triggered via `AddLaundryModal`).
+
+The approved `LAUNDRY_SPECIFICATION.md` establishes a comprehensive business domain model for Laundry as an Operational Support Domain, governing physical collection, garment lines, immutable rate snapshots, pre-processing inspections, routing (`IN_HOUSE` vs `EXTERNAL_VENDOR`), physical returns verification, deliveries (`DIRECT_HANDOVER`, `ROOM_PLACEMENT`), exceptions, investigation, resolution, and service-level chargeability determination.
+
+Explicit architectural decisions are required to formally establish domain ownership, aggregate roots, physical reconciliation invariants, cross-domain charge event boundaries, and prevent the Billing Engine from calculating Laundry-specific pricing.
+
+### Decision
+
+1. **Laundry as an Operational Support Domain:**
+   - Laundry is formally established as an Operational Support Domain owning operational laundry truth, physical items, services, charge masters, rate snapshots, garment lines, collection evidence, processing routing, return verification, deliveries, and exceptions.
+   - `LaundryTransaction` is the Aggregate Root.
+   - Each `LaundryTransaction` belongs to exactly one active `Stay`. A Stay may have multiple concurrent Laundry Transactions.
+2. **Physical Reconciliation Invariant:**
+   - Physical pieces are reconciled strictly via:
+     $$\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$$
+   - Physical completion occurs strictly when $\text{Outstanding} = 0$.
+   - `Returned` and `Delivered` are distinct physical facts ($\text{Returned} \neq \text{Delivered}$).
+   - `Resolved` represents physical pieces conclusively accounted for through formal Exception Resolution where physical delivery will no longer occur (e.g. permanently lost laundry).
+3. **Chargeability & Finance Domain Boundary:**
+   - A service becomes chargeable only when:
+     $$\text{Service Fulfilled} + \text{Affected Physical Quantity Delivered}$$
+   - When chargeable, the Laundry domain emits the `LaundryChargeRaised` domain event with complete pricing context (Stay ID, Transaction ID, Garment Line, Item, Service, chargeable quantity, Rate Snapshot, and calculated amount).
+   - Finance receives `LaundryChargeRaised` and creates the authoritative financial Charge in the Unified Stay Ledger. Laundry never creates Finance Charges directly, maintains a parallel financial ledger, or owns financial balances.
+   - `LaundryChargeRaised` is uniquely identifiable and Finance must process it idempotently so that delivery retries never duplicate financial Charges.
+4. **Billing Engine Independence:**
+   - The Billing Engine acts as a batch orchestrator and claim lock manager via `LaundryDiscoveryAdapter`. It evaluates service dates within billing periods, acquires claim locks, and dispatches unbilled charges to Finance without calculating laundry rates or altering pricing rules.
+5. **Master Data & Pricing Immutability:**
+   - Charge Master rates are captured as immutable Rate Snapshots at Collection Confirmation. Master data price changes never alter historical transactions. No hard-coded pricing is permitted.
+6. **Processing Route Operational Decoupling:**
+   - Selection between `IN_HOUSE` and `EXTERNAL_VENDOR` is an operational decision and does not alter resident pricing.
+
+### Consequences
+
+#### Advantages:
+- Establishes a complete, auditable operational model for Laundry without corrupting financial ledgers.
+- Prevents double charging, duplicate billing upon retry, and miscalculation of physical piece counts.
+- Preserves clean event-driven boundaries (`LaundryChargeRaised`) aligned with Clean Architecture and DDD.
+- Ensures Billing Engine remains a pure orchestrator.
+
+#### Trade-offs:
+- Requires event-driven communication and idempotent handling between Laundry and Finance domains.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.5 | August 2026 | Added ADR-031 (Laundry Operational Support Domain Architecture & Finance Boundary Reconciliation). |
 | 3.4 | August 2026 | Added ADR-030 (Cross-Workspace Operational Population Unification & Canonical Repository Singletons). |
 | 3.3 | August 2026 | Added ADR-029 (Finance Workspace Global Action Stay Selection & Elimination of Scaffolding Placeholder). |
 | 3.2 | August 2026 | Added ADR-028 (Stay Workspace Contextual Quick Actions Integration & Coordinator Delegation). |

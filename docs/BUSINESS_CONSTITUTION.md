@@ -67,6 +67,7 @@ The primary business domains include:
 - Reservation Management
 - Admission
 - Accommodation
+- Operational Support Services (Laundry)
 - Commercial Agreements
 - Billing
 - Charges
@@ -1785,6 +1786,111 @@ This separation provides:
 - Reliable financial reporting
 
 Every financial decision within RPGMS can therefore be traced through the Unified Stay Ledger from the creation of the Commercial Agreement until the final Settlement of the Stay.
+
+---
+
+# Operational Support Domains
+
+Operational Support Domains provide specialised resident service capabilities that operate alongside the core accommodation lifecycle while maintaining independent ownership of their operational rules and service transactions.
+
+Operational Support Domains integrate with the core model by referencing the active Stay and communicating commercial outcomes to Finance via immutable Domain Events.
+
+---
+
+# Laundry
+
+## Purpose
+
+The Laundry domain manages the complete operational lifecycle of resident laundry services within RPGMS.
+
+It models the entire lifecycle from physical collection through pre-processing inspection, routing (in-house or external vendor), return verification, physical delivery to the resident, exception handling, resolution, and determination of chargeable services.
+
+---
+
+## Domain Ownership
+
+Laundry is an **Operational Support Domain**.
+
+The Laundry domain owns:
+
+- Laundry Item Master
+- Laundry Service Master
+- Laundry Charge Master
+- Laundry Transactions and Garment Lines
+- Rate Snapshots captured at Collection Confirmation
+- Physical Collection and photographic evidence
+- Pre-processing Condition Observations
+- Processing Route selection (IN_HOUSE / EXTERNAL_VENDOR) and Processing Release
+- Physical Return verification and count reconciliation
+- Physical Delivery and Handover Methods (DIRECT_HANDOVER, ROOM_PLACEMENT)
+- Resident Verification records
+- Laundry Exceptions, Investigations, and Resolutions
+- Service Fulfillment tracking
+- Operational chargeability determination
+- Laundry-owned Business Events (including `LaundryChargeRaised`)
+
+The Laundry domain does **not** own:
+
+- Resident identity (owned by Resident domain)
+- Stay ownership and lifecycle (owned by Stay domain)
+- Physical accommodation and room/bed allocation (owned by Accommodation domain)
+- Financial Charges, Invoices, and Bills (owned by Finance domain)
+- Payments and Payment Allocations (owned by Finance domain)
+- Financial Adjustments and Credits (owned by Finance domain)
+- The resident's financial ledger or account balances (owned by Finance domain)
+
+---
+
+## Laundry Transaction
+
+A Laundry Transaction represents one complete operational laundry relationship for a resident's Stay.
+
+Every Laundry Transaction belongs to exactly one Stay. A resident may have multiple sequential or concurrent Laundry Transactions during an active Stay.
+
+The Laundry Transaction records:
+
+- Garment Lines: physical quantities grouped by requested services
+- Physical piece counts (counted once regardless of the number of requested services)
+- Applicable Rate Snapshots established at Collection Confirmation
+- Operational processing route and status progression
+
+---
+
+## Physical Reconciliation and Invariants
+
+The Laundry domain enforces strict physical quantity reconciliation:
+
+$$\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$$
+
+A Laundry Transaction achieves physical completion only when:
+
+$$\text{Outstanding} = 0$$
+
+Where:
+
+- **Collected**: The physical quantity confirmed at collection.
+- **Delivered**: The physical quantity handed over to the resident or placed in their room.
+- **Resolved**: The physical quantity conclusively accounted for through formal Exception Resolution where physical delivery will no longer occur (e.g. permanently lost laundry).
+
+`Returned` represents laundry physically received back into RPGMS custody and is distinct from `Delivered`. `Returned ≠ Delivered`.
+
+Physical completion is an operational state only and does not imply financial settlement or closure of unrelated open exceptions.
+
+---
+
+## Chargeability and Finance Boundary
+
+The boundary between Laundry and Finance is governed by the following constitutional principles:
+
+1. **Requested Service ≠ Financial Charge**: A service request does not automatically generate a financial obligation.
+2. **Chargeability Rule**: A Laundry Service becomes chargeable only when:
+   $$\text{Service Fulfilled} + \text{Affected Physical Quantity Delivered}$$
+3. **Rate Preservation**: Charges are calculated using the Rate Snapshot established at Collection Confirmation, never by re-reading future Charge Master rates.
+4. **No Double Charging**: The same physical quantity shall never be charged more than once for the same service. Corrective rework does not create duplicate resident charges.
+5. **Cross-Domain Trigger**: When services become chargeable upon delivery, Laundry emits `LaundryChargeRaised`.
+6. **Finance Sole Ownership of Charges**: Finance receives `LaundryChargeRaised` and creates the authoritative financial Charge within the Unified Stay Ledger. Laundry does not maintain a parallel financial ledger.
+7. **Billing Engine Independence**: The Billing Engine discovers unbilled obligations but must never calculate Laundry-specific pricing or commercial rates.
+8. **Advance Payments**: Payments collected prior to delivery belong to Finance as unallocated funds. Laundry does not create synthetic charges to absorb advances.
 
 ---
 

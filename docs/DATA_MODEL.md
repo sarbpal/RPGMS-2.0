@@ -442,7 +442,7 @@ The Stay entity serves as the central operational entity connecting the Resident
 
 ### Laundry Transaction
 - **Purpose**: Aggregate Root representing one operational laundry collection relationship for a Stay.
-- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `collectedAt`, `collectionEvidence`, `isInspected`, `inspectedAt`, `inspectedByStaffId`, `processingRoute` (`IN_HOUSE` | `EXTERNAL_VENDOR`), `processingVendorId`, `processingReleasedAt`, `processingReleasedByStaffId`, `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
+- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `collectedAt`, `collectionEvidence`, `isInspected`, `inspectedAt`, `inspectedByStaffId`, `processingRoute` (`IN_HOUSE` | `EXTERNAL_VENDOR`), `processingVendorId`, `processingReleasedAt`, `processingReleasedByStaffId`, `returns` (array of `LaundryReturn`), `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
 - **Invariants**: Belongs to exactly one Stay and Resident. Collection confirmation captures immutable RateSnapshots from active master rates at collection time. Pre-processing inspection is mandatory prior to Processing Release. Emits immutable `LaundryBusinessEvent` audit trail.
 
 ### Collection Evidence
@@ -455,10 +455,20 @@ The Stay entity serves as the central operational entity connecting the Resident
 - **Attributes**: `id`, `garmentLineId`, `observationType`, `description`, `affectedQuantity`, `evidenceUris`, `observedByStaffId`, `observedAt`.
 - **Invariants**: Permanently immutable upon capture. Affected quantity cannot exceed line physical piece count. Does not alter collected physical piece counts.
 
+### Laundry Return
+- **Purpose**: Child Entity owned by Laundry Transaction representing one physical receipt of processed laundry into RPGMS custody.
+- **Attributes**: `id`, `transactionId`, `returnedLines` (array of `ReturnLine`), `returnedByStaffId`, `vendorId`, `returnedAt`, `notes`.
+- **Invariants**: Permanently immutable upon creation. Multiple returns reconcile cumulatively. Total returned quantity cannot exceed expected physical piece count.
+
+### Return Line
+- **Purpose**: Immutable Value Object representing physical pieces of a specific Garment Line received in a Laundry Return.
+- **Attributes**: `garmentLineId`, `returnedQuantity`.
+- **Invariants**: Returned quantity must be a positive integer.
+
 ### Garment Line
 - **Purpose**: Child Entity representing a physical piece quantity of a recognized Laundry Item.
-- **Attributes**: `id`, `transactionId`, `itemId`, `itemName`, `physicalQuantity`, `deliveredQuantity`, `serviceAllocations`, `notes`, `createdAt`, `updatedAt`.
-- **Invariants**: Physical quantity must be a positive integer. Physical garments are counted once regardless of how many services are requested. `deliveredQuantity` represents the accumulated physical piece delivery fact used by BR-L-012 reconciliation (the complete Delivery business workflow, handover methods, and verification are governed separately).
+- **Attributes**: `id`, `transactionId`, `itemId`, `itemName`, `physicalQuantity`, `returnedQuantity`, `deliveredQuantity`, `serviceAllocations`, `conditionObservations`, `notes`, `createdAt`, `updatedAt`.
+- **Invariants**: Physical quantity must be a positive integer. Physical garments are counted once regardless of how many services are requested. Cumulative returned quantity cannot exceed physical piece count. `deliveredQuantity` represents the accumulated physical piece delivery fact used by BR-L-012 reconciliation (the complete Delivery business workflow, handover methods, and verification are governed separately).
 
 ### Service Allocation
 - **Purpose**: Child Entity owned by Garment Line representing a requested operational service quantity.

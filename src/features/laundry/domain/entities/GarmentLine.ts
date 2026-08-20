@@ -8,6 +8,7 @@ export interface GarmentLineProps {
   itemId: string;
   itemName?: string;
   physicalQuantity: number;
+  returnedQuantity?: number;
   deliveredQuantity?: number;
   serviceAllocations?: (ServiceAllocation | ServiceAllocationProps)[];
   conditionObservations?: (ConditionObservation | ConditionObservationProps)[];
@@ -29,6 +30,7 @@ export class GarmentLine {
   public readonly itemId: string;
   public readonly itemName?: string;
   public readonly physicalQuantity: number;
+  private _returnedQuantity: number;
   private _deliveredQuantity: number;
   private _serviceAllocations: ServiceAllocation[];
   private _conditionObservations: ConditionObservation[];
@@ -55,6 +57,18 @@ export class GarmentLine {
       throw new Error('GarmentLine physicalQuantity must be a positive integer.');
     }
     if (
+      props.returnedQuantity !== undefined &&
+      (typeof props.returnedQuantity !== 'number' ||
+        isNaN(props.returnedQuantity) ||
+        props.returnedQuantity < 0 ||
+        !Number.isInteger(props.returnedQuantity) ||
+        props.returnedQuantity > props.physicalQuantity)
+    ) {
+      throw new Error(
+        `GarmentLine returnedQuantity must be an integer between 0 and physicalQuantity (${props.physicalQuantity}).`
+      );
+    }
+    if (
       props.deliveredQuantity !== undefined &&
       (typeof props.deliveredQuantity !== 'number' ||
         isNaN(props.deliveredQuantity) ||
@@ -75,6 +89,7 @@ export class GarmentLine {
     this.itemId = props.itemId.trim();
     this.itemName = props.itemName?.trim();
     this.physicalQuantity = props.physicalQuantity;
+    this._returnedQuantity = props.returnedQuantity ?? 0;
     this._deliveredQuantity = props.deliveredQuantity ?? 0;
     this.notes = props.notes?.trim();
     this.createdAt = props.createdAt;
@@ -95,6 +110,14 @@ export class GarmentLine {
         this.addConditionObservation(obs);
       }
     }
+  }
+
+  get returnedQuantity(): number {
+    return this._returnedQuantity;
+  }
+
+  get outstandingReturnQuantity(): number {
+    return Math.max(0, this.physicalQuantity - this._returnedQuantity);
   }
 
   get deliveredQuantity(): number {
@@ -171,6 +194,23 @@ export class GarmentLine {
   }
 
   /**
+   * Records incremental physical return quantity for pieces on this line (L-06).
+   * Invariant: Total returned quantity cannot exceed physical expected piece count.
+   */
+  public recordReturnQuantity(quantity: number): void {
+    if (typeof quantity !== 'number' || isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+      throw new Error('Return quantity must be a positive integer.');
+    }
+    if (this._returnedQuantity + quantity > this.physicalQuantity) {
+      throw new Error(
+        `Cannot return ${quantity} piece(s) for GarmentLine (${this.id}). Total returned quantity (${this._returnedQuantity + quantity}) would exceed physical expected quantity (${this.physicalQuantity}).`
+      );
+    }
+    this._returnedQuantity += quantity;
+    this._updatedAt = new Date().toISOString();
+  }
+
+  /**
    * Records incremental delivery quantity for physical pieces on this line.
    * Total delivered quantity cannot exceed physical quantity.
    */
@@ -208,6 +248,7 @@ export class GarmentLine {
       itemId: this.itemId,
       itemName: this.itemName,
       physicalQuantity: this.physicalQuantity,
+      returnedQuantity: this._returnedQuantity,
       deliveredQuantity: this._deliveredQuantity,
       serviceAllocations: this._serviceAllocations.map((sa) => sa.toJSON()),
       conditionObservations: this._conditionObservations.map((co) => co.toJSON()),

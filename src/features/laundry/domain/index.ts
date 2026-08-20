@@ -6,6 +6,8 @@ export * from './entities/GarmentLine';
 export * from './entities/ServiceAllocation';
 export * from './entities/LaundryChargeRecord';
 export * from './entities/ConditionObservation';
+export * from './entities/ReturnLine';
+export * from './entities/LaundryReturn';
 export * from './entities/LaundryTransaction';
 
 // Domain Value Objects

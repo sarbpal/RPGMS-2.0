@@ -2401,9 +2401,11 @@ Returned laundry quantities shall be recorded strictly based on physical pieces 
 
 The system shall never assume that an external vendor or in-house facility returned the full collected quantity.
 
+Cumulative physically returned quantities cannot exceed the collected physical piece count for any garment line; any attempt to return excess pieces shall be rejected atomically prior to reconciliation.
+
 ### Reason
 
-Guarantees that missing items are accurately identified and prevented from premature delivery or billing (LAUNDRY_SPECIFICATION §20.3, §33.1, §33.3).
+Guarantees that missing items are accurately identified, over-return states are rejected, and unreturned items are prevented from premature delivery or billing (LAUNDRY_SPECIFICATION §20.3, §33.1, §33.3).
 
 ### Applies To
 

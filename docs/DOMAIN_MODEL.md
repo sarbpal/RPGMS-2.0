@@ -1436,7 +1436,8 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | `ConditionObservation` | Child Entity | Represents an immutable physical condition or pre-existing defect observed on a GarmentLine during pre-processing inspection |
 | `ProcessingRoute` | Value Object | Operational routing decision (IN_HOUSE or EXTERNAL_VENDOR) established prior to Processing Release |
 | `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
-| `LaundryReturn` | Entity | Records physical quantities received back into RPGMS custody verified by staff count |
+| `LaundryReturn` | Child Entity | Records physical quantities received back into RPGMS custody from processing, verified by staff piece count |
+| `ReturnLine` | Value Object | Represents specific garment line piece quantity included in a physical LaundryReturn receipt |
 | `LaundryDelivery` | Entity | Records physical handover of returned laundry via Direct Handover or Room Placement |
 | `DeliveryLine` | Entity / Value Object | Specific garment line quantity included in a physical delivery |
 | `LaundryException` | Entity | Records operational issues (missing, damaged, disputes, service failures) with independent lifecycle |

@@ -4,6 +4,8 @@ import { LaundryBusinessEvent, type LaundryBusinessEventProps } from '../valueOb
 import { CollectionEvidence, type CollectionEvidenceProps } from '../valueObjects/CollectionEvidence';
 import { ProcessingRoute } from '../valueObjects/ProcessingRoute';
 import { ConditionObservation, type ConditionObservationProps } from './ConditionObservation';
+import { LaundryReturn, type LaundryReturnProps } from './LaundryReturn';
+import { ReturnLine, type ReturnLineProps } from './ReturnLine';
 import { RateSnapshot } from '../valueObjects/RateSnapshot';
 import { LaundryChargeRecord } from './LaundryChargeRecord';
 import type { ServiceFulfillmentStatus } from './ServiceAllocation';
@@ -23,6 +25,7 @@ export interface LaundryTransactionProps {
   processingVendorId?: string;
   processingReleasedAt?: string;
   processingReleasedByStaffId?: string;
+  returns?: (LaundryReturn | LaundryReturnProps)[];
   garmentLines?: (GarmentLine | GarmentLineProps)[];
   businessEvents?: (LaundryBusinessEvent | LaundryBusinessEventProps)[];
   notes?: string;
@@ -55,6 +58,33 @@ export interface ReleaseProcessingParams {
   notes?: string;
 }
 
+export interface RecordReturnParams {
+  returnId?: string;
+  returnedLines: (ReturnLineProps | ReturnLine)[];
+  returnedByStaffId: string;
+  returnedAt?: string;
+  vendorId?: string;
+  notes?: string;
+}
+
+export interface CustodyReconciliationResult {
+  totalCollected: number;
+  totalReturned: number;
+  totalOutstanding: number;
+  isFullyReconciled: boolean;
+  hasDiscrepancy: boolean;
+  status: 'PENDING_RETURN' | 'PARTIALLY_RECONCILED' | 'FULLY_RECONCILED';
+  lineReconciliations: Array<{
+    garmentLineId: string;
+    itemId: string;
+    itemName?: string;
+    expectedQuantity: number;
+    returnedQuantity: number;
+    outstandingQuantity: number;
+    isReconciled: boolean;
+  }>;
+}
+
 /**
  * LaundryTransaction is the Aggregate Root representing one operational laundry relationship
  * for a resident's Stay.
@@ -66,8 +96,9 @@ export interface ReleaseProcessingParams {
  * 4. Collection confirmation captures immutable RateSnapshots from active master rates at collection time.
  * 5. Pre-processing inspection records immutable ConditionObservations and must precede processing release.
  * 6. Processing Route (IN_HOUSE or EXTERNAL_VENDOR) is an operational routing decision independent of pricing.
- * 7. Records immutable LaundryBusinessEvent audit facts.
- * 8. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
+ * 7. Records physical returns, enforces piece count reconciliation, and preserves receipt history.
+ * 8. Records immutable LaundryBusinessEvent audit facts.
+ * 9. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
  */
 export class LaundryTransaction {
   public readonly id: string;
@@ -83,6 +114,7 @@ export class LaundryTransaction {
   private _processingVendorId?: string;
   private _processingReleasedAt?: string;
   private _processingReleasedByStaffId?: string;
+  private _returns: LaundryReturn[];
   private _garmentLines: GarmentLine[];
   private _businessEvents: LaundryBusinessEvent[];
   public readonly notes?: string;
@@ -128,6 +160,15 @@ export class LaundryTransaction {
       for (const gl of props.garmentLines) {
         const line = gl instanceof GarmentLine ? gl : new GarmentLine(gl);
         this.addGarmentLine(line);
+      }
+    }
+
+    // Initialize Returns
+    this._returns = [];
+    if (props.returns && props.returns.length > 0) {
+      for (const ret of props.returns) {
+        const returnRecord = ret instanceof LaundryReturn ? ret : new LaundryReturn(ret);
+        this._returns.push(returnRecord);
       }
     }
 
@@ -200,6 +241,10 @@ export class LaundryTransaction {
     return [...this._garmentLines];
   }
 
+  get returns(): readonly LaundryReturn[] {
+    return [...this._returns];
+  }
+
   get businessEvents(): readonly LaundryBusinessEvent[] {
     return [...this._businessEvents];
   }
@@ -214,6 +259,18 @@ export class LaundryTransaction {
    */
   get totalPhysicalPieces(): number {
     return this._garmentLines.reduce((sum, line) => sum + line.physicalQuantity, 0);
+  }
+
+  get totalCollectedPieces(): number {
+    return this.totalPhysicalPieces;
+  }
+
+  get totalReturnedPieces(): number {
+    return this._garmentLines.reduce((sum, line) => sum + line.returnedQuantity, 0);
+  }
+
+  get totalOutstandingReturnPieces(): number {
+    return Math.max(0, this.totalCollectedPieces - this.totalReturnedPieces);
   }
 
   /**
@@ -341,11 +398,6 @@ export class LaundryTransaction {
 
   /**
    * Records an immutable pre-processing ConditionObservation on a specific GarmentLine (L-05).
-   *
-   * Invariants:
-   * 1. Transaction must be in COLLECTED status (pre-processing inspection).
-   * 2. Cannot record observation on DRAFT or after processing release (IN_PROCESS+).
-   * 3. Emits LaundryConditionObserved canonical business event.
    */
   public recordConditionObservation(props: ConditionObservationProps | ConditionObservation): ConditionObservation {
     if (this._status !== LaundryTransactionStatus.COLLECTED) {
@@ -409,11 +461,6 @@ export class LaundryTransaction {
 
   /**
    * Selects or updates the operational processing route (IN_HOUSE or EXTERNAL_VENDOR) (L-05).
-   *
-   * Invariants:
-   * 1. Route can only be selected or modified prior to processing release (while in COLLECTED status).
-   * 2. If route is EXTERNAL_VENDOR, vendorId is required.
-   * 3. Processing route selection is independent of resident-facing pricing and rate snapshots.
    */
   public selectProcessingRoute(route: ProcessingRoute, vendorId?: string): void {
     if (this._status !== LaundryTransactionStatus.COLLECTED) {
@@ -435,13 +482,6 @@ export class LaundryTransaction {
 
   /**
    * Releases the collected and inspected LaundryTransaction for processing (L-05).
-   *
-   * Invariants:
-   * 1. Transaction must be in COLLECTED status.
-   * 2. Pre-processing inspection must have been completed.
-   * 3. A valid processing route must be established.
-   * 4. Transitions status from COLLECTED -> IN_PROCESS.
-   * 5. Emits LaundryProcessingReleased canonical business event.
    */
   public releaseProcessing(params: ReleaseProcessingParams): void {
     if (this._status !== LaundryTransactionStatus.COLLECTED) {
@@ -455,7 +495,6 @@ export class LaundryTransaction {
       );
     }
 
-    // Set route if explicitly supplied in params
     if (params.route) {
       this.selectProcessingRoute(params.route, params.vendorId);
     }
@@ -500,6 +539,151 @@ export class LaundryTransaction {
         conditionObservationCount: this.conditionObservations.length,
       },
     });
+  }
+
+  /**
+   * Records a physical return receipt of processed laundry into RPGMS custody (L-06).
+   *
+   * Invariants:
+   * 1. Transaction must be in post-processing state (IN_PROCESS, RETURNED_PARTIAL, RETURNED_FULL).
+   * 2. Cannot record duplicate return with identical return ID.
+   * 3. Prevents over-return beyond line physical expected count.
+   * 4. Updates transaction status (RETURNED_PARTIAL or RETURNED_FULL).
+   * 5. Emits LaundryReturned canonical business event.
+   */
+  public recordReturn(params: RecordReturnParams): LaundryReturn {
+    if (
+      this._status !== LaundryTransactionStatus.IN_PROCESS &&
+      this._status !== LaundryTransactionStatus.RETURNED_PARTIAL &&
+      this._status !== LaundryTransactionStatus.RETURNED_FULL
+    ) {
+      throw new Error(
+        `Cannot record return: Transaction (${this.id}) is in ${this._status} status. Return can only be recorded after processing release (IN_PROCESS, RETURNED_PARTIAL, or RETURNED_FULL).`
+      );
+    }
+
+    const returnId = params.returnId ?? `RET-${this.id}-${String(this._returns.length + 1).padStart(2, '0')}`;
+
+    // Idempotency: Reject duplicate return receipt ID
+    if (this._returns.some((r) => r.id === returnId)) {
+      throw new Error(`Return with ID (${returnId}) has already been recorded for transaction (${this.id}).`);
+    }
+
+    if (!params.returnedLines || params.returnedLines.length === 0) {
+      throw new Error('Return must contain at least one returned garment line.');
+    }
+
+    // Atomic validation: Ensure all lines exist and no over-return occurs
+    for (const item of params.returnedLines) {
+      const line = this.getGarmentLine(item.garmentLineId);
+      if (!line) {
+        throw new Error(`GarmentLine (${item.garmentLineId}) not found on LaundryTransaction (${this.id}).`);
+      }
+      if (
+        typeof item.returnedQuantity !== 'number' ||
+        isNaN(item.returnedQuantity) ||
+        item.returnedQuantity <= 0 ||
+        !Number.isInteger(item.returnedQuantity)
+      ) {
+        throw new Error(`Return quantity for GarmentLine (${item.garmentLineId}) must be a positive integer.`);
+      }
+      if (line.returnedQuantity + item.returnedQuantity > line.physicalQuantity) {
+        throw new Error(
+          `Cannot return ${item.returnedQuantity} piece(s) for GarmentLine (${item.garmentLineId}). Cumulative returned quantity (${line.returnedQuantity + item.returnedQuantity}) would exceed expected physical quantity (${line.physicalQuantity}).`
+        );
+      }
+    }
+
+    // Apply returned quantities to GarmentLines
+    for (const item of params.returnedLines) {
+      const line = this.getGarmentLine(item.garmentLineId)!;
+      line.recordReturnQuantity(item.returnedQuantity);
+    }
+
+    const returnTimestamp = params.returnedAt ?? new Date().toISOString();
+
+    const returnRecord = new LaundryReturn({
+      id: returnId,
+      transactionId: this.id,
+      returnedLines: params.returnedLines,
+      returnedByStaffId: params.returnedByStaffId,
+      vendorId: params.vendorId ?? this._processingVendorId,
+      returnedAt: returnTimestamp,
+      notes: params.notes,
+    });
+
+    this._returns.push(returnRecord);
+
+    // Update aggregate status
+    if (this.totalReturnedPieces === this.totalCollectedPieces) {
+      this._status = LaundryTransactionStatus.RETURNED_FULL;
+    } else {
+      this._status = LaundryTransactionStatus.RETURNED_PARTIAL;
+    }
+
+    this._updatedAt = returnTimestamp;
+
+    // Emit canonical business event
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-RET-${returnRecord.id}`,
+      transactionId: this.id,
+      eventType: 'LaundryReturned',
+      timestamp: returnTimestamp,
+      description: `Physical return recorded for transaction ${this.id}: ${returnRecord.totalReturnedQuantity} piece(s) received into RPGMS custody (Cumulative returned: ${this.totalReturnedPieces}/${this.totalCollectedPieces}).`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        returnId: returnRecord.id,
+        returnedByStaffId: params.returnedByStaffId,
+        returnedAt: returnTimestamp,
+        returnedPiecesInThisReceipt: returnRecord.totalReturnedQuantity,
+        cumulativeReturnedPieces: this.totalReturnedPieces,
+        totalCollectedPieces: this.totalCollectedPieces,
+        outstandingPieces: this.totalOutstandingReturnPieces,
+        isFullyReturned: this.totalReturnedPieces === this.totalCollectedPieces,
+        vendorId: params.vendorId ?? this._processingVendorId,
+      },
+    });
+
+    return returnRecord;
+  }
+
+  /**
+   * Evaluates and returns custody reconciliation facts comparing collected vs returned physical piece counts (L-06).
+   */
+  public reconcileCustody(): CustodyReconciliationResult {
+    const lineReconciliations = this._garmentLines.map((line) => ({
+      garmentLineId: line.id,
+      itemId: line.itemId,
+      itemName: line.itemName,
+      expectedQuantity: line.physicalQuantity,
+      returnedQuantity: line.returnedQuantity,
+      outstandingQuantity: line.outstandingReturnQuantity,
+      isReconciled: line.returnedQuantity === line.physicalQuantity,
+    }));
+
+    const totalCollected = this.totalCollectedPieces;
+    const totalReturned = this.totalReturnedPieces;
+    const totalOutstanding = this.totalOutstandingReturnPieces;
+    const isFullyReconciled = totalCollected > 0 && totalReturned === totalCollected;
+    const hasDiscrepancy = totalReturned > 0 && totalReturned < totalCollected;
+
+    let status: 'PENDING_RETURN' | 'PARTIALLY_RECONCILED' | 'FULLY_RECONCILED' = 'PENDING_RETURN';
+    if (isFullyReconciled) {
+      status = 'FULLY_RECONCILED';
+    } else if (totalReturned > 0) {
+      status = 'PARTIALLY_RECONCILED';
+    }
+
+    return {
+      totalCollected,
+      totalReturned,
+      totalOutstanding,
+      isFullyReconciled,
+      hasDiscrepancy,
+      status,
+      lineReconciliations,
+    };
   }
 
   /**
@@ -663,6 +847,7 @@ export class LaundryTransaction {
       processingVendorId: this._processingVendorId,
       processingReleasedAt: this._processingReleasedAt,
       processingReleasedByStaffId: this._processingReleasedByStaffId,
+      returns: this._returns.map((r) => r.toJSON()),
       garmentLines: this._garmentLines.map((gl) => gl.toJSON()),
       businessEvents: this._businessEvents.map((be) => be.toJSON()),
       notes: this.notes,

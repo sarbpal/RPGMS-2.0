@@ -1491,8 +1491,8 @@ $$\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$$
 ## Chargeability and Finance Integration
 
 1. **Chargeability Rule**: A service is chargeable only when fulfilled AND the affected physical quantity has been delivered.
-2. **Event Emission**: Laundry emits `LaundryChargeRaised` upon confirmed delivery of fulfilled services.
-3. **Finance Authority**: Finance creates the authoritative Charge in the Unified Stay Ledger. Laundry never maintains a parallel financial ledger.
+2. **Event Emission**: Laundry emits `LaundryChargeRaised` upon confirmed delivery of fulfilled services carrying complete operational commercial facts (`businessChargeId`, `chargeableQuantity`, `unitRate`, `totalAmount`).
+3. **Finance Authority & Accounting**: Finance consumes `LaundryChargeRaised` idempotently (`businessChargeId` identity), creates an authoritative Bill (`ONE_TIME_CHARGE`, line item `category: LAUNDRY`, `obligationKey: businessChargeId`), and posts balanced double-entry ledger entries (`Debit: ACCOUNTS_RECEIVABLE`, `Credit: LAUNDRY_REVENUE`, `referenceType: LAUNDRY_CHARGE`). Laundry never maintains a parallel financial ledger or balance.
 4. **Billing Engine**: The Billing Engine discovers unbilled obligations via `LaundryDiscoveryAdapter` without calculating laundry rates or altering pricing.
 
 ---

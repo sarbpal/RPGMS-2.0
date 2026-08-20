@@ -91,6 +91,8 @@ The `LedgerEntry` interface is the single atomic record of financial truth:
 export const AccountType = {
   ACCOUNTS_RECEIVABLE: 'ACCOUNTS_RECEIVABLE',
   RENT_REVENUE: 'RENT_REVENUE',
+  ELECTRICITY_REVENUE: 'ELECTRICITY_REVENUE',
+  LAUNDRY_REVENUE: 'LAUNDRY_REVENUE',
   CASH: 'CASH',
   BANK: 'BANK',
   SECURITY_DEPOSIT_LIABILITY: 'SECURITY_DEPOSIT_LIABILITY',
@@ -106,6 +108,8 @@ export const LedgerReferenceType = {
   PAYMENT: 'PAYMENT',
   SETTLEMENT: 'SETTLEMENT',
   REVERSAL: 'REVERSAL',
+  ELECTRICITY_ALLOCATION: 'ELECTRICITY_ALLOCATION',
+  LAUNDRY_CHARGE: 'LAUNDRY_CHARGE',
 } as const;
 
 export type LedgerReferenceType = typeof LedgerReferenceType[keyof typeof LedgerReferenceType];

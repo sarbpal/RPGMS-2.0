@@ -107,18 +107,24 @@ export class BillingApplicationService {
     const billNumber = `INV-${periodTag}-${sequenceNum}`;
     const billId = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // Select credit account: UTILITIES line items route to ELECTRICITY_REVENUE, SECURITY_DEPOSIT to SECURITY_DEPOSIT_LIABILITY, others to RENT_REVENUE
+    // Select credit account: UTILITIES line items route to ELECTRICITY_REVENUE, SECURITY_DEPOSIT to SECURITY_DEPOSIT_LIABILITY, LAUNDRY to LAUNDRY_REVENUE, others to RENT_REVENUE
     const isElectricity = billPayload.lineItems.some((item) => item.category === 'UTILITIES');
     const isDeposit = billPayload.lineItems.some((item) => item.category === 'SECURITY_DEPOSIT');
+    const isLaundry = billPayload.lineItems.some((item) => item.category === 'LAUNDRY');
     const revenueAccount = isElectricity
       ? AccountType.ELECTRICITY_REVENUE
       : isDeposit
       ? AccountType.SECURITY_DEPOSIT_LIABILITY
+      : isLaundry
+      ? AccountType.LAUNDRY_REVENUE
       : AccountType.RENT_REVENUE;
-    const referenceType: LedgerReferenceType = isElectricity ? LedgerReferenceType.ELECTRICITY_ALLOCATION : LedgerReferenceType.BILL;
+    const referenceType: LedgerReferenceType = isElectricity
+      ? LedgerReferenceType.ELECTRICITY_ALLOCATION
+      : isLaundry
+      ? LedgerReferenceType.LAUNDRY_CHARGE
+      : LedgerReferenceType.BILL;
 
-    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE, ELECTRICITY_REVENUE, or SECURITY_DEPOSIT_LIABILITY
-
+    // Post double-entry ledger entries: Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE, ELECTRICITY_REVENUE, LAUNDRY_REVENUE, or SECURITY_DEPOSIT_LIABILITY
     const ledgerResult = this.ledgerService.postEntries([
       {
         stayId: billPayload.stayId,
@@ -311,7 +317,7 @@ export class BillingApplicationService {
     chargeType: string,
     description: string,
     amount: number,
-    category: 'RENT' | 'SECURITY_DEPOSIT' | 'UTILITIES' | 'MAINTENANCE' | 'OTHER' = 'OTHER'
+    category: 'RENT' | 'SECURITY_DEPOSIT' | 'UTILITIES' | 'MAINTENANCE' | 'LAUNDRY' | 'OTHER' = 'OTHER'
   ): CreateBillResult {
     if (amount <= 0) {
       return { success: false, bill: null, errors: ['One-time charge amount must be greater than zero.'] };
@@ -344,7 +350,7 @@ export class BillingApplicationService {
 
   /**
    * Application Use Case: Generate an ancillary Laundry Charge bill for a Stay.
-   * Posts double-entry ledger entries (Debit ACCOUNTS_RECEIVABLE, Credit RENT_REVENUE) via ledgerService,
+   * Posts double-entry ledger entries (Debit ACCOUNTS_RECEIVABLE, Credit LAUNDRY_REVENUE) via ledgerService,
    * updates resident outstanding balance, and persists the Bill entity.
    */
   public generateLaundryChargeBill(
@@ -370,7 +376,7 @@ export class BillingApplicationService {
         id: `li_${Date.now()}_1`,
         description: description || 'Laundry Service Charge',
         amount,
-        category: 'OTHER',
+        category: 'LAUNDRY',
       },
     ];
 
@@ -398,7 +404,19 @@ export class BillingApplicationService {
       (e) => e.referenceType === 'ELECTRICITY_ALLOCATION' && e.referenceId === participantAllocationId
     );
   }
+
+  /**
+   * Application Use Case: Check if a laundry charge bill has already been posted to Finance.
+   * Enforces idempotency using lineItem.obligationKey (businessChargeId).
+   */
+  public hasDuplicateLaundryCharge(businessChargeId: string): boolean {
+    if (!businessChargeId) return false;
+    const bills = this.repository.getBills();
+    return bills.some((b) =>
+      b.lineItems.some((li) => li.obligationKey === businessChargeId)
+    );
+  }
 }
 
-
 export const billingService = new BillingApplicationService();
+export const defaultBillingService = billingService;

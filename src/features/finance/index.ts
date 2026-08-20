@@ -13,6 +13,7 @@ export * from './services/settlementService';
 export * from './services/depositService';
 export * from './services/timelineService';
 export * from './services/reportingService';
+export * from './services/laundryPostingService';
 export * from './hooks/useStayFinance';
 export * from './hooks/useFinanceSummary';
 export * from './hooks/useStayFinanceTimeline';

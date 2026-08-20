@@ -941,6 +941,11 @@ Explicit architectural decisions are required to formally establish domain owner
 3. **Chargeability & Finance Domain Boundary:**
    - A service becomes chargeable only when:
      $$\text{Service Fulfilled} + \text{Affected Physical Quantity Delivered}$$
+   - Evaluated deterministically at ServiceAllocation granularity via:
+     $$\text{Newly Chargeable Quantity} = \max(0, \min(\text{Fulfilled}, \text{Delivered}) - \text{Previously Charged})$$
+   - Each newly chargeable quantity tranche creates an immutable `LaundryChargeRecord` child entity owned by `ServiceAllocation` with a deterministic business identity:
+     $$\text{businessChargeId} = \text{transactionId}:\text{garmentLineId}:\text{serviceId}:\text{BRK-XX}$$
+   - `LaundryChargeRecord` is initialized with status `PENDING_POSTING` and is transitioned to `POSTED` with `financeBillId` upon financial posting.
    - When chargeable, the Laundry domain emits the `LaundryChargeRaised` domain event with complete pricing context (Stay ID, Transaction ID, Garment Line, Item, Service, chargeable quantity, Rate Snapshot, and calculated amount).
    - Finance receives `LaundryChargeRaised` and creates the authoritative financial Charge in the Unified Stay Ledger. Laundry never creates Finance Charges directly, maintains a parallel financial ledger, or owns financial balances.
    - `LaundryChargeRaised` is uniquely identifiable and Finance must process it idempotently so that delivery retries never duplicate financial Charges.

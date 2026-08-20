@@ -1,4 +1,5 @@
 import { ServiceAllocation, type ServiceAllocationProps } from './ServiceAllocation';
+import type { LaundryChargeRecord } from './LaundryChargeRecord';
 
 export interface GarmentLineProps {
   id: string;
@@ -6,6 +7,7 @@ export interface GarmentLineProps {
   itemId: string;
   itemName?: string;
   physicalQuantity: number;
+  deliveredQuantity?: number;
   serviceAllocations?: (ServiceAllocation | ServiceAllocationProps)[];
   notes?: string;
   createdAt: string;
@@ -25,6 +27,7 @@ export class GarmentLine {
   public readonly itemId: string;
   public readonly itemName?: string;
   public readonly physicalQuantity: number;
+  private _deliveredQuantity: number;
   private _serviceAllocations: ServiceAllocation[];
   public readonly notes?: string;
   public readonly createdAt: string;
@@ -48,6 +51,18 @@ export class GarmentLine {
     ) {
       throw new Error('GarmentLine physicalQuantity must be a positive integer.');
     }
+    if (
+      props.deliveredQuantity !== undefined &&
+      (typeof props.deliveredQuantity !== 'number' ||
+        isNaN(props.deliveredQuantity) ||
+        props.deliveredQuantity < 0 ||
+        !Number.isInteger(props.deliveredQuantity) ||
+        props.deliveredQuantity > props.physicalQuantity)
+    ) {
+      throw new Error(
+        `GarmentLine deliveredQuantity must be an integer between 0 and physicalQuantity (${props.physicalQuantity}).`
+      );
+    }
     if (!props.createdAt || props.createdAt.trim() === '') {
       throw new Error('GarmentLine createdAt cannot be empty.');
     }
@@ -57,6 +72,7 @@ export class GarmentLine {
     this.itemId = props.itemId.trim();
     this.itemName = props.itemName?.trim();
     this.physicalQuantity = props.physicalQuantity;
+    this._deliveredQuantity = props.deliveredQuantity ?? 0;
     this.notes = props.notes?.trim();
     this.createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
@@ -68,6 +84,10 @@ export class GarmentLine {
         this.addServiceAllocation(allocation);
       }
     }
+  }
+
+  get deliveredQuantity(): number {
+    return this._deliveredQuantity;
   }
 
   get serviceAllocations(): readonly ServiceAllocation[] {
@@ -116,6 +136,36 @@ export class GarmentLine {
     return this._serviceAllocations.find((sa) => sa.serviceId === serviceId);
   }
 
+  /**
+   * Records incremental delivery quantity for physical pieces on this line.
+   */
+  public recordDeliveryQuantity(quantity: number): void {
+    if (typeof quantity !== 'number' || isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+      throw new Error('Delivered quantity must be a positive integer.');
+    }
+    if (this._deliveredQuantity + quantity > this.physicalQuantity) {
+      throw new Error(
+        `Cannot deliver ${quantity} piece(s). Total delivered quantity (${this._deliveredQuantity + quantity}) would exceed physical quantity (${this.physicalQuantity}).`
+      );
+    }
+    this._deliveredQuantity += quantity;
+    this._updatedAt = new Date().toISOString();
+  }
+
+  /**
+   * Evaluates BR-L-012 chargeability across all service allocations for this GarmentLine.
+   */
+  public evaluateChargeability(transactionId: string): LaundryChargeRecord[] {
+    const generatedCharges: LaundryChargeRecord[] = [];
+    for (const alloc of this._serviceAllocations) {
+      const charge = alloc.evaluateChargeability(this._deliveredQuantity, transactionId);
+      if (charge) {
+        generatedCharges.push(charge);
+      }
+    }
+    return generatedCharges;
+  }
+
   public toJSON(): GarmentLineProps {
     return {
       id: this.id,
@@ -123,6 +173,7 @@ export class GarmentLine {
       itemId: this.itemId,
       itemName: this.itemName,
       physicalQuantity: this.physicalQuantity,
+      deliveredQuantity: this._deliveredQuantity,
       serviceAllocations: this._serviceAllocations.map((sa) => sa.toJSON()),
       notes: this.notes,
       createdAt: this.createdAt,

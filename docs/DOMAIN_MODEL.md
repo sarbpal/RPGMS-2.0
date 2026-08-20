@@ -1430,6 +1430,7 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | `LaundryTransaction` | Aggregate Root | Represents the complete operational relationship for one laundry collection during a Stay |
 | `GarmentLine` | Child Entity | Represents a physical piece quantity of a Laundry Item with uniform requested services |
 | `ServiceAllocation` | Child Entity | Represents a requested operational service quantity on a GarmentLine |
+| `LaundryChargeRecord` | Child Entity | Represents an immutable, deterministic operational charge tranche owned by ServiceAllocation |
 | `RateSnapshot` | Value Object | Preserves the historical Charge Master rates applicable at Collection Confirmation |
 | `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
 | `ConditionObservation` | Entity / Value Object | Records pre-processing physical condition or pre-existing defects |

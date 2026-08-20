@@ -469,8 +469,8 @@ describe('Laundry Transaction Aggregate Root & Service Allocation Core (L-02)', 
     });
   });
 
-  describe('L-02 Architectural Boundary Protection (No Premature L-03+ Logic)', () => {
-    it('confirms L-02 does not expose charge calculation or Finance charge records', () => {
+  describe('Architectural Boundary Protection (No Premature L-04+ Workflows)', () => {
+    it('confirms aggregate does not expose premature L-04+ workflow operations', () => {
       const tx = new LaundryTransaction({
         id: 'LTX-2026-0001',
         stayId: 'STAY-101',
@@ -485,12 +485,14 @@ describe('Laundry Transaction Aggregate Root & Service Allocation Core (L-02)', 
         createdAt: '2026-08-20',
       });
 
-      // Verify L-03 concepts do NOT exist on L-02 ServiceAllocation or LaundryTransaction
-      expect((alloc as any).previouslyChargedQuantity).toBeUndefined();
-      expect((alloc as any).charges).toBeUndefined();
-      expect((alloc as any).chargeBracketIndex).toBeUndefined();
-      expect((tx as any).calculateNewlyChargeable).toBeUndefined();
-      expect((tx as any).generateLaundryCharges).toBeUndefined();
+      // Verify L-04+ concepts do NOT exist prematurely on ServiceAllocation or LaundryTransaction
+      expect((tx as any).collectionEvidence).toBeUndefined();
+      expect((tx as any).processingRoute).toBeUndefined();
+      expect((tx as any).returns).toBeUndefined();
+      expect((tx as any).exceptions).toBeUndefined();
+      expect((tx as any).confirmCollection).toBeUndefined();
+      expect((tx as any).releaseProcessing).toBeUndefined();
+      expect((alloc as any).vendorBatchId).toBeUndefined();
     });
   });
 });

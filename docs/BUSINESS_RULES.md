@@ -2466,11 +2466,15 @@ A requested Laundry Service shall become operationally chargeable only when both
 1. The service has been fulfilled for the affected quantity; and
 2. The affected physical quantity has been delivered.
 
-Chargeability shall be evaluated independently for each requested service and each physical quantity.
+Chargeability shall be evaluated deterministically for each requested ServiceAllocation using the reconciliation formula:
+
+$$\text{Newly Chargeable Quantity} = \max(0, \min(\text{Fulfilled Quantity}, \text{Delivered Quantity}) - \text{Previously Charged Quantity})$$
+
+Chargeability is an independent reconciliation outcome regardless of whether fulfillment precedes delivery or delivery precedes fulfillment.
 
 ### Reason
 
-Prevents charging residents for unfulfilled services or undelivered items (LAUNDRY_SPECIFICATION §69, §70, §71).
+Prevents charging residents for unfulfilled services or undelivered items and ensures chargeability evaluates correctly under any chronological event ordering (LAUNDRY_SPECIFICATION §69, §70, §71, §74).
 
 ### Applies To
 
@@ -2504,7 +2508,11 @@ Preserves commercial integrity and prevents double-billing for service correctio
 
 ### Rule
 
-The Laundry domain shall publish a `LaundryChargeRaised` domain event when an eligible fulfilled Laundry Service quantity and delivered physical quantity become chargeable, carrying the applicable Rate Snapshot and sufficient pricing context for Finance.
+The Laundry domain shall create an immutable `LaundryChargeRecord` (status: `PENDING_POSTING`) and publish a `LaundryChargeRaised` domain event when an eligible fulfilled Laundry Service quantity and delivered physical quantity become chargeable, carrying the applicable Rate Snapshot and sufficient pricing context for Finance.
+
+The charge tranche receives a deterministic business charge identity:
+
+$$\text{businessChargeId} = \text{transactionId}:\text{garmentLineId}:\text{serviceId}:\text{BRK-XX}$$
 
 The event shall contain the Stay reference, Laundry Transaction ID, Garment Line, Item, Service, chargeable quantity, Rate Snapshot, calculated amount, and delivery reference.
 

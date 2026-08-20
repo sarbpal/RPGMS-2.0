@@ -1,6 +1,8 @@
 import { GarmentLine, type GarmentLineProps } from './GarmentLine';
 import { LaundryTransactionStatus } from '../valueObjects/LaundryTransactionStatus';
 import { LaundryBusinessEvent, type LaundryBusinessEventProps } from '../valueObjects/LaundryBusinessEvent';
+import { LaundryChargeRecord } from './LaundryChargeRecord';
+import type { ServiceFulfillmentStatus } from './ServiceAllocation';
 
 export interface LaundryTransactionProps {
   id: string;
@@ -22,7 +24,8 @@ export interface LaundryTransactionProps {
  * 1. Belongs to exactly one Stay and one Resident.
  * 2. Owns GarmentLine entities and controls all child state mutations.
  * 3. Physical pieces are counted once across GarmentLines.
- * 4. Records immutable LaundryBusinessEvent audit facts, beginning with LaundryTransactionCreated.
+ * 4. Records immutable LaundryBusinessEvent audit facts.
+ * 5. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
  */
 export class LaundryTransaction {
   public readonly id: string;
@@ -113,6 +116,19 @@ export class LaundryTransaction {
   }
 
   /**
+   * Retrieves all authoritative LaundryChargeRecords across all GarmentLines and ServiceAllocations.
+   */
+  get charges(): readonly LaundryChargeRecord[] {
+    const allCharges: LaundryChargeRecord[] = [];
+    for (const line of this._garmentLines) {
+      for (const alloc of line.serviceAllocations) {
+        allCharges.push(...alloc.charges);
+      }
+    }
+    return allCharges;
+  }
+
+  /**
    * Adds a GarmentLine child entity to the transaction.
    */
   public addGarmentLine(line: GarmentLine): void {
@@ -148,6 +164,81 @@ export class LaundryTransaction {
   }
 
   /**
+   * Records operational service fulfillment for a specific GarmentLine and Service,
+   * then immediately re-evaluates BR-L-012 chargeability.
+   */
+  public recordServiceFulfillment(
+    garmentLineId: string,
+    serviceId: string,
+    quantityToFulfill: number,
+    status?: ServiceFulfillmentStatus
+  ): LaundryChargeRecord | null {
+    const line = this.getGarmentLine(garmentLineId);
+    if (!line) {
+      throw new Error(`GarmentLine (${garmentLineId}) not found on LaundryTransaction (${this.id}).`);
+    }
+    const alloc = line.getServiceAllocation(serviceId);
+    if (!alloc) {
+      throw new Error(
+        `ServiceAllocation for service (${serviceId}) not found on GarmentLine (${garmentLineId}).`
+      );
+    }
+
+    alloc.recordFulfillment(quantityToFulfill, status);
+    const chargeRecord = alloc.evaluateChargeability(line.deliveredQuantity, this.id);
+
+    if (chargeRecord) {
+      this.emitChargeRaisedEvent(chargeRecord, alloc.serviceName || serviceId);
+    }
+
+    this._updatedAt = new Date().toISOString();
+    return chargeRecord;
+  }
+
+  /**
+   * Records physical delivery quantity for a GarmentLine,
+   * then immediately re-evaluates BR-L-012 chargeability across all services on that line.
+   */
+  public recordDeliveryQuantity(garmentLineId: string, quantity: number): LaundryChargeRecord[] {
+    const line = this.getGarmentLine(garmentLineId);
+    if (!line) {
+      throw new Error(`GarmentLine (${garmentLineId}) not found on LaundryTransaction (${this.id}).`);
+    }
+
+    line.recordDeliveryQuantity(quantity);
+    const newCharges = line.evaluateChargeability(this.id);
+
+    for (const chargeRecord of newCharges) {
+      const alloc = line.getServiceAllocation(chargeRecord.serviceId);
+      this.emitChargeRaisedEvent(chargeRecord, alloc?.serviceName || chargeRecord.serviceId);
+    }
+
+    this._updatedAt = new Date().toISOString();
+    return newCharges;
+  }
+
+  /**
+   * Re-evaluates BR-L-012 chargeability across all GarmentLines and ServiceAllocations.
+   * Useful for periodic or event-driven aggregate reconciliation.
+   */
+  public evaluateChargeability(): LaundryChargeRecord[] {
+    const generatedCharges: LaundryChargeRecord[] = [];
+    for (const line of this._garmentLines) {
+      const lineCharges = line.evaluateChargeability(this.id);
+      for (const chargeRecord of lineCharges) {
+        const alloc = line.getServiceAllocation(chargeRecord.serviceId);
+        this.emitChargeRaisedEvent(chargeRecord, alloc?.serviceName || chargeRecord.serviceId);
+        generatedCharges.push(chargeRecord);
+      }
+    }
+
+    if (generatedCharges.length > 0) {
+      this._updatedAt = new Date().toISOString();
+    }
+    return generatedCharges;
+  }
+
+  /**
    * Appends an immutable LaundryBusinessEvent to the transaction history.
    */
   public recordBusinessEvent(eventProps: LaundryBusinessEventProps): void {
@@ -159,6 +250,28 @@ export class LaundryTransaction {
     }
     this._businessEvents.push(event);
     this._updatedAt = new Date().toISOString();
+  }
+
+  private emitChargeRaisedEvent(chargeRecord: LaundryChargeRecord, serviceDisplayName: string): void {
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-CHG-${chargeRecord.businessChargeId}`,
+      transactionId: this.id,
+      eventType: 'LaundryChargeRaised',
+      timestamp: chargeRecord.calculatedAt,
+      description: `Charge raised for ${serviceDisplayName}: ${chargeRecord.quantity} unit(s) at rate ₹${chargeRecord.unitRate} (Total: ₹${chargeRecord.totalAmount}).`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        businessChargeId: chargeRecord.businessChargeId,
+        garmentLineId: chargeRecord.garmentLineId,
+        serviceId: chargeRecord.serviceId,
+        bracketIndex: chargeRecord.bracketIndex,
+        chargeableQuantity: chargeRecord.quantity,
+        unitRate: chargeRecord.unitRate,
+        totalAmount: chargeRecord.totalAmount,
+        currency: chargeRecord.currency,
+      },
+    });
   }
 
   public toJSON(): LaundryTransactionProps {

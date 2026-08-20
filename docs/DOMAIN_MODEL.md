@@ -1419,7 +1419,7 @@ The Aggregate Root of the Laundry Domain is:
 
 **`LaundryTransaction`**
 
-The `LaundryTransaction` protects the operational consistency of all Garment Lines, Rate Snapshots, Return records, Delivery records, and Exceptions that it owns.
+The `LaundryTransaction` protects the operational consistency of all Garment Lines, Rate Snapshots, Condition Observations, Processing Routes, Return records, Delivery records, and Exceptions that it owns.
 
 ---
 
@@ -1433,8 +1433,9 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | `LaundryChargeRecord` | Child Entity | Represents an immutable, deterministic operational charge tranche owned by ServiceAllocation |
 | `RateSnapshot` | Value Object | Preserves the historical Charge Master rates applicable at Collection Confirmation |
 | `CollectionEvidence` | Value Object | Preserves immutable collection photographs, bag tags, and staff/resident verification metadata |
+| `ConditionObservation` | Child Entity | Represents an immutable physical condition or pre-existing defect observed on a GarmentLine during pre-processing inspection |
+| `ProcessingRoute` | Value Object | Operational routing decision (IN_HOUSE or EXTERNAL_VENDOR) established prior to Processing Release |
 | `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
-| `ConditionObservation` | Entity / Value Object | Records pre-processing physical condition or pre-existing defects |
 | `LaundryReturn` | Entity | Records physical quantities received back into RPGMS custody verified by staff count |
 | `LaundryDelivery` | Entity | Records physical handover of returned laundry via Direct Handover or Room Placement |
 | `DeliveryLine` | Entity / Value Object | Specific garment line quantity included in a physical delivery |

@@ -1,4 +1,5 @@
 import { ServiceAllocation, type ServiceAllocationProps } from './ServiceAllocation';
+import { ConditionObservation, type ConditionObservationProps } from './ConditionObservation';
 import type { LaundryChargeRecord } from './LaundryChargeRecord';
 
 export interface GarmentLineProps {
@@ -9,6 +10,7 @@ export interface GarmentLineProps {
   physicalQuantity: number;
   deliveredQuantity?: number;
   serviceAllocations?: (ServiceAllocation | ServiceAllocationProps)[];
+  conditionObservations?: (ConditionObservation | ConditionObservationProps)[];
   notes?: string;
   createdAt: string;
   updatedAt?: string;
@@ -29,6 +31,7 @@ export class GarmentLine {
   public readonly physicalQuantity: number;
   private _deliveredQuantity: number;
   private _serviceAllocations: ServiceAllocation[];
+  private _conditionObservations: ConditionObservation[];
   public readonly notes?: string;
   public readonly createdAt: string;
   private _updatedAt?: string;
@@ -84,6 +87,14 @@ export class GarmentLine {
         this.addServiceAllocation(allocation);
       }
     }
+
+    this._conditionObservations = [];
+    if (props.conditionObservations && props.conditionObservations.length > 0) {
+      for (const co of props.conditionObservations) {
+        const obs = co instanceof ConditionObservation ? co : new ConditionObservation(co);
+        this.addConditionObservation(obs);
+      }
+    }
   }
 
   get deliveredQuantity(): number {
@@ -92,6 +103,10 @@ export class GarmentLine {
 
   get serviceAllocations(): readonly ServiceAllocation[] {
     return [...this._serviceAllocations];
+  }
+
+  get conditionObservations(): readonly ConditionObservation[] {
+    return [...this._conditionObservations];
   }
 
   get updatedAt(): string | undefined {
@@ -137,15 +152,35 @@ export class GarmentLine {
   }
 
   /**
+   * Adds an immutable ConditionObservation to this GarmentLine.
+   * Invariant: Affected quantity cannot exceed line physical piece count.
+   */
+  public addConditionObservation(observation: ConditionObservation): void {
+    if (observation.garmentLineId !== this.id) {
+      throw new Error(
+        `ConditionObservation (${observation.id}) garmentLineId (${observation.garmentLineId}) does not match GarmentLine ID (${this.id}).`
+      );
+    }
+    if (observation.affectedQuantity > this.physicalQuantity) {
+      throw new Error(
+        `ConditionObservation affectedQuantity (${observation.affectedQuantity}) cannot exceed GarmentLine physicalQuantity (${this.physicalQuantity}).`
+      );
+    }
+    this._conditionObservations.push(observation);
+    this._updatedAt = new Date().toISOString();
+  }
+
+  /**
    * Records incremental delivery quantity for physical pieces on this line.
+   * Total delivered quantity cannot exceed physical quantity.
    */
   public recordDeliveryQuantity(quantity: number): void {
     if (typeof quantity !== 'number' || isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
-      throw new Error('Delivered quantity must be a positive integer.');
+      throw new Error('Delivery quantity must be a positive integer.');
     }
     if (this._deliveredQuantity + quantity > this.physicalQuantity) {
       throw new Error(
-        `Cannot deliver ${quantity} piece(s). Total delivered quantity (${this._deliveredQuantity + quantity}) would exceed physical quantity (${this.physicalQuantity}).`
+        `Delivered quantity (${this._deliveredQuantity + quantity}) cannot exceed physicalQuantity (${this.physicalQuantity}).`
       );
     }
     this._deliveredQuantity += quantity;
@@ -153,7 +188,7 @@ export class GarmentLine {
   }
 
   /**
-   * Evaluates BR-L-012 chargeability across all service allocations for this GarmentLine.
+   * Evaluates BR-L-012 chargeability across all child service allocations on this line.
    */
   public evaluateChargeability(transactionId: string): LaundryChargeRecord[] {
     const generatedCharges: LaundryChargeRecord[] = [];
@@ -175,6 +210,7 @@ export class GarmentLine {
       physicalQuantity: this.physicalQuantity,
       deliveredQuantity: this._deliveredQuantity,
       serviceAllocations: this._serviceAllocations.map((sa) => sa.toJSON()),
+      conditionObservations: this._conditionObservations.map((co) => co.toJSON()),
       notes: this.notes,
       createdAt: this.createdAt,
       updatedAt: this._updatedAt,

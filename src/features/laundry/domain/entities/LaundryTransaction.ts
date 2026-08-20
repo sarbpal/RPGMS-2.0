@@ -2,6 +2,8 @@ import { GarmentLine, type GarmentLineProps } from './GarmentLine';
 import { LaundryTransactionStatus } from '../valueObjects/LaundryTransactionStatus';
 import { LaundryBusinessEvent, type LaundryBusinessEventProps } from '../valueObjects/LaundryBusinessEvent';
 import { CollectionEvidence, type CollectionEvidenceProps } from '../valueObjects/CollectionEvidence';
+import { ProcessingRoute } from '../valueObjects/ProcessingRoute';
+import { ConditionObservation, type ConditionObservationProps } from './ConditionObservation';
 import { RateSnapshot } from '../valueObjects/RateSnapshot';
 import { LaundryChargeRecord } from './LaundryChargeRecord';
 import type { ServiceFulfillmentStatus } from './ServiceAllocation';
@@ -14,6 +16,13 @@ export interface LaundryTransactionProps {
   status?: LaundryTransactionStatus;
   collectedAt?: string;
   collectionEvidence?: CollectionEvidence | CollectionEvidenceProps;
+  isInspected?: boolean;
+  inspectedAt?: string;
+  inspectedByStaffId?: string;
+  processingRoute?: ProcessingRoute;
+  processingVendorId?: string;
+  processingReleasedAt?: string;
+  processingReleasedByStaffId?: string;
   garmentLines?: (GarmentLine | GarmentLineProps)[];
   businessEvents?: (LaundryBusinessEvent | LaundryBusinessEventProps)[];
   notes?: string;
@@ -32,6 +41,20 @@ export interface ConfirmCollectionParams {
   notes?: string;
 }
 
+export interface CompleteInspectionParams {
+  inspectedByStaffId: string;
+  inspectedAt?: string;
+  notes?: string;
+}
+
+export interface ReleaseProcessingParams {
+  route?: ProcessingRoute;
+  vendorId?: string;
+  releasedByStaffId: string;
+  releasedAt?: string;
+  notes?: string;
+}
+
 /**
  * LaundryTransaction is the Aggregate Root representing one operational laundry relationship
  * for a resident's Stay.
@@ -41,8 +64,10 @@ export interface ConfirmCollectionParams {
  * 2. Owns GarmentLine entities and controls all child state mutations.
  * 3. Physical pieces are counted once across GarmentLines.
  * 4. Collection confirmation captures immutable RateSnapshots from active master rates at collection time.
- * 5. Records immutable LaundryBusinessEvent audit facts (LaundryTransactionCreated, LaundryCollectionConfirmed, etc.).
- * 6. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
+ * 5. Pre-processing inspection records immutable ConditionObservations and must precede processing release.
+ * 6. Processing Route (IN_HOUSE or EXTERNAL_VENDOR) is an operational routing decision independent of pricing.
+ * 7. Records immutable LaundryBusinessEvent audit facts.
+ * 8. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
  */
 export class LaundryTransaction {
   public readonly id: string;
@@ -51,6 +76,13 @@ export class LaundryTransaction {
   private _status: LaundryTransactionStatus;
   private _collectedAt?: string;
   private _collectionEvidence?: CollectionEvidence;
+  private _isInspected: boolean;
+  private _inspectedAt?: string;
+  private _inspectedByStaffId?: string;
+  private _processingRoute?: ProcessingRoute;
+  private _processingVendorId?: string;
+  private _processingReleasedAt?: string;
+  private _processingReleasedByStaffId?: string;
   private _garmentLines: GarmentLine[];
   private _businessEvents: LaundryBusinessEvent[];
   public readonly notes?: string;
@@ -79,6 +111,13 @@ export class LaundryTransaction {
           ? props.collectionEvidence
           : new CollectionEvidence(props.collectionEvidence);
     }
+    this._isInspected = props.isInspected ?? false;
+    this._inspectedAt = props.inspectedAt;
+    this._inspectedByStaffId = props.inspectedByStaffId;
+    this._processingRoute = props.processingRoute;
+    this._processingVendorId = props.processingVendorId;
+    this._processingReleasedAt = props.processingReleasedAt;
+    this._processingReleasedByStaffId = props.processingReleasedByStaffId;
     this.notes = props.notes?.trim();
     this.createdAt = props.createdAt ?? new Date().toISOString();
     this._updatedAt = props.updatedAt;
@@ -129,6 +168,34 @@ export class LaundryTransaction {
     return this._collectionEvidence;
   }
 
+  get isInspected(): boolean {
+    return this._isInspected;
+  }
+
+  get inspectedAt(): string | undefined {
+    return this._inspectedAt;
+  }
+
+  get inspectedByStaffId(): string | undefined {
+    return this._inspectedByStaffId;
+  }
+
+  get processingRoute(): ProcessingRoute | undefined {
+    return this._processingRoute;
+  }
+
+  get processingVendorId(): string | undefined {
+    return this._processingVendorId;
+  }
+
+  get processingReleasedAt(): string | undefined {
+    return this._processingReleasedAt;
+  }
+
+  get processingReleasedByStaffId(): string | undefined {
+    return this._processingReleasedByStaffId;
+  }
+
   get garmentLines(): readonly GarmentLine[] {
     return [...this._garmentLines];
   }
@@ -163,16 +230,18 @@ export class LaundryTransaction {
   }
 
   /**
+   * Retrieves all ConditionObservations recorded across all GarmentLines.
+   */
+  get conditionObservations(): readonly ConditionObservation[] {
+    const observations: ConditionObservation[] = [];
+    for (const line of this._garmentLines) {
+      observations.push(...line.conditionObservations);
+    }
+    return observations;
+  }
+
+  /**
    * Confirms physical collection of laundry into RPGMS custody (L-04).
-   *
-   * Invariants:
-   * 1. Transaction must be in DRAFT status.
-   * 2. Must contain at least one GarmentLine with requested ServiceAllocations.
-   * 3. Resolves effective LaundryChargeRate for each service allocation at collection timestamp.
-   * 4. Fails atomically if any service allocation lacks an active effective master rate.
-   * 5. Attaches immutable RateSnapshots to all ServiceAllocations.
-   * 6. Records CollectionEvidence and transitions status to COLLECTED.
-   * 7. Emits LaundryCollectionConfirmed business event.
    */
   public confirmCollection(params: ConfirmCollectionParams): void {
     if (this._status !== LaundryTransactionStatus.DRAFT) {
@@ -266,6 +335,169 @@ export class LaundryTransaction {
         garmentLineCount: this._garmentLines.length,
         hasPhotoEvidence: Boolean(params.photoUris && params.photoUris.length > 0),
         residentVerified: params.residentVerified ?? false,
+      },
+    });
+  }
+
+  /**
+   * Records an immutable pre-processing ConditionObservation on a specific GarmentLine (L-05).
+   *
+   * Invariants:
+   * 1. Transaction must be in COLLECTED status (pre-processing inspection).
+   * 2. Cannot record observation on DRAFT or after processing release (IN_PROCESS+).
+   * 3. Emits LaundryConditionObserved canonical business event.
+   */
+  public recordConditionObservation(props: ConditionObservationProps | ConditionObservation): ConditionObservation {
+    if (this._status !== LaundryTransactionStatus.COLLECTED) {
+      throw new Error(
+        `Cannot record condition observation: Transaction (${this.id}) is in ${this._status} status. Pre-processing inspection can only be performed on COLLECTED transactions.`
+      );
+    }
+
+    const line = this.getGarmentLine(props.garmentLineId);
+    if (!line) {
+      throw new Error(
+        `Cannot record condition observation: GarmentLine (${props.garmentLineId}) not found on LaundryTransaction (${this.id}).`
+      );
+    }
+
+    const observation = props instanceof ConditionObservation ? props : new ConditionObservation(props);
+    line.addConditionObservation(observation);
+    this._updatedAt = new Date().toISOString();
+
+    // Emit canonical event
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-OBS-${observation.id}`,
+      transactionId: this.id,
+      eventType: 'LaundryConditionObserved',
+      timestamp: observation.observedAt,
+      description: `Condition observation recorded for GarmentLine ${observation.garmentLineId}: ${observation.description} (Affected: ${observation.affectedQuantity}).`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        observationId: observation.id,
+        garmentLineId: observation.garmentLineId,
+        observationType: observation.observationType,
+        description: observation.description,
+        affectedQuantity: observation.affectedQuantity,
+        observedByStaffId: observation.observedByStaffId,
+        hasEvidence: Boolean(observation.evidenceUris && observation.evidenceUris.length > 0),
+      },
+    });
+
+    return observation;
+  }
+
+  /**
+   * Marks pre-processing inspection as completed for the transaction (L-05).
+   */
+  public completeInspection(params: CompleteInspectionParams): void {
+    if (this._status !== LaundryTransactionStatus.COLLECTED) {
+      throw new Error(
+        `Cannot complete inspection: Transaction (${this.id}) is in ${this._status} status. Inspection can only be performed on COLLECTED transactions.`
+      );
+    }
+    if (!params.inspectedByStaffId || params.inspectedByStaffId.trim() === '') {
+      throw new Error('Inspection inspectedByStaffId cannot be empty.');
+    }
+
+    this._isInspected = true;
+    this._inspectedByStaffId = params.inspectedByStaffId.trim();
+    this._inspectedAt = params.inspectedAt ?? new Date().toISOString();
+    this._updatedAt = this._inspectedAt;
+  }
+
+  /**
+   * Selects or updates the operational processing route (IN_HOUSE or EXTERNAL_VENDOR) (L-05).
+   *
+   * Invariants:
+   * 1. Route can only be selected or modified prior to processing release (while in COLLECTED status).
+   * 2. If route is EXTERNAL_VENDOR, vendorId is required.
+   * 3. Processing route selection is independent of resident-facing pricing and rate snapshots.
+   */
+  public selectProcessingRoute(route: ProcessingRoute, vendorId?: string): void {
+    if (this._status !== LaundryTransactionStatus.COLLECTED) {
+      throw new Error(
+        `Cannot select processing route: Transaction (${this.id}) is in ${this._status} status. Processing route can only be selected prior to processing release.`
+      );
+    }
+    if (route !== ProcessingRoute.IN_HOUSE && route !== ProcessingRoute.EXTERNAL_VENDOR) {
+      throw new Error(`Invalid processing route (${route}). Allowed routes: IN_HOUSE, EXTERNAL_VENDOR.`);
+    }
+    if (route === ProcessingRoute.EXTERNAL_VENDOR && (!vendorId || vendorId.trim() === '')) {
+      throw new Error('Vendor ID is required when selecting EXTERNAL_VENDOR processing route.');
+    }
+
+    this._processingRoute = route;
+    this._processingVendorId = route === ProcessingRoute.EXTERNAL_VENDOR ? vendorId?.trim() : undefined;
+    this._updatedAt = new Date().toISOString();
+  }
+
+  /**
+   * Releases the collected and inspected LaundryTransaction for processing (L-05).
+   *
+   * Invariants:
+   * 1. Transaction must be in COLLECTED status.
+   * 2. Pre-processing inspection must have been completed.
+   * 3. A valid processing route must be established.
+   * 4. Transitions status from COLLECTED -> IN_PROCESS.
+   * 5. Emits LaundryProcessingReleased canonical business event.
+   */
+  public releaseProcessing(params: ReleaseProcessingParams): void {
+    if (this._status !== LaundryTransactionStatus.COLLECTED) {
+      throw new Error(
+        `Cannot release processing: Transaction (${this.id}) is in ${this._status} status. Processing can only be released from COLLECTED status.`
+      );
+    }
+    if (!this._isInspected) {
+      throw new Error(
+        `Cannot release processing for transaction (${this.id}) without completing pre-processing inspection.`
+      );
+    }
+
+    // Set route if explicitly supplied in params
+    if (params.route) {
+      this.selectProcessingRoute(params.route, params.vendorId);
+    }
+
+    if (!this._processingRoute) {
+      throw new Error(
+        `Cannot release processing for transaction (${this.id}) without selecting a processing route (IN_HOUSE or EXTERNAL_VENDOR).`
+      );
+    }
+    if (this._processingRoute === ProcessingRoute.EXTERNAL_VENDOR && !this._processingVendorId) {
+      throw new Error(
+        `Cannot release processing for transaction (${this.id}): External vendor must be specified for EXTERNAL_VENDOR route.`
+      );
+    }
+    if (!params.releasedByStaffId || params.releasedByStaffId.trim() === '') {
+      throw new Error('Processing release releasedByStaffId cannot be empty.');
+    }
+
+    const releaseTimestamp = params.releasedAt ?? new Date().toISOString();
+
+    this._processingReleasedAt = releaseTimestamp;
+    this._processingReleasedByStaffId = params.releasedByStaffId.trim();
+    this._status = LaundryTransactionStatus.IN_PROCESS;
+    this._updatedAt = releaseTimestamp;
+
+    // Emit canonical business event
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-RELEASED`,
+      transactionId: this.id,
+      eventType: 'LaundryProcessingReleased',
+      timestamp: releaseTimestamp,
+      description: `Laundry transaction ${this.id} released for ${this._processingRoute} processing.`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        processingRoute: this._processingRoute,
+        vendorId: this._processingVendorId,
+        releasedByStaffId: this._processingReleasedByStaffId,
+        releasedAt: releaseTimestamp,
+        totalPhysicalPieces: this.totalPhysicalPieces,
+        garmentLineCount: this._garmentLines.length,
+        conditionObservationCount: this.conditionObservations.length,
       },
     });
   }
@@ -424,6 +656,13 @@ export class LaundryTransaction {
       status: this._status,
       collectedAt: this._collectedAt,
       collectionEvidence: this._collectionEvidence?.toJSON(),
+      isInspected: this._isInspected,
+      inspectedAt: this._inspectedAt,
+      inspectedByStaffId: this._inspectedByStaffId,
+      processingRoute: this._processingRoute,
+      processingVendorId: this._processingVendorId,
+      processingReleasedAt: this._processingReleasedAt,
+      processingReleasedByStaffId: this._processingReleasedByStaffId,
       garmentLines: this._garmentLines.map((gl) => gl.toJSON()),
       businessEvents: this._businessEvents.map((be) => be.toJSON()),
       notes: this.notes,

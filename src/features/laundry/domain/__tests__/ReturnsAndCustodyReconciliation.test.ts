@@ -312,8 +312,8 @@ describe('Laundry Returns, Physical Receipt & Custody Reconciliation (L-06)', ()
       expect(reconciliation.totalOutstanding).toBe(2);
       expect(reconciliation.hasDiscrepancy).toBe(true);
 
-      // Boundary check: No Exception entities or workflows created in L-06
-      expect((tx as any).exceptions).toBeUndefined();
+      // Boundary check: No Exception entities or workflows created upon under-return
+      expect(tx.exceptions).toHaveLength(0);
     });
 
     it('Test 6 — Over-Return is rejected and does not silently clamp quantity', () => {

@@ -442,8 +442,8 @@ The Stay entity serves as the central operational entity connecting the Resident
 
 ### Laundry Transaction
 - **Purpose**: Aggregate Root representing one operational laundry collection relationship for a Stay.
-- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `collectedAt`, `collectionEvidence`, `isInspected`, `inspectedAt`, `inspectedByStaffId`, `processingRoute` (`IN_HOUSE` | `EXTERNAL_VENDOR`), `processingVendorId`, `processingReleasedAt`, `processingReleasedByStaffId`, `returns` (array of `LaundryReturn`), `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
-- **Invariants**: Belongs to exactly one Stay and Resident. Collection confirmation captures immutable RateSnapshots from active master rates at collection time. Pre-processing inspection is mandatory prior to Processing Release. Emits immutable `LaundryBusinessEvent` audit trail.
+- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `collectedAt`, `collectionEvidence`, `isInspected`, `inspectedAt`, `inspectedByStaffId`, `processingRoute` (`IN_HOUSE` | `EXTERNAL_VENDOR`), `processingVendorId`, `processingReleasedAt`, `processingReleasedByStaffId`, `returns` (array of `LaundryReturn`), `deliveries` (array of `LaundryDelivery`), `exceptions` (array of `LaundryException`), `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
+- **Invariants**: Belongs to exactly one Stay and Resident. Collection confirmation captures immutable RateSnapshots from active master rates at collection time. Pre-processing inspection is mandatory prior to Processing Release. Delivery records physical handover to resident and updates BR-L-012 chargeability. Emits immutable `LaundryBusinessEvent` audit trail.
 
 ### Collection Evidence
 - **Purpose**: Immutable Value Object preserving physical collection evidence (photograph references, bag tags, bag counts, notes, staff verification, resident verification).
@@ -464,6 +464,31 @@ The Stay entity serves as the central operational entity connecting the Resident
 - **Purpose**: Immutable Value Object representing physical pieces of a specific Garment Line received in a Laundry Return.
 - **Attributes**: `garmentLineId`, `returnedQuantity`.
 - **Invariants**: Returned quantity must be a positive integer.
+
+### Laundry Delivery
+- **Purpose**: Child Entity owned by Laundry Transaction representing one physical handover of returned laundry to the resident.
+- **Attributes**: `id`, `transactionId`, `deliveredLines` (array of `DeliveryLine`), `handoverMethod` (`DIRECT_HANDOVER` | `ROOM_PLACEMENT`), `deliveredByStaffId`, `deliveredAt`, `residentPresent`, `residentVerified`, `roomNumber`, `evidenceUris`, `notes`.
+- **Invariants**: Permanently immutable upon creation. Can only deliver from verified returned quantities. Feeds real physical delivery fact into BR-L-012 chargeability.
+
+### Delivery Line
+- **Purpose**: Immutable Value Object representing physical pieces of a specific Garment Line delivered in a Laundry Delivery.
+- **Attributes**: `garmentLineId`, `deliveredQuantity`.
+- **Invariants**: Delivered quantity must be a positive integer and cannot exceed available returned quantity.
+
+### Laundry Exception
+- **Purpose**: Child Entity owned by Laundry Transaction representing an operational discrepancy, quality issue, damage, or service dispute.
+- **Attributes**: `id`, `transactionId`, `garmentLineId`, `serviceId`, `type` (`MISSING`, `DAMAGED`, `EXISTING_CONDITION_DISPUTE`, `WRONG_ITEM_RETURNED`, `IDENTITY_DISPUTE`, `SERVICE_NOT_PERFORMED`, `SERVICE_NOT_PERFORMED_AS_REQUESTED`, `QUALITY_ISSUE`, `QUANTITY_DISCREPANCY`, `OTHER`), `description`, `affectedQuantity`, `status` (`OPEN`, `UNDER_INVESTIGATION`, `RESOLVED`), `isBlocking`, `raisedByStaffId`, `raisedAt`, `evidenceUris`, `investigations` (array of `ExceptionInvestigation`), `resolution` (`ExceptionResolution`), `updatedAt`.
+- **Invariants**: Follows independent lifecycle. Identity disputes block delivery of disputed lines. Does not rewrite historical collection or return facts.
+
+### Exception Investigation
+- **Purpose**: Child Entity owned by Laundry Exception capturing factual findings and evidence during investigation.
+- **Attributes**: `id`, `exceptionId`, `investigatorStaffId`, `startedAt`, `findings`, `evidenceUris`, `responsibleParty` (`VENDOR`, `RESIDENT`, `RPGMS`, `UNKNOWN`, `NONE`, `OTHER`), `completedAt`.
+- **Invariants**: Permanently immutable upon capture. Multiple investigation facts are preserved chronologically.
+
+### Exception Resolution
+- **Purpose**: Child Entity owned by Laundry Exception recording the formal business resolution decision.
+- **Attributes**: `id`, `exceptionId`, `outcome` (`ITEM_RECOVERED`, `SERVICE_CORRECTED`, `VENDOR_CORRECTED`, `RESIDENT_ACCEPTED`, `PERMANENTLY_LOST`, `NO_ACTION_REQUIRED`, `OTHER`), `resolverStaffId`, `resolvedAt`, `resolvedQuantity`, `responsibleParty`, `notes`.
+- **Invariants**: Permanently immutable upon capture. `resolvedQuantity` contributes to physical completion calculation when physical delivery will no longer occur.
 
 ### Garment Line
 - **Purpose**: Child Entity representing a physical piece quantity of a recognized Laundry Item.

@@ -1438,10 +1438,11 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
 | `LaundryReturn` | Child Entity | Records physical quantities received back into RPGMS custody from processing, verified by staff piece count |
 | `ReturnLine` | Value Object | Represents specific garment line piece quantity included in a physical LaundryReturn receipt |
-| `LaundryDelivery` | Entity | Records physical handover of returned laundry via Direct Handover or Room Placement |
-| `DeliveryLine` | Entity / Value Object | Specific garment line quantity included in a physical delivery |
-| `LaundryException` | Entity | Records operational issues (missing, damaged, disputes, service failures) with independent lifecycle |
-| `ExceptionResolution` | Entity / Value Object | Final business outcome of an exception investigation |
+| `LaundryDelivery` | Child Entity | Records physical handover of returned laundry to the resident via Direct Handover or Room Placement |
+| `DeliveryLine` | Value Object | Represents specific garment line piece quantity included in a physical LaundryDelivery receipt |
+| `LaundryException` | Child Entity | Records operational issues (missing, damaged, disputes, service failures) with independent lifecycle |
+| `ExceptionInvestigation` | Child Entity | Records factual findings, investigator identity, and evidence during exception investigation |
+| `ExceptionResolution` | Child Entity | Records formal business outcome, responsible party, and optional resolved physical quantity |
 
 ---
 

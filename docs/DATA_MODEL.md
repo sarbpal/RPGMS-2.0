@@ -438,6 +438,30 @@ The Stay entity serves as the central operational entity connecting the Resident
 
 ---
 
+## Laundry Operational Domain
+
+### Laundry Transaction
+- **Purpose**: Aggregate Root representing one operational laundry collection relationship for a Stay.
+- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
+- **Invariants**: Belongs to exactly one Stay and Resident. Emits immutable `LaundryBusinessEvent` audit trail starting with `LaundryTransactionCreated`.
+
+### Garment Line
+- **Purpose**: Child Entity representing a physical piece quantity of a recognized Laundry Item.
+- **Attributes**: `id`, `transactionId`, `itemId`, `itemName`, `physicalQuantity`, `serviceAllocations`, `notes`, `createdAt`, `updatedAt`.
+- **Invariants**: Physical quantity must be a positive integer. Physical garments are counted once regardless of how many services are requested.
+
+### Service Allocation
+- **Purpose**: Child Entity owned by Garment Line representing a requested operational service quantity.
+- **Attributes**: `id`, `garmentLineId`, `serviceId`, `serviceName`, `requestedQuantity`, `rateSnapshot`, `fulfillmentStatus` (`PENDING`, `FULFILLED`, `UNFULFILLED`, `REWORK`), `createdAt`, `updatedAt`.
+- **Invariants**: Requested quantity cannot exceed the Garment Line's physical piece count. Multiple services on one Garment Line never increase the physical piece count.
+
+### Laundry Business Event
+- **Purpose**: Immutable Value Object preserving historical operational facts (11 canonical events).
+- **Attributes**: `id`, `transactionId`, `eventType`, `timestamp`, `description`, `metadata`.
+- **Invariants**: Readonly and frozen upon creation; permanent historical record.
+
+---
+
 ## Design Principles
 
 - The data model represents business entities rather than database tables.

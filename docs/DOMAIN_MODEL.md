@@ -1428,8 +1428,10 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | Concept | Nature | Responsibility |
 |---|---|---|
 | `LaundryTransaction` | Aggregate Root | Represents the complete operational relationship for one laundry collection during a Stay |
-| `GarmentLine` | Entity | Represents a physical piece quantity of a Laundry Item with uniform requested services |
+| `GarmentLine` | Child Entity | Represents a physical piece quantity of a Laundry Item with uniform requested services |
+| `ServiceAllocation` | Child Entity | Represents a requested operational service quantity on a GarmentLine |
 | `RateSnapshot` | Value Object | Preserves the historical Charge Master rates applicable at Collection Confirmation |
+| `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
 | `ConditionObservation` | Entity / Value Object | Records pre-processing physical condition or pre-existing defects |
 | `LaundryReturn` | Entity | Records physical quantities received back into RPGMS custody verified by staff count |
 | `LaundryDelivery` | Entity | Records physical handover of returned laundry via Direct Handover or Room Placement |

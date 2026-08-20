@@ -414,6 +414,30 @@ The Stay entity serves as the central operational entity connecting the Resident
 
 ---
 
+## Laundry Master Data
+
+### Laundry Item
+- **Purpose**: Represents a recognized physical category of laundry (e.g., Shirt, Trouser, Bedsheet).
+- **Attributes**: `id`, `code`, `name`, `category` (`CLOTHING` | `BEDDING` | `OTHER`), `isActive`, `createdAt`.
+- **Invariants**: Represents a physical classification category, not an individual garment tag.
+
+### Laundry Service
+- **Purpose**: Represents an operational service requested for a Laundry Item (e.g., Cleaning, Ironing, Dry Cleaning).
+- **Attributes**: `id`, `code`, `name`, `description`, `isActive`, `createdAt`.
+- **Invariants**: Represents resident-facing commercial services rather than internal physical processing machinery steps.
+
+### Laundry Charge Rate
+- **Purpose**: Represents the commercial price configuration for a Laundry Item + Laundry Service combination within an effective period.
+- **Attributes**: `id`, `itemId`, `serviceId`, `rate`, `effectiveFrom`, `effectiveUntil`, `isActive`, `createdAt`.
+- **Invariants**: Master pricing configuration is separate from historical transaction pricing. Changes to master rates never mutate captured `RateSnapshot` instances.
+
+### Rate Snapshot
+- **Purpose**: Immutable Value Object capturing frozen commercial pricing at the moment of Collection Confirmation.
+- **Attributes**: `unitRate`, `capturedAt`, `chargeMasterRateId`, `currency`.
+- **Invariants**: Permanently immutable upon creation; historical transactions remain protected against subsequent catalog modifications.
+
+---
+
 ## Design Principles
 
 - The data model represents business entities rather than database tables.

@@ -1432,6 +1432,7 @@ The `LaundryTransaction` protects the operational consistency of all Garment Lin
 | `ServiceAllocation` | Child Entity | Represents a requested operational service quantity on a GarmentLine |
 | `LaundryChargeRecord` | Child Entity | Represents an immutable, deterministic operational charge tranche owned by ServiceAllocation |
 | `RateSnapshot` | Value Object | Preserves the historical Charge Master rates applicable at Collection Confirmation |
+| `CollectionEvidence` | Value Object | Preserves immutable collection photographs, bag tags, and staff/resident verification metadata |
 | `LaundryBusinessEvent` | Value Object | Immutable audit fact recording meaningful operational events (11 canonical events) |
 | `ConditionObservation` | Entity / Value Object | Records pre-processing physical condition or pre-existing defects |
 | `LaundryReturn` | Entity | Records physical quantities received back into RPGMS custody verified by staff count |

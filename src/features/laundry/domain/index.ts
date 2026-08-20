@@ -9,6 +9,7 @@ export * from './entities/LaundryTransaction';
 
 // Domain Value Objects
 export * from './valueObjects/RateSnapshot';
+export * from './valueObjects/CollectionEvidence';
 export * from './valueObjects/LaundryTransactionStatus';
 export * from './valueObjects/LaundryBusinessEvent';
 

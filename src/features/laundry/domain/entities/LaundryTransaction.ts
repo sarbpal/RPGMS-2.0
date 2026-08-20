@@ -1,19 +1,35 @@
 import { GarmentLine, type GarmentLineProps } from './GarmentLine';
 import { LaundryTransactionStatus } from '../valueObjects/LaundryTransactionStatus';
 import { LaundryBusinessEvent, type LaundryBusinessEventProps } from '../valueObjects/LaundryBusinessEvent';
+import { CollectionEvidence, type CollectionEvidenceProps } from '../valueObjects/CollectionEvidence';
+import { RateSnapshot } from '../valueObjects/RateSnapshot';
 import { LaundryChargeRecord } from './LaundryChargeRecord';
 import type { ServiceFulfillmentStatus } from './ServiceAllocation';
+import type { LaundryMasterRepository } from '../interfaces/LaundryMasterRepository';
 
 export interface LaundryTransactionProps {
   id: string;
   stayId: string;
   residentId: string;
   status?: LaundryTransactionStatus;
+  collectedAt?: string;
+  collectionEvidence?: CollectionEvidence | CollectionEvidenceProps;
   garmentLines?: (GarmentLine | GarmentLineProps)[];
   businessEvents?: (LaundryBusinessEvent | LaundryBusinessEventProps)[];
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ConfirmCollectionParams {
+  masterRepository: LaundryMasterRepository;
+  collectedByStaffId: string;
+  collectionTimestamp?: string;
+  photoUris?: string[];
+  bagCount?: number;
+  bagTagNumbers?: string[];
+  residentVerified?: boolean;
+  notes?: string;
 }
 
 /**
@@ -24,14 +40,17 @@ export interface LaundryTransactionProps {
  * 1. Belongs to exactly one Stay and one Resident.
  * 2. Owns GarmentLine entities and controls all child state mutations.
  * 3. Physical pieces are counted once across GarmentLines.
- * 4. Records immutable LaundryBusinessEvent audit facts.
- * 5. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
+ * 4. Collection confirmation captures immutable RateSnapshots from active master rates at collection time.
+ * 5. Records immutable LaundryBusinessEvent audit facts (LaundryTransactionCreated, LaundryCollectionConfirmed, etc.).
+ * 6. Evaluates BR-L-012 chargeability deterministically across ServiceAllocations.
  */
 export class LaundryTransaction {
   public readonly id: string;
   public readonly stayId: string;
   public readonly residentId: string;
   private _status: LaundryTransactionStatus;
+  private _collectedAt?: string;
+  private _collectionEvidence?: CollectionEvidence;
   private _garmentLines: GarmentLine[];
   private _businessEvents: LaundryBusinessEvent[];
   public readonly notes?: string;
@@ -53,6 +72,13 @@ export class LaundryTransaction {
     this.stayId = props.stayId.trim();
     this.residentId = props.residentId.trim();
     this._status = props.status ?? LaundryTransactionStatus.DRAFT;
+    this._collectedAt = props.collectedAt;
+    if (props.collectionEvidence) {
+      this._collectionEvidence =
+        props.collectionEvidence instanceof CollectionEvidence
+          ? props.collectionEvidence
+          : new CollectionEvidence(props.collectionEvidence);
+    }
     this.notes = props.notes?.trim();
     this.createdAt = props.createdAt ?? new Date().toISOString();
     this._updatedAt = props.updatedAt;
@@ -95,6 +121,14 @@ export class LaundryTransaction {
     return this._status;
   }
 
+  get collectedAt(): string | undefined {
+    return this._collectedAt;
+  }
+
+  get collectionEvidence(): CollectionEvidence | undefined {
+    return this._collectionEvidence;
+  }
+
   get garmentLines(): readonly GarmentLine[] {
     return [...this._garmentLines];
   }
@@ -126,6 +160,114 @@ export class LaundryTransaction {
       }
     }
     return allCharges;
+  }
+
+  /**
+   * Confirms physical collection of laundry into RPGMS custody (L-04).
+   *
+   * Invariants:
+   * 1. Transaction must be in DRAFT status.
+   * 2. Must contain at least one GarmentLine with requested ServiceAllocations.
+   * 3. Resolves effective LaundryChargeRate for each service allocation at collection timestamp.
+   * 4. Fails atomically if any service allocation lacks an active effective master rate.
+   * 5. Attaches immutable RateSnapshots to all ServiceAllocations.
+   * 6. Records CollectionEvidence and transitions status to COLLECTED.
+   * 7. Emits LaundryCollectionConfirmed business event.
+   */
+  public confirmCollection(params: ConfirmCollectionParams): void {
+    if (this._status !== LaundryTransactionStatus.DRAFT) {
+      throw new Error(
+        `Cannot confirm collection for transaction (${this.id}) in ${this._status} status. Collection can only be confirmed from DRAFT status.`
+      );
+    }
+    if (this._garmentLines.length === 0) {
+      throw new Error(`Cannot confirm collection for transaction (${this.id}) without any GarmentLines.`);
+    }
+
+    const collectionTimestamp = params.collectionTimestamp ?? new Date().toISOString();
+
+    // Pre-flight validation: Ensure effective rates exist for ALL service allocations
+    const resolvedSnapshots: Array<{
+      garmentLineId: string;
+      serviceId: string;
+      snapshot: RateSnapshot;
+    }> = [];
+
+    for (const line of this._garmentLines) {
+      if (line.serviceAllocations.length === 0) {
+        throw new Error(
+          `GarmentLine (${line.id}) has no requested ServiceAllocations. Cannot confirm collection.`
+        );
+      }
+
+      for (const alloc of line.serviceAllocations) {
+        const effectiveRate = params.masterRepository.getEffectiveRate(
+          line.itemId,
+          alloc.serviceId,
+          collectionTimestamp
+        );
+
+        if (!effectiveRate || !effectiveRate.isActive) {
+          throw new Error(
+            `Cannot confirm collection: No active effective LaundryChargeRate found for Item (${line.itemId}) and Service (${alloc.serviceId}) at timestamp (${collectionTimestamp}).`
+          );
+        }
+
+        const snapshot = new RateSnapshot({
+          unitRate: effectiveRate.rate,
+          capturedAt: collectionTimestamp,
+          chargeMasterRateId: effectiveRate.id,
+          currency: 'INR',
+        });
+
+        resolvedSnapshots.push({
+          garmentLineId: line.id,
+          serviceId: alloc.serviceId,
+          snapshot,
+        });
+      }
+    }
+
+    // Atomic application: Attach all resolved snapshots
+    for (const item of resolvedSnapshots) {
+      const line = this.getGarmentLine(item.garmentLineId)!;
+      const alloc = line.getServiceAllocation(item.serviceId)!;
+      alloc.attachRateSnapshot(item.snapshot);
+    }
+
+    // Attach CollectionEvidence
+    this._collectionEvidence = new CollectionEvidence({
+      photoUris: params.photoUris,
+      collectedByStaffId: params.collectedByStaffId,
+      bagCount: params.bagCount,
+      bagTagNumbers: params.bagTagNumbers,
+      notes: params.notes,
+      residentVerified: params.residentVerified,
+      capturedAt: collectionTimestamp,
+    });
+
+    this._collectedAt = collectionTimestamp;
+    this._status = LaundryTransactionStatus.COLLECTED;
+    this._updatedAt = collectionTimestamp;
+
+    // Record canonical business event
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-COLLECTED`,
+      transactionId: this.id,
+      eventType: 'LaundryCollectionConfirmed',
+      timestamp: collectionTimestamp,
+      description: `Physical collection confirmed for transaction ${this.id} (${this.totalPhysicalPieces} piece(s) across ${this._garmentLines.length} garment line(s)).`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        collectedAt: collectionTimestamp,
+        collectedByStaffId: params.collectedByStaffId,
+        totalPhysicalPieces: this.totalPhysicalPieces,
+        garmentLineCount: this._garmentLines.length,
+        hasPhotoEvidence: Boolean(params.photoUris && params.photoUris.length > 0),
+        residentVerified: params.residentVerified ?? false,
+      },
+    });
   }
 
   /**
@@ -280,6 +422,8 @@ export class LaundryTransaction {
       stayId: this.stayId,
       residentId: this.residentId,
       status: this._status,
+      collectedAt: this._collectedAt,
+      collectionEvidence: this._collectionEvidence?.toJSON(),
       garmentLines: this._garmentLines.map((gl) => gl.toJSON()),
       businessEvents: this._businessEvents.map((be) => be.toJSON()),
       notes: this.notes,

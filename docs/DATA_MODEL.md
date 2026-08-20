@@ -442,8 +442,13 @@ The Stay entity serves as the central operational entity connecting the Resident
 
 ### Laundry Transaction
 - **Purpose**: Aggregate Root representing one operational laundry collection relationship for a Stay.
-- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
-- **Invariants**: Belongs to exactly one Stay and Resident. Emits immutable `LaundryBusinessEvent` audit trail starting with `LaundryTransactionCreated`.
+- **Attributes**: `id`, `stayId`, `residentId`, `status` (`DRAFT`, `COLLECTED`, `IN_PROCESS`, `RETURNED_PARTIAL`, `RETURNED_FULL`, `DELIVERED_PARTIAL`, `DELIVERED_FULL`, `EXCEPTION_RAISED`, `COMPLETED`, `CANCELLED`), `collectedAt`, `collectionEvidence`, `garmentLines`, `businessEvents`, `notes`, `createdAt`, `updatedAt`.
+- **Invariants**: Belongs to exactly one Stay and Resident. Collection confirmation captures immutable RateSnapshots from active master rates at collection time. Emits immutable `LaundryBusinessEvent` audit trail.
+
+### Collection Evidence
+- **Purpose**: Immutable Value Object preserving physical collection evidence (photograph references, bag tags, bag counts, notes, staff verification, resident verification).
+- **Attributes**: `photoUris`, `collectedByStaffId`, `bagCount`, `bagTagNumbers`, `notes`, `residentVerified`, `capturedAt`.
+- **Invariants**: Permanently immutable upon collection confirmation; preserves factual collection state as physically received.
 
 ### Garment Line
 - **Purpose**: Child Entity representing a physical piece quantity of a recognized Laundry Item.

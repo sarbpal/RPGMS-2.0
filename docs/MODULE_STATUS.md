@@ -53,7 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
-| Laundry | 🟡 Collection & Processing Presentation Workflows Complete (L-01–L-12 Complete) |
+| Laundry | 🟢 Returns & Delivery Presentation Workflows Complete (L-01–L-13 Complete) |
 
 ---
 
@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟡 Collection & Processing Presentation Workflows Complete (L-01 – L-12 Complete)
+**Status:** 🟢 Returns & Delivery Presentation Workflows Complete (L-01 – L-13 Complete)
 
-**State:** Operational Collection & Processing Workflows Implemented
+**State:** Operational Returns & Delivery Workflows Implemented
 
 ## Purpose
 
@@ -626,7 +626,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Completed (L-01 through L-12)
+## Completed (L-01 through L-13)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -669,11 +669,18 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Workflow Orchestration: Strict 2-step sequence enforcement (`COLLECTED` -> Inspection -> Release to Processing -> `IN_PROCESS`)
 - Workspace Table & Drawer Actions: Integrated quick inspection triggers in table and contextual action buttons in the detail drawer
 
+### Returns & Delivery Presentation Workflows (L-13)
+
+- Physical Return Receipt Dialog: `RecordReturnDialog.tsx` supporting garment lines return quantities, receiving staff ID, timestamp, return notes, and custody preview.
+- Custody Reconciliation Presentation: Integrated in `LaundryTransactionDetailDrawer.tsx` Tab 1 ("Processing & Custody") presenting expected pieces, cumulative returned pieces, outstanding return pieces, and line-by-line custody breakdown without frontend business calculations.
+- Resident Delivery Handover Dialog: `RecordDeliveryDialog.tsx` supporting `DIRECT_HANDOVER` (in person with resident verification) and `ROOM_PLACEMENT` (room location reference and placement photo evidence URIs).
+- Delivery-Triggered BR-L-012 Chargeability: Seamless chargeability evaluation in domain aggregate upon delivery, updating commercial totals and service allocation charges in `LaundryTransactionDetailDrawer.tsx` Tab 4 ("Commercial & Charges").
+- Workspace Table & Drawer Integration: Contextual return and delivery triggers in table and detail drawer.
+
 ---
 
-## Next Steps (L-13+)
+## Next Steps (L-14+)
 
-- L-13: Custody, Returns & Delivery Presentation Workflows (`RecordReturnDialog`, `RecordDeliveryDialog`, partial deliveries, room placement)
 - L-14: Exceptions & Investigations Presentation Workflows (`RaiseExceptionDialog`, `RecordInvestigationDialog`, `ResolveExceptionDialog`)
 - L-15: Commercial Charge Posting Presentation & Operational Polish (`PostChargesDialog`, thermal tag/print integration)
 

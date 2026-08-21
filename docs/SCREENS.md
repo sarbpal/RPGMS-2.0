@@ -104,12 +104,12 @@ Transaction Table & Columns
 - Route: In-House processing vs External commercial vendor.
 - Status: Color-coded operational lifecycle badge.
 - Commercial / Charges: Estimated commercial value and posted Finance bill status.
-- Actions: Quick confirm button for drafts, quick inspect trigger for collected orders, and full detail inspection trigger.
+- Actions: Quick confirm button for drafts, quick inspect trigger for collected orders, quick return trigger for in-process orders, quick deliver trigger for returned orders, and full detail inspection trigger.
 
 Detail Drawer
 
-- Multi-tab operational inspector showing Garments & Services, Processing & Custody, Deliveries, Exceptions, Commercial & Charges, and Audit Timeline without frontend business rule calculations.
-- Contextual lifecycle action buttons: "Confirm Collection Baseline" (for Drafts), "Record Pre-Processing Inspection" (for uninspected Collected orders), and "Select Route & Release to Processing" (for inspected Collected orders).
+- Multi-tab operational inspector showing Garments & Services, Processing & Custody (with Custody Reconciliation Card, expected/returned/delivered counts, and garment-line custody breakdown), Deliveries (overview card and itemized handover receipts), Exceptions, Commercial & Charges (evaluating BR-L-012 chargeability upon physical delivery), and Audit Timeline without frontend business rule calculations.
+- Contextual lifecycle action buttons: "Confirm Collection Baseline" (for Drafts), "Record Pre-Processing Inspection" (for uninspected Collected orders), "Select Route & Release to Processing" (for inspected Collected orders), "Record Return from Processing" (for in-process or partially returned orders), and "Record Resident Delivery" (for orders with deliverable items in custody).
 
 Command Dialogs
 
@@ -117,3 +117,5 @@ Command Dialogs
 - Confirm Collection: Record staff member ID, physical bag count, tag barcodes, optional transient photo references, and resident verification to lock immutable RateSnapshots.
 - Record Pre-Processing Inspection: Inspect physical garment lines, stage condition observations (stains, tears, button defects, affected piece counts, photo evidence URIs), and complete inspection sign-off.
 - Select Route & Release to Processing: Choose operational processing route (`IN_HOUSE` laundry room vs `EXTERNAL_VENDOR` commercial partner with required vendor code), verify inspection prerequisite, and release order into active processing.
+- Record Return from Processing: Record custody intake receipt from laundry room or external vendor, specify returned quantities per garment line, receiving staff ID, timestamp, and return notes.
+- Record Resident Delivery Handover: Record resident physical handover with method selection (`DIRECT_HANDOVER` with in-person resident verification vs `ROOM_PLACEMENT` with room reference and placement photo evidence URIs), delivered quantities per garment line, delivery staff ID, timestamp, and handover notes.

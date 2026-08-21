@@ -19,6 +19,8 @@ import {
   HomeWork,
   Checklist,
   SearchOutlined,
+  AssignmentReturned,
+  LocalShipping,
 } from '@mui/icons-material';
 import type { LaundryTransactionSummaryViewModel } from '../application/models/LaundryWorkspaceViewModel';
 import { EmptyState } from '../../../components/EmptyState';
@@ -30,6 +32,8 @@ interface LaundryTransactionTableProps {
   onConfirmCollection: (tx: LaundryTransactionSummaryViewModel) => void;
   onRecordInspection?: (tx: LaundryTransactionSummaryViewModel) => void;
   onReleaseProcessing?: (tx: LaundryTransactionSummaryViewModel) => void;
+  onRecordReturn?: (tx: LaundryTransactionSummaryViewModel) => void;
+  onRecordDelivery?: (tx: LaundryTransactionSummaryViewModel) => void;
   onOpenCreateDraft?: () => void;
 }
 
@@ -40,6 +44,8 @@ export function LaundryTransactionTable({
   onConfirmCollection,
   onRecordInspection,
   onReleaseProcessing: _onReleaseProcessing,
+  onRecordReturn,
+  onRecordDelivery,
   onOpenCreateDraft,
 }: LaundryTransactionTableProps) {
   if (transactions.length === 0) {
@@ -243,6 +249,30 @@ export function LaundryTransactionTable({
                         sx={{ fontSize: '0.75rem', textTransform: 'none', py: 0.5 }}
                       >
                         Inspect
+                      </Button>
+                    ) : tx.status === 'IN_PROCESS' && onRecordReturn ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AssignmentReturned />}
+                        onClick={() => onRecordReturn(tx)}
+                        sx={{ fontSize: '0.75rem', textTransform: 'none', py: 0.5 }}
+                      >
+                        Return
+                      </Button>
+                    ) : (tx.status === 'RETURNED_FULL' || tx.status === 'RETURNED_PARTIAL') &&
+                      tx.totalReturnedPieces > tx.totalDeliveredPieces &&
+                      onRecordDelivery ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        startIcon={<LocalShipping />}
+                        onClick={() => onRecordDelivery(tx)}
+                        sx={{ fontSize: '0.75rem', textTransform: 'none', py: 0.5 }}
+                      >
+                        Deliver
                       </Button>
                     ) : (
                       <Button

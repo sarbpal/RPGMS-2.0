@@ -13,6 +13,8 @@ import type {
   ConfirmCollectionDTO,
   RecordInspectionDTO,
   ReleaseProcessingDTO,
+  RecordReturnDTO,
+  RecordDeliveryDTO,
 } from '../application/dtos/laundryDTOs';
 
 export type LaundryModalType =
@@ -20,6 +22,8 @@ export type LaundryModalType =
   | 'CONFIRM_COLLECTION'
   | 'RECORD_INSPECTION'
   | 'RELEASE_PROCESSING'
+  | 'RECORD_RETURN'
+  | 'RECORD_DELIVERY'
   | null;
 
 export interface UseLaundryWorkspaceReturn {
@@ -55,6 +59,8 @@ export interface UseLaundryWorkspaceReturn {
   openConfirmCollectionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => void;
   openRecordInspectionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openReleaseProcessingDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
+  openRecordReturnDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
+  openRecordDeliveryDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   closeDialogs: () => void;
 
   // Command Handlers
@@ -62,6 +68,8 @@ export interface UseLaundryWorkspaceReturn {
   handleConfirmCollectionSubmit: (dto: ConfirmCollectionDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordInspectionSubmit: (dto: RecordInspectionDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleReleaseProcessingSubmit: (dto: ReleaseProcessingDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleRecordReturnSubmit: (dto: RecordReturnDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleRecordDeliverySubmit: (dto: RecordDeliveryDTO) => Promise<LaundryTransactionDetailViewModel>;
 
   // Notification Actions
   closeSnackbar: () => void;
@@ -247,6 +255,22 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     setActiveDialog('RELEASE_PROCESSING');
   }, [selectedDetail, loadDetail]);
 
+  const openRecordReturnDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
+    setSelectedTransactionId(transaction.id);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('RECORD_RETURN');
+  }, [selectedDetail, loadDetail]);
+
+  const openRecordDeliveryDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
+    setSelectedTransactionId(transaction.id);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('RECORD_DELIVERY');
+  }, [selectedDetail, loadDetail]);
+
   const closeDialogs = useCallback(() => {
     setActiveDialog(null);
     setTargetTransaction(null);
@@ -306,6 +330,32 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     }
   }, [coordinator, showSnackbar, closeDialogs, refresh]);
 
+  const handleRecordReturnSubmit = useCallback(async (dto: RecordReturnDTO) => {
+    try {
+      const returned = await coordinator.recordReturn(dto);
+      showSnackbar(`Return recorded for transaction ${returned.id} (${returned.totalReturnedPieces} total pcs returned)`, 'success');
+      closeDialogs();
+      await refresh();
+      return returned;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to record return', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
+  const handleRecordDeliverySubmit = useCallback(async (dto: RecordDeliveryDTO) => {
+    try {
+      const delivered = await coordinator.recordDelivery(dto);
+      showSnackbar(`Delivery handover recorded for transaction ${delivered.id} (${delivered.totalDeliveredPieces} total pcs delivered)`, 'success');
+      closeDialogs();
+      await refresh();
+      return delivered;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to record delivery', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
   return {
     viewModel,
     selectedTransactionId,
@@ -329,11 +379,15 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     openConfirmCollectionDialog,
     openRecordInspectionDialog,
     openReleaseProcessingDialog,
+    openRecordReturnDialog,
+    openRecordDeliveryDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
     handleRecordInspectionSubmit,
     handleReleaseProcessingSubmit,
+    handleRecordReturnSubmit,
+    handleRecordDeliverySubmit,
     closeSnackbar,
     showSnackbar,
     refresh,

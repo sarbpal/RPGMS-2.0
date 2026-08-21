@@ -18,6 +18,8 @@ import { CreateCollectionDraftDialog } from '../components/dialogs/CreateCollect
 import { ConfirmCollectionDialog } from '../components/dialogs/ConfirmCollectionDialog';
 import { RecordInspectionDialog } from '../components/dialogs/RecordInspectionDialog';
 import { ReleaseProcessingDialog } from '../components/dialogs/ReleaseProcessingDialog';
+import { RecordReturnDialog } from '../components/dialogs/RecordReturnDialog';
+import { RecordDeliveryDialog } from '../components/dialogs/RecordDeliveryDialog';
 
 export function LaundryWorkspacePage() {
   const {
@@ -43,11 +45,15 @@ export function LaundryWorkspacePage() {
     openConfirmCollectionDialog,
     openRecordInspectionDialog,
     openReleaseProcessingDialog,
+    openRecordReturnDialog,
+    openRecordDeliveryDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
     handleRecordInspectionSubmit,
     handleReleaseProcessingSubmit,
+    handleRecordReturnSubmit,
+    handleRecordDeliverySubmit,
     closeSnackbar,
   } = useLaundryWorkspace();
 
@@ -118,6 +124,8 @@ export function LaundryWorkspacePage() {
             onConfirmCollection={openConfirmCollectionDialog}
             onRecordInspection={openRecordInspectionDialog}
             onReleaseProcessing={openReleaseProcessingDialog}
+            onRecordReturn={openRecordReturnDialog}
+            onRecordDelivery={openRecordDeliveryDialog}
             onOpenCreateDraft={openCreateDraftDialog}
           />
         )}
@@ -136,6 +144,8 @@ export function LaundryWorkspacePage() {
           }}
           onRecordInspection={openRecordInspectionDialog}
           onReleaseProcessing={openReleaseProcessingDialog}
+          onRecordReturn={openRecordReturnDialog}
+          onRecordDelivery={openRecordDeliveryDialog}
         />
 
         {/* 6. Command Dialog — Create Collection Draft */}
@@ -169,6 +179,22 @@ export function LaundryWorkspacePage() {
           detail={selectedDetail}
           onClose={closeDialogs}
           onSubmit={handleReleaseProcessingSubmit}
+        />
+
+        {/* 10. Command Dialog — Record Return from Processing */}
+        <RecordReturnDialog
+          open={activeDialog === 'RECORD_RETURN'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleRecordReturnSubmit}
+        />
+
+        {/* 11. Command Dialog — Record Resident Delivery Handover */}
+        <RecordDeliveryDialog
+          open={activeDialog === 'RECORD_DELIVERY'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleRecordDeliverySubmit}
         />
 
         {/* 10. Global Feedback Snackbar */}

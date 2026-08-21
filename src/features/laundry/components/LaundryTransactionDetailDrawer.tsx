@@ -18,7 +18,6 @@ import {
   TableRow,
   CircularProgress,
   Button,
-  Tooltip,
   Alert,
 } from '@mui/material';
 import {
@@ -28,6 +27,7 @@ import {
   Room,
   SearchOutlined,
   LocalShipping,
+  AssignmentReturned,
 } from '@mui/icons-material';
 import type { LaundryTransactionDetailViewModel } from '../application/models/LaundryWorkspaceViewModel';
 
@@ -39,6 +39,8 @@ interface LaundryTransactionDetailDrawerProps {
   onConfirmCollection?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordInspection?: (detail: LaundryTransactionDetailViewModel) => void;
   onReleaseProcessing?: (detail: LaundryTransactionDetailViewModel) => void;
+  onRecordReturn?: (detail: LaundryTransactionDetailViewModel) => void;
+  onRecordDelivery?: (detail: LaundryTransactionDetailViewModel) => void;
 }
 
 export function LaundryTransactionDetailDrawer({
@@ -49,6 +51,8 @@ export function LaundryTransactionDetailDrawer({
   onConfirmCollection,
   onRecordInspection,
   onReleaseProcessing,
+  onRecordReturn,
+  onRecordDelivery,
 }: LaundryTransactionDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<number>(0);
 
@@ -286,6 +290,102 @@ export function LaundryTransactionDetailDrawer({
                   </Stack>
                 </Paper>
 
+                {/* Custody Reconciliation Card */}
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: '#fbfcfd', borderColor: 'primary.light' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Custody Reconciliation Status
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Expected Collected Pieces</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800 }}>{detail.totalPhysicalPieces}</Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Cumulative Returned into Custody</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>{detail.totalReturnedPieces}</Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Outstanding to Return</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: detail.totalPhysicalPieces - detail.totalReturnedPieces > 0 ? 'warning.main' : 'success.main' }}>
+                        {Math.max(0, detail.totalPhysicalPieces - detail.totalReturnedPieces)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Chip
+                    size="small"
+                    color={
+                      detail.totalReturnedPieces === detail.totalPhysicalPieces
+                        ? 'success'
+                        : detail.totalReturnedPieces > 0
+                        ? 'warning'
+                        : 'default'
+                    }
+                    label={
+                      detail.totalReturnedPieces === detail.totalPhysicalPieces
+                        ? 'Fully Reconciled & Returned'
+                        : detail.totalReturnedPieces > 0
+                        ? `Partially Returned (${Math.max(0, detail.totalPhysicalPieces - detail.totalReturnedPieces)} pcs remaining)`
+                        : 'Awaiting Return from Processing'
+                    }
+                    sx={{ fontWeight: 700 }}
+                  />
+                </Paper>
+
+                {/* Line-by-Line Custody Breakdown */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Garment Lines Custody Breakdown
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: 'grey.50' }}>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="center">Collected</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="center">Returned</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="center">Delivered</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="center">Remaining to Return</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {detail.garmentLines.map((line) => {
+                          const remainingReturn = Math.max(0, line.physicalQuantity - line.returnedQuantity);
+                          return (
+                            <TableRow key={line.id}>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {line.itemName}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="body2">{line.physicalQuantity}</Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                                  {line.returnedQuantity}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Typography variant="body2">{line.deliveredQuantity}</Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  size="small"
+                                  label={remainingReturn}
+                                  color={remainingReturn > 0 ? 'warning' : 'default'}
+                                  variant="outlined"
+                                  sx={{ fontWeight: 700, fontSize: '0.75rem', height: 20 }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+
                 {/* Returns History */}
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
@@ -293,22 +393,43 @@ export function LaundryTransactionDetailDrawer({
                   </Typography>
                   {detail.returns.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      No clean return deliveries recorded from processing yet.
+                      No clean return receipts recorded from processing yet.
                     </Typography>
                   ) : (
                     detail.returns.map((ret) => (
-                      <Paper key={ret.id} variant="outlined" sx={{ p: 1.5, mb: 1, borderRadius: 1.5 }}>
-                        <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            Return #{ret.id} — {ret.totalReturnedPieces} Pieces
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {ret.returnedAtFormatted}
-                          </Typography>
+                      <Paper key={ret.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 1.5 }}>
+                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              Receipt #{ret.id} — {ret.totalReturnedPieces} Pieces Returned
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                              Received by Staff: {ret.returnedByStaffId} on {ret.returnedAtFormatted}
+                            </Typography>
+                          </Box>
+                          <Chip size="small" variant="outlined" color="primary" label={`${ret.totalReturnedPieces} pcs`} sx={{ fontWeight: 700 }} />
                         </Stack>
-                        <Typography variant="caption" color="text.secondary">
-                          Received by Staff: {ret.returnedByStaffId}
-                        </Typography>
+
+                        {/* Returned Lines Breakdown */}
+                        <Box sx={{ mt: 1.5, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                            {ret.returnedLines.map((rl, idx) => (
+                              <Chip
+                                key={idx}
+                                size="small"
+                                variant="outlined"
+                                label={`${rl.itemName}: ${rl.returnedQuantity} pcs`}
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            ))}
+                          </Stack>
+                        </Box>
+
+                        {ret.notes && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                            Notes: {ret.notes}
+                          </Typography>
+                        )}
                       </Paper>
                     ))
                   )}
@@ -318,36 +439,100 @@ export function LaundryTransactionDetailDrawer({
 
             {/* TAB 2: Deliveries */}
             {activeTab === 2 && (
-              <Stack spacing={2}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>
-                  Delivery & Resident Handovers ({detail.deliveries.length})
-                </Typography>
-                {detail.deliveries.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    No resident delivery handovers recorded yet.
+              <Stack spacing={3}>
+                {/* Delivery Summary Card */}
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: '#fbfdfb', borderColor: 'success.light' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Delivery Handover Overview
                   </Typography>
-                ) : (
-                  detail.deliveries.map((del) => (
-                    <Paper key={del.id} variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            Delivery #{del.id} • {del.totalDeliveredPieces} Pieces
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Method: {del.handoverMethodLabel} • Handed over by {del.deliveredByStaffId} on {del.deliveredAtFormatted}
-                          </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Total Delivered to Resident</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main' }}>{detail.totalDeliveredPieces}</Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Deliverable in Custody</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: detail.totalReturnedPieces > detail.totalDeliveredPieces ? 'primary.main' : 'text.secondary' }}>
+                        {Math.max(0, detail.totalReturnedPieces - detail.totalDeliveredPieces)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Outstanding Order Pieces</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: detail.totalOutstandingPieces > 0 ? 'warning.main' : 'default' }}>
+                        {detail.totalOutstandingPieces}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+
+                {/* Delivery Receipts List */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Delivery & Resident Handovers ({detail.deliveries.length})
+                  </Typography>
+                  {detail.deliveries.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      No resident delivery handovers recorded yet.
+                    </Typography>
+                  ) : (
+                    detail.deliveries.map((del) => (
+                      <Paper key={del.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 1.5 }}>
+                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              Delivery #{del.id} • {del.totalDeliveredPieces} Pieces Delivered
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                              Method: {del.handoverMethodLabel}
+                              {del.roomNumber && ` (${del.roomNumber})`}
+                              {` • Handed over by ${del.deliveredByStaffId} on ${del.deliveredAtFormatted}`}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            size="small"
+                            color={del.residentVerified ? 'success' : 'default'}
+                            label={del.residentVerified ? 'Resident Verified' : (del.residentPresent ? 'Resident Present' : 'Placement Handover')}
+                            sx={{ fontSize: '0.7rem', fontWeight: 600 }}
+                          />
+                        </Stack>
+
+                        {/* Delivered Lines Breakdown */}
+                        <Box sx={{ mt: 1.5, pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                            {del.deliveredLines.map((dl, idx) => (
+                              <Chip
+                                key={idx}
+                                size="small"
+                                variant="outlined"
+                                label={`${dl.itemName}: ${dl.deliveredQuantity} pcs`}
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            ))}
+                          </Stack>
                         </Box>
-                        <Chip
-                          size="small"
-                          color={del.residentVerified ? 'success' : 'default'}
-                          label={del.residentVerified ? 'Resident Verified' : 'Placement Handover'}
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      </Stack>
-                    </Paper>
-                  ))
-                )}
+
+                        {del.evidenceUris && del.evidenceUris.length > 0 && (
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                              Delivery Evidence References:
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                              {del.evidenceUris.map((uri, idx) => (
+                                <Chip key={idx} size="small" variant="outlined" label={uri} sx={{ fontSize: '0.7rem' }} />
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+
+                        {del.notes && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+                            Notes: {del.notes}
+                          </Typography>
+                        )}
+                      </Paper>
+                    ))
+                  )}
+                </Box>
               </Stack>
             )}
 
@@ -426,7 +611,7 @@ export function LaundryTransactionDetailDrawer({
                 </Paper>
 
                 <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
-                  Charges are automatically calculated per BR-L-012 when services are fulfilled and garments are physically delivered to the resident.
+                  Charges are automatically evaluated per BR-L-012 when services are fulfilled and garments are physically delivered to the resident.
                 </Alert>
               </Stack>
             )}
@@ -461,7 +646,7 @@ export function LaundryTransactionDetailDrawer({
       {/* 4. Footer Action Bar */}
       {detail && (
         <Box sx={{ p: 2, bgcolor: 'grey.50', borderTop: 1, borderColor: 'divider' }}>
-          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end' }}>
+          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: 1 }}>
             {detail.status === 'DRAFT' && onConfirmCollection && (
               <Button
                 variant="contained"
@@ -498,14 +683,45 @@ export function LaundryTransactionDetailDrawer({
               </Button>
             )}
 
-            {detail.status !== 'DRAFT' && detail.status !== 'COLLECTED' && (
-              <Tooltip title="Lifecycle return, delivery, exception, and charge posting workflows will be enabled in L-13 through L-15">
-                <span>
-                  <Button variant="outlined" disabled sx={{ textTransform: 'none' }}>
-                    Lifecycle Actions (L-13+)
-                  </Button>
-                </span>
-              </Tooltip>
+            {/* Return Action: when order is in-process or partially returned / has unreturned pieces */}
+            {(detail.status === 'IN_PROCESS' ||
+              detail.status === 'RETURNED_PARTIAL' ||
+              (detail.totalReturnedPieces < detail.totalPhysicalPieces &&
+                detail.status !== 'DRAFT' &&
+                detail.status !== 'COLLECTED' &&
+                detail.status !== 'CANCELLED' &&
+                detail.status !== 'COMPLETED')) &&
+              onRecordReturn && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AssignmentReturned />}
+                  onClick={() => onRecordReturn(detail)}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Record Return from Processing
+                </Button>
+              )}
+
+            {/* Delivery Action: when order has deliverable pieces in custody */}
+            {detail.totalReturnedPieces > detail.totalDeliveredPieces &&
+              detail.status !== 'DRAFT' &&
+              detail.status !== 'COLLECTED' &&
+              detail.status !== 'CANCELLED' &&
+              onRecordDelivery && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<LocalShipping />}
+                  onClick={() => onRecordDelivery(detail)}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Record Resident Delivery
+                </Button>
+              )}
+
+            {detail.status === 'COMPLETED' && (
+              <Chip label="Order Completed" color="success" sx={{ fontWeight: 700 }} />
             )}
           </Stack>
         </Box>

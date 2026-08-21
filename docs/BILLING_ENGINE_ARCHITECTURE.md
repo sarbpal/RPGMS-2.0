@@ -26,7 +26,7 @@ The Billing Engine is an **Architectural Service**. It coordinates billing execu
 
 ### Core Constitutional Ownership Principle:
 
-> **"The Billing Engine orchestrates billable obligations; it does not create, calculate, allocate, or alter the underlying business obligation."**
+> **"The Billing Engine orchestrates billable obligations; it does not create, calculate, allocate, or alter the underlying business obligation. Billing Claims (`BillingClaim`) are orchestration locks to coordinate batch execution and prevent concurrent run collisions; they do not constitute financial realization. The Finance Domain owns the authoritative financial uniqueness boundary for all Bill creation (ADR-032)."**
 
 The responsibility boundary is strictly partitioned across business domains:
 
@@ -348,7 +348,7 @@ export interface ChargeDiscoveryProvider {
 
 ### Source-Domain Commitment & Duplicate Detection Principle:
 
-> **"Source-domain duplicate detection and financial commitment determination are owned by the source domain. The Billing Engine relies on the normalized commitment status and financial reference and does not contain domain-specific duplicate-detection logic."**
+> **"Source-domain duplicate detection and financial commitment determination are owned by the source domain and Finance. Discovery providers must verify existing Finance commitments and normalize commitment status. The Billing Engine relies on the normalized commitment status and financial reference, acquires operational claims, and dispatches batches to Finance, which authoritatively enforces deduplication before Ledger posting (ADR-032)."**
 
 ---
 

@@ -1960,6 +1960,31 @@ Residency obligations survive operational departure until financial settlement i
 
 ---
 
+## BR-416 Financial Obligation Uniqueness Boundary
+
+### Rule
+
+The Finance domain shall enforce the authoritative financial uniqueness boundary for all financial charge realizations (Bills), whether initiated via automated Billing Runs, domain-posted events, Admission workflows, or authorized manual desk operations.
+
+Every financial charge realization shall correlate with a stable source-domain obligation identity (`obligationKey`). Finance shall prevent duplicate bill creation and duplicate ledger postings for the same underlying obligation identity according to applicable source-domain invariants.
+
+Orchestration claims (Billing Claims) and double-entry accounting records (Ledger Entries) do not own business obligation uniqueness; Finance owns financial deduplication prior to ledger posting (ADR-032).
+
+### Reason
+
+Establishes the architectural invariant that manual and automated financial realization paths must converge on the same Finance uniqueness boundary, eliminating asymmetric financial realization and ensuring that the same underlying commercial obligation cannot create duplicate financial bills or duplicate ledger postings once implemented (BCR-005, BCR-007, BR-412, BR-414, ADR-032).
+
+### Applies To
+
+- Finance
+- Billing
+- Stay / Commercial Management
+- Electricity
+- Laundry
+- Operations
+
+---
+
 # Payments
 
 Payments represent money received from the Resident.

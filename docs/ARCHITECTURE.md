@@ -1820,6 +1820,8 @@ Business activities generate financial consequences.
 
 The Finance Domain records and manages those consequences while remaining independent of operational occupancy and security deposit management.
 
+Finance constitutes the authoritative financial uniqueness boundary for all financial charge realizations (Bills). Whether initiated through automated Billing Runs, domain-posted events (Electricity, Laundry), Admission workflows, or authorized manual desk operations, all financial realizations must pass through Finance deduplication against the source domain's stable obligation identity (`obligationKey`) before persisting Bills or posting to the Unified Stay Ledger (BR-416, ADR-032).
+
 ---
 
 ## Deposit Domain
@@ -3298,10 +3300,11 @@ Coordinates recurring billing operations.
 - Billing schedules
 - Charge generation
 - Billing orchestration
+- Claim locking and recovery management
 
 Business pricing rules remain within the owning domains.
 
-The Billing Engine coordinates execution.
+The Billing Engine coordinates execution and acquires operational claims (`BillingClaim`) to prevent concurrent run collisions. Billing Claims are orchestration locks and do not constitute financial realization or replace the authoritative financial uniqueness boundary owned by the Finance Domain (ADR-032).
 
 ---
 

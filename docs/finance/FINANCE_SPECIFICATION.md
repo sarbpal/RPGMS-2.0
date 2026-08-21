@@ -152,13 +152,15 @@ Automation must never silently alter financial intent.
 
 ---
 
-## 4.7 Single Source of Truth
+## 4.7 Single Source of Truth & Financial Uniqueness Boundary
 
 Every financial fact within the system has exactly one authoritative owner.
 
 The Finance domain owns all monetary information associated with a Stay.
 
 Other domains may trigger financial events, but they must never maintain independent financial balances or duplicate financial state.
+
+Finance is the authoritative boundary for financial uniqueness and deduplication (BR-416, ADR-032). All financial realizations (Bills)—whether initiated by automated Billing Runs, domain-posted events (Electricity, Laundry), Admission workflows, or authorized staff manual operations—must pass through Finance deduplication against stable source-domain obligation identities (`obligationKey`) before persisting Bills or posting to the Unified Stay Ledger.
 
 Financial information is derived exclusively from Finance, ensuring consistency across billing, payments, reporting, and auditing.
 
@@ -183,6 +185,7 @@ The Finance domain is governed by the following architectural principles:
 11. Financial reports derive information exclusively from Finance.
 12. Every financial event must be fully auditable.
 13. Clear domain ownership must be preserved.
+14. Finance enforces financial obligation uniqueness prior to Ledger posting (ADR-032).
     
 
                         Finance Domain

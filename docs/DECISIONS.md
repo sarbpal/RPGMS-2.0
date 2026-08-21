@@ -969,10 +969,72 @@ Explicit architectural decisions are required to formally establish domain owner
 
 ---
 
+## ADR-032 — Financial Obligation Uniqueness Boundary & Cross-Module Deduplication Architecture
+
+**Status:** Accepted
+
+### Context
+
+During the financial architecture audit (FA-01), an asymmetric financial deduplication defect was identified in the Rent lifecycle:
+1. Manual Rent generation directly creates a Finance Bill and posts balanced Ledger entries.
+2. A subsequent automated Billing Run executes, and its `RentDiscoveryAdapter` (which hardcoded `commitmentStatus: 'UNCOMMITTED'`) discovers the same commercial rent cycle, acquires an in-memory `BillingClaim`, and invokes `BillingApplicationService.createBill()`.
+3. Because `createBill()` lacked invariant duplicate checking, it created a second `MONTHLY_RENT` Bill and posted duplicate debits and credits to the double-entry Ledger.
+4. In the reverse direction (Billing Run first, then Manual), duplicate creation was already blocked by Finance's `hasDuplicateRentBill()` domain rule.
+
+Comparative analysis (FA-02) evaluated three candidate architectural models:
+- **Model A (Billing-Owned Recurring Obligation Issuance)**: Forcing all bill creation exclusively through the Billing Engine.
+- **Model B (Finance-Owned Financial Uniqueness)**: Establishing Finance as the authoritative financial uniqueness and deduplication boundary for all Bill creation paths (automated and manual), while source domains own business facts and obligation identities, and discovery providers check Finance commitments.
+- **Model C (Explicit Business Financial Obligation Entity)**: Introducing a cross-cutting `FinancialObligation` entity between domains and Finance.
+
+### Decision
+
+RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishes the following canonical principles:
+
+1. **Clear Conceptual Separation**:
+   - **Source-Domain Business Fact**: The originating domain (Stay, Electricity, Laundry, etc.) determines that a chargeable commercial fact exists.
+   - **Financial Obligation**: The commercial/financial obligation represented by the source business fact. The source domain remains responsible for its identity and business semantics.
+   - **Billing Claim**: An ephemeral operational concurrency lock (`BillingClaim`) acquired by a `BillingRun` to coordinate discovery, eligibility, and execution without collision from competing runs. A Billing Claim is *not* a universal financial obligation and does not by itself constitute financial realization.
+   - **Finance Bill**: The authoritative financial realization/record of an obligation within the Finance domain. Finance owns the authoritative financial uniqueness boundary.
+   - **Ledger Posting**: The immutable double-entry financial consequence (`validateDoubleEntry`) in the `UnifiedStayLedger`. The Ledger does *not* own business-obligation uniqueness.
+
+2. **Finance as Authoritative Uniqueness Boundary**:
+   - All financial realization paths—whether initiated by automated Billing Runs, domain-posted events (Electricity, Laundry), Admission workflows, or authorized staff manual operations—must pass through the same Finance uniqueness boundary.
+   - Finance enforces deduplication before persisting Bills or posting Ledger entries.
+
+3. **Obligation Identity (`obligationKey`)**:
+   - Every financial charge must carry a stable source-domain obligation identity (`obligationKey` on `BillLineItem` / Bill correlation) sufficient for Finance to determine whether the same obligation has already been financially realized.
+   - *Note on Rent*: Current implementation uses `RENT:<stayId>:<anniversaryDate>` in Billing and `(stayId, MONTHLY_RENT, YYYY-MM)` in Finance. These identity representations must be reconciled at the implementation phase without breaking domain boundaries.
+
+4. **Source-Domain Discovery & Commitment Checking**:
+   - Source-domain charge discovery providers must verify existing Finance commitments before presenting obligations as uncommitted, establishing a uniform pattern across all billable domains.
+
+5. **Legitimacy of Manual Operations**:
+   - Manual operational actions (e.g. generating a rent bill from the desk, manual adjustments, or operational corrections) remain valid and supported, but are subject to the same Finance uniqueness rules as automated runs.
+
+### Rejected Alternatives
+
+- **Model A (Billing-Owned Issuance) Rejected**: Billing is an orchestration service, not the owner of financial truth. Forcing all charges through Billing contradicts domain-posted invoice independence (BR-414) for Electricity and Laundry, and introduces unnecessary operational friction for desk workflows.
+- **Model C (Explicit Financial Obligation Entity) Rejected**: Introducing an intermediate stateful entity across all modules creates unnecessary cross-module complexity, duplicate business state, and migration burden without functional benefit over Model B.
+
+### Consequences
+
+#### Advantages:
+- Defines the architectural invariant that manual and automated financial realization paths must converge on the same Finance uniqueness boundary, eliminating the architectural asymmetry once implemented.
+- Preserves the constitutional separation of concerns: Source domains own business pricing; Billing owns batch orchestration; Finance owns financial truth and uniqueness; Ledger owns double-entry balancing.
+- Establishes a generic architectural standard applicable across Rent, Electricity, Laundry, and future charge types (Maintenance, Damage, Penalties).
+
+#### Trade-offs & Costs:
+- Finance financial-realization APIs must enforce financial uniqueness for financial realizations carrying a stable source-domain obligation identity (`obligationKey`), according to applicable source-domain invariants.
+- Source-domain charge discovery providers must verify existing Finance commitments during discovery before presenting obligations as uncommitted.
+- Integration tests must be expanded during the implementation phase to verify cross-path deduplication.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.6 | August 2026 | Added ADR-032 (Financial Obligation Uniqueness Boundary & Cross-Module Deduplication Architecture). |
 | 3.5 | August 2026 | Added ADR-031 (Laundry Operational Support Domain Architecture & Finance Boundary Reconciliation). |
 | 3.4 | August 2026 | Added ADR-030 (Cross-Workspace Operational Population Unification & Canonical Repository Singletons). |
 | 3.3 | August 2026 | Added ADR-029 (Finance Workspace Global Action Stay Selection & Elimination of Scaffolding Placeholder). |

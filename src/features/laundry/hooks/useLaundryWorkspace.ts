@@ -6,6 +6,7 @@ import type {
   LaundryTransactionDetailViewModel,
   SelectableLaundryStayItem,
   LaundryMasterCatalogViewModel,
+  ExceptionViewModel,
 } from '../application/models/LaundryWorkspaceViewModel';
 import type {
   LaundryWorkspaceFilters,
@@ -15,6 +16,9 @@ import type {
   ReleaseProcessingDTO,
   RecordReturnDTO,
   RecordDeliveryDTO,
+  RaiseExceptionDTO,
+  RecordInvestigationDTO,
+  ResolveExceptionDTO,
 } from '../application/dtos/laundryDTOs';
 
 export type LaundryModalType =
@@ -24,6 +28,9 @@ export type LaundryModalType =
   | 'RELEASE_PROCESSING'
   | 'RECORD_RETURN'
   | 'RECORD_DELIVERY'
+  | 'RAISE_EXCEPTION'
+  | 'RECORD_INVESTIGATION'
+  | 'RESOLVE_EXCEPTION'
   | null;
 
 export interface UseLaundryWorkspaceReturn {
@@ -33,6 +40,7 @@ export interface UseLaundryWorkspaceReturn {
   filters: LaundryWorkspaceFilters;
   activeDialog: LaundryModalType;
   targetTransaction: LaundryTransactionSummaryViewModel | null;
+  targetException: ExceptionViewModel | null;
   selectableStays: readonly SelectableLaundryStayItem[];
   masterCatalog: LaundryMasterCatalogViewModel | null;
   isLoading: boolean;
@@ -41,7 +49,7 @@ export interface UseLaundryWorkspaceReturn {
   snackbar: {
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: 'success' | 'error' | 'info' | 'warning';
   };
 
   // Filter Actions
@@ -61,6 +69,9 @@ export interface UseLaundryWorkspaceReturn {
   openReleaseProcessingDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openRecordReturnDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openRecordDeliveryDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
+  openRaiseExceptionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
+  openRecordInvestigationDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => Promise<void>;
+  openResolveExceptionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => Promise<void>;
   closeDialogs: () => void;
 
   // Command Handlers
@@ -70,10 +81,13 @@ export interface UseLaundryWorkspaceReturn {
   handleReleaseProcessingSubmit: (dto: ReleaseProcessingDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordReturnSubmit: (dto: RecordReturnDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordDeliverySubmit: (dto: RecordDeliveryDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleRaiseExceptionSubmit: (dto: RaiseExceptionDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleRecordInvestigationSubmit: (dto: RecordInvestigationDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleResolveExceptionSubmit: (dto: ResolveExceptionDTO) => Promise<LaundryTransactionDetailViewModel>;
 
   // Notification Actions
   closeSnackbar: () => void;
-  showSnackbar: (message: string, severity?: 'success' | 'error' | 'info') => void;
+  showSnackbar: (message: string, severity?: 'success' | 'error' | 'info' | 'warning') => void;
 
   // Lifecycle
   refresh: () => Promise<void>;
@@ -88,6 +102,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
   const [filters, setFilters] = useState<LaundryWorkspaceFilters>({});
   const [activeDialog, setActiveDialog] = useState<LaundryModalType>(null);
   const [targetTransaction, setTargetTransaction] = useState<LaundryTransactionSummaryViewModel | null>(null);
+  const [targetException, setTargetException] = useState<ExceptionViewModel | null>(null);
   const [selectableStays, setSelectableStays] = useState<readonly SelectableLaundryStayItem[]>([]);
   const [masterCatalog, setMasterCatalog] = useState<LaundryMasterCatalogViewModel | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -96,14 +111,14 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: 'success' | 'error' | 'info' | 'warning';
   }>({
     open: false,
     message: '',
     severity: 'info',
   });
 
-  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' = 'info') => {
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     setSnackbar({ open: true, message, severity });
   }, []);
 
@@ -232,15 +247,18 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
   const openCreateDraftDialog = useCallback(() => {
     setActiveDialog('CREATE_DRAFT');
     setTargetTransaction(null);
+    setTargetException(null);
   }, []);
 
   const openConfirmCollectionDialog = useCallback((transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setTargetTransaction(transaction as LaundryTransactionSummaryViewModel);
+    setTargetException(null);
     setActiveDialog('CONFIRM_COLLECTION');
   }, []);
 
   const openRecordInspectionDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setSelectedTransactionId(transaction.id);
+    setTargetException(null);
     if (!selectedDetail || selectedDetail.id !== transaction.id) {
       await loadDetail(transaction.id);
     }
@@ -249,6 +267,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
 
   const openReleaseProcessingDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setSelectedTransactionId(transaction.id);
+    setTargetException(null);
     if (!selectedDetail || selectedDetail.id !== transaction.id) {
       await loadDetail(transaction.id);
     }
@@ -257,6 +276,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
 
   const openRecordReturnDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setSelectedTransactionId(transaction.id);
+    setTargetException(null);
     if (!selectedDetail || selectedDetail.id !== transaction.id) {
       await loadDetail(transaction.id);
     }
@@ -265,15 +285,50 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
 
   const openRecordDeliveryDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setSelectedTransactionId(transaction.id);
+    setTargetException(null);
     if (!selectedDetail || selectedDetail.id !== transaction.id) {
       await loadDetail(transaction.id);
     }
     setActiveDialog('RECORD_DELIVERY');
   }, [selectedDetail, loadDetail]);
 
+  const openRaiseExceptionDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
+    setSelectedTransactionId(transaction.id);
+    setTargetException(null);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('RAISE_EXCEPTION');
+  }, [selectedDetail, loadDetail]);
+
+  const openRecordInvestigationDialog = useCallback(async (
+    transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel,
+    exception: ExceptionViewModel
+  ) => {
+    setSelectedTransactionId(transaction.id);
+    setTargetException(exception);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('RECORD_INVESTIGATION');
+  }, [selectedDetail, loadDetail]);
+
+  const openResolveExceptionDialog = useCallback(async (
+    transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel,
+    exception: ExceptionViewModel
+  ) => {
+    setSelectedTransactionId(transaction.id);
+    setTargetException(exception);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('RESOLVE_EXCEPTION');
+  }, [selectedDetail, loadDetail]);
+
   const closeDialogs = useCallback(() => {
     setActiveDialog(null);
     setTargetTransaction(null);
+    setTargetException(null);
   }, []);
 
   // Command handlers
@@ -356,6 +411,48 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     }
   }, [coordinator, showSnackbar, closeDialogs, refresh]);
 
+  const handleRaiseExceptionSubmit = useCallback(async (dto: RaiseExceptionDTO) => {
+    try {
+      const updated = await coordinator.raiseException(dto);
+      showSnackbar(`Operational exception raised for transaction ${updated.id}`, 'warning');
+      closeDialogs();
+      await refresh();
+      setSelectedDetail(updated);
+      return updated;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to raise exception', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
+  const handleRecordInvestigationSubmit = useCallback(async (dto: RecordInvestigationDTO) => {
+    try {
+      const updated = await coordinator.recordInvestigation(dto);
+      showSnackbar(`Investigation recorded for exception ${dto.exceptionId}`, 'info');
+      closeDialogs();
+      await refresh();
+      setSelectedDetail(updated);
+      return updated;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to record investigation', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
+  const handleResolveExceptionSubmit = useCallback(async (dto: ResolveExceptionDTO) => {
+    try {
+      const updated = await coordinator.resolveException(dto);
+      showSnackbar(`Exception ${dto.exceptionId} resolved (${dto.outcome})`, 'success');
+      closeDialogs();
+      await refresh();
+      setSelectedDetail(updated);
+      return updated;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to resolve exception', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
   return {
     viewModel,
     selectedTransactionId,
@@ -363,6 +460,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     filters,
     activeDialog,
     targetTransaction,
+    targetException,
     selectableStays,
     masterCatalog,
     isLoading,
@@ -381,6 +479,9 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     openReleaseProcessingDialog,
     openRecordReturnDialog,
     openRecordDeliveryDialog,
+    openRaiseExceptionDialog,
+    openRecordInvestigationDialog,
+    openResolveExceptionDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
@@ -388,6 +489,9 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     handleReleaseProcessingSubmit,
     handleRecordReturnSubmit,
     handleRecordDeliverySubmit,
+    handleRaiseExceptionSubmit,
+    handleRecordInvestigationSubmit,
+    handleResolveExceptionSubmit,
     closeSnackbar,
     showSnackbar,
     refresh,

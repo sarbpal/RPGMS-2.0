@@ -568,6 +568,7 @@ export class LaundryWorkspaceCoordinator {
       totalPhysicalPieces: tx.totalPhysicalPieces,
       totalReturnedPieces: tx.totalReturnedPieces,
       totalDeliveredPieces: tx.totalDeliveredPieces,
+      totalResolvedPieces: tx.totalResolvedPieces,
       totalOutstandingPieces: tx.totalOutstandingPhysicalPieces,
       hasOpenExceptions: openExceptions.length > 0,
       openExceptionsCount: openExceptions.length,

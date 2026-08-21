@@ -108,7 +108,7 @@ Transaction Table & Columns
 
 Detail Drawer
 
-- Multi-tab operational inspector showing Garments & Services, Processing & Custody (with Custody Reconciliation Card, expected/returned/delivered counts, and garment-line custody breakdown), Deliveries (overview card and itemized handover receipts), Exceptions, Commercial & Charges (evaluating BR-L-012 chargeability upon physical delivery), and Audit Timeline without frontend business rule calculations.
+- Multi-tab operational inspector showing Garments & Services, Processing & Custody (with Custody Reconciliation Card, expected/returned/delivered counts, and garment-line custody breakdown), Deliveries (overview card and itemized handover receipts), Exceptions (operational discrepancy lifecycle, blocking delivery badges, investigation audit history, formal resolution outcomes with resolved quantities, and contextual investigation/resolution triggers), Commercial & Charges (evaluating BR-L-012 chargeability upon physical delivery), and Audit Timeline without frontend business rule calculations.
 - Contextual lifecycle action buttons: "Confirm Collection Baseline" (for Drafts), "Record Pre-Processing Inspection" (for uninspected Collected orders), "Select Route & Release to Processing" (for inspected Collected orders), "Record Return from Processing" (for in-process or partially returned orders), and "Record Resident Delivery" (for orders with deliverable items in custody).
 
 Command Dialogs
@@ -119,3 +119,6 @@ Command Dialogs
 - Select Route & Release to Processing: Choose operational processing route (`IN_HOUSE` laundry room vs `EXTERNAL_VENDOR` commercial partner with required vendor code), verify inspection prerequisite, and release order into active processing.
 - Record Return from Processing: Record custody intake receipt from laundry room or external vendor, specify returned quantities per garment line, receiving staff ID, timestamp, and return notes.
 - Record Resident Delivery Handover: Record resident physical handover with method selection (`DIRECT_HANDOVER` with in-person resident verification vs `ROOM_PLACEMENT` with room reference and placement photo evidence URIs), delivered quantities per garment line, delivery staff ID, timestamp, and handover notes.
+- Raise Operational Exception: Record operational discrepancies, damages, missing items, or service defects targeting transaction, garment line, or service allocation scope, with affected quantities, optional blocking requests, description, and photo evidence references.
+- Record Exception Investigation: Document investigative findings, responsible party determinations (`VENDOR`, `RESIDENT`, `RPGMS`, `UNKNOWN`, `NONE`, `OTHER`), and supporting photo evidence references.
+- Resolve Operational Exception: Formally resolve operational exceptions with authoritative business outcomes (`ITEM_RECOVERED`, `SERVICE_CORRECTED`, `VENDOR_CORRECTED`, `RESIDENT_ACCEPTED`, `PERMANENTLY_LOST`, `NO_ACTION_REQUIRED`, `OTHER`), resolved physical piece counts for physical reconciliation, responsible party attribution, and business resolution notes.

@@ -28,8 +28,13 @@ import {
   SearchOutlined,
   LocalShipping,
   AssignmentReturned,
+  WarningAmber,
+  CheckCircleOutlined,
 } from '@mui/icons-material';
-import type { LaundryTransactionDetailViewModel } from '../application/models/LaundryWorkspaceViewModel';
+import type {
+  LaundryTransactionDetailViewModel,
+  ExceptionViewModel,
+} from '../application/models/LaundryWorkspaceViewModel';
 
 interface LaundryTransactionDetailDrawerProps {
   open: boolean;
@@ -41,6 +46,9 @@ interface LaundryTransactionDetailDrawerProps {
   onReleaseProcessing?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordReturn?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordDelivery?: (detail: LaundryTransactionDetailViewModel) => void;
+  onRaiseException?: (detail: LaundryTransactionDetailViewModel) => void;
+  onRecordInvestigation?: (detail: LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => void;
+  onResolveException?: (detail: LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => void;
 }
 
 export function LaundryTransactionDetailDrawer({
@@ -53,6 +61,9 @@ export function LaundryTransactionDetailDrawer({
   onReleaseProcessing,
   onRecordReturn,
   onRecordDelivery,
+  onRaiseException,
+  onRecordInvestigation,
+  onResolveException,
 }: LaundryTransactionDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<number>(0);
 
@@ -117,6 +128,9 @@ export function LaundryTransactionDetailDrawer({
             <Chip size="small" variant="outlined" label={`Collected: ${detail.totalPhysicalPieces}`} sx={{ fontWeight: 600 }} />
             <Chip size="small" variant="outlined" label={`Returned: ${detail.totalReturnedPieces}`} sx={{ fontWeight: 600 }} />
             <Chip size="small" variant="outlined" color="success" label={`Delivered: ${detail.totalDeliveredPieces}`} sx={{ fontWeight: 600 }} />
+            {detail.totalResolvedPieces > 0 && (
+              <Chip size="small" variant="outlined" color="info" label={`Resolved: ${detail.totalResolvedPieces}`} sx={{ fontWeight: 600 }} />
+            )}
             <Chip
               size="small"
               color={detail.totalOutstandingPieces > 0 ? 'warning' : 'default'}
@@ -139,7 +153,7 @@ export function LaundryTransactionDetailDrawer({
           <Tab label="Garments & Services" />
           <Tab label="Processing & Custody" />
           <Tab label="Deliveries" />
-          <Tab label="Exceptions" />
+          <Tab label={detail && detail.exceptions.length > 0 ? `Exceptions (${detail.exceptions.length})` : 'Exceptions'} />
           <Tab label="Commercial & Charges" />
           <Tab label="Audit Timeline" />
         </Tabs>
@@ -538,47 +552,226 @@ export function LaundryTransactionDetailDrawer({
 
             {/* TAB 3: Exceptions */}
             {activeTab === 3 && (
-              <Stack spacing={2}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>
-                  Operational Exceptions & Disputes ({detail.exceptions.length})
-                </Typography>
-                {detail.exceptions.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    No exceptions raised on this order.
+              <Stack spacing={2.5}>
+                {/* Top Action Bar */}
+                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Operational Exceptions & Disputes ({detail.exceptions.length})
                   </Typography>
+                  {onRaiseException && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      startIcon={<WarningAmber />}
+                      onClick={() => onRaiseException(detail)}
+                      sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
+                    >
+                      Raise Exception
+                    </Button>
+                  )}
+                </Stack>
+
+                {detail.exceptions.length === 0 ? (
+                  <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 1.5, bgcolor: 'grey.50' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No operational exceptions or discrepancies recorded on this order.
+                    </Typography>
+                  </Paper>
                 ) : (
-                  detail.exceptions.map((exc) => (
-                    <Paper key={exc.id} variant="outlined" sx={{ p: 2, borderRadius: 1.5, borderColor: exc.status === 'RESOLVED' ? 'divider' : 'error.light' }}>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            {exc.typeLabel} ({exc.affectedQuantity} pc)
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                            {exc.description}
-                          </Typography>
-                        </Box>
-                        <Chip
-                          size="small"
-                          color={exc.status === 'RESOLVED' ? 'success' : 'error'}
-                          label={exc.statusLabel}
-                          sx={{ fontWeight: 700, fontSize: '0.7rem' }}
-                        />
-                      </Stack>
-                      {exc.resolution && (
-                        <Box sx={{ mt: 1.5, p: 1, bgcolor: 'success.50', borderRadius: 1 }}>
-                          <Typography variant="caption" color="success.dark" sx={{ fontWeight: 600, display: 'block' }}>
-                            Resolution: {exc.resolution.outcomeLabel} by {exc.resolution.resolverStaffId}
-                          </Typography>
-                          {exc.resolution.notes && (
-                            <Typography variant="caption" color="text.secondary">
-                              {exc.resolution.notes}
+                  detail.exceptions.map((exc) => {
+                    const isResolved = exc.status === 'RESOLVED';
+                    const isUnderInvestigation = exc.status === 'UNDER_INVESTIGATION';
+
+                    return (
+                      <Paper
+                        key={exc.id}
+                        variant="outlined"
+                        sx={{
+                          p: 2.5,
+                          borderRadius: 2,
+                          borderColor: isResolved ? 'divider' : (exc.isBlocking ? 'error.main' : 'warning.main'),
+                          borderWidth: isResolved ? 1 : 1.5,
+                        }}
+                      >
+                        {/* Header: Type, Status, Blocking */}
+                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Box>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                                #{exc.id} • {exc.typeLabel}
+                              </Typography>
+                              <Chip
+                                size="small"
+                                color={isResolved ? 'success' : (isUnderInvestigation ? 'info' : 'warning')}
+                                label={exc.statusLabel}
+                                sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                              />
+                              {exc.isBlocking && (
+                                <Chip
+                                  size="small"
+                                  color="error"
+                                  icon={<WarningAmber fontSize="small" />}
+                                  label="Blocking Delivery"
+                                  sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Stack>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                              Raised by {exc.raisedByStaffId} on {exc.raisedAtFormatted}
                             </Typography>
-                          )}
-                        </Box>
-                      )}
-                    </Paper>
-                  ))
+                          </Box>
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label={`Affected: ${exc.affectedQuantity} pc(s)`}
+                            sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+                          />
+                        </Stack>
+
+                        {/* Targeting Context (Garment Line / Service) */}
+                        {(exc.itemName || exc.serviceName) && (
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              {exc.itemName && (
+                                <>
+                                  Target Item: <strong>{exc.itemName}</strong>
+                                </>
+                              )}
+                              {exc.serviceName && (
+                                <>
+                                  {' • '}Target Service: <strong>{exc.serviceName}</strong>
+                                </>
+                              )}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Description */}
+                        <Typography variant="body2" sx={{ mt: 1.5 }}>
+                          {exc.description}
+                        </Typography>
+
+                        {/* Evidence References */}
+                        {exc.evidenceUris && exc.evidenceUris.length > 0 && (
+                          <Box sx={{ mt: 1.5 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                              Evidence References:
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                              {exc.evidenceUris.map((uri, idx) => (
+                                <Chip key={idx} size="small" variant="outlined" label={uri} sx={{ fontSize: '0.7rem' }} />
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+
+                        {/* Investigation History Log */}
+                        {exc.investigations && exc.investigations.length > 0 && (
+                          <Box sx={{ mt: 2, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', display: 'block', mb: 1 }}>
+                              Investigation History ({exc.investigations.length})
+                            </Typography>
+                            <Stack spacing={1}>
+                              {exc.investigations.map((inv) => (
+                                <Paper key={inv.id} variant="outlined" sx={{ p: 1.5, borderRadius: 1.5, bgcolor: '#fbfcfd' }}>
+                                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                      Investigated by {inv.investigatorStaffId} on {inv.startedAtFormatted}
+                                    </Typography>
+                                    {inv.responsibleParty && (
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
+                                        color="info"
+                                        label={`Responsible: ${inv.responsibleParty}`}
+                                        sx={{ fontSize: '0.65rem', height: 20 }}
+                                      />
+                                    )}
+                                  </Stack>
+                                  <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
+                                    {inv.findings}
+                                  </Typography>
+                                  {inv.evidenceUris && inv.evidenceUris.length > 0 && (
+                                    <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+                                      {inv.evidenceUris.map((uri, idx) => (
+                                        <Chip key={idx} size="small" variant="outlined" label={uri} sx={{ fontSize: '0.65rem', height: 18 }} />
+                                      ))}
+                                    </Stack>
+                                  )}
+                                </Paper>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+
+                        {/* Resolution Summary Banner */}
+                        {exc.resolution && (
+                          <Box sx={{ mt: 2, p: 1.5, bgcolor: '#f0fdf4', border: 1, borderColor: '#bbf7d0', borderRadius: 1.5 }}>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                              <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.25 }} />
+                              <Box sx={{ flex: 1 }}>
+                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                                    Resolution: {exc.resolution.outcomeLabel}
+                                  </Typography>
+                                  {exc.resolution.resolvedQuantity !== undefined && exc.resolution.resolvedQuantity > 0 && (
+                                    <Chip
+                                      size="small"
+                                      color="success"
+                                      label={`Resolved: ${exc.resolution.resolvedQuantity} pcs`}
+                                      sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                                    />
+                                  )}
+                                </Stack>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                                  Resolved by {exc.resolution.resolverStaffId} on {exc.resolution.resolvedAtFormatted}
+                                  {exc.resolution.responsibleParty && ` • Attributed to: ${exc.resolution.responsibleParty}`}
+                                </Typography>
+                                {exc.resolution.notes && (
+                                  <Typography variant="body2" sx={{ mt: 0.5, fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    Notes: {exc.resolution.notes}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Stack>
+                          </Box>
+                        )}
+
+                        {/* Action Buttons for Active Exceptions */}
+                        {!isResolved && (
+                          <Box sx={{ mt: 2, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                            <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                              {onRecordInvestigation && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="primary"
+                                  startIcon={<SearchOutlined />}
+                                  onClick={() => onRecordInvestigation(detail, exc)}
+                                  sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.75rem' }}
+                                >
+                                  Add Investigation
+                                </Button>
+                              )}
+                              {onResolveException && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  startIcon={<CheckCircleOutlined />}
+                                  onClick={() => onResolveException(detail, exc)}
+                                  sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}
+                                >
+                                  Resolve Exception
+                                </Button>
+                              )}
+                            </Stack>
+                          </Box>
+                        )}
+                      </Paper>
+                    );
+                  })
                 )}
               </Stack>
             )}

@@ -227,6 +227,7 @@ export interface LaundryTransactionSummaryViewModel {
   readonly totalPhysicalPieces: number;
   readonly totalReturnedPieces: number;
   readonly totalDeliveredPieces: number;
+  readonly totalResolvedPieces: number;
   readonly totalOutstandingPieces: number;
   readonly hasOpenExceptions: boolean;
   readonly openExceptionsCount: number;

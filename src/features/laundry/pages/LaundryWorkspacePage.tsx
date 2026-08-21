@@ -20,6 +20,9 @@ import { RecordInspectionDialog } from '../components/dialogs/RecordInspectionDi
 import { ReleaseProcessingDialog } from '../components/dialogs/ReleaseProcessingDialog';
 import { RecordReturnDialog } from '../components/dialogs/RecordReturnDialog';
 import { RecordDeliveryDialog } from '../components/dialogs/RecordDeliveryDialog';
+import { RaiseExceptionDialog } from '../components/dialogs/RaiseExceptionDialog';
+import { RecordInvestigationDialog } from '../components/dialogs/RecordInvestigationDialog';
+import { ResolveExceptionDialog } from '../components/dialogs/ResolveExceptionDialog';
 
 export function LaundryWorkspacePage() {
   const {
@@ -29,6 +32,7 @@ export function LaundryWorkspacePage() {
     filters,
     activeDialog,
     targetTransaction,
+    targetException,
     selectableStays,
     masterCatalog,
     isLoading,
@@ -47,6 +51,9 @@ export function LaundryWorkspacePage() {
     openReleaseProcessingDialog,
     openRecordReturnDialog,
     openRecordDeliveryDialog,
+    openRaiseExceptionDialog,
+    openRecordInvestigationDialog,
+    openResolveExceptionDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
@@ -54,6 +61,9 @@ export function LaundryWorkspacePage() {
     handleReleaseProcessingSubmit,
     handleRecordReturnSubmit,
     handleRecordDeliverySubmit,
+    handleRaiseExceptionSubmit,
+    handleRecordInvestigationSubmit,
+    handleResolveExceptionSubmit,
     closeSnackbar,
   } = useLaundryWorkspace();
 
@@ -146,6 +156,9 @@ export function LaundryWorkspacePage() {
           onReleaseProcessing={openReleaseProcessingDialog}
           onRecordReturn={openRecordReturnDialog}
           onRecordDelivery={openRecordDeliveryDialog}
+          onRaiseException={openRaiseExceptionDialog}
+          onRecordInvestigation={openRecordInvestigationDialog}
+          onResolveException={openResolveExceptionDialog}
         />
 
         {/* 6. Command Dialog — Create Collection Draft */}
@@ -195,6 +208,32 @@ export function LaundryWorkspacePage() {
           detail={selectedDetail}
           onClose={closeDialogs}
           onSubmit={handleRecordDeliverySubmit}
+        />
+
+        {/* 12. Command Dialog — Raise Operational Exception */}
+        <RaiseExceptionDialog
+          open={activeDialog === 'RAISE_EXCEPTION'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleRaiseExceptionSubmit}
+        />
+
+        {/* 13. Command Dialog — Record Exception Investigation */}
+        <RecordInvestigationDialog
+          open={activeDialog === 'RECORD_INVESTIGATION'}
+          detail={selectedDetail}
+          exception={targetException}
+          onClose={closeDialogs}
+          onSubmit={handleRecordInvestigationSubmit}
+        />
+
+        {/* 14. Command Dialog — Resolve Operational Exception */}
+        <ResolveExceptionDialog
+          open={activeDialog === 'RESOLVE_EXCEPTION'}
+          detail={selectedDetail}
+          exception={targetException}
+          onClose={closeDialogs}
+          onSubmit={handleResolveExceptionSubmit}
         />
 
         {/* 10. Global Feedback Snackbar */}

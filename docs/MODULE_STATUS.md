@@ -53,7 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
-| Laundry | 🟢 Returns & Delivery Presentation Workflows Complete (L-01–L-13 Complete) |
+| Laundry | 🟢 Exception Lifecycle Presentation Workflows Complete (L-01–L-14 Complete) |
 
 ---
 
@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟢 Returns & Delivery Presentation Workflows Complete (L-01 – L-13 Complete)
+**Status:** 🟢 Exception Lifecycle Presentation Workflows Complete (L-01 – L-14 Complete)
 
-**State:** Operational Returns & Delivery Workflows Implemented
+**State:** Operational Exception Lifecycle Workflows Implemented
 
 ## Purpose
 
@@ -626,7 +626,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Completed (L-01 through L-13)
+## Completed (L-01 through L-14)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -647,7 +647,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 ### Application Orchestration Layer (L-10)
 
 - Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`)
-- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, etc.)
+- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, `RaiseExceptionDTO`, `RecordInvestigationDTO`, `ResolveExceptionDTO`, etc.)
 - Application Services: `LaundryCollectionService`, `LaundryProcessingService`, `LaundryDeliveryService`, `LaundryExceptionService`, `LaundryEvidenceService`
 - Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
 - Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
@@ -677,11 +677,18 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Delivery-Triggered BR-L-012 Chargeability: Seamless chargeability evaluation in domain aggregate upon delivery, updating commercial totals and service allocation charges in `LaundryTransactionDetailDrawer.tsx` Tab 4 ("Commercial & Charges").
 - Workspace Table & Drawer Integration: Contextual return and delivery triggers in table and detail drawer.
 
+### Exception Lifecycle Presentation Workflows (L-14)
+
+- Raise Operational Exception Dialog: `RaiseExceptionDialog.tsx` supporting transaction-level, garment-line-level, and service-allocation-level exception targeting, affected quantity inputs, optional delivery blocking requests, descriptions, and photo evidence references.
+- Exception Investigation Dialog: `RecordInvestigationDialog.tsx` supporting investigator staff ID, findings notes, operational responsible party attribution (`VENDOR`, `RESIDENT`, `RPGMS`, `UNKNOWN`, `NONE`, `OTHER`), and evidence references.
+- Resolve Exception Dialog: `ResolveExceptionDialog.tsx` supporting authoritative resolution outcomes (`ITEM_RECOVERED`, `SERVICE_CORRECTED`, `VENDOR_CORRECTED`, `RESIDENT_ACCEPTED`, `PERMANENTLY_LOST`, `NO_ACTION_REQUIRED`, `OTHER`), resolved physical pieces contributing to physical reconciliation without delivery, and resolution notes.
+- Exception Lifecycle Inspector: Integrated in `LaundryTransactionDetailDrawer.tsx` Tab 3 ("Exceptions") with status badges (`OPEN`, `UNDER_INVESTIGATION`, `RESOLVED`), blocking delivery indicators, garment/service targeting tags, chronological investigation audit logs, formal resolution outcome cards, and contextual action buttons.
+- Physical Completion Projection: Projected authoritative `totalResolvedPieces` from domain onto summary and detail ViewModels without frontend calculation.
+
 ---
 
-## Next Steps (L-14+)
+## Next Steps (L-15+)
 
-- L-14: Exceptions & Investigations Presentation Workflows (`RaiseExceptionDialog`, `RecordInvestigationDialog`, `ResolveExceptionDialog`)
 - L-15: Commercial Charge Posting Presentation & Operational Polish (`PostChargesDialog`, thermal tag/print integration)
 
 ---
@@ -833,7 +840,7 @@ Current objectives:
 | Population Unification | 🟢 Complete (ADR-030) | Stable |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
-| Laundry | 🟡 Collection & Processing Workflows Complete | L-01 – L-12 Complete (L-13–L-15 In Progress) |
+| Laundry | 🟢 Exception Workflows Complete | L-01 – L-14 Complete (L-15 In Progress) |
 
 ---
 

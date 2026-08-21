@@ -8,12 +8,21 @@ import { ResidentsListCoordinator } from '../../features/resident/application/co
 import { defaultStayRepository } from '../../features/stay/infrastructure/repositories/InMemoryStayRepository';
 import { StayWorkspaceCoordinator } from '../../features/stay/application/coordinator/StayWorkspaceCoordinator';
 import { ReservationWorkspaceCoordinator } from '../../features/reservation/application/coordinator/ReservationWorkspaceCoordinator';
+import { defaultLaundryRepository } from '../../features/laundry/infrastructure/repositories/InMemoryLaundryRepository';
+import { defaultLaundryMasterRepository } from '../../features/laundry/infrastructure/repositories/InMemoryLaundryMasterRepository';
+import { defaultLaundryPostingService } from '../../features/finance/services/laundryPostingService';
 
 export const stayWorkflowComposition = {
   stayRepository: defaultStayRepository,
   accommodationRepository: defaultAccommodationRepository,
   residentRepository: defaultResidentRepository,
   reservationRepository: defaultReservationRepository,
+  laundryRepository: defaultLaundryRepository,
+  defaultLaundryRepository,
+  laundryMasterRepository: defaultLaundryMasterRepository,
+  defaultLaundryMasterRepository,
+  laundryFinanceIntegrationService: defaultLaundryPostingService,
+  defaultLaundryPostingService,
   stayWorkspaceCoordinator: new StayWorkspaceCoordinator(defaultStayRepository, defaultResidentRepository, defaultAccommodationRepository),
   accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(defaultAccommodationRepository, defaultStayRepository, defaultResidentRepository),
   residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(defaultResidentRepository, defaultStayRepository),

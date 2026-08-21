@@ -1,4 +1,4 @@
-import type { RateSnapshot } from '../valueObjects/RateSnapshot';
+import { RateSnapshot, type RateSnapshotProps } from '../valueObjects/RateSnapshot';
 import { LaundryChargeRecord, type LaundryChargeRecordProps } from './LaundryChargeRecord';
 import { calculateNewlyChargeableQuantity, buildBusinessChargeId } from '../rules/chargeabilityRules';
 
@@ -11,12 +11,13 @@ export interface ServiceAllocationProps {
   serviceName?: string;
   requestedQuantity: number;
   fulfilledQuantity?: number;
-  rateSnapshot?: RateSnapshot;
+  rateSnapshot?: RateSnapshot | RateSnapshotProps;
   fulfillmentStatus?: ServiceFulfillmentStatus;
   charges?: (LaundryChargeRecord | LaundryChargeRecordProps)[];
   createdAt: string;
   updatedAt?: string;
 }
+
 
 /**
  * ServiceAllocation represents the requested operational service for a quantity of garments
@@ -80,7 +81,12 @@ export class ServiceAllocation {
     this.serviceName = props.serviceName?.trim();
     this.requestedQuantity = props.requestedQuantity;
     this._fulfilledQuantity = props.fulfilledQuantity ?? 0;
-    this._rateSnapshot = props.rateSnapshot;
+    if (props.rateSnapshot) {
+      this._rateSnapshot =
+        props.rateSnapshot instanceof RateSnapshot
+          ? props.rateSnapshot
+          : new RateSnapshot(props.rateSnapshot);
+    }
     this._fulfillmentStatus =
       props.fulfillmentStatus ?? (this._fulfilledQuantity === this.requestedQuantity ? 'FULFILLED' : 'PENDING');
     this.createdAt = props.createdAt;

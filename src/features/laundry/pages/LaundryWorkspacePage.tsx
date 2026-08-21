@@ -24,6 +24,7 @@ import { RaiseExceptionDialog } from '../components/dialogs/RaiseExceptionDialog
 import { RecordInvestigationDialog } from '../components/dialogs/RecordInvestigationDialog';
 import { ResolveExceptionDialog } from '../components/dialogs/ResolveExceptionDialog';
 import { PostChargesDialog } from '../components/dialogs/PostChargesDialog';
+import { CancelCollectionDialog } from '../components/dialogs/CancelCollectionDialog';
 
 export function LaundryWorkspacePage() {
   const {
@@ -48,6 +49,7 @@ export function LaundryWorkspacePage() {
     selectTransaction,
     openCreateDraftDialog,
     openConfirmCollectionDialog,
+    openCancelCollectionDialog,
     openRecordInspectionDialog,
     openReleaseProcessingDialog,
     openRecordReturnDialog,
@@ -59,6 +61,7 @@ export function LaundryWorkspacePage() {
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
+    handleCancelCollectionSubmit,
     handleRecordInspectionSubmit,
     handleReleaseProcessingSubmit,
     handleRecordReturnSubmit,
@@ -155,6 +158,7 @@ export function LaundryWorkspacePage() {
               openConfirmCollectionDialog(summary);
             }
           }}
+          onCancelCollection={openCancelCollectionDialog}
           onRecordInspection={openRecordInspectionDialog}
           onReleaseProcessing={openReleaseProcessingDialog}
           onRecordReturn={openRecordReturnDialog}
@@ -246,6 +250,14 @@ export function LaundryWorkspacePage() {
           detail={selectedDetail}
           onClose={closeDialogs}
           onSubmit={handlePostChargesSubmit}
+        />
+
+        {/* 16. Command Dialog — Cancel Collection */}
+        <CancelCollectionDialog
+          open={activeDialog === 'CANCEL_COLLECTION'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleCancelCollectionSubmit}
         />
 
         {/* 10. Global Feedback Snackbar */}

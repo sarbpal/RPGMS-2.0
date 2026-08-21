@@ -616,17 +616,17 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟢 Commercial & Finance Posting Workflows Complete (L-01 – L-15 Complete)
+**Status:** 🟢 Complete / Production-Ready (L-01 – L-16 Complete)
 
 **State:** Fully Implemented / MVP Complete
 
 ## Purpose
 
-Manages the complete operational lifecycle of resident laundry services, from collection, garment lines, rate snapshots, pre-processing inspection, routing (in-house vs external vendor), return count verification, delivery handovers (direct vs room placement), exceptions, investigation, resolution, and determination of chargeable laundry services emitting `LaundryChargeRaised` domain events to Finance.
+Manages the complete operational lifecycle of resident laundry services, from collection, garment lines, rate snapshots, pre-processing inspection, routing (in-house vs external vendor), return count verification, delivery handovers (direct vs room placement), exceptions, investigation, resolution, cancellation, and determination of chargeable laundry services emitting `LaundryChargeRaised` domain events to Finance.
 
 ---
 
-## Completed (L-01 through L-15)
+## Completed (L-01 through L-16)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -647,7 +647,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 ### Application Orchestration Layer (L-10)
 
 - Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`, `LaundryChargeRecordViewModel`)
-- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, `RaiseExceptionDTO`, `RecordInvestigationDTO`, `ResolveExceptionDTO`, `PostChargesDTO`, etc.)
+- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `CancelCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, `RaiseExceptionDTO`, `RecordInvestigationDTO`, `ResolveExceptionDTO`, `PostChargesDTO`, etc.)
 - Application Services: `LaundryCollectionService`, `LaundryProcessingService`, `LaundryDeliveryService`, `LaundryExceptionService`, `LaundryEvidenceService`
 - Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
 - Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
@@ -690,6 +690,11 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Post Charges Confirmation Dialog: `PostChargesDialog.tsx` supporting itemized pending charge review, authoritative quantity/rate/amount inspection, staff ID identity confirmation (`staffId`), and error recovery.
 - Commercial & Charges Tab Presentation: Completed in `LaundryTransactionDetailDrawer.tsx` Tab 4 ("Commercial & Charges") with financial summary cards, unposted charges action banner, itemized charges table with charge keys, unit rates, quantities, total amounts, posting status badges (`POSTED` vs `PENDING_POSTING`), and direct Finance Bill ID references.
 - Idempotent Finance Orchestration: Wired `evaluateAndPostCharges` through `useLaundryWorkspace.ts` and `LaundryWorkspaceCoordinator.ts`, strictly enforcing `businessChargeId` idempotency.
+
+### Operational Completion & Hardening (L-16)
+
+- Pre-Release Collection Cancellation Workflow: `cancelCollection()` domain aggregate method, `CancelCollectionDTO`, `LaundryCollectionService.cancelCollection()`, and `CancelCollectionDialog.tsx` modal presentation enforcing Section 15 rules (permitted only for `DRAFT` and `COLLECTED` prior to processing release, with mandatory `staffId`, mandatory `reason`, and `physicalReturnedToResident: true` event recording).
+- Comprehensive Operational Hardening & Regression Suite: `LaundryOperationalHardening.test.ts` validating all canonical positive cancellation paths, negative rejection across all prohibited states (`IN_PROCESS`, `RETURNED_*`, `DELIVERED_*`, `COMPLETED`, `CANCELLED`), non-interference isolation with Finance, and multi-stage lifecycle reconciliation.
 
 ---
 

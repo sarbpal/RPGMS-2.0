@@ -490,6 +490,45 @@ export class LaundryTransaction {
   }
 
   /**
+   * Cancels a collection before Processing Release (Section 15, 100.7, 101.7, 116).
+   * Permitted only when the transaction is in DRAFT or COLLECTED status.
+   * Physical laundry must be returned to the resident.
+   */
+  public cancelCollection(params: { staffId: string; reason: string; cancelledAt?: string }): void {
+    if (this._status !== LaundryTransactionStatus.DRAFT && this._status !== LaundryTransactionStatus.COLLECTED) {
+      throw new Error(
+        `Cannot cancel collection: Cancellation is only permitted prior to processing release (current status: ${this._status}).`
+      );
+    }
+    if (!params.staffId || params.staffId.trim() === '') {
+      throw new Error('Cannot cancel collection: Staff ID is required.');
+    }
+    if (!params.reason || params.reason.trim() === '') {
+      throw new Error('Cannot cancel collection: Cancellation reason is required.');
+    }
+
+    const cancelledAt = params.cancelledAt ?? new Date().toISOString();
+    this._status = LaundryTransactionStatus.CANCELLED;
+    this._updatedAt = cancelledAt;
+
+    this.recordBusinessEvent({
+      id: `EVT-${this.id}-CANCELLED`,
+      transactionId: this.id,
+      eventType: 'LaundryTransactionCancelled',
+      timestamp: cancelledAt,
+      description: `Collection cancelled for transaction ${this.id} by staff ${params.staffId.trim()}. Reason: ${params.reason.trim()}. Physical laundry returned to resident.`,
+      metadata: {
+        stayId: this.stayId,
+        residentId: this.residentId,
+        cancelledByStaffId: params.staffId.trim(),
+        reason: params.reason.trim(),
+        cancelledAt,
+        physicalReturnedToResident: true,
+      },
+    });
+  }
+
+  /**
    * Records an immutable pre-processing ConditionObservation on a specific GarmentLine (L-05).
    */
   public recordConditionObservation(props: ConditionObservationProps | ConditionObservation): ConditionObservation {

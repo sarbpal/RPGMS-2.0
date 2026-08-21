@@ -29,6 +29,13 @@ export interface ConfirmCollectionDTO {
   readonly notes?: string;
 }
 
+export interface CancelCollectionDTO {
+  readonly transactionId: string;
+  readonly staffId: string;
+  readonly reason: string;
+  readonly cancelledAt?: string;
+}
+
 export interface ConditionObservationInputDTO {
   readonly garmentLineId: string;
   readonly observationType: string;

@@ -13,6 +13,7 @@ import type {
   LaundryWorkspaceFilters,
   CreateCollectionDraftDTO,
   ConfirmCollectionDTO,
+  CancelCollectionDTO,
   RecordInspectionDTO,
   ReleaseProcessingDTO,
   RecordReturnDTO,
@@ -26,6 +27,7 @@ import type {
 export type LaundryModalType =
   | 'CREATE_DRAFT'
   | 'CONFIRM_COLLECTION'
+  | 'CANCEL_COLLECTION'
   | 'RECORD_INSPECTION'
   | 'RELEASE_PROCESSING'
   | 'RECORD_RETURN'
@@ -68,6 +70,7 @@ export interface UseLaundryWorkspaceReturn {
   // Dialog Actions
   openCreateDraftDialog: () => void;
   openConfirmCollectionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => void;
+  openCancelCollectionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openRecordInspectionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openReleaseProcessingDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openRecordReturnDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
@@ -81,6 +84,7 @@ export interface UseLaundryWorkspaceReturn {
   // Command Handlers
   handleCreateDraftSubmit: (dto: CreateCollectionDraftDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleConfirmCollectionSubmit: (dto: ConfirmCollectionDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handleCancelCollectionSubmit: (dto: CancelCollectionDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordInspectionSubmit: (dto: RecordInspectionDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleReleaseProcessingSubmit: (dto: ReleaseProcessingDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordReturnSubmit: (dto: RecordReturnDTO) => Promise<LaundryTransactionDetailViewModel>;
@@ -261,6 +265,17 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     setActiveDialog('CONFIRM_COLLECTION');
   }, []);
 
+  const openCancelCollectionDialog = useCallback(async (
+    transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel
+  ) => {
+    setSelectedTransactionId(transaction.id);
+    setTargetException(null);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('CANCEL_COLLECTION');
+  }, [selectedDetail, loadDetail]);
+
   const openRecordInspectionDialog = useCallback(async (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => {
     setSelectedTransactionId(transaction.id);
     setTargetException(null);
@@ -371,6 +386,20 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
       return confirmed;
     } catch (err: any) {
       showSnackbar(err?.message || 'Failed to confirm collection', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, closeDialogs, refresh]);
+
+  const handleCancelCollectionSubmit = useCallback(async (dto: CancelCollectionDTO) => {
+    try {
+      const updated = await coordinator.cancelCollection(dto);
+      showSnackbar(`Collection cancelled for ${updated.residentName} (${updated.id})`, 'success');
+      closeDialogs();
+      await refresh();
+      setSelectedDetail(updated);
+      return updated;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to cancel collection', 'error');
       throw err;
     }
   }, [coordinator, showSnackbar, closeDialogs, refresh]);
@@ -510,6 +539,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     selectTransaction,
     openCreateDraftDialog,
     openConfirmCollectionDialog,
+    openCancelCollectionDialog,
     openRecordInspectionDialog,
     openReleaseProcessingDialog,
     openRecordReturnDialog,
@@ -521,6 +551,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
+    handleCancelCollectionSubmit,
     handleRecordInspectionSubmit,
     handleReleaseProcessingSubmit,
     handleRecordReturnSubmit,

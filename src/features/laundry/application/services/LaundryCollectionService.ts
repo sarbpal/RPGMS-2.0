@@ -6,7 +6,7 @@ import { LaundryTransaction } from '../../domain/entities/LaundryTransaction';
 import { GarmentLine } from '../../domain/entities/GarmentLine';
 import { ServiceAllocation } from '../../domain/entities/ServiceAllocation';
 import { LaundryTransactionStatus } from '../../domain/valueObjects/LaundryTransactionStatus';
-import type { CreateCollectionDraftDTO, ConfirmCollectionDTO } from '../dtos/laundryDTOs';
+import type { CreateCollectionDraftDTO, ConfirmCollectionDTO, CancelCollectionDTO } from '../dtos/laundryDTOs';
 
 export class LaundryCollectionService {
   private readonly laundryRepo: LaundryRepository;
@@ -119,6 +119,35 @@ export class LaundryCollectionService {
       photoUris: dto.photoUris ? [...dto.photoUris] : undefined,
       residentVerified: dto.residentVerified,
       notes: dto.notes,
+    });
+
+    await this.laundryRepo.save(transaction);
+    return transaction;
+  }
+
+  /**
+   * Cancels a collection before processing release (Section 15, 100.7, 101.7, 116).
+   */
+  public async cancelCollection(dto: CancelCollectionDTO): Promise<LaundryTransaction> {
+    if (!dto.transactionId || dto.transactionId.trim() === '') {
+      throw new Error('Cannot cancel collection: Transaction ID is required.');
+    }
+    if (!dto.staffId || dto.staffId.trim() === '') {
+      throw new Error('Cannot cancel collection: Staff ID is required.');
+    }
+    if (!dto.reason || dto.reason.trim() === '') {
+      throw new Error('Cannot cancel collection: Cancellation reason is required.');
+    }
+
+    const transaction = await this.laundryRepo.findById(dto.transactionId.trim());
+    if (!transaction) {
+      throw new Error(`Cannot cancel collection: Laundry Transaction '${dto.transactionId}' not found.`);
+    }
+
+    transaction.cancelCollection({
+      staffId: dto.staffId,
+      reason: dto.reason,
+      cancelledAt: dto.cancelledAt,
     });
 
     await this.laundryRepo.save(transaction);

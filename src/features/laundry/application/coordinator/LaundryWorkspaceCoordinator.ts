@@ -48,6 +48,7 @@ import type {
 import type {
   CreateCollectionDraftDTO,
   ConfirmCollectionDTO,
+  CancelCollectionDTO,
   RecordInspectionDTO,
   ReleaseProcessingDTO,
   RecordReturnDTO,
@@ -259,6 +260,11 @@ export class LaundryWorkspaceCoordinator {
 
   public async confirmCollection(dto: ConfirmCollectionDTO): Promise<LaundryTransactionDetailViewModel> {
     const tx = await this.collectionService.confirmCollection(dto);
+    return this.toDetailViewModel(tx);
+  }
+
+  public async cancelCollection(dto: CancelCollectionDTO): Promise<LaundryTransactionDetailViewModel> {
+    const tx = await this.collectionService.cancelCollection(dto);
     return this.toDetailViewModel(tx);
   }
 

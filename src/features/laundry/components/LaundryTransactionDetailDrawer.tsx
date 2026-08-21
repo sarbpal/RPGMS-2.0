@@ -33,6 +33,7 @@ import {
   AccountBalanceWallet,
   Receipt,
   HourglassEmpty,
+  Cancel,
 } from '@mui/icons-material';
 import type {
   LaundryTransactionDetailViewModel,
@@ -45,6 +46,7 @@ interface LaundryTransactionDetailDrawerProps {
   isLoading: boolean;
   onClose: () => void;
   onConfirmCollection?: (detail: LaundryTransactionDetailViewModel) => void;
+  onCancelCollection?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordInspection?: (detail: LaundryTransactionDetailViewModel) => void;
   onReleaseProcessing?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordReturn?: (detail: LaundryTransactionDetailViewModel) => void;
@@ -61,6 +63,7 @@ export function LaundryTransactionDetailDrawer({
   isLoading,
   onClose,
   onConfirmCollection,
+  onCancelCollection,
   onRecordInspection,
   onReleaseProcessing,
   onRecordReturn,
@@ -1030,6 +1033,19 @@ export function LaundryTransactionDetailDrawer({
                 sx={{ textTransform: 'none', fontWeight: 700 }}
               >
                 Select Route & Release to Processing
+              </Button>
+            )}
+
+            {/* Cancel Collection Action: Pre-release cancellation (Section 15) */}
+            {(detail.status === 'DRAFT' || detail.status === 'COLLECTED') && onCancelCollection && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Cancel />}
+                onClick={() => onCancelCollection(detail)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Cancel Collection
               </Button>
             )}
 

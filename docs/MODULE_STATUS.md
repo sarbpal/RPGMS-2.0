@@ -53,7 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
-| Laundry | 🟡 Presentation Foundation Complete (L-01–L-11 Complete) |
+| Laundry | 🟡 Collection & Processing Presentation Workflows Complete (L-01–L-12 Complete) |
 
 ---
 
@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟡 Presentation Foundation Complete (L-01 – L-11 Complete)
+**Status:** 🟡 Collection & Processing Presentation Workflows Complete (L-01 – L-12 Complete)
 
-**State:** Operational Workspace Presentation Foundation Implemented
+**State:** Operational Collection & Processing Workflows Implemented
 
 ## Purpose
 
@@ -626,7 +626,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Completed (L-01 through L-11)
+## Completed (L-01 through L-12)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -647,7 +647,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 ### Application Orchestration Layer (L-10)
 
 - Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`)
-- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, etc.)
+- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, etc.)
 - Application Services: `LaundryCollectionService`, `LaundryProcessingService`, `LaundryDeliveryService`, `LaundryExceptionService`, `LaundryEvidenceService`
 - Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
 - Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
@@ -662,11 +662,17 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Initial Command Dialogs: `CreateCollectionDraftDialog.tsx` and `ConfirmCollectionDialog.tsx`
 - Application Shell Integration: Registered `/laundry` route in `router.tsx` and Sidebar navigation with `LocalLaundryService` icon
 
+### Collection & Processing Presentation Workflows (L-12)
+
+- Pre-Processing Inspection Dialog: `RecordInspectionDialog.tsx` with garment line review, defect category selection, affected piece limits, photo evidence URIs, and sign-off
+- Route & Processing Release Dialog: `ReleaseProcessingDialog.tsx` supporting `IN_HOUSE` and `EXTERNAL_VENDOR` routes with mandatory vendor identifier
+- Workflow Orchestration: Strict 2-step sequence enforcement (`COLLECTED` -> Inspection -> Release to Processing -> `IN_PROCESS`)
+- Workspace Table & Drawer Actions: Integrated quick inspection triggers in table and contextual action buttons in the detail drawer
+
 ---
 
-## Next Steps (L-12+)
+## Next Steps (L-13+)
 
-- L-12: Collection & Processing Presentation Workflows (`InspectAndRouteDialog`, condition observations, vendor selection)
 - L-13: Custody, Returns & Delivery Presentation Workflows (`RecordReturnDialog`, `RecordDeliveryDialog`, partial deliveries, room placement)
 - L-14: Exceptions & Investigations Presentation Workflows (`RaiseExceptionDialog`, `RecordInvestigationDialog`, `ResolveExceptionDialog`)
 - L-15: Commercial Charge Posting Presentation & Operational Polish (`PostChargesDialog`, thermal tag/print integration)
@@ -820,7 +826,7 @@ Current objectives:
 | Population Unification | 🟢 Complete (ADR-030) | Stable |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
-| Laundry | 🟡 Application Layer Complete | L-01 – L-10 Complete (UI in Progress) |
+| Laundry | 🟡 Collection & Processing Workflows Complete | L-01 – L-12 Complete (L-13–L-15 In Progress) |
 
 ---
 

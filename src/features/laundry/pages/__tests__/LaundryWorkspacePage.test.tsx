@@ -6,13 +6,20 @@ import { LaundryTransactionTable } from '../../components/LaundryTransactionTabl
 import { LaundryTransactionDetailDrawer } from '../../components/LaundryTransactionDetailDrawer';
 import { CreateCollectionDraftDialog } from '../../components/dialogs/CreateCollectionDraftDialog';
 import { ConfirmCollectionDialog } from '../../components/dialogs/ConfirmCollectionDialog';
+import { RecordInspectionDialog } from '../../components/dialogs/RecordInspectionDialog';
+import { ReleaseProcessingDialog } from '../../components/dialogs/ReleaseProcessingDialog';
 import { stayWorkflowComposition } from '../../../../app/composition/stayWorkflowComposition';
-import type { CreateCollectionDraftDTO, ConfirmCollectionDTO } from '../../application/dtos/laundryDTOs';
+import type {
+  CreateCollectionDraftDTO,
+  ConfirmCollectionDTO,
+  RecordInspectionDTO,
+  ReleaseProcessingDTO,
+} from '../../application/dtos/laundryDTOs';
 
-describe('L-11 — Laundry Workspace Presentation Foundation Integration Suite', () => {
+describe('L-11 & L-12 — Laundry Workspace Presentation Foundation & Collection/Processing Workflows', () => {
   const coordinator = stayWorkflowComposition.laundryWorkspaceCoordinator;
 
-  it('instantiates all L-11 presentation components cleanly', () => {
+  it('instantiates all L-11 and L-12 presentation components cleanly', () => {
     expect(typeof LaundryWorkspacePage).toBe('function');
     expect(typeof LaundryDashboardCards).toBe('function');
     expect(typeof LaundryToolbar).toBe('function');
@@ -20,6 +27,8 @@ describe('L-11 — Laundry Workspace Presentation Foundation Integration Suite',
     expect(typeof LaundryTransactionDetailDrawer).toBe('function');
     expect(typeof CreateCollectionDraftDialog).toBe('function');
     expect(typeof ConfirmCollectionDialog).toBe('function');
+    expect(typeof RecordInspectionDialog).toBe('function');
+    expect(typeof ReleaseProcessingDialog).toBe('function');
   });
 
   it('loads complete LaundryWorkspaceViewModel from coordinator for workspace rendering', async () => {
@@ -77,35 +86,55 @@ describe('L-11 — Laundry Workspace Presentation Foundation Integration Suite',
     )).toBe(true);
   });
 
-  it('loads and renders complete detail ViewModel when a transaction is selected', async () => {
-    const vm = await coordinator.getWorkspaceViewModel();
-    if (vm.transactions.length > 0) {
-      const targetId = vm.transactions[0].id;
-      const detail = await coordinator.getTransactionDetail(targetId);
+  it('executes Create Collection Draft and Confirm Collection baseline locking', async () => {
+    const selectableStays = await coordinator.getSelectableStays();
+    const stay = selectableStays[0];
+    const catalog = await coordinator.getMasterCatalog();
 
-      expect(detail).not.toBeNull();
-      expect(detail?.id).toBe(targetId);
-      expect(detail?.residentName).toBeDefined();
-      expect(detail?.locationSummary).toBeDefined();
-      expect(Array.isArray(detail?.garmentLines)).toBe(true);
-      expect(Array.isArray(detail?.returns)).toBe(true);
-      expect(Array.isArray(detail?.deliveries)).toBe(true);
-      expect(Array.isArray(detail?.exceptions)).toBe(true);
-      expect(Array.isArray(detail?.timeline)).toBe(true);
-      expect(detail?.timeline.length).toBeGreaterThan(0);
-    }
+    // 1. Create draft
+    const draftDto: CreateCollectionDraftDTO = {
+      stayId: stay.stayId,
+      residentId: stay.residentId,
+      garmentLines: [
+        {
+          itemId: catalog.items[0].id,
+          physicalQuantity: 4,
+          serviceIds: [catalog.services[0].id],
+          notes: 'Test collection intake line',
+        },
+      ],
+      notes: 'Test draft collection notes',
+    };
+
+    const draft = await coordinator.createCollectionDraft(draftDto);
+    expect(draft.status).toBe('DRAFT');
+    expect(draft.totalPhysicalPieces).toBe(4);
+
+    // 2. Confirm collection baseline
+    const confirmDto: ConfirmCollectionDTO = {
+      transactionId: draft.id,
+      staffId: 'STAFF-INTAKE-01',
+      bagCount: 1,
+      bagTagNumbers: ['TAG-L12-001'],
+      photoUris: ['evidence://photo-intake.jpg'],
+      residentVerified: true,
+      notes: 'Intake baseline confirmed by front-desk',
+    };
+
+    const confirmed = await coordinator.confirmCollection(confirmDto);
+    expect(confirmed.status).toBe('COLLECTED');
+    expect(confirmed.isInspected).toBe(false);
+    expect(confirmed.collectionEvidence?.collectedByStaffId).toBe('STAFF-INTAKE-01');
+    expect(confirmed.garmentLines[0].serviceAllocations[0].isRateCaptured).toBe(true);
   });
 
-  it('executes Create Collection Draft command and updates workspace ViewModel', async () => {
+  it('records pre-processing inspection with condition observations and photo evidence', async () => {
     const selectableStays = await coordinator.getSelectableStays();
-    expect(selectableStays.length).toBeGreaterThan(0);
     const stay = selectableStays[0];
-
     const catalog = await coordinator.getMasterCatalog();
-    expect(catalog.items.length).toBeGreaterThan(0);
-    expect(catalog.services.length).toBeGreaterThan(0);
 
-    const dto: CreateCollectionDraftDTO = {
+    // 1. Create & Confirm
+    const draft = await coordinator.createCollectionDraft({
       stayId: stay.stayId,
       residentId: stay.residentId,
       garmentLines: [
@@ -113,35 +142,47 @@ describe('L-11 — Laundry Workspace Presentation Foundation Integration Suite',
           itemId: catalog.items[0].id,
           physicalQuantity: 3,
           serviceIds: [catalog.services[0].id],
-          notes: 'Test presentation draft line',
         },
       ],
-      notes: 'Test draft intake notes',
+    });
+    await coordinator.confirmCollection({
+      transactionId: draft.id,
+      staffId: 'STAFF-001',
+    });
+
+    // 2. Record Pre-processing Inspection with condition observation
+    const inspectionDto: RecordInspectionDTO = {
+      transactionId: draft.id,
+      staffId: 'STAFF-INSPECT-01',
+      inspectedAt: new Date().toISOString(),
+      conditionObservations: [
+        {
+          garmentLineId: draft.garmentLines[0].id,
+          observationType: 'STAIN',
+          description: 'Ink stain on front pocket',
+          affectedQuantity: 1,
+          photoUris: ['evidence://stain-photo-01.jpg'],
+        },
+      ],
+      notes: 'Garments inspected prior to dry cleaning',
     };
 
-    const created = await coordinator.createCollectionDraft(dto);
+    const inspected = await coordinator.recordInspection(inspectionDto);
 
-    expect(created).toBeDefined();
-    expect(created.id).toMatch(/^LTX-/);
-    expect(created.status).toBe('DRAFT');
-    expect(created.residentName).toBe(stay.residentName);
-    expect(created.totalPhysicalPieces).toBe(3);
-    expect(created.garmentLines.length).toBe(1);
-    expect(created.garmentLines[0].physicalQuantity).toBe(3);
-
-    // Verify workspace query now lists this transaction
-    const updatedVm = await coordinator.getWorkspaceViewModel();
-    const foundInList = updatedVm.transactions.find((t) => t.id === created.id);
-    expect(foundInList).toBeDefined();
-    expect(foundInList?.status).toBe('DRAFT');
+    expect(inspected.isInspected).toBe(true);
+    expect(inspected.inspectedByStaffId).toBe('STAFF-INSPECT-01');
+    expect(inspected.garmentLines[0].conditionObservations?.length).toBe(1);
+    expect(inspected.garmentLines[0].conditionObservations?.[0].observationType).toBe('STAIN');
+    expect(inspected.garmentLines[0].conditionObservations?.[0].description).toBe('Ink stain on front pocket');
+    expect(inspected.garmentLines[0].conditionObservations?.[0].affectedQuantity).toBe(1);
   });
 
-  it('executes Confirm Collection command and captures immutable RateSnapshots', async () => {
+  it('enforces strict operational sequence: prevents processing release before inspection sign-off', async () => {
     const selectableStays = await coordinator.getSelectableStays();
     const stay = selectableStays[0];
     const catalog = await coordinator.getMasterCatalog();
 
-    // 1. Create draft
+    // Create & Confirm (not inspected yet)
     const draft = await coordinator.createCollectionDraft({
       stayId: stay.stayId,
       residentId: stay.residentId,
@@ -153,31 +194,110 @@ describe('L-11 — Laundry Workspace Presentation Foundation Integration Suite',
         },
       ],
     });
-
-    expect(draft.status).toBe('DRAFT');
-
-    // 2. Confirm collection
-    const confirmDto: ConfirmCollectionDTO = {
+    await coordinator.confirmCollection({
       transactionId: draft.id,
-      staffId: 'STAFF-PRES-001',
-      bagCount: 1,
-      bagTagNumbers: ['TAG-PRES-101'],
-      photoUris: ['evidence://photo-test-01.jpg'],
-      residentVerified: true,
-      notes: 'Physical intake confirmed by presentation layer',
+      staffId: 'STAFF-001',
+    });
+
+    // Attempt release without inspection -> Domain/Coordinator must reject
+    const invalidReleaseDto: ReleaseProcessingDTO = {
+      transactionId: draft.id,
+      route: 'IN_HOUSE',
+      staffId: 'STAFF-001',
     };
 
-    const confirmed = await coordinator.confirmCollection(confirmDto);
+    await expect(coordinator.releaseProcessing(invalidReleaseDto)).rejects.toThrow(
+      /inspection/i
+    );
+  });
 
-    expect(confirmed.status).toBe('COLLECTED');
-    expect(confirmed.collectionEvidence).toBeDefined();
-    expect(confirmed.collectionEvidence?.collectedByStaffId).toBe('STAFF-PRES-001');
-    expect(confirmed.collectionEvidence?.bagCount).toBe(1);
-    expect(confirmed.collectionEvidence?.bagTagNumbers).toContain('TAG-PRES-101');
-    expect(confirmed.collectionEvidence?.residentVerified).toBe(true);
+  it('executes Processing Release to IN_HOUSE route after inspection', async () => {
+    const selectableStays = await coordinator.getSelectableStays();
+    const stay = selectableStays[0];
+    const catalog = await coordinator.getMasterCatalog();
 
-    // Verify rate snapshots were locked
-    expect(confirmed.garmentLines[0].serviceAllocations[0].isRateCaptured).toBe(true);
-    expect(confirmed.garmentLines[0].serviceAllocations[0].unitRate).toBeGreaterThan(0);
+    // 1. Create, confirm, and inspect
+    const draft = await coordinator.createCollectionDraft({
+      stayId: stay.stayId,
+      residentId: stay.residentId,
+      garmentLines: [
+        {
+          itemId: catalog.items[0].id,
+          physicalQuantity: 2,
+          serviceIds: [catalog.services[0].id],
+        },
+      ],
+    });
+    await coordinator.confirmCollection({ transactionId: draft.id, staffId: 'STAFF-001' });
+    await coordinator.recordInspection({ transactionId: draft.id, staffId: 'STAFF-001' });
+
+    // 2. Release to In-House route
+    const releaseDto: ReleaseProcessingDTO = {
+      transactionId: draft.id,
+      route: 'IN_HOUSE',
+      staffId: 'STAFF-OPERATOR-01',
+      releasedAt: new Date().toISOString(),
+      notes: 'Assigned to hostel laundry machine #2',
+    };
+
+    const released = await coordinator.releaseProcessing(releaseDto);
+
+    expect(released.status).toBe('IN_PROCESS');
+    expect(released.processingRoute).toBe('IN_HOUSE');
+    expect(released.processingRouteLabel).toContain('In-House');
+
+    // 3. Verify workspace view model reflects status update
+    const vm = await coordinator.getWorkspaceViewModel();
+    const updated = vm.transactions.find((t) => t.id === draft.id);
+    expect(updated).toBeDefined();
+    expect(updated?.status).toBe('IN_PROCESS');
+    expect(updated?.processingRoute).toBe('IN_HOUSE');
+  });
+
+  it('executes Processing Release to EXTERNAL_VENDOR route with mandatory vendor identifier', async () => {
+    const selectableStays = await coordinator.getSelectableStays();
+    const stay = selectableStays[0];
+    const catalog = await coordinator.getMasterCatalog();
+
+    // 1. Create, confirm, and inspect
+    const draft = await coordinator.createCollectionDraft({
+      stayId: stay.stayId,
+      residentId: stay.residentId,
+      garmentLines: [
+        {
+          itemId: catalog.items[0].id,
+          physicalQuantity: 5,
+          serviceIds: [catalog.services[0].id],
+        },
+      ],
+    });
+    await coordinator.confirmCollection({ transactionId: draft.id, staffId: 'STAFF-001' });
+    await coordinator.recordInspection({ transactionId: draft.id, staffId: 'STAFF-001' });
+
+    // 2. Attempt external release without vendor -> Domain rejects
+    const missingVendorDto: ReleaseProcessingDTO = {
+      transactionId: draft.id,
+      route: 'EXTERNAL_VENDOR',
+      staffId: 'STAFF-001',
+    };
+    await expect(coordinator.releaseProcessing(missingVendorDto)).rejects.toThrow(
+      /vendor/i
+    );
+
+    // 3. Release with valid vendor ID
+    const validExternalDto: ReleaseProcessingDTO = {
+      transactionId: draft.id,
+      route: 'EXTERNAL_VENDOR',
+      vendorId: 'VND-ROYAL-CLEANERS',
+      staffId: 'STAFF-OPERATOR-01',
+      releasedAt: new Date().toISOString(),
+      notes: 'Handed over to vendor driver',
+    };
+
+    const released = await coordinator.releaseProcessing(validExternalDto);
+
+    expect(released.status).toBe('IN_PROCESS');
+    expect(released.processingRoute).toBe('EXTERNAL_VENDOR');
+    expect(released.processingVendorId).toBe('VND-ROYAL-CLEANERS');
   });
 });

@@ -26,6 +26,8 @@ import {
   Checklist,
   AccountCircle,
   Room,
+  SearchOutlined,
+  LocalShipping,
 } from '@mui/icons-material';
 import type { LaundryTransactionDetailViewModel } from '../application/models/LaundryWorkspaceViewModel';
 
@@ -35,6 +37,8 @@ interface LaundryTransactionDetailDrawerProps {
   isLoading: boolean;
   onClose: () => void;
   onConfirmCollection?: (detail: LaundryTransactionDetailViewModel) => void;
+  onRecordInspection?: (detail: LaundryTransactionDetailViewModel) => void;
+  onReleaseProcessing?: (detail: LaundryTransactionDetailViewModel) => void;
 }
 
 export function LaundryTransactionDetailDrawer({
@@ -43,6 +47,8 @@ export function LaundryTransactionDetailDrawer({
   isLoading,
   onClose,
   onConfirmCollection,
+  onRecordInspection,
+  onReleaseProcessing,
 }: LaundryTransactionDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<number>(0);
 
@@ -467,11 +473,36 @@ export function LaundryTransactionDetailDrawer({
                 Confirm Collection Baseline
               </Button>
             )}
-            {detail.status !== 'DRAFT' && (
-              <Tooltip title="Lifecycle inspection, return, delivery, and charge posting workflows will be enabled in L-12 through L-15">
+
+            {detail.status === 'COLLECTED' && !detail.isInspected && onRecordInspection && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<SearchOutlined />}
+                onClick={() => onRecordInspection(detail)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Record Pre-Processing Inspection
+              </Button>
+            )}
+
+            {detail.status === 'COLLECTED' && detail.isInspected && onReleaseProcessing && (
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<LocalShipping />}
+                onClick={() => onReleaseProcessing(detail)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Select Route & Release to Processing
+              </Button>
+            )}
+
+            {detail.status !== 'DRAFT' && detail.status !== 'COLLECTED' && (
+              <Tooltip title="Lifecycle return, delivery, exception, and charge posting workflows will be enabled in L-13 through L-15">
                 <span>
                   <Button variant="outlined" disabled sx={{ textTransform: 'none' }}>
-                    Lifecycle Actions (L-12+)
+                    Lifecycle Actions (L-13+)
                   </Button>
                 </span>
               </Tooltip>

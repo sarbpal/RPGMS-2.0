@@ -16,6 +16,8 @@ import { LaundryTransactionTable } from '../components/LaundryTransactionTable';
 import { LaundryTransactionDetailDrawer } from '../components/LaundryTransactionDetailDrawer';
 import { CreateCollectionDraftDialog } from '../components/dialogs/CreateCollectionDraftDialog';
 import { ConfirmCollectionDialog } from '../components/dialogs/ConfirmCollectionDialog';
+import { RecordInspectionDialog } from '../components/dialogs/RecordInspectionDialog';
+import { ReleaseProcessingDialog } from '../components/dialogs/ReleaseProcessingDialog';
 
 export function LaundryWorkspacePage() {
   const {
@@ -39,9 +41,13 @@ export function LaundryWorkspacePage() {
     selectTransaction,
     openCreateDraftDialog,
     openConfirmCollectionDialog,
+    openRecordInspectionDialog,
+    openReleaseProcessingDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
+    handleRecordInspectionSubmit,
+    handleReleaseProcessingSubmit,
     closeSnackbar,
   } = useLaundryWorkspace();
 
@@ -110,6 +116,8 @@ export function LaundryWorkspacePage() {
             selectedTransactionId={selectedTransactionId}
             onSelectTransaction={selectTransaction}
             onConfirmCollection={openConfirmCollectionDialog}
+            onRecordInspection={openRecordInspectionDialog}
+            onReleaseProcessing={openReleaseProcessingDialog}
             onOpenCreateDraft={openCreateDraftDialog}
           />
         )}
@@ -121,12 +129,13 @@ export function LaundryWorkspacePage() {
           isLoading={isDetailLoading}
           onClose={() => selectTransaction(null)}
           onConfirmCollection={(detail) => {
-            // Find summary representation for confirm dialog
             const summary = viewModel?.transactions.find((t) => t.id === detail.id);
             if (summary) {
               openConfirmCollectionDialog(summary);
             }
           }}
+          onRecordInspection={openRecordInspectionDialog}
+          onReleaseProcessing={openReleaseProcessingDialog}
         />
 
         {/* 6. Command Dialog — Create Collection Draft */}
@@ -146,7 +155,23 @@ export function LaundryWorkspacePage() {
           onSubmit={handleConfirmCollectionSubmit}
         />
 
-        {/* 8. Global Feedback Snackbar */}
+        {/* 8. Command Dialog — Pre-Processing Inspection */}
+        <RecordInspectionDialog
+          open={activeDialog === 'RECORD_INSPECTION'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleRecordInspectionSubmit}
+        />
+
+        {/* 9. Command Dialog — Route & Release Processing */}
+        <ReleaseProcessingDialog
+          open={activeDialog === 'RELEASE_PROCESSING'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handleReleaseProcessingSubmit}
+        />
+
+        {/* 10. Global Feedback Snackbar */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={5000}

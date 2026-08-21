@@ -18,6 +18,7 @@ import {
   Store,
   HomeWork,
   Checklist,
+  SearchOutlined,
 } from '@mui/icons-material';
 import type { LaundryTransactionSummaryViewModel } from '../application/models/LaundryWorkspaceViewModel';
 import { EmptyState } from '../../../components/EmptyState';
@@ -27,6 +28,8 @@ interface LaundryTransactionTableProps {
   selectedTransactionId: string | null;
   onSelectTransaction: (id: string) => void;
   onConfirmCollection: (tx: LaundryTransactionSummaryViewModel) => void;
+  onRecordInspection?: (tx: LaundryTransactionSummaryViewModel) => void;
+  onReleaseProcessing?: (tx: LaundryTransactionSummaryViewModel) => void;
   onOpenCreateDraft?: () => void;
 }
 
@@ -35,6 +38,8 @@ export function LaundryTransactionTable({
   selectedTransactionId,
   onSelectTransaction,
   onConfirmCollection,
+  onRecordInspection,
+  onReleaseProcessing: _onReleaseProcessing,
   onOpenCreateDraft,
 }: LaundryTransactionTableProps) {
   if (transactions.length === 0) {
@@ -227,6 +232,17 @@ export function LaundryTransactionTable({
                         sx={{ fontSize: '0.75rem', textTransform: 'none', py: 0.5 }}
                       >
                         Confirm
+                      </Button>
+                    ) : tx.status === 'COLLECTED' && onRecordInspection ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<SearchOutlined />}
+                        onClick={() => onRecordInspection(tx)}
+                        sx={{ fontSize: '0.75rem', textTransform: 'none', py: 0.5 }}
+                      >
+                        Inspect
                       </Button>
                     ) : (
                       <Button

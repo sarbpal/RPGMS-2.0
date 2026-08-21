@@ -104,13 +104,16 @@ Transaction Table & Columns
 - Route: In-House processing vs External commercial vendor.
 - Status: Color-coded operational lifecycle badge.
 - Commercial / Charges: Estimated commercial value and posted Finance bill status.
-- Actions: Quick confirm button for drafts, and full detail inspection trigger.
+- Actions: Quick confirm button for drafts, quick inspect trigger for collected orders, and full detail inspection trigger.
 
 Detail Drawer
 
 - Multi-tab operational inspector showing Garments & Services, Processing & Custody, Deliveries, Exceptions, Commercial & Charges, and Audit Timeline without frontend business rule calculations.
+- Contextual lifecycle action buttons: "Confirm Collection Baseline" (for Drafts), "Record Pre-Processing Inspection" (for uninspected Collected orders), and "Select Route & Release to Processing" (for inspected Collected orders).
 
 Command Dialogs
 
 - Create Collection Draft: Select active resident stay, configure garment lines with physical piece counts and requested services, and record intake notes.
 - Confirm Collection: Record staff member ID, physical bag count, tag barcodes, optional transient photo references, and resident verification to lock immutable RateSnapshots.
+- Record Pre-Processing Inspection: Inspect physical garment lines, stage condition observations (stains, tears, button defects, affected piece counts, photo evidence URIs), and complete inspection sign-off.
+- Select Route & Release to Processing: Choose operational processing route (`IN_HOUSE` laundry room vs `EXTERNAL_VENDOR` commercial partner with required vendor code), verify inspection prerequisite, and release order into active processing.

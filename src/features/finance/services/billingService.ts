@@ -6,7 +6,14 @@ import type {
   PaymentAllocation,
   FinanceRepository,
 } from '../domain';
-import { AccountType, LedgerReferenceType, hasDuplicateRentBill, calculatePaymentAllocations } from '../domain';
+import {
+  AccountType,
+  LedgerReferenceType,
+  hasDuplicateRentBill,
+  checkFinancialUniqueness,
+  findBillByObligationKey,
+  calculatePaymentAllocations,
+} from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
@@ -63,6 +70,13 @@ export class BillingApplicationService {
   }
 
   /**
+   * Application Use Case: Find an existing active bill by its source obligationKey (BR-416, ADR-032).
+   */
+  public findBillByObligationKey(obligationKey: string): Bill | null {
+    return findBillByObligationKey(this.getAllBills(), obligationKey);
+  }
+
+  /**
    * Application Use Case: Check if a Monthly Rent bill already exists for a Stay in a specific billing period.
    * Delegates duplicate invariant check to domain rule hasDuplicateRentBill.
    */
@@ -73,7 +87,7 @@ export class BillingApplicationService {
 
   /**
    * Application Use Case: Create, persist, and post balanced ledger entries for a new Bill.
-   * Coordinates bill creation workflow.
+   * Coordinates bill creation workflow and enforces Financial Obligation Uniqueness (BR-416, ADR-032).
    */
   public createBill(
     billPayload: Omit<Bill, 'id' | 'billNumber' | 'paidAmount' | 'balanceAmount' | 'createdAt' | 'updatedAt'>
@@ -98,6 +112,22 @@ export class BillingApplicationService {
 
     if (errors.length > 0) {
       return { success: false, bill: null, errors };
+    }
+
+    // Financial Obligation Uniqueness Boundary (BR-416, ADR-032)
+    const uniquenessCheck = checkFinancialUniqueness(this.getAllBills(), {
+      stayId: billPayload.stayId,
+      billType: billPayload.billType,
+      period: billPayload.period,
+      lineItems: billPayload.lineItems,
+    });
+
+    if (uniquenessCheck.isDuplicate) {
+      return {
+        success: false,
+        bill: null,
+        errors: [uniquenessCheck.reason || 'Financial obligation already realized.'],
+      };
     }
 
     const now = new Date().toISOString();
@@ -247,6 +277,8 @@ export class BillingApplicationService {
       };
     }
 
+    const anchorDay = stay.billingAnchorDay || 1;
+    const anniversaryDate = `${billingPeriod}-${String(anchorDay).padStart(2, '0')}`;
     const issueDate = `${billingPeriod}-01`;
     const dueDate = customDueDate || `${billingPeriod}-07`;
 
@@ -256,6 +288,7 @@ export class BillingApplicationService {
         description: `Monthly Rent - ${billingPeriod}`,
         amount: rentAmount,
         category: 'RENT',
+        obligationKey: `RENT:${stayId}:${anniversaryDate}`,
       },
     ];
 

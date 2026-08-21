@@ -5,13 +5,16 @@ import { ObligationKey } from '../../domain/valueObjects/ObligationKey';
 import type { StayRepository } from '../../../stay/domain/interfaces/StayRepository';
 import type { Stay } from '../../../stay/domain/entities/Stay';
 import type { ResidentRepository } from '../../../resident/domain/interfaces/ResidentRepository';
+import type { FinanceRepository } from '../../../finance/domain/interfaces/FinanceRepository';
+import { defaultFinanceRepository } from '../../../finance/infrastructure/repositories/InMemoryFinanceRepository';
 
 /**
  * Rent Discovery Adapter.
  *
- * Boundary Guarantee:
+ * Boundary Guarantee (BR-413, BR-416, ADR-032):
  * - Consumes authoritative rent from Stay.agreedRent (Active CommercialAgreement).
  * - Consumes authoritative billingAnchorDay from Stay.
+ * - Checks authoritative Finance commitments to discover committed status and prevent duplicate billing.
  * - Does NOT own, calculate, or alter rent amounts or commercial terms.
  */
 export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
@@ -20,10 +23,16 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
 
   private readonly stayRepository: StayRepository;
   private readonly residentRepository: ResidentRepository;
+  private readonly financeRepository: FinanceRepository;
 
-  constructor(stayRepository: StayRepository, residentRepository: ResidentRepository) {
+  constructor(
+    stayRepository: StayRepository,
+    residentRepository: ResidentRepository,
+    financeRepository: FinanceRepository = defaultFinanceRepository
+  ) {
     this.stayRepository = stayRepository;
     this.residentRepository = residentRepository;
+    this.financeRepository = financeRepository;
   }
 
   async discoverObligations(
@@ -62,8 +71,30 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
       );
 
       for (const anniversaryDate of anniversaryDates) {
+        const obligationKey = ObligationKey.forRent(stay.id, anniversaryDate).value;
+        const periodLabel = anniversaryDate.substring(0, 7);
+
+        // Check Finance commitments for this stay and anniversary date / period (BR-416, ADR-032)
+        let isCommitted = false;
+        let financialReferenceId: string | undefined = undefined;
+
+        if (this.financeRepository) {
+          const stayBills = this.financeRepository.getBillsByStayId(stay.id);
+          const existingBill = stayBills.find(
+            (b) =>
+              b.status !== 'CANCELLED' &&
+              (b.lineItems?.some((li) => li.obligationKey?.trim() === obligationKey) ||
+                (b.billType === 'MONTHLY_RENT' && b.period === periodLabel))
+          );
+
+          if (existingBill) {
+            isCommitted = true;
+            financialReferenceId = existingBill.id;
+          }
+        }
+
         const obligation = new DiscoveredObligation({
-          obligationKey: ObligationKey.forRent(stay.id, anniversaryDate).value,
+          obligationKey,
           stayId: stay.id,
           residentId: stay.residentId,
           residentCode,
@@ -73,8 +104,9 @@ export class RentDiscoveryAdapter implements ChargeDiscoveryProvider {
           entryDate: stay.createdAt || `${anniversaryDate}T00:00:00.000Z`,
           description: `Monthly Rent (${anniversaryDate})`,
           category: 'RENT',
-          commitmentStatus: 'UNCOMMITTED',
-          sourcePeriodLabel: anniversaryDate.substring(0, 7),
+          commitmentStatus: isCommitted ? 'COMMITTED' : 'UNCOMMITTED',
+          financialReferenceId,
+          sourcePeriodLabel: periodLabel,
           metadata: {
             billingAnchorDay: anchorDay,
             checkInDate: stay.checkInDate,

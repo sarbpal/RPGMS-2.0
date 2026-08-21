@@ -66,7 +66,11 @@ export class BillingWorkspaceCoordinator {
     this._stayRepository = stayRepository;
     this._residentRepository = residentRepository;
 
-    const rentAdapter = new RentDiscoveryAdapter(this._stayRepository, this._residentRepository);
+    const rentAdapter = new RentDiscoveryAdapter(
+      this._stayRepository,
+      this._residentRepository,
+      financeRepository
+    );
     const elecAdapter = new ElectricityDiscoveryAdapter(electricityRepository);
     this.discoveryService = new BillingDiscoveryService([rentAdapter, elecAdapter]);
     this.eligibilityService = new BillingEligibilityService(claimRepository);

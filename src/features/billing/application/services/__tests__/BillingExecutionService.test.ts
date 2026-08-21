@@ -7,6 +7,7 @@ import { InMemoryBillingRunRepository } from '../../../infrastructure/repositori
 import { InMemoryBillingClaimRepository } from '../../../infrastructure/repositories/InMemoryBillingClaimRepository';
 import { InMemoryFinanceRepository } from '../../../../finance/infrastructure/repositories/InMemoryFinanceRepository';
 import { BillingApplicationService } from '../../../../finance/services/billingService';
+import { financeStorage } from '../../../../finance/storage/financeStorage';
 import { DiscoveredObligation } from '../../../domain/valueObjects/DiscoveredObligation';
 import type { ChargeDiscoveryProvider } from '../../../domain/interfaces/ChargeDiscoveryProvider';
 
@@ -31,6 +32,8 @@ describe('BillingExecutionService', () => {
   });
 
   beforeEach(() => {
+    financeStorage.saveStoredBills([]);
+    financeStorage.saveStoredLedgerEntries([]);
     runRepo = new InMemoryBillingRunRepository();
     claimRepo = new InMemoryBillingClaimRepository();
     claimService = new BillingClaimService(claimRepo);

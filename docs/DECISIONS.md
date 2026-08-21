@@ -1003,7 +1003,10 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 
 3. **Obligation Identity (`obligationKey`)**:
    - Every financial charge must carry a stable source-domain obligation identity (`obligationKey` on `BillLineItem` / Bill correlation) sufficient for Finance to determine whether the same obligation has already been financially realized.
-   - *Note on Rent*: Current implementation uses `RENT:<stayId>:<anniversaryDate>` in Billing and `(stayId, MONTHLY_RENT, YYYY-MM)` in Finance. These identity representations must be reconciled at the implementation phase without breaking domain boundaries.
+   - *Adoption Status (FI-01)*:
+     - **Rent**: Converged on `RENT:<stayId>:<anniversaryDate>` with transitional legacy rent period fallback protection.
+     - **Laundry**: Participates via `LAUNDRY:<stayId>:<businessChargeId>` on `BillLineItem`.
+     - **Electricity**: Currently tracks commitments via `participant.financeBillId` and is observed as `COMMITTED` by discovery; canonical line-item `obligationKey` correlation remains a future alignment work item.
 
 4. **Source-Domain Discovery & Commitment Checking**:
    - Source-domain charge discovery providers must verify existing Finance commitments before presenting obligations as uncommitted, establishing a uniform pattern across all billable domains.
@@ -1019,14 +1022,14 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 ### Consequences
 
 #### Advantages:
-- Defines the architectural invariant that manual and automated financial realization paths must converge on the same Finance uniqueness boundary, eliminating the architectural asymmetry once implemented.
+- Defines and implements (FI-01) the architectural invariant that manual and automated financial realization paths converge on the same Finance uniqueness boundary, eliminating the architectural asymmetry.
 - Preserves the constitutional separation of concerns: Source domains own business pricing; Billing owns batch orchestration; Finance owns financial truth and uniqueness; Ledger owns double-entry balancing.
 - Establishes a generic architectural standard applicable across Rent, Electricity, Laundry, and future charge types (Maintenance, Damage, Penalties).
 
 #### Trade-offs & Costs:
-- Finance financial-realization APIs must enforce financial uniqueness for financial realizations carrying a stable source-domain obligation identity (`obligationKey`), according to applicable source-domain invariants.
-- Source-domain charge discovery providers must verify existing Finance commitments during discovery before presenting obligations as uncommitted.
-- Integration tests must be expanded during the implementation phase to verify cross-path deduplication.
+- Finance financial-realization APIs enforce financial uniqueness for financial realizations carrying a stable source-domain obligation identity (`obligationKey`), according to applicable source-domain invariants.
+- Source-domain charge discovery providers verify existing Finance commitments during discovery before presenting obligations as uncommitted.
+- Integration tests verify cross-path deduplication across automated and manual flows.
 
 ---
 

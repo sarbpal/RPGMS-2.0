@@ -1972,7 +1972,7 @@ Orchestration claims (Billing Claims) and double-entry accounting records (Ledge
 
 ### Reason
 
-Establishes the architectural invariant that manual and automated financial realization paths must converge on the same Finance uniqueness boundary, eliminating asymmetric financial realization and ensuring that the same underlying commercial obligation cannot create duplicate financial bills or duplicate ledger postings once implemented (BCR-005, BCR-007, BR-412, BR-414, ADR-032).
+Establishes and implements (FI-01) the architectural invariant that manual and automated financial realization paths converge on the same Finance uniqueness boundary, eliminating asymmetric financial realization and ensuring that the same underlying commercial obligation cannot create duplicate financial bills or duplicate ledger postings (BCR-005, BCR-007, BR-412, BR-414, ADR-032).
 
 ### Applies To
 

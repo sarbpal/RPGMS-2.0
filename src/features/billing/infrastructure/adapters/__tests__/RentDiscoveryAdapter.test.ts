@@ -278,4 +278,124 @@ describe('RentDiscoveryAdapter (Authoritative Rent & Anniversary Cycle Discovery
     );
     expect(septObligations).toHaveLength(0);
   });
+
+  it('marks discovered rent obligation as COMMITTED when an active Finance bill already exists', async () => {
+    const stay = new Stay({
+      id: 'STAY-COMMITTED-01',
+      residentId: 'RES-COMMITTED-01',
+      stayType: 'REGULAR',
+      status: 'ACTIVE',
+      checkInDate: '2026-08-01',
+      billingAnchorDay: 1,
+      commercialAgreements: [
+        new CommercialAgreement({
+          id: 'CA-C-01',
+          stayId: 'STAY-COMMITTED-01',
+          rent: 12500,
+          securityDeposit: 25000,
+          effectiveFrom: '2026-08-01',
+          amendmentReason: 'Initial',
+          status: 'ACTIVE',
+        }),
+      ],
+    });
+    mockStays.set(stay.id, stay);
+
+    mockResidents.set('RES-COMMITTED-01', {
+      id: 'RES-COMMITTED-01',
+      residentCode: 'RC-C-01',
+      fullName: 'Anita Roy',
+      status: 'ACTIVE',
+      mobileNumber: '9876543210',
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+    });
+
+    const mockFinanceRepo = {
+      getLedgerEntries: () => [],
+      getLedgerEntriesByStayId: () => [],
+      saveLedgerEntries: () => [],
+      getBills: () => [
+        {
+          id: 'BILL-RENT-EXISTING-01',
+          stayId: 'STAY-COMMITTED-01',
+          billNumber: 'INV-202608-0001',
+          billType: 'MONTHLY_RENT' as const,
+          period: '2026-08',
+          issueDate: '2026-08-01',
+          dueDate: '2026-08-07',
+          totalAmount: 12500,
+          paidAmount: 0,
+          balanceAmount: 12500,
+          status: 'UNPAID' as const,
+          lineItems: [
+            {
+              id: 'li-1',
+              description: 'Monthly Rent',
+              amount: 12500,
+              category: 'RENT' as const,
+              obligationKey: 'RENT:STAY-COMMITTED-01:2026-08-01',
+            },
+          ],
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+        },
+      ],
+      getBillsByStayId: (id: string) =>
+        id === 'STAY-COMMITTED-01'
+          ? [
+              {
+                id: 'BILL-RENT-EXISTING-01',
+                stayId: 'STAY-COMMITTED-01',
+                billNumber: 'INV-202608-0001',
+                billType: 'MONTHLY_RENT' as const,
+                period: '2026-08',
+                issueDate: '2026-08-01',
+                dueDate: '2026-08-07',
+                totalAmount: 12500,
+                paidAmount: 0,
+                balanceAmount: 12500,
+                status: 'UNPAID' as const,
+                lineItems: [
+                  {
+                    id: 'li-1',
+                    description: 'Monthly Rent',
+                    amount: 12500,
+                    category: 'RENT' as const,
+                    obligationKey: 'RENT:STAY-COMMITTED-01:2026-08-01',
+                  },
+                ],
+                createdAt: '2026-08-01T00:00:00.000Z',
+                updatedAt: '2026-08-01T00:00:00.000Z',
+              },
+            ]
+          : [],
+      saveBill: (b: any) => b,
+      saveBills: (b: any) => b,
+      getPayments: () => [],
+      getPaymentsByStayId: () => [],
+      savePayment: (p: any) => p,
+      getSettlements: () => [],
+      getSettlementByStayId: () => null,
+      saveSettlement: (s: any) => s,
+      getDepositTransactions: () => [],
+      getDepositTransactionsByStayId: () => [],
+      saveDepositTransaction: (t: any) => t,
+    };
+
+    const committedAdapter = new RentDiscoveryAdapter(mockStayRepo, mockResidentRepo, mockFinanceRepo as any);
+
+    const obligations = await committedAdapter.discoverObligations(
+      ['STAY-COMMITTED-01'],
+      '2026-08-01',
+      '2026-08-31',
+      '2026-08-31T23:59:59.000Z'
+    );
+
+    expect(obligations).toHaveLength(1);
+    expect(obligations[0].obligationKey).toBe('RENT:STAY-COMMITTED-01:2026-08-01');
+    expect(obligations[0].commitmentStatus).toBe('COMMITTED');
+    expect(obligations[0].financialReferenceId).toBe('BILL-RENT-EXISTING-01');
+    expect(obligations[0].isClaimable()).toBe(false);
+  });
 });

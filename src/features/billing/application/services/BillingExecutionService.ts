@@ -75,6 +75,10 @@ export class BillingExecutionService {
     return this.claimService;
   }
 
+  public getDiscoveredObligationsForRun(runId: string): DiscoveredObligation[] {
+    return this.runPreviewObligations.get(runId) || [];
+  }
+
   public getFinanceService(): BillingApplicationService {
     return this.financeService;
   }

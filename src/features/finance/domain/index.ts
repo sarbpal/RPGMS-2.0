@@ -20,6 +20,7 @@ export * from './interfaces/FinanceRepository';
 // Business Rules
 export * from './rules/DoubleEntryValidation';
 export * from './rules/DuplicateRentPrevention';
+export * from './rules/FinancialUniquenessRule';
 export * from './rules/PaymentAllocationRule';
 export * from './rules/OutstandingBalanceRule';
 export * from './rules/SettlementValidation';

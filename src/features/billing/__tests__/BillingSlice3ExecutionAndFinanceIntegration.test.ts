@@ -87,7 +87,7 @@ describe('Billing Slice 3: Execution Orchestration & Finance Integration End-to-
       delete: async () => {},
     };
 
-    rentAdapter = new RentDiscoveryAdapter(mockStayRepo, mockResidentRepo);
+    rentAdapter = new RentDiscoveryAdapter(mockStayRepo, mockResidentRepo, financeRepo);
     elecAdapter = new ElectricityDiscoveryAdapter(elecRepo);
 
     discoveryService = new BillingDiscoveryService([rentAdapter, elecAdapter]);
@@ -533,6 +533,118 @@ describe('Billing Slice 3: Execution Orchestration & Finance Integration End-to-
       // Billing called BillingApplicationService.createBill(), which internally called postEntries
       // Billing itself did NOT directly invoke ledgerService.postEntries()
       expect(postEntriesSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('8. Bidirectional Financial Obligation Deduplication (FI-01, BR-416, ADR-032)', () => {
+    it('Scenario A: Manual Rent generation first -> Billing Run discovers obligation as COMMITTED and creates NO second bill or ledger posting', async () => {
+      setupStay('STAY-DEDUP-01', 15000, 1);
+
+      // 1. Operator manually generates rent in Finance
+      const manualResult = financeService.generateMonthlyRentBill('STAY-DEDUP-01', '2026-08');
+      expect(manualResult.success).toBe(true);
+      expect(manualResult.bill).toBeDefined();
+      const manualBillId = manualResult.bill!.id;
+
+      const initialBills = financeRepo.getBillsByStayId('STAY-DEDUP-01');
+      expect(initialBills).toHaveLength(1);
+      const initialLedgerEntries = financeRepo.getLedgerEntriesByStayId('STAY-DEDUP-01');
+      expect(initialLedgerEntries).toHaveLength(2);
+
+      // 2. Billing Run executes for August 2026
+      const run = await executionService.createDraftRun({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        operatorId: 'OP-ADMIN',
+        stayIds: ['STAY-DEDUP-01'],
+      });
+
+      // Discovery should show 1 operation with 1 discovered obligation, but marked COMMITTED
+      expect(run.operations).toHaveLength(1);
+      const discovered = executionService.getDiscoveredObligationsForRun(run.id);
+      expect(discovered).toHaveLength(1);
+      expect(discovered[0].commitmentStatus).toBe('COMMITTED');
+      expect(discovered[0].financialReferenceId).toBe(manualBillId);
+      expect(discovered[0].isClaimable()).toBe(false);
+
+      // Confirm and execute run
+      await executionService.revalidateAndConfirm(run.id);
+      const executed = await executionService.executeRun(run.id);
+
+      expect(executed.status).toBe('COMPLETED');
+      const executedOp = executed.getOperationByStayId('STAY-DEDUP-01')!;
+      expect(executedOp.status).toBe('NO_CHARGES');
+
+      // Zero new bills and zero new ledger entries created
+      const finalBills = financeRepo.getBillsByStayId('STAY-DEDUP-01');
+      expect(finalBills).toHaveLength(1);
+      expect(finalBills[0].id).toBe(manualBillId);
+
+      const finalLedgerEntries = financeRepo.getLedgerEntriesByStayId('STAY-DEDUP-01');
+      expect(finalLedgerEntries).toHaveLength(2);
+    });
+
+    it('Scenario B: Billing Run executes first -> Manual Rent generation is rejected by Finance uniqueness', async () => {
+      setupStay('STAY-DEDUP-02', 18000, 1);
+
+      // 1. Automated Billing Run executes first
+      const run = await executionService.createDraftRun({
+        periodStart: '2026-08-01',
+        periodEnd: '2026-08-31',
+        operatorId: 'OP-ADMIN',
+        stayIds: ['STAY-DEDUP-02'],
+      });
+
+      await executionService.revalidateAndConfirm(run.id);
+      const executed = await executionService.executeRun(run.id);
+      expect(executed.status).toBe('COMPLETED');
+      const op = executed.getOperationByStayId('STAY-DEDUP-02')!;
+      expect(op.status).toBe('SUCCESS');
+
+      const billsAfterBilling = financeRepo.getBillsByStayId('STAY-DEDUP-02');
+      expect(billsAfterBilling).toHaveLength(1);
+
+      // 2. Staff attempts manual generation for the same stay and period
+      const manualResult = financeService.generateMonthlyRentBill('STAY-DEDUP-02', '2026-08');
+      expect(manualResult.success).toBe(false);
+      expect(manualResult.bill).toBeNull();
+      expect(manualResult.errors[0]).toContain("Monthly rent bill already exists for Stay 'STAY-DEDUP-02' in period '2026-08'");
+
+      // Exactly ONE bill in Finance
+      expect(financeRepo.getBillsByStayId('STAY-DEDUP-02')).toHaveLength(1);
+    });
+
+    it('Scenario C: Direct createBill invocation with duplicate obligationKey is rejected by Finance', () => {
+      setupStay('STAY-DEDUP-03', 10000, 1);
+
+      const payload = {
+        stayId: 'STAY-DEDUP-03',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-01',
+        dueDate: '2026-08-07',
+        totalAmount: 500,
+        status: 'UNPAID' as const,
+        lineItems: [
+          {
+            id: 'li-dup-1',
+            description: 'WiFi Fee',
+            amount: 500,
+            category: 'OTHER' as const,
+            obligationKey: 'SERVICE:STAY-DEDUP-03:WIFI-AUG',
+          },
+        ],
+      };
+
+      const res1 = financeService.createBill(payload);
+      expect(res1.success).toBe(true);
+
+      // Duplicate attempt
+      const res2 = financeService.createBill(payload);
+      expect(res2.success).toBe(false);
+      expect(res2.errors[0]).toContain("Financial obligation 'SERVICE:STAY-DEDUP-03:WIFI-AUG' is already financially realized");
+
+      expect(financeRepo.getBillsByStayId('STAY-DEDUP-03')).toHaveLength(1);
     });
   });
 });

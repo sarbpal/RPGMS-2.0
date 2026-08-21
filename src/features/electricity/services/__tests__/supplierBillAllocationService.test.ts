@@ -4,6 +4,7 @@ import { InMemoryElectricityRepository } from '../../infrastructure/repositories
 import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { InMemoryResidentRepository } from '../../../resident/infrastructure/repositories/InMemoryResidentRepository';
 import { BillingApplicationService } from '../../../finance/services/billingService';
+import { LedgerApplicationService } from '../../../finance/services/ledgerService';
 import { InMemoryFinanceRepository } from '../../../finance/infrastructure/repositories/InMemoryFinanceRepository';
 import { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
@@ -46,13 +47,16 @@ describe('Stage 3 — SupplierBillAllocationService Unit & Integration Tests', (
     financeRepo = new InMemoryFinanceRepository();
     financeRepo.saveBills([]);
     financeRepo.saveLedgerEntries([]);
-    billingService = new BillingApplicationService(financeRepo, stayRepo);
+    const ledgerService = new LedgerApplicationService(financeRepo);
+    billingService = new BillingApplicationService(financeRepo, stayRepo, ledgerService);
     allocationService = new SupplierBillAllocationService(
       electricityRepo,
       stayRepo,
       residentRepo,
       billingService,
-      financeRepo
+      financeRepo,
+      undefined,
+      ledgerService
     );
 
     const stay1 = new Stay({
@@ -504,6 +508,155 @@ describe('Stage 3 — SupplierBillAllocationService Unit & Integration Tests', (
     // Verify Finance bills were restored to UNPAID (pre-reversal state)
     const billsInFinance = financeRepo.getBills();
     expect(billsInFinance.every((b) => b.status === 'UNPAID')).toBe(true);
+  });
+
+  it('Scenario 13: Crash/Retry Failure Boundary — Finance uniqueness prevents duplicate realization on retry', () => {
+    const draftResult = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-013',
+        supplierAmount: 1000,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+
+    const alloc = draftResult.allocation!;
+    const participant = alloc.participants[0];
+    const expectedObligationKey = `ELECTRICITY:${participant.stayId}:${participant.id}`;
+
+    // Step 1: Simulate first Finance realization succeeding
+    const firstBillResult = billingService.createBill({
+      stayId: participant.stayId,
+      billType: 'RECURRING_CHARGE',
+      period: '2026-07',
+      issueDate: '2026-08-01',
+      dueDate: '2026-08-07',
+      totalAmount: participant.allocatedAmount,
+      status: 'UNPAID',
+      remarks: `Electricity Allocation Bill (Participant ID: ${participant.id})`,
+      lineItems: [
+        {
+          id: `li_${participant.id}`,
+          category: 'UTILITIES',
+          description: 'Electricity Bill Allocation',
+          amount: participant.allocatedAmount,
+          obligationKey: expectedObligationKey,
+        },
+      ],
+    });
+
+    expect(firstBillResult.success).toBe(true);
+    expect(firstBillResult.bill).toBeDefined();
+
+    // Verify exactly 1 bill and 2 ledger entries exist initially for this participant
+    expect(financeRepo.getBills().length).toBe(1);
+    expect(financeRepo.getLedgerEntries().length).toBe(2);
+
+    // Step 2: Simulate application crash BEFORE updating participant.financeBillId or saving allocation
+    // On crash recovery, confirmAllocation is invoked again for the same DRAFT allocation
+    const retryResult = allocationService.confirmAllocation(alloc.id, 'operator-john');
+
+    // Confirm allocation must fail because Finance uniqueness rejects duplicate obligationKey
+    expect(retryResult.success).toBe(false);
+    expect(retryResult.errors.some((e) => e.includes('already financially realized'))).toBe(true);
+
+    // Verify NO duplicate Finance bill and NO duplicate ledger entries were created
+    const billsAfterRetry = financeRepo.getBills().filter((b) => b.stayId === participant.stayId);
+    expect(billsAfterRetry.length).toBe(1);
+    expect(billsAfterRetry[0].id).toBe(firstBillResult.bill!.id);
+
+    const ledgerEntriesAfterRetry = financeRepo.getLedgerEntries().filter((e) => e.stayId === participant.stayId);
+    expect(ledgerEntriesAfterRetry.length).toBe(2);
+  });
+
+  it('Scenario 14: Multiple legitimate electricity allocations for the same resident in the same month produce distinct obligations', () => {
+    // Allocation 1: First supplier bill (e.g. Main meter)
+    const draft1 = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board - Main',
+        supplierBillNumber: 'INV-2026-M01',
+        supplierAmount: 800,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+    const confirm1 = allocationService.confirmAllocation(draft1.allocation!.id, 'operator-john');
+    expect(confirm1.success).toBe(true);
+
+    // Allocation 2: Second supplier bill in the same period (e.g. Common area / Power backup meter)
+    const draft2 = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board - Backup',
+        supplierBillNumber: 'INV-2026-B01',
+        supplierAmount: 400,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+    const confirm2 = allocationService.confirmAllocation(draft2.allocation!.id, 'operator-john');
+    expect(confirm2.success).toBe(true);
+
+    // Both allocations must succeed because they carry distinct obligationKeys
+    const stay1Bills = financeRepo.getBillsByStayId('stay-01');
+    expect(stay1Bills.length).toBe(2);
+
+    const key1 = stay1Bills[0].lineItems[0].obligationKey;
+    const key2 = stay1Bills[1].lineItems[0].obligationKey;
+    expect(key1).not.toBe(key2);
+    expect(key1).toContain('ELECTRICITY:stay-01:');
+    expect(key2).toContain('ELECTRICITY:stay-01:');
+  });
+
+  it('Scenario 15: Reversal and re-issue allows legitimate corrected allocation to be realized', () => {
+    // 1. Create and confirm initial allocation
+    const draft = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-ORIG',
+        supplierAmount: 1000,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+    const confirmOrig = allocationService.confirmAllocation(draft.allocation!.id, 'operator-john');
+    expect(confirmOrig.success).toBe(true);
+
+    const origBillId = confirmOrig.allocation!.participants[0].financeBillId!;
+    const origBill = financeRepo.getBills().find((b) => b.id === origBillId);
+    expect(origBill?.status).toBe('UNPAID');
+
+    // 2. Reverse the initial allocation
+    const revResult = allocationService.reverseAllocation(draft.allocation!.id, 'supervisor-jane', 'Correction needed');
+    expect(revResult.success).toBe(true);
+
+    // Verify original bill is now CANCELLED
+    const cancelledBill = financeRepo.getBills().find((b) => b.id === origBillId);
+    expect(cancelledBill?.status).toBe('CANCELLED');
+
+    // 3. Create and confirm a corrected new allocation for the same period
+    const correctedDraft = allocationService.createDraftAllocation(
+      {
+        supplierName: 'State Electricity Board',
+        supplierBillNumber: 'INV-2026-CORR',
+        supplierAmount: 1200,
+      },
+      'flat-101',
+      '2026-07-01',
+      '2026-07-31'
+    );
+    const confirmCorr = allocationService.confirmAllocation(correctedDraft.allocation!.id, 'operator-john');
+    expect(confirmCorr.success).toBe(true);
+
+    // Verify new active bill exists
+    const corrBillId = confirmCorr.allocation!.participants[0].financeBillId!;
+    const corrBill = financeRepo.getBills().find((b) => b.id === corrBillId);
+    expect(corrBill?.status).toBe('UNPAID');
+    expect(corrBill?.totalAmount).toBe(600); // 1200 / 2 shares
   });
 });
 

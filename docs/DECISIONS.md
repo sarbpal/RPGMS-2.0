@@ -1003,10 +1003,10 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 
 3. **Obligation Identity (`obligationKey`)**:
    - Every financial charge must carry a stable source-domain obligation identity (`obligationKey` on `BillLineItem` / Bill correlation) sufficient for Finance to determine whether the same obligation has already been financially realized.
-   - *Adoption Status (FI-01)*:
+   - *Adoption Status (FI-01 & EI-02)*:
      - **Rent**: Converged on `RENT:<stayId>:<anniversaryDate>` with transitional legacy rent period fallback protection.
      - **Laundry**: Participates via `LAUNDRY:<stayId>:<businessChargeId>` on `BillLineItem`.
-     - **Electricity**: Currently tracks commitments via `participant.financeBillId` and is observed as `COMMITTED` by discovery; canonical line-item `obligationKey` correlation remains a future alignment work item.
+     - **Electricity**: Integrated (EI-02) via canonical `ELECTRICITY:<stayId>:<participantAllocationId>` on `BillLineItem`, with `participant.financeBillId` preserved as downstream realization reference and Finance uniqueness as authoritative duplicate prevention boundary.
 
 4. **Source-Domain Discovery & Commitment Checking**:
    - Source-domain charge discovery providers must verify existing Finance commitments before presenting obligations as uncommitted, establishing a uniform pattern across all billable domains.

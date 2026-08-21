@@ -26,6 +26,8 @@ describe('Stage 1 — Finance Domain Integration for Electricity Billing', () =>
     });
 
     financeRepo = new InMemoryFinanceRepository();
+    financeRepo.saveBills([]);
+    financeRepo.saveLedgerEntries([]);
     stayRepo = new InMemoryStayRepository([testStay]);
     billingService = new BillingApplicationService(financeRepo, stayRepo);
   });
@@ -75,8 +77,10 @@ describe('Stage 1 — Finance Domain Integration for Electricity Billing', () =>
     expect(revenueEntry?.referenceType).toBe(LedgerReferenceType.ELECTRICITY_ALLOCATION);
   });
 
-  it('detects duplicate electricity billing via hasDuplicateElectricityBill idempotency check', () => {
-    // Post initial electricity bill
+  it('detects and rejects duplicate electricity billing via Finance obligationKey uniqueness', () => {
+    const obligationKey = 'ELECTRICITY:stay-test-01:part-01';
+
+    // Post initial electricity bill with obligationKey
     const billResult = billingService.createBill({
       stayId: 'stay-test-01',
       billType: 'RECURRING_CHARGE',
@@ -92,18 +96,46 @@ describe('Stage 1 — Finance Domain Integration for Electricity Billing', () =>
           description: 'Electricity Share Charge',
           amount: 1500,
           category: 'UTILITIES',
+          obligationKey,
         },
       ],
     });
 
-    const billId = billResult.bill?.id || '';
-    expect(billId).not.toBe('');
+    expect(billResult.success).toBe(true);
+    expect(billResult.bill).toBeDefined();
 
-    // Check idempotency helper method with created bill ID as participantAllocationId
-    const isDuplicate = billingService.hasDuplicateElectricityBill(billId);
-    expect(isDuplicate).toBe(true);
+    // Verify finding by obligationKey
+    const foundBill = billingService.findBillByObligationKey(obligationKey);
+    expect(foundBill).not.toBeNull();
+    expect(foundBill?.id).toBe(billResult.bill?.id);
 
-    const isNonExistentDuplicate = billingService.hasDuplicateElectricityBill('non-existent-id');
-    expect(isNonExistentDuplicate).toBe(false);
+    // Attempt second creation with the same obligationKey -> must be rejected by Finance uniqueness
+    const duplicateResult = billingService.createBill({
+      stayId: 'stay-test-01',
+      billType: 'RECURRING_CHARGE',
+      period: '2026-07',
+      issueDate: '2026-08-02',
+      dueDate: '2026-08-08',
+      totalAmount: 1500,
+      status: 'UNPAID',
+      remarks: 'Duplicate Electricity Allocation Bill',
+      lineItems: [
+        {
+          id: 'li-02',
+          description: 'Electricity Share Charge Duplicate',
+          amount: 1500,
+          category: 'UTILITIES',
+          obligationKey,
+        },
+      ],
+    });
+
+    expect(duplicateResult.success).toBe(false);
+    expect(duplicateResult.bill).toBeNull();
+    expect(duplicateResult.errors[0]).toContain(`Financial obligation '${obligationKey}' is already financially realized`);
+
+    // Verify no second bill and no additional ledger entries
+    expect(financeRepo.getBills().length).toBe(1);
+    expect(financeRepo.getLedgerEntries().length).toBe(2);
   });
 });

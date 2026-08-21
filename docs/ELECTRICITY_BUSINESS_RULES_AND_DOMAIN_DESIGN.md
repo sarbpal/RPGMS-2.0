@@ -695,14 +695,15 @@ A finalized ElectricityAllocation can create only one successful financial posti
 
 Repeated submission/retry of the same allocation must not create duplicate resident charges.
 
-When Finance creates a receivable from an Electricity Allocation Participant, the eventual Finance posting must pass:
+When Finance creates a receivable from an Electricity Allocation Participant, the eventual Finance posting passes:
 
+* `lineItem.obligationKey = ELECTRICITY:<stayId>:<participantAllocationId>`
 * `referenceType = ELECTRICITY_ALLOCATION`
-* `referenceId = participantAllocationId`
+* `customReferenceId = participantAllocationId`
 
-This provides a stable business reference that allows duplicate posting to be detected and prevented during retries via `hasDuplicateElectricityBill(participant.id)`.
+This provides a stable business obligation identity that allows duplicate posting to be detected and prevented by the Finance-owned financial uniqueness boundary (BR-416, ADR-032).
 
-*Runtime Guarantee Note:* In the current single-threaded / in-memory architecture, idempotency is enforced by verifying pre-existing ledger entries prior to posting. Future persistent SQL repositories may require database unique constraints for multi-node concurrency safety.
+*Runtime Guarantee Note:* In alignment with the Finance Uniqueness Boundary (FI-01 / EI-02), deduplication is enforced authoritatively by `BillingApplicationService.createBill()` via `checkFinancialUniqueness()`. The Ledger Engine remains double-entry agnostic.
 
 ---
 

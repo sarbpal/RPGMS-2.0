@@ -427,18 +427,6 @@ export class BillingApplicationService {
   }
 
   /**
-   * Application Use Case: Check if an electricity allocation bill has already been posted to Finance.
-   * Enforces idempotency using LedgerReferenceType.ELECTRICITY_ALLOCATION and participantAllocationId.
-   */
-  public hasDuplicateElectricityBill(participantAllocationId: string): boolean {
-    if (!participantAllocationId) return false;
-    const entries = this.repository.getLedgerEntries();
-    return entries.some(
-      (e) => e.referenceType === 'ELECTRICITY_ALLOCATION' && e.referenceId === participantAllocationId
-    );
-  }
-
-  /**
    * Application Use Case: Check if a laundry charge bill has already been posted to Finance.
    * Enforces idempotency using lineItem.obligationKey (businessChargeId).
    */

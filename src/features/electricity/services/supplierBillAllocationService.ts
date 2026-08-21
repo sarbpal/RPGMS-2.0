@@ -12,6 +12,7 @@ import { ParticipantDiscoveryService } from './participantDiscoveryService';
 import { ElectricityBill } from '../domain/entities/ElectricityBill';
 import { ElectricityAllocation, type AllocationDataQualityIssue } from '../domain/entities/ElectricityAllocation';
 import { AllocationParticipant, type AllocationParticipantProps } from '../domain/valueObjects/AllocationParticipant';
+import { ObligationKey } from '../../billing/domain/valueObjects/ObligationKey';
 import { calculateShareBasedAllocation } from '../domain/rules/allocationRules';
 
 export interface CreateSupplierBillInput {
@@ -395,13 +396,7 @@ export class SupplierBillAllocationService {
         continue;
       }
 
-      // Idempotency check: reuse existing Finance bill if already posted for participant
-      const isDuplicate = this.financeService.hasDuplicateElectricityBill(participant.id);
-      if (isDuplicate && participant.financeBillId) {
-        updatedParticipants.push(participant);
-        continue;
-      }
-
+      const obligationKey = ObligationKey.forElectricity(participant.stayId, participant.id).value;
       const description = `Electricity Bill Allocation (${allocation.periodStart} to ${allocation.periodEnd})`;
       const billPayload = {
         stayId: participant.stayId,
@@ -415,12 +410,12 @@ export class SupplierBillAllocationService {
             category: 'UTILITIES' as const,
             description,
             amount: participant.allocatedAmount,
+            obligationKey,
           },
         ],
         totalAmount: participant.allocatedAmount,
         status: 'UNPAID' as const,
         remarks: `Electricity Allocation Bill (Participant ID: ${participant.id})`,
-        customReferenceId: participant.id,
       };
 
       const billResult = this.financeService.createBill(billPayload);

@@ -3,6 +3,7 @@ import { BillingApplicationService } from '../billingService';
 import { InMemoryFinanceRepository } from '../../infrastructure/repositories/InMemoryFinanceRepository';
 import { InMemoryStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { financeStorage } from '../../storage/financeStorage';
+import { AccountType } from '../../domain/valueObjects/AccountType';
 import { Stay } from '../../../stay/domain/entities/Stay';
 import { CommercialAgreement } from '../../../stay/domain/valueObjects/CommercialAgreement';
 
@@ -267,6 +268,141 @@ describe('Financial Obligation Uniqueness Boundary (BR-416, ADR-032)', () => {
       });
       expect(charge2.success).toBe(true);
       expect(charge2.bill?.id).not.toBe(charge1.bill?.id);
+    });
+  });
+
+  describe('6. Electricity Financial Uniqueness (EI-02)', () => {
+    it('direct duplicate creation with the same Electricity obligationKey is rejected', () => {
+      const elecKey = 'ELECTRICITY:STAY-U-01:ealloc_202608_part_01';
+
+      const firstBill = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-10',
+        dueDate: '2026-08-17',
+        totalAmount: 1450,
+        status: 'UNPAID' as const,
+        lineItems: [
+          {
+            id: 'li-e1',
+            description: 'Electricity Share - Aug 2026',
+            amount: 1450,
+            category: 'UTILITIES' as const,
+            obligationKey: elecKey,
+          },
+        ],
+      });
+
+      expect(firstBill.success).toBe(true);
+      expect(firstBill.bill).not.toBeNull();
+
+      // Second attempt with same Electricity obligationKey
+      const duplicateBill = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-10',
+        dueDate: '2026-08-17',
+        totalAmount: 1450,
+        status: 'UNPAID' as const,
+        lineItems: [
+          {
+            id: 'li-e2',
+            description: 'Electricity Share - Duplicate Attempt',
+            amount: 1450,
+            category: 'UTILITIES' as const,
+            obligationKey: elecKey,
+          },
+        ],
+      });
+
+      expect(duplicateBill.success).toBe(false);
+      expect(duplicateBill.bill).toBeNull();
+      expect(duplicateBill.errors[0]).toContain(`Financial obligation '${elecKey}' is already financially realized`);
+
+      // Ledger must contain only 1 AR debit and 1 Electricity Revenue credit (2 entries total)
+      const ledgerEntries = financeRepo.getLedgerEntries();
+      expect(ledgerEntries).toHaveLength(2);
+      expect(ledgerEntries.some((e) => e.account === AccountType.ELECTRICITY_REVENUE)).toBe(true);
+    });
+
+    it('rejects manual Finance realization attempting to reuse an already-realized Electricity obligationKey', () => {
+      const elecKey = 'ELECTRICITY:STAY-U-01:ealloc_202608_part_02';
+
+      // 1. First realization from domain posting
+      const domainPosting = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-01',
+        dueDate: '2026-08-07',
+        totalAmount: 900,
+        status: 'UNPAID' as const,
+        lineItems: [
+          {
+            id: 'li-e-domain',
+            description: 'Electricity Share',
+            amount: 900,
+            category: 'UTILITIES' as const,
+            obligationKey: elecKey,
+          },
+        ],
+      });
+      expect(domainPosting.success).toBe(true);
+
+      // 2. Desk operator manual attempt with the same obligationKey
+      const manualAttempt = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'ONE_TIME_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-05',
+        dueDate: '2026-08-12',
+        totalAmount: 900,
+        status: 'UNPAID' as const,
+        lineItems: [
+          {
+            id: 'li-e-manual',
+            description: 'Manual Utility Invoice',
+            amount: 900,
+            category: 'UTILITIES' as const,
+            obligationKey: elecKey,
+          },
+        ],
+      });
+
+      expect(manualAttempt.success).toBe(false);
+      expect(manualAttempt.errors[0]).toContain(`Financial obligation '${elecKey}' is already financially realized`);
+    });
+
+    it('allows different Electricity obligationKeys for the same resident in the same month', () => {
+      const keyA = 'ELECTRICITY:STAY-U-01:ealloc_202608_meter_A';
+      const keyB = 'ELECTRICITY:STAY-U-01:ealloc_202608_meter_B';
+
+      const billA = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-01',
+        dueDate: '2026-08-07',
+        totalAmount: 700,
+        status: 'UNPAID' as const,
+        lineItems: [{ id: 'li-a', description: 'Meter A', amount: 700, category: 'UTILITIES' as const, obligationKey: keyA }],
+      });
+      expect(billA.success).toBe(true);
+
+      const billB = billingService.createBill({
+        stayId: 'STAY-U-01',
+        billType: 'RECURRING_CHARGE' as const,
+        period: '2026-08',
+        issueDate: '2026-08-01',
+        dueDate: '2026-08-07',
+        totalAmount: 500,
+        status: 'UNPAID' as const,
+        lineItems: [{ id: 'li-b', description: 'Meter B', amount: 500, category: 'UTILITIES' as const, obligationKey: keyB }],
+      });
+      expect(billB.success).toBe(true);
+      expect(billB.bill?.id).not.toBe(billA.bill?.id);
     });
   });
 });

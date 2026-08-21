@@ -89,6 +89,30 @@ export interface ConditionObservationViewModel {
   readonly observedAtFormatted: string;
 }
 
+export interface LaundryChargeRecordViewModel {
+  readonly id: string;
+  readonly businessChargeId: string;
+  readonly transactionId: string;
+  readonly garmentLineId: string;
+  readonly itemName?: string;
+  readonly serviceId: string;
+  readonly serviceName?: string;
+  readonly bracketIndex: number;
+  readonly quantity: number;
+  readonly unitRate: number;
+  readonly unitRateFormatted: string;
+  readonly totalAmount: number;
+  readonly totalAmountFormatted: string;
+  readonly currency: string;
+  readonly calculatedAt: string;
+  readonly calculatedAtFormatted: string;
+  readonly status: 'PENDING_POSTING' | 'POSTED';
+  readonly statusLabel: string;
+  readonly financeBillId?: string;
+  readonly postedAt?: string;
+  readonly postedAtFormatted?: string;
+}
+
 export interface ServiceAllocationViewModel {
   readonly id: string;
   readonly garmentLineId: string;
@@ -104,6 +128,7 @@ export interface ServiceAllocationViewModel {
   readonly postedChargesCount: number;
   readonly totalChargeAmount: number;
   readonly totalChargeAmountFormatted: string;
+  readonly charges: readonly LaundryChargeRecordViewModel[];
 }
 
 export interface GarmentLineViewModel {
@@ -235,6 +260,8 @@ export interface LaundryTransactionSummaryViewModel {
   readonly totalEstimatedAmountFormatted: string;
   readonly totalPostedAmount: number;
   readonly totalPostedAmountFormatted: string;
+  readonly unpostedChargesCount: number;
+  readonly hasUnpostedCharges: boolean;
   readonly isFullyChargedAndPosted: boolean;
   readonly collectedAt?: string;
   readonly collectedAtFormatted?: string;
@@ -252,6 +279,7 @@ export interface LaundryTransactionDetailViewModel extends LaundryTransactionSum
   readonly processingReleasedAtFormatted?: string;
   readonly processingReleasedByStaffId?: string;
   readonly garmentLines: readonly GarmentLineViewModel[];
+  readonly charges: readonly LaundryChargeRecordViewModel[];
   readonly returns: readonly ReturnRecordViewModel[];
   readonly deliveries: readonly DeliveryRecordViewModel[];
   readonly exceptions: readonly ExceptionViewModel[];

@@ -30,6 +30,9 @@ import {
   AssignmentReturned,
   WarningAmber,
   CheckCircleOutlined,
+  AccountBalanceWallet,
+  Receipt,
+  HourglassEmpty,
 } from '@mui/icons-material';
 import type {
   LaundryTransactionDetailViewModel,
@@ -49,6 +52,7 @@ interface LaundryTransactionDetailDrawerProps {
   onRaiseException?: (detail: LaundryTransactionDetailViewModel) => void;
   onRecordInvestigation?: (detail: LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => void;
   onResolveException?: (detail: LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => void;
+  onPostCharges?: (detail: LaundryTransactionDetailViewModel) => void;
 }
 
 export function LaundryTransactionDetailDrawer({
@@ -64,6 +68,7 @@ export function LaundryTransactionDetailDrawer({
   onRaiseException,
   onRecordInvestigation,
   onResolveException,
+  onPostCharges,
 }: LaundryTransactionDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<number>(0);
 
@@ -780,31 +785,183 @@ export function LaundryTransactionDetailDrawer({
             {activeTab === 4 && (
               <Stack spacing={3}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: 'grey.50' }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
-                    Financial Summary
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Financial & Commercial Summary
                   </Typography>
-                  <Stack direction="row" spacing={3}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+                    <Stack direction="row" spacing={3}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Estimated Commercial Value
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                          {detail.totalEstimatedAmountFormatted}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Posted to Finance Ledger
+                        </Typography>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 800,
+                            color: detail.isFullyChargedAndPosted ? 'success.main' : 'text.primary',
+                          }}
+                        >
+                          {detail.totalPostedAmountFormatted}
+                        </Typography>
+                      </Box>
+                    </Stack>
+
                     <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Estimated Commercial Value
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        {detail.totalEstimatedAmountFormatted}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Posted to Finance Ledger
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 800, color: detail.isFullyChargedAndPosted ? 'success.main' : 'text.primary' }}>
-                        {detail.totalPostedAmountFormatted}
-                      </Typography>
+                      {detail.isFullyChargedAndPosted ? (
+                        <Chip
+                          icon={<CheckCircleOutlined />}
+                          label="Fully Posted to Finance"
+                          color="success"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      ) : detail.hasUnpostedCharges ? (
+                        <Chip
+                          icon={<WarningAmber />}
+                          label={`${detail.unpostedChargesCount} Unposted Charge(s)`}
+                          color="warning"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      ) : (
+                        <Chip
+                          icon={<HourglassEmpty />}
+                          label="No Pending Charges"
+                          variant="outlined"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      )}
                     </Box>
                   </Stack>
                 </Paper>
 
+                {/* Unposted Charges Action Banner */}
+                {detail.hasUnpostedCharges && onPostCharges && (
+                  <Alert
+                    severity="warning"
+                    action={
+                      <Button
+                        color="warning"
+                        variant="contained"
+                        size="small"
+                        startIcon={<AccountBalanceWallet />}
+                        onClick={() => onPostCharges(detail)}
+                        sx={{ textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
+                      >
+                        Post Charges to Finance
+                      </Button>
+                    }
+                    sx={{ alignItems: 'center' }}
+                  >
+                    There are <strong>{detail.unpostedChargesCount}</strong> unposted charge record(s) ready to be posted to
+                    the Resident&apos;s Unified Stay Ledger.
+                  </Alert>
+                )}
+
+                {/* Itemized Charge Records Table */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Itemized Charge Records ({detail.charges?.length || 0})
+                  </Typography>
+
+                  {!detail.charges || detail.charges.length === 0 ? (
+                    <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No chargeable laundry services generated yet.
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        Per BR-L-012, charges are generated when garments are physically delivered to the resident.
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: 'grey.100' }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Item & Service</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Charge Key</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Quantity</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Unit Rate</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Total Amount</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Posting Status</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Finance Bill Reference</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {detail.charges.map((charge) => (
+                            <TableRow key={charge.id}>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {charge.itemName || 'Garment'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {charge.serviceName || charge.serviceId}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                  {charge.businessChargeId}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2">{charge.quantity} pcs</Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2">{charge.unitRateFormatted}</Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {charge.totalAmountFormatted}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  size="small"
+                                  label={charge.statusLabel}
+                                  color={charge.status === 'POSTED' ? 'success' : 'warning'}
+                                  sx={{ fontSize: '0.7rem', fontWeight: 600 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {charge.status === 'POSTED' ? (
+                                  <Box>
+                                    <Chip
+                                      size="small"
+                                      icon={<Receipt fontSize="small" />}
+                                      label={charge.financeBillId || 'Posted'}
+                                      variant="outlined"
+                                      color="success"
+                                      sx={{ fontSize: '0.75rem' }}
+                                    />
+                                    {charge.postedAtFormatted && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                                        {charge.postedAtFormatted}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary">
+                                    Calculated: {charge.calculatedAtFormatted}
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </Box>
+
                 <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
-                  Charges are automatically evaluated per BR-L-012 when services are fulfilled and garments are physically delivered to the resident.
+                  Charges are automatically evaluated per <strong>BR-L-012</strong> when services are fulfilled and garments
+                  are physically delivered to the resident. Idempotency is guaranteed by <code>businessChargeId</code>.
                 </Alert>
               </Stack>
             )}
@@ -912,6 +1069,19 @@ export function LaundryTransactionDetailDrawer({
                   Record Resident Delivery
                 </Button>
               )}
+
+            {/* Post Charges Action: when unposted charges are pending */}
+            {detail.hasUnpostedCharges && onPostCharges && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AccountBalanceWallet />}
+                onClick={() => onPostCharges(detail)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Post Charges to Finance
+              </Button>
+            )}
 
             {detail.status === 'COMPLETED' && (
               <Chip label="Order Completed" color="success" sx={{ fontWeight: 700 }} />

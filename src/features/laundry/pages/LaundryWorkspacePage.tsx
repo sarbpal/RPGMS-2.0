@@ -23,6 +23,7 @@ import { RecordDeliveryDialog } from '../components/dialogs/RecordDeliveryDialog
 import { RaiseExceptionDialog } from '../components/dialogs/RaiseExceptionDialog';
 import { RecordInvestigationDialog } from '../components/dialogs/RecordInvestigationDialog';
 import { ResolveExceptionDialog } from '../components/dialogs/ResolveExceptionDialog';
+import { PostChargesDialog } from '../components/dialogs/PostChargesDialog';
 
 export function LaundryWorkspacePage() {
   const {
@@ -54,6 +55,7 @@ export function LaundryWorkspacePage() {
     openRaiseExceptionDialog,
     openRecordInvestigationDialog,
     openResolveExceptionDialog,
+    openPostChargesDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
@@ -64,6 +66,7 @@ export function LaundryWorkspacePage() {
     handleRaiseExceptionSubmit,
     handleRecordInvestigationSubmit,
     handleResolveExceptionSubmit,
+    handlePostChargesSubmit,
     closeSnackbar,
   } = useLaundryWorkspace();
 
@@ -159,6 +162,7 @@ export function LaundryWorkspacePage() {
           onRaiseException={openRaiseExceptionDialog}
           onRecordInvestigation={openRecordInvestigationDialog}
           onResolveException={openResolveExceptionDialog}
+          onPostCharges={openPostChargesDialog}
         />
 
         {/* 6. Command Dialog — Create Collection Draft */}
@@ -234,6 +238,14 @@ export function LaundryWorkspacePage() {
           exception={targetException}
           onClose={closeDialogs}
           onSubmit={handleResolveExceptionSubmit}
+        />
+
+        {/* 15. Command Dialog — Post Charges to Finance */}
+        <PostChargesDialog
+          open={activeDialog === 'POST_CHARGES'}
+          detail={selectedDetail}
+          onClose={closeDialogs}
+          onSubmit={handlePostChargesSubmit}
         />
 
         {/* 10. Global Feedback Snackbar */}

@@ -42,6 +42,7 @@ import type {
   ExceptionViewModel,
   LaundryTimelineEventViewModel,
   PostedChargeRecordViewModel,
+  LaundryChargeRecordViewModel,
 } from '../models/LaundryWorkspaceViewModel';
 
 import type {
@@ -533,6 +534,7 @@ export class LaundryWorkspaceCoordinator {
     let totalEstAmount = 0;
     let totalPostedAmount = 0;
     let hasCharges = false;
+    let unpostedChargesCount = 0;
 
     for (const line of tx.garmentLines) {
       for (const sa of line.serviceAllocations) {
@@ -543,6 +545,8 @@ export class LaundryWorkspaceCoordinator {
           hasCharges = true;
           if (charge.status === 'POSTED') {
             totalPostedAmount += charge.totalAmount;
+          } else if (charge.status === 'PENDING_POSTING') {
+            unpostedChargesCount++;
           }
         }
       }
@@ -576,6 +580,8 @@ export class LaundryWorkspaceCoordinator {
       totalEstimatedAmountFormatted: this.formatCurrency(totalEstAmount),
       totalPostedAmount: totalPostedAmount,
       totalPostedAmountFormatted: this.formatCurrency(totalPostedAmount),
+      unpostedChargesCount,
+      hasUnpostedCharges: unpostedChargesCount > 0,
       isFullyChargedAndPosted,
       collectedAt: tx.collectedAt,
       collectedAtFormatted: this.formatDate(tx.collectedAt),
@@ -596,21 +602,51 @@ export class LaundryWorkspaceCoordinator {
     const itemMap = new Map(items.map((i) => [i.id, i.name]));
     const serviceMap = new Map(services.map((s) => [s.id, s.name]));
 
+    const allCharges: LaundryChargeRecordViewModel[] = [];
+
     const garmentLines: GarmentLineViewModel[] = tx.garmentLines.map((line) => {
+      const itemName = itemMap.get(line.itemId) || line.itemName || line.itemId;
       const serviceAllocations: ServiceAllocationViewModel[] = line.serviceAllocations.map((sa) => {
         let saTotalCharge = 0;
         let saPostedCount = 0;
+        const serviceName = serviceMap.get(sa.serviceId) || sa.serviceName || sa.serviceId;
 
-        for (const c of sa.charges) {
+        const saCharges: LaundryChargeRecordViewModel[] = sa.charges.map((c) => {
           saTotalCharge += c.totalAmount;
           if (c.status === 'POSTED') saPostedCount++;
-        }
+
+          const chargeVm: LaundryChargeRecordViewModel = {
+            id: c.id,
+            businessChargeId: c.businessChargeId,
+            transactionId: c.transactionId,
+            garmentLineId: c.garmentLineId,
+            itemName,
+            serviceId: c.serviceId,
+            serviceName,
+            bracketIndex: c.bracketIndex,
+            quantity: c.quantity,
+            unitRate: c.unitRate,
+            unitRateFormatted: this.formatCurrency(c.unitRate),
+            totalAmount: c.totalAmount,
+            totalAmountFormatted: this.formatCurrency(c.totalAmount),
+            currency: c.currency,
+            calculatedAt: c.calculatedAt,
+            calculatedAtFormatted: this.formatDate(c.calculatedAt) || c.calculatedAt,
+            status: c.status,
+            statusLabel: c.status === 'POSTED' ? 'Posted' : 'Pending Posting',
+            financeBillId: c.financeBillId,
+            postedAt: c.postedAt,
+            postedAtFormatted: this.formatDate(c.postedAt),
+          };
+          allCharges.push(chargeVm);
+          return chargeVm;
+        });
 
         return {
           id: sa.id,
           garmentLineId: sa.garmentLineId,
           serviceId: sa.serviceId,
-          serviceName: serviceMap.get(sa.serviceId) || sa.serviceName || sa.serviceId,
+          serviceName,
           requestedQuantity: sa.requestedQuantity,
           fulfilledQuantity: sa.fulfilledQuantity,
           fulfillmentStatus: sa.fulfillmentStatus,
@@ -621,6 +657,7 @@ export class LaundryWorkspaceCoordinator {
           postedChargesCount: saPostedCount,
           totalChargeAmount: saTotalCharge,
           totalChargeAmountFormatted: this.formatCurrency(saTotalCharge),
+          charges: Object.freeze(saCharges),
         };
       });
 
@@ -768,6 +805,7 @@ export class LaundryWorkspaceCoordinator {
       processingReleasedAtFormatted: this.formatDate(tx.processingReleasedAt),
       processingReleasedByStaffId: tx.processingReleasedByStaffId,
       garmentLines: Object.freeze(garmentLines),
+      charges: Object.freeze(allCharges),
       returns: Object.freeze(returns),
       deliveries: Object.freeze(deliveries),
       exceptions: Object.freeze(exceptions),

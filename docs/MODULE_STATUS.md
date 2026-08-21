@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟢 Exception Lifecycle Presentation Workflows Complete (L-01 – L-14 Complete)
+**Status:** 🟢 Commercial & Finance Posting Workflows Complete (L-01 – L-15 Complete)
 
-**State:** Operational Exception Lifecycle Workflows Implemented
+**State:** Fully Implemented / MVP Complete
 
 ## Purpose
 
@@ -626,7 +626,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Completed (L-01 through L-14)
+## Completed (L-01 through L-15)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -646,8 +646,8 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ### Application Orchestration Layer (L-10)
 
-- Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`)
-- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, `RaiseExceptionDTO`, `RecordInvestigationDTO`, `ResolveExceptionDTO`, etc.)
+- Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`, `LaundryChargeRecordViewModel`)
+- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordInspectionDTO`, `ReleaseProcessingDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, `RaiseExceptionDTO`, `RecordInvestigationDTO`, `ResolveExceptionDTO`, `PostChargesDTO`, etc.)
 - Application Services: `LaundryCollectionService`, `LaundryProcessingService`, `LaundryDeliveryService`, `LaundryExceptionService`, `LaundryEvidenceService`
 - Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
 - Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
@@ -685,11 +685,11 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Exception Lifecycle Inspector: Integrated in `LaundryTransactionDetailDrawer.tsx` Tab 3 ("Exceptions") with status badges (`OPEN`, `UNDER_INVESTIGATION`, `RESOLVED`), blocking delivery indicators, garment/service targeting tags, chronological investigation audit logs, formal resolution outcome cards, and contextual action buttons.
 - Physical Completion Projection: Projected authoritative `totalResolvedPieces` from domain onto summary and detail ViewModels without frontend calculation.
 
----
+### Commercial Finance Posting Workflows (L-15)
 
-## Next Steps (L-15+)
-
-- L-15: Commercial Charge Posting Presentation & Operational Polish (`PostChargesDialog`, thermal tag/print integration)
+- Post Charges Confirmation Dialog: `PostChargesDialog.tsx` supporting itemized pending charge review, authoritative quantity/rate/amount inspection, staff ID identity confirmation (`staffId`), and error recovery.
+- Commercial & Charges Tab Presentation: Completed in `LaundryTransactionDetailDrawer.tsx` Tab 4 ("Commercial & Charges") with financial summary cards, unposted charges action banner, itemized charges table with charge keys, unit rates, quantities, total amounts, posting status badges (`POSTED` vs `PENDING_POSTING`), and direct Finance Bill ID references.
+- Idempotent Finance Orchestration: Wired `evaluateAndPostCharges` through `useLaundryWorkspace.ts` and `LaundryWorkspaceCoordinator.ts`, strictly enforcing `businessChargeId` idempotency.
 
 ---
 

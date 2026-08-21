@@ -7,6 +7,7 @@ import type {
   SelectableLaundryStayItem,
   LaundryMasterCatalogViewModel,
   ExceptionViewModel,
+  PostChargesResultViewModel,
 } from '../application/models/LaundryWorkspaceViewModel';
 import type {
   LaundryWorkspaceFilters,
@@ -19,6 +20,7 @@ import type {
   RaiseExceptionDTO,
   RecordInvestigationDTO,
   ResolveExceptionDTO,
+  PostChargesDTO,
 } from '../application/dtos/laundryDTOs';
 
 export type LaundryModalType =
@@ -31,6 +33,7 @@ export type LaundryModalType =
   | 'RAISE_EXCEPTION'
   | 'RECORD_INVESTIGATION'
   | 'RESOLVE_EXCEPTION'
+  | 'POST_CHARGES'
   | null;
 
 export interface UseLaundryWorkspaceReturn {
@@ -72,6 +75,7 @@ export interface UseLaundryWorkspaceReturn {
   openRaiseExceptionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   openRecordInvestigationDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => Promise<void>;
   openResolveExceptionDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel, exception: ExceptionViewModel) => Promise<void>;
+  openPostChargesDialog: (transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel) => Promise<void>;
   closeDialogs: () => void;
 
   // Command Handlers
@@ -84,6 +88,7 @@ export interface UseLaundryWorkspaceReturn {
   handleRaiseExceptionSubmit: (dto: RaiseExceptionDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleRecordInvestigationSubmit: (dto: RecordInvestigationDTO) => Promise<LaundryTransactionDetailViewModel>;
   handleResolveExceptionSubmit: (dto: ResolveExceptionDTO) => Promise<LaundryTransactionDetailViewModel>;
+  handlePostChargesSubmit: (dto: PostChargesDTO) => Promise<PostChargesResultViewModel>;
 
   // Notification Actions
   closeSnackbar: () => void;
@@ -325,6 +330,17 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     setActiveDialog('RESOLVE_EXCEPTION');
   }, [selectedDetail, loadDetail]);
 
+  const openPostChargesDialog = useCallback(async (
+    transaction: LaundryTransactionSummaryViewModel | LaundryTransactionDetailViewModel
+  ) => {
+    setSelectedTransactionId(transaction.id);
+    setTargetException(null);
+    if (!selectedDetail || selectedDetail.id !== transaction.id) {
+      await loadDetail(transaction.id);
+    }
+    setActiveDialog('POST_CHARGES');
+  }, [selectedDetail, loadDetail]);
+
   const closeDialogs = useCallback(() => {
     setActiveDialog(null);
     setTargetTransaction(null);
@@ -453,6 +469,25 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     }
   }, [coordinator, showSnackbar, closeDialogs, refresh]);
 
+  const handlePostChargesSubmit = useCallback(async (dto: PostChargesDTO) => {
+    try {
+      const result = await coordinator.evaluateAndPostCharges(dto);
+      if (result.success) {
+        showSnackbar(`Finance posting successful: ${result.postedChargesCount} charge(s) posted (${result.totalAmountPostedFormatted})`, 'success');
+      } else {
+        showSnackbar(result.failureReason || 'Finance posting completed with errors', 'error');
+      }
+      await refresh();
+      if (selectedTransactionId) {
+        await loadDetail(selectedTransactionId);
+      }
+      return result;
+    } catch (err: any) {
+      showSnackbar(err?.message || 'Failed to post charges to Finance', 'error');
+      throw err;
+    }
+  }, [coordinator, showSnackbar, refresh, selectedTransactionId, loadDetail]);
+
   return {
     viewModel,
     selectedTransactionId,
@@ -482,6 +517,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     openRaiseExceptionDialog,
     openRecordInvestigationDialog,
     openResolveExceptionDialog,
+    openPostChargesDialog,
     closeDialogs,
     handleCreateDraftSubmit,
     handleConfirmCollectionSubmit,
@@ -492,6 +528,7 @@ export function useLaundryWorkspace(): UseLaundryWorkspaceReturn {
     handleRaiseExceptionSubmit,
     handleRecordInvestigationSubmit,
     handleResolveExceptionSubmit,
+    handlePostChargesSubmit,
     closeSnackbar,
     showSnackbar,
     refresh,

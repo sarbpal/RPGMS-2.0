@@ -53,7 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
-| Laundry | 🔵 Design Complete (Pre-Implementation) |
+| Laundry | 🟡 Application Layer Complete (L-01–L-10 Complete) |
 
 ---
 
@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🔵 Design Complete (Business Specification Approved)
+**Status:** 🟡 Application Layer Complete (L-01 – L-10 Complete)
 
-**State:** Pre-Implementation
+**State:** Domain & Application Orchestration Implemented
 
 ## Purpose
 
@@ -626,32 +626,38 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Planned Features
+## Completed (L-01 through L-10)
 
-### Workspaces & Dashboards
+### Domain & Business Rules (L-01 – L-07)
 
-- Laundry Operations Dashboard & Workspace
-- Collection Workspace (item & service entry, photography evidence, confirmation)
-- Inspection & Condition Observation Workspace
-- Processing Route Selection & Release
-- Return Verification & Count Reconciliation Workspace
-- Delivery & Handover Workspace (Direct Handover, Room Placement)
-- Exceptions & Investigation Workspace
-- Exception Resolution & Operational Basis Workflow
-- Service Fulfillment & Chargeability View
+- Master Data: Laundry Item Master, Laundry Service Master, Laundry Charge Master (L-01)
+- Aggregate Root & Invariants: `LaundryTransaction`, `GarmentLine`, `ServiceAllocation` (L-02)
+- Service Fulfillment & Chargeability: BR-L-012 newly chargeable quantity evaluation (L-03)
+- Collection & Snapshot: Immutable Rate Snapshots captured at collection confirmation (L-04)
+- Inspection & Routing: Condition observations, inspection verification, routing release (L-05)
+- Returns & Custody: Return verification, piece counting, physical reconciliation invariant (L-06)
+- Delivery & Exceptions: Direct/Room placement delivery, exception investigation and resolution (L-07)
 
-### Business Features
+### Cross-Domain & Infrastructure (L-08 – L-09)
 
-- Master Data: Laundry Item Master, Laundry Service Master, Laundry Charge Master
-- Immutable Rate Snapshots captured at Collection Confirmation
-- Physical counting distinct from service selection (Garment Lines)
-- Processing Route selection (`IN_HOUSE` / `EXTERNAL_VENDOR`) without impacting resident rates
-- Authoritative return count based on verified physical return
-- Multi-handover & partial delivery support
-- Physical reconciliation invariant ($\text{Outstanding} = \text{Collected} - \text{Delivered} - \text{Resolved}$)
-- Service-level chargeability determination ($\text{Service Fulfilled} + \text{Affected Quantity Delivered}$)
-- Cross-domain integration: emitting `LaundryChargeRaised` domain event to Finance
-- Prevention of double-charging and duplicate event processing
+- Finance Integration: `LaundryPostingService` consuming `LaundryChargeRaised` events to create authoritative Finance Bills (L-08)
+- Persistence & Storage: `InMemoryLaundryRepository`, `laundryStorage`, ephemeral `evidenceStorage` with Section 181 lifecycle (L-09)
+- Composition Root Registration: Singletons registered in `stayWorkflowComposition.ts` (L-09)
+
+### Application Orchestration Layer (L-10)
+
+- Presentation Models: Pure read-only ViewModels (`LaundryWorkspaceMetricsViewModel`, `LaundryTransactionSummaryViewModel`, `LaundryTransactionDetailViewModel`, `LaundryMasterCatalogViewModel`, `SelectableLaundryStayItem`, `PostChargesResultViewModel`)
+- Application DTOs: Strongly-typed input and filter contracts (`CreateCollectionDraftDTO`, `ConfirmCollectionDTO`, `RecordReturnDTO`, `RecordDeliveryDTO`, etc.)
+- Application Services: `LaundryCollectionService`, `LaundryProcessingService`, `LaundryDeliveryService`, `LaundryExceptionService`, `LaundryEvidenceService`
+- Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
+- Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
+
+---
+
+## Next Steps (L-11+)
+
+- Presentation / UI Layer (L-11)
+- React Workspace Components, Dashboards, Tables, and Operational Dialogs
 
 ---
 
@@ -802,7 +808,7 @@ Current objectives:
 | Population Unification | 🟢 Complete (ADR-030) | Stable |
 | Maintenance | 🟢 Foundation Complete | Future Capability |
 | Reports | 🟢 Foundation Complete | Future Capability |
-| Laundry | 🔵 Design Complete | Pre-Implementation |
+| Laundry | 🟡 Application Layer Complete | L-01 – L-10 Complete (UI in Progress) |
 
 ---
 

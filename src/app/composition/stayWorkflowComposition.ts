@@ -11,6 +11,7 @@ import { ReservationWorkspaceCoordinator } from '../../features/reservation/appl
 import { defaultLaundryRepository } from '../../features/laundry/infrastructure/repositories/InMemoryLaundryRepository';
 import { defaultLaundryMasterRepository } from '../../features/laundry/infrastructure/repositories/InMemoryLaundryMasterRepository';
 import { defaultLaundryPostingService } from '../../features/finance/services/laundryPostingService';
+import { defaultLaundryWorkspaceCoordinator } from '../../features/laundry/application/coordinator/LaundryWorkspaceCoordinator';
 
 export const stayWorkflowComposition = {
   stayRepository: defaultStayRepository,
@@ -23,6 +24,8 @@ export const stayWorkflowComposition = {
   defaultLaundryMasterRepository,
   laundryFinanceIntegrationService: defaultLaundryPostingService,
   defaultLaundryPostingService,
+  laundryWorkspaceCoordinator: defaultLaundryWorkspaceCoordinator,
+  defaultLaundryWorkspaceCoordinator,
   stayWorkspaceCoordinator: new StayWorkspaceCoordinator(defaultStayRepository, defaultResidentRepository, defaultAccommodationRepository),
   accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(defaultAccommodationRepository, defaultStayRepository, defaultResidentRepository),
   residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(defaultResidentRepository, defaultStayRepository),

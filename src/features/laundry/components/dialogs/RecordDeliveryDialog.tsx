@@ -437,8 +437,8 @@ export function RecordDeliveryDialog({
               </Box>
               <Chip
                 size="small"
-                color={detail.totalDeliveredPieces + totalPiecesInThisDelivery >= detail.totalPhysicalPieces ? 'success' : 'primary'}
-                label={detail.totalDeliveredPieces + totalPiecesInThisDelivery >= detail.totalPhysicalPieces ? 'Full Physical Completion' : 'Partial Delivery'}
+                color="success"
+                label={`${totalPiecesInThisDelivery} pcs to deliver`}
                 sx={{ fontWeight: 700 }}
               />
             </Stack>

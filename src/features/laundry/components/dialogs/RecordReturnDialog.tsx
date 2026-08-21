@@ -288,8 +288,8 @@ export function RecordReturnDialog({
               </Box>
               <Chip
                 size="small"
-                color={detail.totalReturnedPieces + totalPiecesInThisReceipt >= detail.totalPhysicalPieces ? 'success' : 'primary'}
-                label={detail.totalReturnedPieces + totalPiecesInThisReceipt >= detail.totalPhysicalPieces ? 'Full Return' : 'Partial Return'}
+                color="primary"
+                label={`${totalPiecesInThisReceipt} pcs in receipt`}
                 sx={{ fontWeight: 700 }}
               />
             </Stack>

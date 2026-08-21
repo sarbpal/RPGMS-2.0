@@ -10,6 +10,7 @@ import {
   EventAvailable,
   Hotel,
   ReceiptLong,
+  LocalLaundryService,
 } from '@mui/icons-material';
 import {
   Drawer,
@@ -32,6 +33,7 @@ const menuItems = [
   { label: 'Billing', icon: <ReceiptLong />, to: '/billing' },
   { label: 'Finance', icon: <AccountBalanceWallet />, to: '/finance' },
   { label: 'Electricity', icon: <Bolt />, to: '/electricity' },
+  { label: 'Laundry', icon: <LocalLaundryService />, to: '/laundry' },
   { label: 'Maintenance', icon: <Build />, to: '/maintenance' },
   { label: 'Reports', icon: <Assessment />, to: '/reports' },
   { label: 'Settings', icon: <Settings />, to: '/settings' },

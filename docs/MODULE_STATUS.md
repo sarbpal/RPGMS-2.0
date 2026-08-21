@@ -53,7 +53,7 @@ Current development is focused on delivering the Operational Services capability
 | Population Unification | 🟢 Complete (ADR-030) |
 | Maintenance | 🟢 Foundation Complete |
 | Reports | 🟢 Foundation Complete |
-| Laundry | 🟡 Application Layer Complete (L-01–L-10 Complete) |
+| Laundry | 🟡 Presentation Foundation Complete (L-01–L-11 Complete) |
 
 ---
 
@@ -616,9 +616,9 @@ Orchestrates controlled billing cycles across Stays and uncommitted domain charg
 
 # Laundry Module
 
-**Status:** 🟡 Application Layer Complete (L-01 – L-10 Complete)
+**Status:** 🟡 Presentation Foundation Complete (L-01 – L-11 Complete)
 
-**State:** Domain & Application Orchestration Implemented
+**State:** Operational Workspace Presentation Foundation Implemented
 
 ## Purpose
 
@@ -626,7 +626,7 @@ Manages the complete operational lifecycle of resident laundry services, from co
 
 ---
 
-## Completed (L-01 through L-10)
+## Completed (L-01 through L-11)
 
 ### Domain & Business Rules (L-01 – L-07)
 
@@ -652,12 +652,24 @@ Manages the complete operational lifecycle of resident laundry services, from co
 - Workspace Coordinator: `LaundryWorkspaceCoordinator` orchestrating operational workflows, cross-domain Stay/Resident/Flat enrichment, and Finance charge posting
 - Composition Root Integration: Registered `laundryWorkspaceCoordinator` in `stayWorkflowComposition.ts`
 
+### Presentation Foundation (L-11)
+
+- Workspace Shell & Hook: `LaundryWorkspacePage.tsx` and `useLaundryWorkspace.ts`
+- Operational Dashboard: `LaundryDashboardCards.tsx` with 1-to-1 metric-click filtering
+- Search & Toolbar: `LaundryToolbar.tsx` supporting universal search and lifecycle status tabs
+- Responsive Table & Cards: `LaundryTransactionTable.tsx`
+- Multi-Tab Inspector: `LaundryTransactionDetailDrawer.tsx` rendering all ViewModel facets without frontend business calculations
+- Initial Command Dialogs: `CreateCollectionDraftDialog.tsx` and `ConfirmCollectionDialog.tsx`
+- Application Shell Integration: Registered `/laundry` route in `router.tsx` and Sidebar navigation with `LocalLaundryService` icon
+
 ---
 
-## Next Steps (L-11+)
+## Next Steps (L-12+)
 
-- Presentation / UI Layer (L-11)
-- React Workspace Components, Dashboards, Tables, and Operational Dialogs
+- L-12: Collection & Processing Presentation Workflows (`InspectAndRouteDialog`, condition observations, vendor selection)
+- L-13: Custody, Returns & Delivery Presentation Workflows (`RecordReturnDialog`, `RecordDeliveryDialog`, partial deliveries, room placement)
+- L-14: Exceptions & Investigations Presentation Workflows (`RaiseExceptionDialog`, `RecordInvestigationDialog`, `ResolveExceptionDialog`)
+- L-15: Commercial Charge Posting Presentation & Operational Polish (`PostChargesDialog`, thermal tag/print integration)
 
 ---
 

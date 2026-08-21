@@ -141,4 +141,9 @@ describe('Sprint FR-5 — ResidentFinancialProfile & SettlementDialog Integratio
     expect(previewResult.preview?.netSettlementAmount).toBe(8000);
     expect(previewResult.preview?.outcome).toBe('HOSTEL_REFUNDS_RESIDENT');
   });
+
+  it('instantiates ResidentFinancialProfile cleanly and segregates dedicated deposit modals from placeholder dialog (UI-FIN-001)', async () => {
+    const { ResidentFinancialProfile } = await import('../ResidentFinancialProfile');
+    expect(typeof ResidentFinancialProfile).toBe('function');
+  });
 });

@@ -264,4 +264,51 @@ describe('Sprint FR-2 — Admission & Rent Billing Integration Test Suite', () =
     expect(secondInit.success).toBe(false);
     expect(secondInit.errors[0]).toContain('Financial billing already initialized');
   });
+
+  it('TC-AF-09: Admission Rent Bill attaches canonical obligationKey and integrates with generic uniqueness (DEF-FIN-005)', () => {
+    const reservation = createActiveReservation('resv-109', 2000);
+    reservationRepo.saveSync(reservation);
+
+    const draft = createAdmissionDraft(TokenDisposition.ADJUST_TO_SECURITY_DEPOSIT);
+    const result = coordinator.confirmReservedAdmission(draft, reservation);
+
+    expect(result.success).toBe(true);
+
+    const bills = defaultFinanceRepository.getBillsByStayId(result.stayId);
+    expect(bills.length).toBe(1);
+    const rentBill = bills[0];
+
+    // Assert canonical obligationKey format: RENT:<stayId>:<anniversaryDate>
+    const stay = stayRepo.findByIdSync(result.stayId);
+    const anchorDay = stay?.billingAnchorDay || 1;
+    const expectedAnniversary = `2026-08-${String(anchorDay).padStart(2, '0')}`;
+
+    expect(rentBill.lineItems.length).toBe(1);
+    const lineItem = rentBill.lineItems[0];
+    expect(lineItem.obligationKey).toBe(`RENT:${result.stayId}:${expectedAnniversary}`);
+
+    // Verify that attempting to create a second bill with the same obligationKey is rejected by generic uniqueness
+    const duplicateAttempt = (financeService as any).billingService.createBill({
+      stayId: result.stayId,
+      billType: 'MONTHLY_RENT',
+      period: '2026-08',
+      issueDate: '2026-08-01',
+      dueDate: '2026-08-07',
+      lineItems: [
+        {
+          id: 'li_duplicate_attempt',
+          description: 'Duplicate Rent Attempt',
+          amount: 12000,
+          category: 'RENT',
+          obligationKey: `RENT:${result.stayId}:${expectedAnniversary}`,
+        },
+      ],
+      totalAmount: 12000,
+      status: 'UNPAID',
+      remarks: 'Duplicate Rent Attempt',
+    });
+
+    expect(duplicateAttempt.success).toBe(false);
+    expect(duplicateAttempt.errors.some((e: string) => e.includes('already financially realized'))).toBe(true);
+  });
 });

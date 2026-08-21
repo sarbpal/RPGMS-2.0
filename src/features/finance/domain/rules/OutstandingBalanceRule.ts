@@ -73,7 +73,7 @@ export function calculateFinanceSummaryFromLedger(entries: LedgerEntry[]): Finan
 
   for (const entry of entries) {
     if (entry.account === AccountType.CASH || entry.account === AccountType.BANK) {
-      totalCollected += entry.debit;
+      totalCollected += (entry.debit - entry.credit);
     }
   }
 

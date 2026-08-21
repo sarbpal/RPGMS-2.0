@@ -1972,7 +1972,7 @@ Orchestration claims (Billing Claims) and double-entry accounting records (Ledge
 
 ### Reason
 
-Establishes and implements (FI-01, EI-02) the architectural invariant that manual and automated financial realization paths converge on the same Finance uniqueness boundary, eliminating asymmetric financial realization and ensuring that the same underlying commercial obligation cannot create duplicate financial bills or duplicate ledger postings (BCR-005, BCR-007, BR-412, BR-414, ADR-032).
+Establishes and implements (FI-01, EI-02, FC-01) the architectural invariant that manual and automated financial realization paths—including initial rent billed upon Admission—converge on the same Finance uniqueness boundary, eliminating asymmetric financial realization and ensuring that the same underlying commercial obligation cannot create duplicate financial bills or duplicate ledger postings (BCR-005, BCR-007, BR-412, BR-414, ADR-032).
 
 ### Applies To
 
@@ -1982,6 +1982,24 @@ Establishes and implements (FI-01, EI-02) the architectural invariant that manua
 - Electricity
 - Laundry
 - Operations
+
+---
+
+## BR-417 Net Collections Cash Flow Calculation
+
+### Rule
+
+Property-wide and aggregate collection metrics (`totalCollected`) derived from the Unified Stay Ledger shall represent net liquid funds received and retained across Cash and Bank asset accounts ($\sum \text{Debit}_{\text{Cash/Bank}} - \sum \text{Credit}_{\text{Cash/Bank}}$), explicitly deducting disbursements, deposit refunds, return payouts, and payment reversals.
+
+### Reason
+
+Prevents overstatement of collected property revenue when deposit refund payouts, checkout returns, or payment reversals take place, maintaining double-entry financial integrity (FC-01, DEF-FIN-003).
+
+### Applies To
+
+- Finance
+- Ledger
+- Reporting / Workspace Metrics
 
 ---
 

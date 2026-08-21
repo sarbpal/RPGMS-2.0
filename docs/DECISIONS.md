@@ -1022,14 +1022,14 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 ### Consequences
 
 #### Advantages:
-- Defines and implements (FI-01) the architectural invariant that manual and automated financial realization paths converge on the same Finance uniqueness boundary, eliminating the architectural asymmetry.
+- Defines and implements (FI-01, FC-01) the architectural invariant that manual, admission, and automated financial realization paths converge on the same Finance uniqueness boundary, eliminating the architectural asymmetry.
 - Preserves the constitutional separation of concerns: Source domains own business pricing; Billing owns batch orchestration; Finance owns financial truth and uniqueness; Ledger owns double-entry balancing.
 - Establishes a generic architectural standard applicable across Rent, Electricity, Laundry, and future charge types (Maintenance, Damage, Penalties).
 
 #### Trade-offs & Costs:
 - Finance financial-realization APIs enforce financial uniqueness for financial realizations carrying a stable source-domain obligation identity (`obligationKey`), according to applicable source-domain invariants.
 - Source-domain charge discovery providers verify existing Finance commitments during discovery before presenting obligations as uncommitted.
-- Integration tests verify cross-path deduplication across automated and manual flows.
+- Integration tests verify cross-path deduplication across automated, manual, and admission flows.
 
 ---
 
@@ -1037,6 +1037,7 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.7 | August 2026 | FC-01: Core Financial Truth & Admission Obligation Convergence (BR-416, BR-417, DEF-FIN-003, DEF-FIN-005, UI-FIN-001). |
 | 3.6 | August 2026 | Added ADR-032 (Financial Obligation Uniqueness Boundary & Cross-Module Deduplication Architecture). |
 | 3.5 | August 2026 | Added ADR-031 (Laundry Operational Support Domain Architecture & Finance Boundary Reconciliation). |
 | 3.4 | August 2026 | Added ADR-030 (Cross-Workspace Operational Population Unification & Canonical Repository Singletons). |

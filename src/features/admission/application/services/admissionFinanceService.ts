@@ -8,6 +8,7 @@ import type { StayRepository } from '../../../stay/domain/interfaces/StayReposit
 import { defaultStayRepository } from '../../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { BillingApplicationService } from '../../../finance/services/billingService';
 import { LedgerApplicationService } from '../../../finance/services/ledgerService';
+import { ObligationKey } from '../../../billing/domain/valueObjects/ObligationKey';
 
 export interface AdmissionFinanceResult {
   success: boolean;
@@ -151,6 +152,11 @@ export class AdmissionFinanceService {
             ? `Reservation ${admissionResult.reservationNumber}`
             : 'Walk-in';
 
+        const stay = this.stayRepository.findByIdSync ? this.stayRepository.findByIdSync(stayId) : null;
+        const anchorDay = stay?.billingAnchorDay || parseInt(checkInDate.split('-')[2], 10) || 1;
+        const anniversaryDate = `${billingPeriod}-${String(anchorDay).padStart(2, '0')}`;
+        const obligationKey = ObligationKey.forRent(stayId, anniversaryDate).value;
+
         const billResult = this.billingService.createBill({
           stayId,
           billType: 'MONTHLY_RENT',
@@ -163,6 +169,7 @@ export class AdmissionFinanceService {
               description: `Initial Monthly Rent - ${billingPeriod} (${sourceLabel})`,
               amount: rentAmount,
               category: 'RENT',
+              obligationKey,
             },
           ],
           totalAmount: rentAmount,

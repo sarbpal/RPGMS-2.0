@@ -756,7 +756,9 @@ export function ResidentFinancialProfile({
             activeAction !== 'RECEIVE_PAYMENT' &&
             activeAction !== 'ADD_LAUNDRY' &&
             activeAction !== 'VIEW_LEDGER' &&
-            activeAction !== 'CHECKOUT'
+            activeAction !== 'CHECKOUT' &&
+            activeAction !== 'PARTIAL_DEPOSIT_RETURN' &&
+            activeAction !== 'DEPOSIT_DEDUCTION'
         )}
 
 

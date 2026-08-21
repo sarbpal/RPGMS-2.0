@@ -139,4 +139,139 @@ describe('Sprint FR-5 — FinanceWorkspacePage & FinanceWorkspaceCoordinator Int
       expect(amit?.status).toBe('ON_NOTICE');
     });
   });
+
+  describe('Finance Correction F-01 — Resident-Scoped Current Month Charges Suite', () => {
+    const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+    const seedPropertyBills = () => {
+      const stayCharges = [
+        { stayId: 'stay-000004', amount: 12000 }, // Tito Singh
+        { stayId: 'STAY-2026-00041', amount: 8500 },  // Rajesh Kumar
+        { stayId: 'STAY-2026-00042', amount: 9000 },  // Amit Sharma
+        { stayId: 'stay-000002', amount: 12000 },
+        { stayId: 'stay-000003', amount: 12000 },
+        { stayId: 'stay-000005', amount: 12000 },
+        { stayId: 'stay-000006', amount: 12000 },
+        { stayId: 'stay-000007', amount: 12000 },
+      ];
+
+      stayCharges.forEach((sc, idx) => {
+        defaultFinanceRepository.saveBill({
+          id: `bill-prop-${idx + 1}`,
+          billNumber: `INV-${currentMonthStr.replace('-', '')}-${String(idx + 1).padStart(4, '0')}`,
+          stayId: sc.stayId,
+          billType: 'MONTHLY_RENT',
+          period: currentMonthStr,
+          issueDate: `${currentMonthStr}-01`,
+          dueDate: `${currentMonthStr}-07`,
+          totalAmount: sc.amount,
+          paidAmount: 0,
+          balanceAmount: sc.amount,
+          status: 'UNPAID',
+          lineItems: [{ id: `li-prop-${idx + 1}`, description: 'Rent', amount: sc.amount, category: 'RENT' }],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      });
+    };
+
+    it('TEST 1 & TEST 5: preserves property-wide metrics.totalMonthlyBilling = 89,500 while isolating stay-scoped monthly charges = 12,000', () => {
+      seedPropertyBills();
+      const coordinator = new FinanceWorkspaceCoordinator();
+
+      // TEST 5: Verify property-wide dashboard total is exactly ₹89,500
+      const dashboardVm = coordinator.createViewModel(8);
+      expect(dashboardVm.metrics.totalMonthlyBilling).toBe(89500);
+
+      // TEST 1: Query bills for Tito Singh (stay-000004) specifically
+      const titoBills = defaultFinanceRepository.getBillsByStayId('stay-000004');
+      const titoCurrentMonthCharges = titoBills
+        .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+        .reduce((sum, b) => sum + b.totalAmount, 0);
+
+      expect(titoCurrentMonthCharges).toBe(12000);
+      expect(titoCurrentMonthCharges).not.toBe(89500);
+      expect(dashboardVm.metrics.totalMonthlyBilling).not.toBe(titoCurrentMonthCharges);
+    });
+
+    it('TEST 2: enforces strict stay isolation between Stay A and Stay B', () => {
+      seedPropertyBills();
+
+      // Stay A (stay-000004, Tito Singh) = ₹12,000
+      // Stay B (STAY-2026-00041, Rajesh Kumar) = ₹8,500
+      const billsA = defaultFinanceRepository.getBillsByStayId('stay-000004');
+      const stayACharges = billsA
+        .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+        .reduce((sum, b) => sum + b.totalAmount, 0);
+
+      const billsB = defaultFinanceRepository.getBillsByStayId('STAY-2026-00041');
+      const stayBCharges = billsB
+        .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+        .reduce((sum, b) => sum + b.totalAmount, 0);
+
+      expect(stayACharges).toBe(12000);
+      expect(stayBCharges).toBe(8500);
+      expect(stayACharges + stayBCharges).toBe(20500);
+      // Stay A never shows combined or other stays' bills
+      expect(stayACharges).not.toBe(20500);
+      expect(stayBCharges).not.toBe(20500);
+    });
+
+    it('TEST 3: excludes CANCELLED bills from stay-scoped current month charges', () => {
+      seedPropertyBills();
+      const stayId = 'stay-000004';
+
+      // Add a cancelled bill for Tito Singh
+      defaultFinanceRepository.saveBill({
+        id: 'bill-cancelled-1',
+        billNumber: 'INV-CANCELLED-001',
+        stayId,
+        billType: 'ONE_TIME_CHARGE',
+        period: currentMonthStr,
+        issueDate: `${currentMonthStr}-10`,
+        dueDate: `${currentMonthStr}-10`,
+        totalAmount: 3000,
+        paidAmount: 0,
+        balanceAmount: 0,
+        status: 'CANCELLED',
+        lineItems: [{ id: 'li-c-1', description: 'Cancelled Fee', amount: 3000, category: 'OTHER' }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const bills = defaultFinanceRepository.getBillsByStayId(stayId);
+      const activeCharges = bills
+        .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+        .reduce((sum, b) => sum + b.totalAmount, 0);
+
+      // Active charges should remain 12000, excluding the 3000 cancelled bill
+      expect(activeCharges).toBe(12000);
+    });
+
+    it('TEST 4: verifies Outstanding Balance remains derived independently from ledger entries', () => {
+      const stayId = 'stay-000004';
+
+      defaultFinanceRepository.saveLedgerEntries([
+        {
+          id: 'led-tito-1',
+          stayId,
+          postingDate: `${currentMonthStr}-01`,
+          effectiveDate: `${currentMonthStr}-01`,
+          referenceType: 'BILL',
+          referenceId: 'bill-prop-1',
+          account: 'ACCOUNTS_RECEIVABLE',
+          debit: 12000,
+          credit: 0,
+          remarks: 'Monthly Rent',
+          createdBy: 'SYSTEM',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      const coordinator = new FinanceWorkspaceCoordinator();
+      const balances = coordinator.balanceEngine.calculateStayBalances(stayId);
+
+      expect(balances.receivableBalance).toBe(12000);
+    });
+  });
 });

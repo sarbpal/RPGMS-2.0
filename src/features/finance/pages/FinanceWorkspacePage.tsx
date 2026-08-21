@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 
 import { useFinanceWorkspace, type FinanceModalType } from '../hooks/useFinanceWorkspace';
+import { useStayFinance } from '../hooks/useStayFinance';
 import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { ReceivePaymentModal } from '../components/ReceivePaymentModal';
 import { GenerateRentModal } from '../components/GenerateRentModal';
@@ -86,8 +87,23 @@ export default function FinanceWorkspacePage() {
     setPendingAction(null);
   };
 
+  const { bills: selectedBills, refresh: refreshStayFinance } = useStayFinance(selectedStayId);
+
+  const currentMonthStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  const stayCurrentMonthCharges = useMemo(() => {
+    if (!selectedStayId || !selectedBills) return 0;
+    return selectedBills
+      .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
+      .reduce((sum, b) => sum + b.totalAmount, 0);
+  }, [selectedStayId, selectedBills, currentMonthStr]);
+
   const handleSuccess = (message: string) => {
     refresh();
+    refreshStayFinance();
     setSnackbarMessage(message);
     setSnackbarOpen(true);
   };
@@ -462,7 +478,7 @@ export default function FinanceWorkspacePage() {
               netBalance: 0,
             }
           }
-          currentMonthCharges={metrics.totalMonthlyBilling}
+          currentMonthCharges={stayCurrentMonthCharges}
           lastPaymentDateText="Current Account"
           onSuccess={handleSuccess}
         />

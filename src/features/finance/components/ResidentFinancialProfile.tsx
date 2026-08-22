@@ -146,7 +146,9 @@ export function ResidentFinancialProfile({
   }, [bills, currentMonthStr]);
 
   const totalPaymentsReceived = useMemo(() => {
-    return payments.reduce((sum, p) => sum + p.amount, 0);
+    return payments
+      .filter((p) => p.status !== 'REVERSED')
+      .reduce((sum, p) => sum + p.amount, 0);
   }, [payments]);
 
   // Recent Activity dates
@@ -161,7 +163,9 @@ export function ResidentFinancialProfile({
 
   const lastPayment = useMemo(() => {
     if (!payments || payments.length === 0) return null;
-    return [...payments].sort(
+    const activePayments = payments.filter((p) => p.status !== 'REVERSED');
+    if (activePayments.length === 0) return null;
+    return [...activePayments].sort(
       (a, b) =>
         new Date(b.paymentDate || b.createdAt).getTime() -
         new Date(a.paymentDate || a.createdAt).getTime()

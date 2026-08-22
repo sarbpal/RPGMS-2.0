@@ -1,5 +1,5 @@
-import type { LedgerEntry, LedgerReferenceType, FinanceRepository } from '../domain';
-import { AccountType, validateDoubleEntry } from '../domain';
+import type { LedgerEntry, FinanceRepository } from '../domain';
+import { AccountType, LedgerReferenceType, validateDoubleEntry } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
 import { balanceEngine } from './balanceEngine';
 
@@ -282,20 +282,22 @@ export class LedgerApplicationService {
         id: p.id,
         date: p.paymentDate || p.createdAt.split('T')[0],
         referenceNumber: p.paymentNumber,
-        transactionType: 'Payment Received',
-        description: `Payment via ${p.paymentMethod}${p.referenceNumber ? ` (Ref: ${p.referenceNumber})` : ''}${p.remarks ? ` - ${p.remarks}` : ''}`,
+        transactionType: p.status === 'REVERSED' ? 'Payment Received (Reversed)' : 'Payment Received',
+        description: `Payment via ${p.paymentMethod}${p.referenceNumber ? ` (Ref: ${p.referenceNumber})` : ''}${p.remarks ? ` - ${p.remarks}` : ''}${p.status === 'REVERSED' ? ` [REVERSED: ${p.reversalReason || 'Reversed'}]` : ''}`,
         debit: 0,
         credit: p.amount,
-        status: 'PAID',
+        status: p.status || 'PAID',
         createdAt: p.createdAt,
       });
     });
 
-    // Map any standalone LedgerEntries not linked to bills or payments
+    // Map any standalone LedgerEntries not linked to bills or payments (including reversal entries)
     const knownRefIds = new Set([...bills.map((b) => b.id), ...payments.map((p) => p.id)]);
     const ledgerEntries = this.getEntriesForStay(stayId);
     const standaloneEntries = ledgerEntries.filter(
-      (e) => e.account === AccountType.ACCOUNTS_RECEIVABLE && !knownRefIds.has(e.referenceId)
+      (e) =>
+        e.account === AccountType.ACCOUNTS_RECEIVABLE &&
+        (!knownRefIds.has(e.referenceId) || e.referenceType === LedgerReferenceType.REVERSAL)
     );
 
     standaloneEntries.forEach((e) => {
@@ -303,7 +305,7 @@ export class LedgerApplicationService {
         id: e.id,
         date: e.effectiveDate || e.postingDate,
         referenceNumber: `LED-${e.id.slice(-6)}`,
-        transactionType: e.referenceType === 'REVERSAL' ? 'Adjustment (Reversal)' : 'Adjustment',
+        transactionType: e.referenceType === LedgerReferenceType.REVERSAL ? 'Adjustment (Reversal)' : 'Adjustment',
         description: e.remarks || 'Ledger Entry',
         debit: e.debit || 0,
         credit: e.credit || 0,

@@ -31,6 +31,19 @@ export interface RecordPaymentResult {
   errors: string[];
 }
 
+export interface ReversePaymentPayload {
+  paymentId: string;
+  reversalReason: string;
+  reversedBy?: string;
+  idempotencyKey?: string;
+}
+
+export interface ReversePaymentResult {
+  success: boolean;
+  payment: Payment | null;
+  errors: string[];
+}
+
 export interface ApplyAdvanceCreditResult {
   success: boolean;
   stayId: string;
@@ -326,6 +339,7 @@ export class PaymentApplicationService {
           idempotencyKey: trimmedIdemKey,
           allocations,
           remarks: paymentPayload.remarks?.trim() || undefined,
+          status: 'RECORDED',
           createdAt: now,
         };
 
@@ -347,6 +361,280 @@ export class PaymentApplicationService {
       }
     } finally {
       PaymentApplicationService.activePaymentLocks.delete(trimmedStayId);
+    }
+  }
+
+  /**
+   * Application Use Case: Reverse a recorded Payment in full.
+   * FC-07: Enforces immutable historical facts, compensating double-entry ledger counter-postings,
+   * deterministic FIFO bill allocation restoration, advance credit derecognition, consumed advance credit guard,
+   * settlement protection, idempotency replay/conflict detection, per-payment/stay concurrency locking,
+   * T2 live balance revalidation, and application-level compensating rollback boundaries.
+   */
+  public reversePayment(payload: ReversePaymentPayload): ReversePaymentResult {
+    const errors: string[] = [];
+
+    if (!payload.paymentId || payload.paymentId.trim() === '') {
+      errors.push('Missing or invalid paymentId.');
+    }
+
+    if (!payload.reversalReason || payload.reversalReason.trim() === '') {
+      errors.push('Reversal reason is mandatory.');
+    }
+
+    if (errors.length > 0) {
+      return { success: false, payment: null, errors };
+    }
+
+    const trimmedPaymentId = payload.paymentId.trim();
+    const trimmedReason = payload.reversalReason.trim();
+    const trimmedIdemKey = payload.idempotencyKey?.trim() || undefined;
+    const reversedBy = payload.reversedBy?.trim() || 'OPERATOR';
+
+    const payment = this.getPaymentById(trimmedPaymentId);
+    if (!payment) {
+      return {
+        success: false,
+        payment: null,
+        errors: [`Payment '${trimmedPaymentId}' not found.`],
+      };
+    }
+
+    // 1. Idempotency Check (Replay vs Conflict)
+    if (trimmedIdemKey) {
+      const allPayments = this.getAllPayments();
+      const existingByKey = allPayments.find(
+        (p) => p.reversalIdempotencyKey === trimmedIdemKey
+      );
+
+      if (existingByKey) {
+        const isSamePayment = existingByKey.id === payment.id;
+        const isReversed = existingByKey.status === 'REVERSED';
+        const isSameReason = existingByKey.reversalReason === trimmedReason;
+
+        if (isSamePayment && isReversed && isSameReason) {
+          // Exact Idempotent Replay
+          return {
+            success: true,
+            payment: existingByKey,
+            errors: [],
+          };
+        } else {
+          // Idempotency Key Conflict
+          return {
+            success: false,
+            payment: null,
+            errors: [
+              `Idempotency key conflict: A payment reversal with idempotency key "${trimmedIdemKey}" already exists with conflicting details.`,
+            ],
+          };
+        }
+      }
+    }
+
+    // 2. Already Reversed Check (Double Reversal Guard)
+    if (payment.status === 'REVERSED') {
+      return {
+        success: false,
+        payment: null,
+        errors: [
+          `Payment #${payment.paymentNumber} has already been reversed on ${payment.reversedAt || 'an earlier date'}.`,
+        ],
+      };
+    }
+
+    // 3. T2 Validation: Settlement Protection Guard (Rule 11)
+    const settlement = this.repository.getSettlementByStayId(payment.stayId);
+    if (settlement && settlement.status === 'SETTLED') {
+      return {
+        success: false,
+        payment: null,
+        errors: [
+          `Cannot reverse payment #${payment.paymentNumber} for stay '${payment.stayId}' because the stay has already completed financial settlement.`,
+        ],
+      };
+    }
+
+    // 4. Advance Credit & Allocation Portions
+    const allocatedPortion = (payment.allocations || []).reduce((sum, a) => sum + a.amount, 0);
+    const advancePortion = Math.max(0, Math.round((payment.amount - allocatedPortion) * 100) / 100);
+
+    // 5. T2 Validation: Consumed Advance Credit Guard (Rule 8)
+    if (advancePortion > 0) {
+      const liveAdvance = this.balanceService.getAccountBalance(
+        payment.stayId,
+        AccountType.ADVANCE_CREDIT
+      );
+
+      if (liveAdvance < advancePortion) {
+        const consumedAmount = Math.round((advancePortion - liveAdvance) * 100) / 100;
+        return {
+          success: false,
+          payment: null,
+          errors: [
+            `Cannot reverse payment because ₹${consumedAmount.toLocaleString('en-IN')} of its advance credit has already been consumed by subsequent bills. Reverse downstream bill advance applications first.`,
+          ],
+        };
+      }
+    }
+
+    // 6. Concurrency Protection (Rule 16)
+    if (
+      PaymentApplicationService.activePaymentLocks.has(payment.id) ||
+      PaymentApplicationService.activeStayLocks.has(payment.stayId)
+    ) {
+      return {
+        success: false,
+        payment: null,
+        errors: [
+          'A payment or financial operation is currently in progress for this payment/stay. Please retry.',
+        ],
+      };
+    }
+
+    PaymentApplicationService.activePaymentLocks.add(payment.id);
+    PaymentApplicationService.activeStayLocks.add(payment.stayId);
+
+    // 7. Pre-Operation Snapshots for Compensating Rollback Boundary (Rule 18)
+    const snapshotLedger = this.repository.getLedgerEntries();
+    const snapshotBills = this.repository.getBills();
+    const snapshotPayments = this.repository.getPayments();
+
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
+      const assetAccount =
+        payment.paymentMethod === 'CASH' ? AccountType.CASH : AccountType.BANK;
+
+      // 8. Balanced Reversal Ledger Postings:
+      // Credit CASH/BANK for total amount A
+      // Debit ACCOUNTS_RECEIVABLE for allocated portion P_AR
+      // Debit ADVANCE_CREDIT for advance portion P_ADV
+      const ledgerEntriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[] = [
+        {
+          stayId: payment.stayId,
+          postingDate: todayStr,
+          effectiveDate: todayStr,
+          referenceType: LedgerReferenceType.REVERSAL,
+          referenceId: payment.id,
+          account: assetAccount,
+          debit: 0,
+          credit: payment.amount,
+          remarks: `Reversal of Payment #${payment.paymentNumber} via ${payment.paymentMethod}: ${trimmedReason}`,
+          createdBy: reversedBy,
+        },
+      ];
+
+      if (allocatedPortion > 0) {
+        ledgerEntriesData.push({
+          stayId: payment.stayId,
+          postingDate: todayStr,
+          effectiveDate: todayStr,
+          referenceType: LedgerReferenceType.REVERSAL,
+          referenceId: payment.id,
+          account: AccountType.ACCOUNTS_RECEIVABLE,
+          debit: allocatedPortion,
+          credit: 0,
+          remarks: `Receivable restoration for reversed Payment #${payment.paymentNumber}`,
+          createdBy: reversedBy,
+        });
+      }
+
+      if (advancePortion > 0) {
+        ledgerEntriesData.push({
+          stayId: payment.stayId,
+          postingDate: todayStr,
+          effectiveDate: todayStr,
+          referenceType: LedgerReferenceType.REVERSAL,
+          referenceId: payment.id,
+          account: AccountType.ADVANCE_CREDIT,
+          debit: advancePortion,
+          credit: 0,
+          remarks: `Advance credit derecognition for reversed Payment #${payment.paymentNumber}`,
+          createdBy: reversedBy,
+        });
+      }
+
+      const ledgerResult = this.ledgerService.postEntries(ledgerEntriesData);
+      if (!ledgerResult.success) {
+        return {
+          success: false,
+          payment: null,
+          errors: [`Failed to post payment reversal ledger entries: ${ledgerResult.errors.join(', ')}`],
+        };
+      }
+
+      // 9. Restore Bill Allocations (Rule 6)
+      const allBills = this.repository.getBills();
+      if (payment.allocations && payment.allocations.length > 0) {
+        for (const alloc of payment.allocations) {
+          const billIndex = allBills.findIndex((b) => b.id === alloc.billId);
+          if (billIndex >= 0) {
+            const targetBill = allBills[billIndex];
+            const newPaidAmount = Math.max(
+              0,
+              Math.round((targetBill.paidAmount - alloc.amount) * 100) / 100
+            );
+            const newBalanceAmount = Math.round(
+              (targetBill.totalAmount - newPaidAmount) * 100
+            ) / 100;
+            const newStatus =
+              newPaidAmount === 0 ? BillStatus.UNPAID : BillStatus.PARTIALLY_PAID;
+
+            allBills[billIndex] = {
+              ...targetBill,
+              paidAmount: newPaidAmount,
+              balanceAmount: newBalanceAmount,
+              status: newStatus,
+              updatedAt: now,
+            };
+          }
+        }
+        this.repository.saveBills(allBills);
+      }
+
+      // 10. Update & Persist Payment Record with Reversal Metadata (Rule 2 & 22)
+      const reversedPayment: Payment = {
+        ...payment,
+        status: 'REVERSED',
+        reversedAt: now,
+        reversedBy,
+        reversalReason: trimmedReason,
+        reversalIdempotencyKey: trimmedIdemKey,
+        reversalLedgerEntryIds: ledgerResult.entries.map((e) => e.id),
+      };
+
+      this.repository.savePayment(reversedPayment);
+
+      return {
+        success: true,
+        payment: reversedPayment,
+        errors: [],
+      };
+    } catch (err: unknown) {
+      // Compensating Rollback: restore all repositories to pre-operation snapshot
+      try {
+        this.repository.saveLedgerEntries(snapshotLedger);
+        this.repository.saveBills(snapshotBills);
+        const prevPayment = snapshotPayments.find((p) => p.id === payment.id);
+        if (prevPayment) {
+          this.repository.savePayment(prevPayment);
+        }
+      } catch {
+        /* rollback best-effort */
+      }
+      return {
+        success: false,
+        payment: null,
+        errors: [
+          err instanceof Error
+            ? `Payment reversal failed and was rolled back: ${err.message}`
+            : 'Payment reversal failed and was rolled back cleanly.',
+        ],
+      };
+    } finally {
+      PaymentApplicationService.activePaymentLocks.delete(payment.id);
+      PaymentApplicationService.activeStayLocks.delete(payment.stayId);
     }
   }
 

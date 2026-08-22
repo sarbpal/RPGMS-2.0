@@ -1,5 +1,7 @@
 import type { PaymentMethod, PaymentAllocation } from '../valueObjects/PaymentValueObjects';
 
+export type PaymentStatus = 'RECORDED' | 'REVERSED';
+
 export interface Payment {
   id: string;
   stayId: string;
@@ -12,4 +14,10 @@ export interface Payment {
   allocations: PaymentAllocation[];
   remarks?: string;
   createdAt: string;
+  status?: PaymentStatus;
+  reversedAt?: string;
+  reversedBy?: string;
+  reversalReason?: string;
+  reversalIdempotencyKey?: string;
+  reversalLedgerEntryIds?: string[];
 }

@@ -2129,6 +2129,43 @@ Aligns user interaction with FC-03A/B Advance Credit and idempotency contracts w
 
 ---
 
+## BR-424 Payment Reversal Lifecycle & Ledger Invariants
+
+### Rule
+
+Payment reversal operates as an authoritative compensating financial correction governed by the following invariants:
+
+1. **Full Payment Reversal Unit**: The canonical unit of reversal is the full `Payment` aggregate (`payment.id`). Partial payment reversal or fractional allocation reversal is strictly prohibited. If an operator needs to adjust a payment amount, they must reverse the original payment in full and record a new, correct payment.
+2. **Historical Immutability**: Historical `Payment` entities, their initial `allocations`, and original `LedgerEntry` records are permanent financial facts and shall never be mutated or physically deleted. The `Payment` transitions its lifecycle state from `RECORDED` to `REVERSED`, permanently recording `reversedAt`, `reversedBy`, `reversalReason`, `reversalIdempotencyKey`, and `reversalLedgerEntryIds`.
+3. **Balanced Reversal Double-Entry Ledger Postings**: For an original payment of total amount $A$, with allocated receivable portion $P_{\text{AR}}$ and advance credit portion $P_{\text{ADV}}$ ($A = P_{\text{AR}} + P_{\text{ADV}}$):
+   - **Credit CASH / BANK** (Asset Derecognition) for total amount $A$
+   - **Debit ACCOUNTS_RECEIVABLE** (Asset Restoration) for $P_{\text{AR}}$ (if $P_{\text{AR}} > 0$)
+   - **Debit ADVANCE_CREDIT** (Liability Derecognition) for $P_{\text{ADV}}$ (if $P_{\text{ADV}} > 0$)
+   - Reference Type: `LedgerReferenceType.REVERSAL`, Reference ID: `payment.id`.
+4. **Obligation Balance Restoration**: For each original allocation in `payment.allocations`, the corresponding target `Bill` has its `paidAmount` reduced by the allocated amount ($\max(0, \text{paidAmount} - \text{allocationAmount})$), its `balanceAmount` recalculated ($\text{totalAmount} - \text{newPaidAmount}$), and its status updated (`PAID` $\rightarrow$ `PARTIALLY_PAID` or `UNPAID`). Subsequent payments applied to the same bill remain intact and financially effective.
+5. **Consumed Advance Credit Guard**: If a payment generated Advance Credit liability ($P_{\text{ADV}} > 0$) that was subsequently consumed by downstream billing runs ($\text{LiveAdvanceCredit} < P_{\text{ADV}}$), direct payment reversal is **strictly rejected**. Reversal of downstream bill advance applications must occur before the source payment can be reversed, preventing negative liabilities and inconsistent bill states.
+6. **Settlement Protection**: Payments associated with a Stay that has completed financial settlement (`settlement.status === 'SETTLED'`) cannot be reversed via payment reversal.
+7. **Operational Checkout Boundary**: Payment reversal is permitted on `CHECKED_OUT` stays prior to financial settlement, accurately restoring open receivables without altering operational checkout status.
+8. **Idempotency, Concurrency & Rollback**:
+   - Reversal requires a mandatory `reversalReason` and supports an optional `idempotencyKey`.
+   - Identical idempotency replays return the existing reversed payment without duplicate ledger entries; conflicting requests are rejected.
+   - Dual-lock mutex (`activePaymentLocks` and `activeStayLocks`) serializes concurrent executions.
+   - Pre-operation snapshots guarantee clean compensating rollback across ledger entries, bills, and payments in the event of persistence failures.
+
+### Reason
+
+Enforces FC-07 financial integrity, preserving historical accounting truth, preventing double-reversals or orphan liabilities, and guaranteeing mathematical consistency between the Unified Stay Ledger, bill obligation states, and financial reports.
+
+### Applies To
+
+- Finance
+- Audit
+- Billing
+- Payment Processing
+- Ledger Engine
+
+---
+
 # Payment Allocation
 
 Payment Allocation governs how Payments settle Charges.

@@ -104,7 +104,9 @@ export class ReportingApplicationService {
       .reduce((sum, b) => sum + b.totalAmount, 0);
 
     const payments = this.paymentService.getPaymentsByStayId(stayId);
-    const totalPaymentsAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaymentsAmount = payments
+      .filter((p) => p.status !== 'REVERSED')
+      .reduce((sum, p) => sum + p.amount, 0);
 
     return {
       stayId,
@@ -127,7 +129,7 @@ export class ReportingApplicationService {
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
 
     const monthPayments = payments.filter(
-      (p) => p.paymentDate && p.paymentDate.startsWith(monthStr)
+      (p) => p.status !== 'REVERSED' && p.paymentDate && p.paymentDate.startsWith(monthStr)
     );
 
     const cashCollections = monthPayments

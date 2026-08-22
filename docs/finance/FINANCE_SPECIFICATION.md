@@ -17,6 +17,7 @@ Changes to this document require an Architecture Decision Record (ADR) when they
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|
+| 2.2.0 | 2026-08-22 | Active | FC-07 Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424) |
 | 2.1.0 | 2026-08-22 | Active | FC-03C Payment Intake Workflow, Advance Credit UI Semantics & Idempotency Lifecycle (ADR-036, BR-423) |
 | 2.0.0 | 2026-07-21 | Sealed | Canonical Finance Specification for RPGMS 2.0 |
 | 1.0.0 | 2026-07-20 | Frozen | Initial Finance Architecture for RPGMS 2.0 |
@@ -1064,6 +1065,37 @@ The Ledger guarantees:
 ## Why This Design?
 
 The Ledger provides complete traceability while keeping operational modules independent from financial calculations.
+
+---
+
+## Payment Reversals & Compensating Counter-Postings (FC-07)
+
+Payment Reversal represents an authoritative compensating financial correction for invalid, bounced, disputed, or incorrectly recorded payments.
+
+### 1. Invariants
+- **Immutability of Original History**: Historical `Payment` entities, their initial `allocations`, and original `LedgerEntry` postings are permanent facts and are never deleted or mutated.
+- **Full Reversal Unit**: Reversal operates exclusively on the full `Payment` aggregate (`payment.id`). Partial payment reversal is prohibited.
+- **State Transition**: The `Payment` aggregate transitions to `status: 'REVERSED'`, permanently recording `reversedAt`, `reversedBy`, `reversalReason`, `reversalIdempotencyKey`, and `reversalLedgerEntryIds`.
+
+### 2. Balanced Counter-Postings
+For an original payment of amount $A$ with allocated receivable portion $P_{\text{AR}}$ and advance credit portion $P_{\text{ADV}}$:
+
+$$\begin{aligned}
+\text{Debit } & \text{ACCOUNTS\_RECEIVABLE} & P_{\text{AR}} & \quad (\text{Restoring open dues, if } P_{\text{AR}} > 0) \\
+\text{Debit } & \text{ADVANCE\_CREDIT} & P_{\text{ADV}} & \quad (\text{Derecognizing advance liability, if } P_{\text{ADV}} > 0) \\
+\text{Credit } & \text{CASH / BANK} & A & \quad (\text{Derecognizing liquid asset})
+\end{aligned}$$
+
+With:
+- `referenceType: LedgerReferenceType.REVERSAL`
+- `referenceId: payment.id`
+
+### 3. Obligation & Advance Credit Safeguards
+- **Bill Restoration**: For each entry in `payment.allocations`, the corresponding `Bill` has its `paidAmount` reduced, `balanceAmount` restored, and `status` updated to `PARTIALLY_PAID` or `UNPAID`. Any independent subsequent payments on the same bill remain intact.
+- **Consumed Advance Credit Guard**: If $P_{\text{ADV}} > 0$ and live available advance credit is less than $P_{\text{ADV}}$, reversal is **strictly rejected**, preventing negative liabilities and phantom downstream settlements.
+- **Settlement Guard**: Reversals are prohibited on `SETTLED` stays to protect finalized commercial closure. Reversals on `CHECKED_OUT` stays prior to settlement are permitted.
+
+---
 
 # 11. Financial Timeline
 

@@ -1307,10 +1307,60 @@ Following the completion of FC-04 (which cleanly decoupled Financial Settlement 
 
 ---
 
+## ADR-039 — Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity
+
+### Status
+Accepted (FC-07 Payment Reversal Checkpoint)
+
+### Context
+Following the completion of deposit return workflows (FC-06), the financial architecture required formalization of Payment Reversals (bounced cheques, chargebacks, disputed bank transfers, operator receipt entry errors):
+1. **Financial History Mutability Risk**: Deleting or updating historical payments would corrupt double-entry ledger auditing and break historical financial truth (BR-421, BR-422).
+2. **Receivable & Bill Obligation Desynchronization**: Reversing a payment without restoring the exact obligations recorded in `payment.allocations` would leave bills in a false `PAID` state while the ledger reflects outstanding receivables.
+3. **Advance Credit Derecognition & Negative Liability Defect**: If an overpayment created Advance Credit that was subsequently auto-consumed by later bills, reversing the source payment blindly would drive the advance credit liability into negative values while downstream bills remained paid by phantom funds.
+4. **Settlement & Checkout Boundary Invariants**: Reversals must be prevented on settled stays to avoid invalidating finalized settlements, while being supported on checked-out stays prior to settlement.
+
+### Decision
+1. **Full Payment Reversal & Immutable Historical Fact**:
+   - The canonical reversal unit is the full `Payment` aggregate (`payment.id`). Partial payment reversal is prohibited.
+   - Original `Payment`, its `allocations`, and original `LedgerEntry` records remain permanently in the repository.
+   - The `Payment` aggregate transitions lifecycle state to `REVERSED`, capturing `reversedAt`, `reversedBy`, `reversalReason`, `reversalIdempotencyKey`, and `reversalLedgerEntryIds`.
+2. **Balanced Double-Entry Counter-Postings (`LedgerReferenceType.REVERSAL`)**:
+   - Posts balanced compensating entries to the Unified Stay Ledger:
+     - **Credit CASH / BANK** (Asset Derecognition) for total amount $A$.
+     - **Debit ACCOUNTS_RECEIVABLE** (Asset Restoration) for allocated receivable portion $P_{\text{AR}}$ (if $P_{\text{AR}} > 0$).
+     - **Debit ADVANCE_CREDIT** (Liability Derecognition) for advance credit portion $P_{\text{ADV}}$ (if $P_{\text{ADV}} > 0$).
+     $$\sum \text{Debit} = P_{\text{AR}} + P_{\text{ADV}} = A = \sum \text{Credit} = A$$
+3. **Obligation Restoration & Historical Multi-Payment Preservation**:
+   - Iterates through `payment.allocations` and restores target `Bill` balances:
+     $$\text{newPaidAmount} = \max(0, \text{paidAmount} - \text{allocationAmount})$$
+     $$\text{newBalanceAmount} = \text{totalAmount} - \text{newPaidAmount}$$
+     $$\text{newStatus} = \begin{cases} \text{BillStatus.UNPAID} & \text{if } \text{newPaidAmount} = 0 \\ \text{BillStatus.PARTIALLY_PAID} & \text{if } \text{newPaidAmount} > 0 \end{cases}$$
+   - Any independent subsequent payments applied to the same bill remain intact and financially effective.
+4. **Consumed Advance Credit Guard**:
+   - If $P_{\text{ADV}} > 0$ and live available advance credit is less than $P_{\text{ADV}}$ ($\text{LiveAdvanceCredit} < P_{\text{ADV}}$), reversal is strictly rejected, preventing negative liabilities and inconsistent downstream bill statuses.
+5. **Settlement Protection & Post-Checkout Support**:
+   - Reversal is strictly rejected on `SETTLED` stays to preserve final commercial closure.
+   - Reversal is permitted on `CHECKED_OUT` stays before financial settlement.
+6. **Idempotency, Concurrency & Compensating Rollback Boundary**:
+   - Session-stable `idempotencyKey` supports deterministic replay and conflict detection.
+   - Dual-lock mutex (`activePaymentLocks` and `activeStayLocks`) serializes concurrent executions.
+   - Deep pre-operation snapshot rollback guarantees clean state restoration across ledger entries, bills, and payments in the event of persistence failures.
+
+### Consequences
+
+#### Advantages:
+- Preserves absolute historical auditability without deleting financial records.
+- Guarantees exact parity between ledger balances and open bill obligations.
+- Eliminates phantom money and negative liability states through the consumed advance credit guard.
+- Provides robust idempotency and failure-atomic rollback for in-memory and future relational persistence.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.4 | August 2026 | FC-07: Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424). |
 | 4.3 | August 2026 | FC-05: Operational Checkout Closure Orchestration & Cross-Domain Alumni Evaluation (ADR-038, BR-460, BR-461, AL-002, DEF-CHK-001 through DEF-CHK-007). |
 | 4.2 | August 2026 | FC-04: Settlement ↔ Bill Synchronization, Live T2 Revalidation & Checkout Decoupling (ADR-037, DEF-FIN-007, DEF-FIN-008, DEF-FIN-009, DEF-FIN-010). |
 | 4.1 | August 2026 | FC-03C: Receive Payment Workflow & Presentation Truth Boundary (ADR-036, BR-423). |

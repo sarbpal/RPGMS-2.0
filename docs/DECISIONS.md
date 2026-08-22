@@ -1033,10 +1033,71 @@ RPGMS 2.0 adopts **Model B (Finance-Owned Financial Uniqueness)** and establishe
 
 ---
 
+## ADR-033 — Stay ↔ Finance Financial Truth Boundary & Projection Consumption Architecture
+
+**Status:** Accepted
+
+### Context
+
+Prior to FC-02, the Stay Workspace presentation layer suffered from financial truth fabrication and infrastructure ambiguity (DEF-FIN-001):
+- `StayWorkspaceCoordinator` hardcoded fabricated financial values (`outstandingBalance: 0`, `pendingElectricity: 450`, `pendingLaundry: 0`, and synthetic payment date strings).
+- `StayWorkspacePage` duplicated billing filter calculations in local React `useMemo` hooks.
+- Contractual agreement terms (agreed rent/deposit) were conflated with realized financial ledger balances.
+
+A direct injection of `FinanceRepository` into `StayWorkspaceCoordinator` would violate domain boundaries, leak persistence infrastructure, and tempt duplicate accounting calculations.
+
+### Decision
+
+RPGMS 2.0 establishes the canonical **Stay ↔ Finance Financial Truth Boundary**:
+
+```
+Finance Domain (Ledger / Billing / Payments)
+      │
+      ▼
+Finance Application Services / Projections (balanceEngine, billingService, paymentService)
+      │
+      ▼
+Stay Application / Composition Boundary (StayWorkspaceCoordinator via stayWorkflowComposition)
+      │
+      ▼
+Stay Workspace ViewModel (StayWorkspaceViewModel.financialSummary)
+      │
+      ▼
+Stay UI (StayWorkspacePage, FinancialSummaryCard)
+```
+
+1. **No Infrastructure Leakage**: `StayWorkspaceCoordinator` depends strictly on application-level Finance capabilities (`BalanceApplicationService`, `BillingApplicationService`, `PaymentApplicationService`), never on `FinanceRepository`.
+2. **Authoritative Financial Ownership**:
+   - Live Accounts Receivable balance (`outstandingBalance`) is sourced from the Ledger balance engine.
+   - Realized security deposit held (`securityDepositHeld`) is sourced from Ledger liability entries.
+   - Realized current-month charges (`currentMonthRent`) reflect non-cancelled bills for the stay in the current billing period (`YYYY-MM`).
+   - Unbilled states truthfully report `0` or `'No payments recorded'` without synthetic placeholders.
+3. **Preservation of Stay Contractual Ownership**:
+   - Agreed rent plan and deposit terms remain owned by the Stay aggregate's commercial agreement and are displayed in the `StaySummaryCard`.
+   - Realized financial numbers are displayed in the `FinancialSummaryCard`.
+4. **F-01 Stay Isolation Invariant**:
+   - Stay-scoped financial queries are strictly isolated to the selected stay ID; property-wide totals never leak into stay views.
+5. **No Financial Business Logic in UI**:
+   - React components and local hooks consume the prepared ViewModel directly without computing financial sums or balances.
+
+### Consequences
+
+#### Advantages:
+- Eliminates all fabricated financial constants and synthetic fallback placeholders.
+- Preserves the constitutional Workspace Dashboard Principle: UI consumes authoritative application projections rather than computing domain rules.
+- Prevents coupling between Stay domain logic and Finance storage schemas.
+
+#### Trade-offs & Costs:
+- `StayWorkspaceCoordinator` requires injection of application-level Finance services at composition root (`stayWorkflowComposition`).
+- Tests for Stay Workspace coordination verify authoritative Finance projection behavior alongside Stay operational states.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.8 | August 2026 | FC-02: Stay ↔ Finance Financial Truth Boundary & Projection Consumption Architecture (ADR-033, DEF-FIN-001). |
 | 3.7 | August 2026 | FC-01: Core Financial Truth & Admission Obligation Convergence (BR-416, BR-417, DEF-FIN-003, DEF-FIN-005, UI-FIN-001). |
 | 3.6 | August 2026 | Added ADR-032 (Financial Obligation Uniqueness Boundary & Cross-Module Deduplication Architecture). |
 | 3.5 | August 2026 | Added ADR-031 (Laundry Operational Support Domain Architecture & Finance Boundary Reconciliation). |

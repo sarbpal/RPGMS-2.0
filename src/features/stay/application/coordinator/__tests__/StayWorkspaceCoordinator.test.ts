@@ -2,9 +2,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { StayWorkspaceCoordinator } from '../StayWorkspaceCoordinator';
 import { InMemoryStayRepository } from '../../../infrastructure/repositories/InMemoryStayRepository';
 import { InMemoryResidentRepository } from '../../../../resident/infrastructure/repositories/InMemoryResidentRepository';
+import { InMemoryFinanceRepository } from '../../../../finance/infrastructure/repositories/InMemoryFinanceRepository';
+import { BalanceApplicationService } from '../../../../finance/services/balanceEngine';
+import { BillingApplicationService } from '../../../../finance/services/billingService';
+import { PaymentApplicationService } from '../../../../finance/services/paymentService';
+import { DepositApplicationService } from '../../../../finance/services/depositService';
 import { Stay } from '../../../domain/entities/Stay';
 import { StayStatus } from '../../../domain/valueObjects/StayStatus';
 import { StayType } from '../../../domain/valueObjects/StayType';
+
+import { financeStorage } from '../../../../finance/storage/financeStorage';
 
 describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
   let stayRepo: InMemoryStayRepository;
@@ -24,6 +31,12 @@ describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
   });
 
   beforeEach(() => {
+    financeStorage.saveStoredBills([]);
+    financeStorage.saveStoredLedgerEntries([]);
+    financeStorage.saveStoredPayments([]);
+    financeStorage.saveStoredSettlements([]);
+    financeStorage.saveStoredDepositTransactions([]);
+
     stayRepo = new InMemoryStayRepository([sampleStay]);
     residentRepo = new InMemoryResidentRepository();
     coordinator = new StayWorkspaceCoordinator(stayRepo, residentRepo);
@@ -37,11 +50,17 @@ describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
     expect(viewModel.header.checkInDate).toBe('2026-01-01');
     expect(viewModel.header.allocation).toContain('Flat 101 / Bed A1');
 
+    // Contractual facts stay in Stay domain
     expect(viewModel.summary.rentPlan).toBe('₹8,000 / month');
     expect(viewModel.summary.securityDeposit).toBe('₹6,500');
 
-    expect(viewModel.financialSummary.currentMonthRent).toBe(8000);
-    expect(viewModel.financialSummary.securityDepositHeld).toBe(6500);
+    // Authoritative Finance projection: unbilled / no ledger records = 0 (no fabricated placeholders)
+    expect(viewModel.financialSummary.currentMonthRent).toBe(0);
+    expect(viewModel.financialSummary.securityDepositHeld).toBe(0);
+    expect(viewModel.financialSummary.outstandingBalance).toBe(0);
+    expect(viewModel.financialSummary.pendingElectricity).toBe(0);
+    expect(viewModel.financialSummary.pendingLaundry).toBe(0);
+    expect(viewModel.financialSummary.lastPaymentReceived).toBe('No payments recorded');
 
     // Verify timeline maps BusinessEvent records directly
     expect(viewModel.timeline.length).toBeGreaterThan(0);
@@ -108,5 +127,94 @@ describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
     // Unassigned flat string
     const unassignedFlat = coordinator.findFlat('Unassigned');
     expect(unassignedFlat).toBeNull();
+  });
+
+  it('reflects authoritative Finance projections when bills and deposits are recorded', () => {
+    const financeRepo = new InMemoryFinanceRepository();
+    const balanceEngine = new BalanceApplicationService(financeRepo);
+    const billingService = new BillingApplicationService(financeRepo, stayRepo);
+    const paymentService = new PaymentApplicationService(financeRepo, stayRepo);
+    const depositService = new DepositApplicationService(financeRepo, stayRepo);
+
+    const coordinatorWithFinance = new StayWorkspaceCoordinator(
+      stayRepo,
+      residentRepo,
+      undefined,
+      balanceEngine,
+      billingService,
+      paymentService
+    );
+
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 1. Record deposit contribution of ₹6,500
+    depositService.recordDepositContribution('stay-000001', 6500, 'BANK_TRANSFER', 'Admission Deposit');
+
+    // 2. Generate monthly rent bill of ₹8,000 for current month
+    billingService.createBill({
+      stayId: 'stay-000001',
+      period: currentMonthStr,
+      issueDate: `${currentMonthStr}-01`,
+      dueDate: `${currentMonthStr}-07`,
+      billType: 'MONTHLY_RENT',
+      status: 'UNPAID',
+      totalAmount: 8000,
+      remarks: 'Current Month Rent',
+      lineItems: [
+        {
+          id: 'li-rent-01',
+          description: 'Monthly Rent',
+          amount: 8000,
+          category: 'RENT',
+        },
+      ],
+    });
+
+    // 3. Post a utility charge bill of ₹300
+    billingService.createBill({
+      stayId: 'stay-000001',
+      period: currentMonthStr,
+      issueDate: `${currentMonthStr}-05`,
+      dueDate: `${currentMonthStr}-10`,
+      billType: 'ONE_TIME_CHARGE',
+      status: 'UNPAID',
+      totalAmount: 300,
+      remarks: 'Electricity Utility Split',
+      lineItems: [
+        {
+          id: 'li-elec-01',
+          description: 'Electricity Share',
+          amount: 300,
+          category: 'UTILITIES',
+        },
+      ],
+    });
+
+    // 4. Record partial payment of ₹5,000
+    paymentService.recordPayment({
+      stayId: 'stay-000001',
+      amount: 5000,
+      paymentDate: `${currentMonthStr}-06`,
+      paymentMethod: 'UPI',
+    });
+
+    const vm = coordinatorWithFinance.createViewModel('stay-000001');
+
+    // Contractual facts remain Stay-owned
+    expect(vm.summary.rentPlan).toBe('₹8,000 / month');
+    expect(vm.summary.securityDeposit).toBe('₹6,500');
+
+    // Authoritative Finance projection:
+    // Total billed = 8000 (rent) + 300 (utility) = 8300
+    // Total paid = 5000
+    // Outstanding receivable = 8300 - 5000 = 3300
+    expect(vm.financialSummary.outstandingBalance).toBe(3300);
+    expect(vm.financialSummary.currentMonthRent).toBe(8300);
+    expect(vm.financialSummary.securityDepositHeld).toBe(6500);
+    expect(vm.financialSummary.pendingElectricity).toBe(300);
+    expect(vm.financialSummary.pendingLaundry).toBe(0);
+    expect(vm.financialSummary.lastPaymentReceived).toContain('₹5,000');
+    expect(vm.financialSummary.lastPaymentReceived).toContain(`${currentMonthStr}-06`);
   });
 });

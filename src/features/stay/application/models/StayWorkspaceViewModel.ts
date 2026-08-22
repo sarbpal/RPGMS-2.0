@@ -24,6 +24,8 @@ export interface FinancialSummaryViewModel {
   securityDepositHeld: number;
   lastPaymentReceived: string;
   nextBillingDate: string;
+  advanceCredit?: number;
+  netBalance?: number;
 }
 
 export interface TimelineEventViewModel {

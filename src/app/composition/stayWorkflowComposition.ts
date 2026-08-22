@@ -13,6 +13,10 @@ import { defaultLaundryMasterRepository } from '../../features/laundry/infrastru
 import { defaultLaundryPostingService } from '../../features/finance/services/laundryPostingService';
 import { defaultLaundryWorkspaceCoordinator } from '../../features/laundry/application/coordinator/LaundryWorkspaceCoordinator';
 
+import { balanceEngine as defaultBalanceEngine } from '../../features/finance/services/balanceEngine';
+import { defaultBillingService } from '../../features/finance/services/billingService';
+import { paymentService as defaultPaymentService } from '../../features/finance/services/paymentService';
+
 export const stayWorkflowComposition = {
   stayRepository: defaultStayRepository,
   accommodationRepository: defaultAccommodationRepository,
@@ -26,7 +30,14 @@ export const stayWorkflowComposition = {
   defaultLaundryPostingService,
   laundryWorkspaceCoordinator: defaultLaundryWorkspaceCoordinator,
   defaultLaundryWorkspaceCoordinator,
-  stayWorkspaceCoordinator: new StayWorkspaceCoordinator(defaultStayRepository, defaultResidentRepository, defaultAccommodationRepository),
+  stayWorkspaceCoordinator: new StayWorkspaceCoordinator(
+    defaultStayRepository,
+    defaultResidentRepository,
+    defaultAccommodationRepository,
+    defaultBalanceEngine,
+    defaultBillingService,
+    defaultPaymentService
+  ),
   accommodationWorkspaceCoordinator: new AccommodationWorkspaceCoordinator(defaultAccommodationRepository, defaultStayRepository, defaultResidentRepository),
   residentWorkspaceCoordinator: new ResidentWorkspaceCoordinator(defaultResidentRepository, defaultStayRepository),
   residentsListCoordinator: new ResidentsListCoordinator(defaultResidentRepository, defaultStayRepository),

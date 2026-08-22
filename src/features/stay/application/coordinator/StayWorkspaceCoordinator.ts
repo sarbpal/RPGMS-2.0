@@ -21,20 +21,35 @@ import { StayNoticeCoordinator, type GiveNoticeInput } from './StayNoticeCoordin
 import { StayCheckoutCoordinator, type ProcessCheckoutInput } from './StayCheckoutCoordinator';
 import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
+import type { BalanceApplicationService } from '../../../finance/services/balanceEngine';
+import { balanceEngine as defaultBalanceEngine } from '../../../finance/services/balanceEngine';
+import type { BillingApplicationService } from '../../../finance/services/billingService';
+import { billingService as defaultBillingService } from '../../../finance/services/billingService';
+import type { PaymentApplicationService } from '../../../finance/services/paymentService';
+import { paymentService as defaultPaymentService } from '../../../finance/services/paymentService';
 
 export class StayWorkspaceCoordinator {
   private _stayRepository: StayRepository;
   private _residentRepository: ResidentRepository;
   private _accommodationRepository: AccommodationRepository;
+  private _balanceEngine: BalanceApplicationService;
+  private _billingService: BillingApplicationService;
+  private _paymentService: PaymentApplicationService;
 
   constructor(
     stayRepository: StayRepository = defaultStayRepository,
     residentRepository: ResidentRepository = defaultResidentRepository,
-    accommodationRepository: AccommodationRepository = defaultAccommodationRepository
+    accommodationRepository: AccommodationRepository = defaultAccommodationRepository,
+    balanceEngine: BalanceApplicationService = defaultBalanceEngine,
+    billingService: BillingApplicationService = defaultBillingService,
+    paymentService: PaymentApplicationService = defaultPaymentService
   ) {
-    this._stayRepository = stayRepository;
-    this._residentRepository = residentRepository;
-    this._accommodationRepository = accommodationRepository;
+    this._stayRepository = stayRepository || defaultStayRepository;
+    this._residentRepository = residentRepository || defaultResidentRepository;
+    this._accommodationRepository = accommodationRepository || defaultAccommodationRepository;
+    this._balanceEngine = balanceEngine || defaultBalanceEngine;
+    this._billingService = billingService || defaultBillingService;
+    this._paymentService = paymentService || defaultPaymentService;
   }
 
   public get stayRepository(): StayRepository {
@@ -47,6 +62,18 @@ export class StayWorkspaceCoordinator {
 
   public get accommodationRepository(): AccommodationRepository {
     return this._accommodationRepository;
+  }
+
+  public get balanceEngine(): BalanceApplicationService {
+    return this._balanceEngine;
+  }
+
+  public get billingService(): BillingApplicationService {
+    return this._billingService;
+  }
+
+  public get paymentService(): PaymentApplicationService {
+    return this._paymentService;
   }
 
   public findStay(stayId: string): Stay | null {
@@ -172,6 +199,59 @@ export class StayWorkspaceCoordinator {
       allocationLabel
     );
 
+    // Resolve Authoritative Financial Projection
+    const stayId = stay.id;
+    const isRealStay = stayId && stayId !== 'NOT_FOUND' && stayId !== 'N/A';
+    const balances = isRealStay
+      ? this._balanceEngine.calculateStayBalances(stayId)
+      : {
+          receivableBalance: 0,
+          securityDepositHeld: 0,
+          advanceCreditBalance: 0,
+          refundPayable: 0,
+          netBalance: 0,
+        };
+
+    const stayBills = isRealStay ? this._billingService.getBillsByStayId(stayId) : [];
+    const stayPayments = isRealStay ? this._paymentService.getPaymentsByStayId(stayId) : [];
+
+    // Current month charges: non-cancelled bills for current YYYY-MM period
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentMonthBills = stayBills.filter(
+      (b) => b.period === currentMonthStr && b.status !== 'CANCELLED'
+    );
+    const currentMonthCharges = currentMonthBills.reduce((sum, b) => sum + b.totalAmount, 0);
+
+    // Pending electricity / utility charges: unpaid balance of non-cancelled utility bills
+    const pendingElectricity = stayBills
+      .filter((b) => b.status !== 'CANCELLED' && b.lineItems?.some((li) => li.category === 'UTILITIES'))
+      .reduce((sum, b) => sum + (typeof b.balanceAmount === 'number' ? b.balanceAmount : b.totalAmount), 0);
+
+    // Pending laundry charges: unpaid balance of non-cancelled laundry bills
+    const pendingLaundry = stayBills
+      .filter((b) => b.status !== 'CANCELLED' && b.lineItems?.some((li) => li.category === 'LAUNDRY'))
+      .reduce((sum, b) => sum + (typeof b.balanceAmount === 'number' ? b.balanceAmount : b.totalAmount), 0);
+
+    // Last payment received: formatted text from most recent payment record
+    let lastPaymentReceived = 'No payments recorded';
+    if (stayPayments.length > 0) {
+      const sortedPayments = [...stayPayments].sort(
+        (a, b) =>
+          new Date(b.paymentDate || b.createdAt).getTime() -
+          new Date(a.paymentDate || a.createdAt).getTime()
+      );
+      const latestPayment = sortedPayments[0];
+      if (latestPayment) {
+        const paymentDateStr = latestPayment.paymentDate || (latestPayment.createdAt ? latestPayment.createdAt.split('T')[0] : '');
+        lastPaymentReceived = `₹${latestPayment.amount.toLocaleString('en-IN')}${paymentDateStr ? ` (${paymentDateStr})` : ''}`;
+      }
+    }
+
+    const nextBillingDate = stay.billingAnchorDay
+      ? `Day ${stay.billingAnchorDay} of Month`
+      : 'Monthly Cycle';
+
     return {
       header: {
         residentName,
@@ -190,16 +270,15 @@ export class StayWorkspaceCoordinator {
         bedAllocation: allocationLabel,
       },
       financialSummary: {
-        outstandingBalance: 0,
-        currentMonthRent: projection.currentRent,
-        pendingElectricity: projection.currentRent > 0 ? 450 : 0,
-        pendingLaundry: 0,
-        securityDepositHeld: projection.currentDeposit,
-        lastPaymentReceived:
-          projection.currentRent > 0
-            ? `₹${projection.currentRent.toLocaleString('en-IN')} (${projection.checkInDate})`
-            : 'N/A',
-        nextBillingDate: 'Monthly Cycle',
+        outstandingBalance: balances.receivableBalance,
+        currentMonthRent: currentMonthCharges,
+        pendingElectricity,
+        pendingLaundry,
+        securityDepositHeld: balances.securityDepositHeld,
+        lastPaymentReceived,
+        nextBillingDate,
+        advanceCredit: balances.advanceCreditBalance,
+        netBalance: balances.netBalance,
       },
       timeline,
       supportingInformation: {

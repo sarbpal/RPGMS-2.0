@@ -69,26 +69,7 @@ export default function StayWorkspacePage() {
   }, [resident, stayDomainEntity]);
 
   // Retrieve stay financial metrics via application hook
-  const { balances, bills, payments, refresh: refreshFinance } = useStayFinance(stayId);
-
-  const currentMonthStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }, []);
-
-  const currentMonthCharges = useMemo(() => {
-    return bills
-      .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
-      .reduce((sum, b) => sum + b.totalAmount, 0);
-  }, [bills, currentMonthStr]);
-
-  const lastPaymentDateText = useMemo(() => {
-    if (!payments || payments.length === 0) return 'No payments recorded';
-    const sorted = [...payments].sort(
-      (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
-    );
-    return sorted[0]?.paymentDate || 'No payments recorded';
-  }, [payments]);
+  const { balances, refresh: refreshFinance } = useStayFinance(stayId);
 
   const handleActionSuccess = (message: string) => {
     setRefreshTrigger((prev) => prev + 1);
@@ -194,8 +175,8 @@ export default function StayWorkspacePage() {
           selectedFlat={selectedFlat}
           stayId={stayId}
           balances={balances}
-          currentMonthCharges={currentMonthCharges}
-          lastPaymentDateText={lastPaymentDateText}
+          currentMonthCharges={viewModel.financialSummary.currentMonthRent}
+          lastPaymentDateText={viewModel.financialSummary.lastPaymentReceived}
           onClose={() => setIsPaymentModalOpen(false)}
           onSuccess={(msg) => {
             setIsPaymentModalOpen(false);

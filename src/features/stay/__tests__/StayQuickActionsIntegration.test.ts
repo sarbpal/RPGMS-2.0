@@ -9,6 +9,7 @@ import { BillingApplicationService } from '../../finance/services/billingService
 import { PaymentApplicationService } from '../../finance/services/paymentService';
 import { SettlementApplicationService } from '../../finance/services/settlementService';
 import { ReportingApplicationService } from '../../finance/services/reportingService';
+import { BalanceApplicationService } from '../../finance/services/balanceEngine';
 import { Stay } from '../domain/entities/Stay';
 import { CommercialAgreement } from '../domain/valueObjects/CommercialAgreement';
 import { ResidentStatus } from '../../resident/domain/valueObjects/ResidentStatus';
@@ -48,11 +49,20 @@ describe('Stay Workspace Quick Actions End-to-End Integration Suite', () => {
     financeRepo = new InMemoryFinanceRepository();
 
     // Initialize services with dependency injection
-    coordinator = new StayWorkspaceCoordinator(stayRepo, residentRepo, accommodationRepo);
     billingService = new BillingApplicationService(financeRepo, stayRepo);
     paymentService = new PaymentApplicationService(financeRepo, stayRepo);
     settlementService = new SettlementApplicationService(financeRepo, stayRepo);
     reportingService = new ReportingApplicationService(financeRepo, stayRepo, residentRepo);
+    const balanceEngine = new BalanceApplicationService(financeRepo);
+
+    coordinator = new StayWorkspaceCoordinator(
+      stayRepo,
+      residentRepo,
+      accommodationRepo,
+      balanceEngine,
+      billingService,
+      paymentService
+    );
 
     // Seed flat with one occupied and one vacant bed
     accommodationRepo.save({

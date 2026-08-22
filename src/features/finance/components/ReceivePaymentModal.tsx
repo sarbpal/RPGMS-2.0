@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -15,11 +15,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Payments } from '@mui/icons-material';
+import { Payments, InfoOutlined } from '@mui/icons-material';
 
 import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
-import type { PaymentMethod, StayBalance } from '../domain';
+import type { StayBalance } from '../domain';
+import { PaymentMethod } from '../domain';
 import { paymentService } from '../services/paymentService';
 import { formatCurrency } from '../utils/currencyFormatters';
 
@@ -35,6 +36,11 @@ export interface ReceivePaymentModalProps {
   onSuccess: (message: string) => void;
 }
 
+export function generatePaymentIdempotencyKey(stayId?: string): string {
+  const prefix = stayId ? `pay_idem_${stayId}` : 'pay_idem';
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
 export function ReceivePaymentModal({
   open,
   onClose,
@@ -48,17 +54,35 @@ export function ReceivePaymentModal({
 }: ReceivePaymentModalProps) {
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const outstandingAmount = balances.receivableBalance;
+  const existingAdvanceCredit = balances.advanceCreditBalance || 0;
 
   // Form states
   const [paymentAmountStr, setPaymentAmountStr] = useState<string>(
-    outstandingAmount > 0 ? String(outstandingAmount) : '0'
+    outstandingAmount > 0 ? String(outstandingAmount) : ''
   );
   const [paymentDate, setPaymentDate] = useState<string>(todayStr);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
   const [referenceNumber, setReferenceNumber] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+    generatePaymentIdempotencyKey(stayId)
+  );
+
+  // Reset form states when modal opens or stayId changes
+  useEffect(() => {
+    if (open) {
+      setPaymentAmountStr(outstandingAmount > 0 ? String(outstandingAmount) : '');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentMethod(PaymentMethod.CASH);
+      setReferenceNumber('');
+      setRemarks('');
+      setIsSubmitting(false);
+      setErrorMessage(null);
+      setIdempotencyKey(generatePaymentIdempotencyKey(stayId));
+    }
+  }, [open, stayId, outstandingAmount]);
 
   const bedLabel = useMemo(() => {
     const res = resident as Resident & { allocatedBedIds?: string[] };
@@ -78,21 +102,44 @@ export function ReceivePaymentModal({
   const numericAmount = isNaN(parsedAmount) ? 0 : parsedAmount;
 
   // Amount validation logic
-  const isNoOutstanding = outstandingAmount <= 0;
   const isAmountZeroOrNegative = numericAmount <= 0;
-  const isAmountExceedingOutstanding = numericAmount > outstandingAmount;
+  const isCash = paymentMethod === PaymentMethod.CASH;
   const isRefNumberMissing =
-    paymentMethod !== 'CASH' && (!referenceNumber || referenceNumber.trim() === '');
+    !isCash && (!referenceNumber || referenceNumber.trim() === '');
 
   const isFormValid =
     Boolean(stayId) &&
-    !isNoOutstanding &&
     !isAmountZeroOrNegative &&
-    !isAmountExceedingOutstanding &&
     !isRefNumberMissing;
 
+  // Presentation-only Estimated Allocation Preview (Non-authoritative)
+  const duesPortionPreview = Math.min(numericAmount, Math.max(0, outstandingAmount));
+  const advancePortionPreview = Math.max(
+    0,
+    Math.round((numericAmount - duesPortionPreview) * 100) / 100
+  );
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPaymentAmountStr(e.target.value);
+    setErrorMessage(null);
+  };
+
+  const handleMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMethod = e.target.value as PaymentMethod;
+    setPaymentMethod(newMethod);
+    setErrorMessage(null);
+    if (newMethod === PaymentMethod.CASH) {
+      setReferenceNumber('');
+    }
+  };
+
+  const handleReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReferenceNumber(e.target.value);
+    setErrorMessage(null);
+  };
+
   const handleSubmit = () => {
-    if (!stayId || !isFormValid) return;
+    if (!stayId || !isFormValid || isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -104,21 +151,35 @@ export function ReceivePaymentModal({
         paymentDate,
         paymentMethod,
         referenceNumber: referenceNumber.trim() || undefined,
+        idempotencyKey,
         remarks: remarks.trim() || undefined,
       });
 
       if (result.success && result.payment) {
-        onSuccess(
-          `Payment Received Successfully! Amount: ${formatCurrency(
-            result.payment.amount
-          )} | Receipt: #${result.payment.paymentNumber} | Resident: ${
-            resident.fullName
-          }`
+        const totalAllocated = (result.payment.allocations || []).reduce(
+          (sum, a) => sum + a.amount,
+          0
         );
+        const advanceCreated = Math.max(
+          0,
+          Math.round((result.payment.amount - totalAllocated) * 100) / 100
+        );
+
+        let successMessage = `Payment Received Successfully! Amount: ${formatCurrency(
+          result.payment.amount
+        )} | Receipt: #${result.payment.paymentNumber} | Resident: ${
+          resident.fullName
+        }`;
+
+        if (advanceCreated > 0) {
+          successMessage += ` | Advance Credit Created: ${formatCurrency(advanceCreated)}`;
+        }
+
+        onSuccess(successMessage);
         onClose();
       } else {
         setErrorMessage(
-          result.errors.length > 0
+          result.errors && result.errors.length > 0
             ? result.errors.join(', ')
             : 'Failed to record payment.'
         );
@@ -149,7 +210,7 @@ export function ReceivePaymentModal({
             Receive Resident Payment
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Record payment, generate double-entry receipt ledger entries, and update dues.
+            Record payment, generate double-entry receipt ledger entries, and allocate dues or advance credits.
           </Typography>
         </Box>
       </DialogTitle>
@@ -202,6 +263,21 @@ export function ReceivePaymentModal({
 
               <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Existing Advance Credit
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 700,
+                    color: existingAdvanceCredit > 0 ? 'info.main' : 'text.secondary',
+                  }}
+                >
+                  {formatCurrency(existingAdvanceCredit)}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Current Month Charges
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -209,7 +285,7 @@ export function ReceivePaymentModal({
                 </Typography>
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Last Payment Received
                 </Typography>
@@ -227,13 +303,13 @@ export function ReceivePaymentModal({
             </Alert>
           )}
 
-          {/* Zero Dues Alert */}
-          {isNoOutstanding && (
+          {/* Zero Dues Context Banner */}
+          {outstandingAmount <= 0 && (
             <Alert severity="info" sx={{ borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                No Outstanding Balance
+                No Outstanding Dues
               </Typography>
-              This resident currently has no pending dues balance. Payment collection is disabled.
+              This resident has zero pending dues. Any payment recorded will be credited 100% to Advance Credit liability.
             </Alert>
           )}
 
@@ -244,19 +320,17 @@ export function ReceivePaymentModal({
                 label="Payment Amount (₹)"
                 type="number"
                 value={paymentAmountStr}
-                onChange={(e) => {
-                  setPaymentAmountStr(e.target.value);
-                  setErrorMessage(null);
-                }}
+                onChange={handleAmountChange}
                 fullWidth
-                disabled={isSubmitting || isNoOutstanding}
-                error={isAmountZeroOrNegative || isAmountExceedingOutstanding}
+                autoFocus
+                disabled={isSubmitting}
+                error={isAmountZeroOrNegative && paymentAmountStr !== ''}
                 helperText={
-                  isAmountExceedingOutstanding
-                    ? `Cannot exceed outstanding balance (${formatCurrency(outstandingAmount)})`
-                    : isAmountZeroOrNegative && paymentAmountStr !== ''
+                  isAmountZeroOrNegative && paymentAmountStr !== ''
                     ? 'Payment amount must be greater than zero'
-                    : `Max payable: ${formatCurrency(outstandingAmount)}`
+                    : outstandingAmount > 0
+                    ? `Current outstanding dues: ${formatCurrency(outstandingAmount)}`
+                    : 'Surplus amount becomes Advance Credit'
                 }
               />
             </Grid>
@@ -269,7 +343,7 @@ export function ReceivePaymentModal({
                 onChange={(e) => setPaymentDate(e.target.value)}
                 fullWidth
                 slotProps={{ inputLabel: { shrink: true } }}
-                disabled={isSubmitting || isNoOutstanding}
+                disabled={isSubmitting}
               />
             </Grid>
 
@@ -278,37 +352,51 @@ export function ReceivePaymentModal({
                 select
                 label="Payment Mode"
                 value={paymentMethod}
-                onChange={(e) => {
-                  setPaymentMethod(e.target.value as PaymentMethod);
-                  setErrorMessage(null);
-                }}
+                onChange={handleMethodChange}
                 fullWidth
-                disabled={isSubmitting || isNoOutstanding}
+                disabled={isSubmitting}
               >
-                <MenuItem value="CASH">Cash</MenuItem>
-                <MenuItem value="UPI">UPI</MenuItem>
-                <MenuItem value="BANK_TRANSFER">Bank Transfer</MenuItem>
+                <MenuItem value={PaymentMethod.CASH}>Cash</MenuItem>
+                <MenuItem value={PaymentMethod.UPI}>UPI</MenuItem>
+                <MenuItem value={PaymentMethod.BANK_TRANSFER}>Bank Transfer</MenuItem>
+                <MenuItem value={PaymentMethod.CHEQUE}>Cheque</MenuItem>
+                <MenuItem value={PaymentMethod.CARD}>Card</MenuItem>
+                <MenuItem value={PaymentMethod.OTHER}>Other</MenuItem>
               </TextField>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label={
-                  paymentMethod === 'CASH'
-                    ? 'Reference Number (Optional)'
-                    : 'Reference Number / Transaction ID *'
+                  isCash
+                    ? 'Receipt / Reference Note (Optional)'
+                    : paymentMethod === PaymentMethod.UPI
+                    ? 'UPI Reference / UTR Number *'
+                    : paymentMethod === PaymentMethod.BANK_TRANSFER
+                    ? 'Bank Transaction / UTR Number *'
+                    : paymentMethod === PaymentMethod.CHEQUE
+                    ? 'Cheque Number *'
+                    : paymentMethod === PaymentMethod.CARD
+                    ? 'Card Auth / Transaction ID *'
+                    : 'Transaction Reference ID *'
                 }
                 value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
+                onChange={handleReferenceChange}
                 fullWidth
-                disabled={isSubmitting || isNoOutstanding}
+                disabled={isSubmitting}
                 error={isRefNumberMissing}
                 helperText={
                   isRefNumberMissing
-                    ? 'Required for non-cash payments (UPI / Bank Transfer)'
-                    : paymentMethod === 'CASH'
-                    ? 'Optional receipt or note ID'
-                    : 'e.g. UTR / UPI Ref ID'
+                    ? `Required for ${paymentMethod} payments`
+                    : isCash
+                    ? 'Optional receipt note'
+                    : paymentMethod === PaymentMethod.UPI
+                    ? 'e.g. 12-digit UPI UTR'
+                    : paymentMethod === PaymentMethod.BANK_TRANSFER
+                    ? 'e.g. IMPS/NEFT/RTGS UTR'
+                    : paymentMethod === PaymentMethod.CHEQUE
+                    ? 'e.g. Cheque No.'
+                    : 'e.g. Transaction Ref ID'
                 }
               />
             </Grid>
@@ -319,11 +407,66 @@ export function ReceivePaymentModal({
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 fullWidth
-                disabled={isSubmitting || isNoOutstanding}
+                disabled={isSubmitting}
                 placeholder="e.g. Paid via PhonePe / Rent payment"
               />
             </Grid>
           </Grid>
+
+          {/* Real-time Estimated Allocation Preview (Presentation Only) */}
+          {numericAmount > 0 && (
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: advancePortionPreview > 0 ? 'info.50' : 'success.50',
+                borderColor: advancePortionPreview > 0 ? 'info.200' : 'success.200',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <InfoOutlined
+                  fontSize="small"
+                  color={advancePortionPreview > 0 ? 'info' : 'success'}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    color: advancePortionPreview > 0 ? 'info.dark' : 'success.dark',
+                  }}
+                >
+                  Estimated Allocation Preview (Subject to Finance realization)
+                </Typography>
+              </Box>
+
+              <Grid container spacing={1}>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Applied to Open Dues
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                    {formatCurrency(duesPortionPreview)}
+                  </Typography>
+                </Grid>
+
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Advance Credit Created
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 700,
+                      color: advancePortionPreview > 0 ? 'info.main' : 'text.secondary',
+                    }}
+                  >
+                    {formatCurrency(advancePortionPreview)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
         </Stack>
       </DialogContent>
 

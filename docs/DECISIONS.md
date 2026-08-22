@@ -1184,10 +1184,51 @@ During FC-03 architectural audits, two related financial integrity defects were 
 
 ---
 
+## ADR-036 — Receive Payment Workflow & Presentation Truth Boundary
+
+**Status:** Accepted
+**Date:** August 2026
+**Context:** FC-03C Receive Payment Modal UI & Financial Contract Consumption
+
+### Context
+
+Following the stabilization of FC-03A (Advance Credit auto-consumption) and FC-03B (Payment idempotency and dependency injection), the primary user-facing payment entry point (`ReceivePaymentModal`) required realignment with the authoritative Finance contracts:
+1. **False Outstanding Ceiling**: The UI previously blocked payments exceeding outstanding dues and disabled payment recording when outstanding dues were zero, preventing legitimate overpayments and Advance Credit creation.
+2. **Missing Client Idempotency Lifecycle**: The UI previously omitted `idempotencyKey` from payment submission payloads, leaving submissions vulnerable to unmanaged double-clicks or retry duplication.
+3. **Financial Truth Boundary**: Presentation needed clear separation between real-time estimation previews (dues vs advance) and authoritative Finance realization results.
+
+### Decision
+
+1. **Elimination of UI Payment Ceilings**:
+   - The UI shall permit any valid positive payment amount ($> 0$), regardless of whether outstanding receivables are greater than, equal to, or zero.
+   - Any payment surplus exceeding open receivables is recognized by Finance as Advance Credit liability (`AccountType.ADVANCE_CREDIT`).
+2. **Presentation-Only Estimated Allocation Preview**:
+   - The UI may display a real-time estimated allocation preview (dues portion vs advance portion) using pre-calculated balance snapshots.
+   - This preview is explicitly labeled as presentation-only and non-authoritative; authoritative bill allocations and advance credit creation are performed strictly by `PaymentApplicationService`.
+3. **Client-Side Payment Intent & Idempotency Key Lifecycle**:
+   - A unique `idempotencyKey` is generated upon opening a new payment modal session representing that specific payment intent.
+   - Ordinary pre-submission field editing (amount, payment method, reference number, remarks) does not churn or regenerate the key; the key remains stable for the entire payment session.
+   - Retries of the same payment intent (e.g. after a network glitch, transient error, or concurrency lock) reuse the exact same `idempotencyKey`.
+   - Successful payment completion or closing/cancelling and reopening the modal creates a new session with a fresh `idempotencyKey`.
+4. **Complete Payment Method Coverage**:
+   - Supports all domain enum values (`CASH`, `UPI`, `BANK_TRANSFER`, `CHEQUE`, `CARD`, `OTHER`).
+   - Reference number is validated as mandatory for non-cash methods and optional for cash.
+
+### Consequences
+
+#### Advantages:
+- Enables full resident advance payment workflows and overpayments without UI restriction.
+- Hardens client submissions against duplicate double-clicks and network retries using the FC-03B idempotency contract.
+- Clearly separates UI presentation estimation from Finance realization truth.
+- Provides operator visibility into existing advance credit and new advance credit generated per transaction.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.1 | August 2026 | FC-03C: Receive Payment Workflow & Presentation Truth Boundary (ADR-036, BR-423). |
 | 4.0 | August 2026 | FC-03B: Payment Idempotency & Dependency Injection Architecture (ADR-035, BR-419, DEF-FIN-004, DEF-FIN-006). |
 | 3.9 | August 2026 | FC-03A: Finance-Owned Advance Credit & Auto-Consumption Architecture (ADR-034, DEF-FIN-002). |
 | 3.8 | August 2026 | FC-02: Stay ↔ Finance Financial Truth Boundary & Projection Consumption Architecture (ADR-033, DEF-FIN-001). |

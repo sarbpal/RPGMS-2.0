@@ -17,6 +17,8 @@ Changes to this document require an Architecture Decision Record (ADR) when they
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|
+| 2.1.0 | 2026-08-22 | Active | FC-03C Payment Intake Workflow, Advance Credit UI Semantics & Idempotency Lifecycle (ADR-036, BR-423) |
+| 2.0.0 | 2026-07-21 | Sealed | Canonical Finance Specification for RPGMS 2.0 |
 | 1.0.0 | 2026-07-20 | Frozen | Initial Finance Architecture for RPGMS 2.0 |
 
 # 1. Purpose

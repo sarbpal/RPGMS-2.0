@@ -2106,6 +2106,29 @@ Financial integrity depends upon preserving original transactions.
 
 ---
 
+## BR-423 Payment Intake UI Allocation Preview and Intent Lifecycle
+
+### Rule
+
+The payment intake user interface (`ReceivePaymentModal`) operates as a presentation, validation, and payment intent initiation boundary consuming authoritative Finance services:
+
+1. **No Artificial Payment Ceilings**: The user interface shall accept any positive payment amount ($> 0$), regardless of whether the resident's outstanding receivable balance is greater than, equal to, or zero. Any payment exceeding open dues shall be processed by Finance as an Advance Credit liability (`AccountType.ADVANCE_CREDIT`).
+2. **Estimated Allocation Preview**: Real-time allocation displays rendered prior to submission are presentation-only estimates (subject to final authoritative realization and double-entry ledger posting by `PaymentApplicationService`).
+3. **Payment Intent & Idempotency Key Lifecycle**: Each payment entry session generates a unique client-side `idempotencyKey` representing the specific payment intent. Ordinary pre-submission field editing (amount, payment method, reference number, remarks) does not regenerate the key; the key remains stable for the entire session. The identical key shall be retained across retries of the same intent, while a new payment session or reopening the modal establishes a new intent with a fresh `idempotencyKey`.
+
+### Reason
+
+Aligns user interaction with FC-03A/B Advance Credit and idempotency contracts without duplicating financial realization logic in the presentation layer (FC-03C, ADR-036).
+
+### Applies To
+
+- Finance
+- UI Components / Modals
+- Payment Processing
+- Workspace Coordination
+
+---
+
 # Payment Allocation
 
 Payment Allocation governs how Payments settle Charges.

@@ -154,7 +154,8 @@ describe('FC-02 — Stay ↔ Finance Financial Truth Boundary Suite', () => {
     // Stay B reflects its own bills
     const vmB = coordinator.createViewModel(stayB_Id);
     expect(vmB.financialSummary.outstandingBalance).toBe(15500);
-    expect(vmB.financialSummary.currentMonthRent).toBe(15500);
+    expect(vmB.financialSummary.currentMonthRent).toBe(15000);
+    expect(vmB.financialSummary.currentMonthCharges).toBe(15500);
     expect(vmB.financialSummary.pendingLaundry).toBe(500);
   });
 
@@ -361,5 +362,49 @@ describe('FC-02 — Stay ↔ Finance Financial Truth Boundary Suite', () => {
     const vm = coordinator.createViewModel(stayA_Id);
     expect(vm.header.status).toBe(StayStatus.CHECKED_OUT);
     expect(vm.timeline[0].title).toBe('Operational Checkout Completed');
+  });
+
+  it('Test 11 — Partial payment on utility charges: pendingElectricity reflects remaining unpaid balance', () => {
+    // Post an electricity bill of ₹2,000
+    billingService.createBill({
+      stayId: stayA_Id,
+      period: currentMonthStr,
+      issueDate: `${currentMonthStr}-01`,
+      dueDate: `${currentMonthStr}-05`,
+      billType: 'ONE_TIME_CHARGE',
+      status: BillStatus.UNPAID,
+      totalAmount: 2000,
+      lineItems: [{ id: 'li-elec-2000', description: 'Electricity', amount: 2000, category: 'UTILITIES' }],
+    });
+
+    let vm = coordinator.createViewModel(stayA_Id);
+    expect(vm.financialSummary.pendingElectricity).toBe(2000);
+    expect(vm.financialSummary.outstandingBalance).toBe(2000);
+
+    // Record partial payment of ₹1,500
+    paymentService.recordPayment({
+      stayId: stayA_Id,
+      amount: 1500,
+      paymentDate: `${currentMonthStr}-02`,
+      paymentMethod: 'UPI',
+    });
+
+    vm = coordinator.createViewModel(stayA_Id);
+    // Unpaid balance is ₹500 (NOT total bill ₹2,000)
+    expect(vm.financialSummary.pendingElectricity).toBe(500);
+    expect(vm.financialSummary.outstandingBalance).toBe(500);
+
+    // Record remaining payment of ₹500
+    paymentService.recordPayment({
+      stayId: stayA_Id,
+      amount: 500,
+      paymentDate: `${currentMonthStr}-03`,
+      paymentMethod: 'CASH',
+    });
+
+    vm = coordinator.createViewModel(stayA_Id);
+    // Fully paid -> pending is 0
+    expect(vm.financialSummary.pendingElectricity).toBe(0);
+    expect(vm.financialSummary.outstandingBalance).toBe(0);
   });
 });

@@ -24,6 +24,7 @@ export interface FinancialSummaryViewModel {
   securityDepositHeld: number;
   lastPaymentReceived: string;
   nextBillingDate: string;
+  currentMonthCharges?: number;
   advanceCredit?: number;
   netBalance?: number;
 }

@@ -215,32 +215,53 @@ export class StayWorkspaceCoordinator {
     const stayBills = isRealStay ? this._billingService.getBillsByStayId(stayId) : [];
     const stayPayments = isRealStay ? this._paymentService.getPaymentsByStayId(stayId) : [];
 
-    // Current month charges: non-cancelled bills for current YYYY-MM period
+    // 1. Current month rent (Rent-only non-cancelled bills for current YYYY-MM period)
     const now = new Date();
     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const currentMonthBills = stayBills.filter(
       (b) => b.period === currentMonthStr && b.status !== 'CANCELLED'
     );
+    const currentMonthRent = currentMonthBills
+      .filter((b) => b.billType === 'MONTHLY_RENT' || b.lineItems?.some((li) => li.category === 'RENT'))
+      .reduce((sum, b) => {
+        if (b.lineItems && b.lineItems.length > 0) {
+          const rentItems = b.lineItems.filter((li) => li.category === 'RENT');
+          if (rentItems.length > 0) {
+            return sum + rentItems.reduce((liSum, li) => liSum + li.amount, 0);
+          }
+        }
+        return sum + b.totalAmount;
+      }, 0);
+
+    // 2. Total current month charges across all categories
     const currentMonthCharges = currentMonthBills.reduce((sum, b) => sum + b.totalAmount, 0);
 
-    // Pending electricity / utility charges: unpaid balance of non-cancelled utility bills
+    // 3. Pending electricity / utility charges: remaining unpaid balance of non-cancelled utility bills
     const pendingElectricity = stayBills
-      .filter((b) => b.status !== 'CANCELLED' && b.lineItems?.some((li) => li.category === 'UTILITIES'))
-      .reduce((sum, b) => sum + (typeof b.balanceAmount === 'number' ? b.balanceAmount : b.totalAmount), 0);
+      .filter((b) => b.status !== 'CANCELLED' && b.status !== 'PAID' && b.lineItems?.some((li) => li.category === 'UTILITIES'))
+      .reduce((sum, b) => {
+        const bal = typeof b.balanceAmount === 'number' ? b.balanceAmount : Math.max(0, b.totalAmount - (b.paidAmount || 0));
+        return sum + bal;
+      }, 0);
 
-    // Pending laundry charges: unpaid balance of non-cancelled laundry bills
+    // 4. Pending laundry charges: remaining unpaid balance of non-cancelled laundry bills
     const pendingLaundry = stayBills
-      .filter((b) => b.status !== 'CANCELLED' && b.lineItems?.some((li) => li.category === 'LAUNDRY'))
-      .reduce((sum, b) => sum + (typeof b.balanceAmount === 'number' ? b.balanceAmount : b.totalAmount), 0);
+      .filter((b) => b.status !== 'CANCELLED' && b.status !== 'PAID' && b.lineItems?.some((li) => li.category === 'LAUNDRY'))
+      .reduce((sum, b) => {
+        const bal = typeof b.balanceAmount === 'number' ? b.balanceAmount : Math.max(0, b.totalAmount - (b.paidAmount || 0));
+        return sum + bal;
+      }, 0);
 
-    // Last payment received: formatted text from most recent payment record
+    // 5. Last payment received: formatted text from most recent valid payment record
     let lastPaymentReceived = 'No payments recorded';
-    if (stayPayments.length > 0) {
-      const sortedPayments = [...stayPayments].sort(
-        (a, b) =>
-          new Date(b.paymentDate || b.createdAt).getTime() -
-          new Date(a.paymentDate || a.createdAt).getTime()
-      );
+    const validPayments = stayPayments.filter((p) => typeof p.amount === 'number' && p.amount > 0);
+    if (validPayments.length > 0) {
+      const sortedPayments = [...validPayments].sort((a, b) => {
+        const dateA = new Date(a.paymentDate || a.createdAt).getTime();
+        const dateB = new Date(b.paymentDate || b.createdAt).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
       const latestPayment = sortedPayments[0];
       if (latestPayment) {
         const paymentDateStr = latestPayment.paymentDate || (latestPayment.createdAt ? latestPayment.createdAt.split('T')[0] : '');
@@ -271,7 +292,8 @@ export class StayWorkspaceCoordinator {
       },
       financialSummary: {
         outstandingBalance: balances.receivableBalance,
-        currentMonthRent: currentMonthCharges,
+        currentMonthRent,
+        currentMonthCharges,
         pendingElectricity,
         pendingLaundry,
         securityDepositHeld: balances.securityDepositHeld,

@@ -175,7 +175,7 @@ export default function StayWorkspacePage() {
           selectedFlat={selectedFlat}
           stayId={stayId}
           balances={balances}
-          currentMonthCharges={viewModel.financialSummary.currentMonthRent}
+          currentMonthCharges={viewModel.financialSummary.currentMonthCharges ?? viewModel.financialSummary.currentMonthRent}
           lastPaymentDateText={viewModel.financialSummary.lastPaymentReceived}
           onClose={() => setIsPaymentModalOpen(false)}
           onSuccess={(msg) => {

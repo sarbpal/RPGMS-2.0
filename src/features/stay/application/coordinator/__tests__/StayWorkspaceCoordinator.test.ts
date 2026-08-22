@@ -206,11 +206,13 @@ describe('StayWorkspaceCoordinator Integration Suite (CR-3.7)', () => {
     expect(vm.summary.securityDeposit).toBe('₹6,500');
 
     // Authoritative Finance projection:
-    // Total billed = 8000 (rent) + 300 (utility) = 8300
+    // Rent billed = 8000 (rent only)
+    // Total charges billed = 8000 (rent) + 300 (utility) = 8300
     // Total paid = 5000
     // Outstanding receivable = 8300 - 5000 = 3300
     expect(vm.financialSummary.outstandingBalance).toBe(3300);
-    expect(vm.financialSummary.currentMonthRent).toBe(8300);
+    expect(vm.financialSummary.currentMonthRent).toBe(8000);
+    expect(vm.financialSummary.currentMonthCharges).toBe(8300);
     expect(vm.financialSummary.securityDepositHeld).toBe(6500);
     expect(vm.financialSummary.pendingElectricity).toBe(300);
     expect(vm.financialSummary.pendingLaundry).toBe(0);

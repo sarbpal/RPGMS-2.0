@@ -179,7 +179,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(updatedReservation.auditLog.some((l) => l.details?.includes('Converted to Admission'))).toBe(true);
 
     // 4. Accommodation Operational Occupancy Assertion
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a')!;
     expect(bed.status).toBe(BedStatus.OCCUPIED);
     expect(bed.residentName).toBe('Rohit Verma'); // Bed -> Resident
@@ -238,7 +238,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(stayRepo.getAllSync()).toHaveLength(0);
 
     // 4. Accommodation bed remains VACANT with no occupant linkage
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a')!;
     expect(bed.status).toBe(BedStatus.VACANT);
     expect(bed.residentName).toBeUndefined();
@@ -291,7 +291,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(stay?.bedAllocations[0].status).toBe('ACTIVE');
 
     // 4. Accommodation Updated
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-b')!;
     expect(bed.status).toBe(BedStatus.OCCUPIED);
     expect(bed.residentName).toBe('Priya Sharma');
@@ -353,7 +353,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(stayRepo.getAllSync()).toHaveLength(0);
 
     // 3. Accommodation Bed remains VACANT
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a')!;
     expect(bed.status).toBe(BedStatus.VACANT);
 
@@ -412,7 +412,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(stay.status).toBe('ACTIVE');
 
     // 3. Bed Allocated to reused resident
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a')!;
     expect(bed.status).toBe(BedStatus.OCCUPIED);
     expect(bed.residentName).toBe('Anand Kumar');
@@ -470,7 +470,7 @@ describe('Admission Outcome Integrity Architectural Suite (Sprint RA-8 Slice 5)'
     expect(stayRepo.getAllSync()).toHaveLength(0);
 
     // 4. Accommodation Flat restored to pre-admission snapshot (Bed VACANT, no residentName/stayId)
-    const flat = accommodationRepo.findById('flat-101')!;
+    const flat = accommodationRepo.findByIdSync('flat-101')!;
     const bed = flat.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a')!;
     expect(bed.status).toBe(BedStatus.VACANT);
     expect(bed.residentName).toBeUndefined();

@@ -120,7 +120,7 @@ describe('Cross-Workspace Operational Population Unification Integration Suite',
       const billingCoordinator = new BillingWorkspaceCoordinator();
 
       // Find a vacant bed in accommodation inventory
-      const flats = defaultAccommodationRepository.findAll();
+      const flats = defaultAccommodationRepository.findAllSync();
       const targetFlat = flats.find((f) => f.areas.some((a) => a.beds.some((b) => b.status === 'VACANT')));
       expect(targetFlat).toBeDefined();
       const targetBed = targetFlat!.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT');
@@ -232,7 +232,7 @@ describe('Cross-Workspace Operational Population Unification Integration Suite',
       expect(newReservation.status).toBe(ReservationStatus.ACTIVE);
 
       // Find another vacant bed
-      const flats = defaultAccommodationRepository.findAll();
+      const flats = defaultAccommodationRepository.findAllSync();
       const targetFlat = flats.find((f) => f.areas.some((a) => a.beds.some((b) => b.status === 'VACANT')));
       expect(targetFlat).toBeDefined();
       const targetBed = targetFlat!.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT');

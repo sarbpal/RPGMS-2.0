@@ -40,16 +40,25 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     }
   }
 
-  public findAll(): Flat[] {
+  public async findAll(): Promise<Flat[]> {
     return JSON.parse(JSON.stringify(this.flats));
   }
 
-  public findById(id: string): Flat | null {
+  public findAllSync(): Flat[] {
+    return JSON.parse(JSON.stringify(this.flats));
+  }
+
+  public async findById(id: string): Promise<Flat | null> {
     const flat = this.flats.find((f) => f.id === id || f.name === id);
     return flat ? JSON.parse(JSON.stringify(flat)) : null;
   }
 
-  public save(flat: Flat): Flat {
+  public findByIdSync(id: string): Flat | null {
+    const flat = this.flats.find((f) => f.id === id || f.name === id);
+    return flat ? JSON.parse(JSON.stringify(flat)) : null;
+  }
+
+  public async save(flat: Flat): Promise<Flat> {
     const existingIndex = this.flats.findIndex((f) => f.id === flat.id);
     if (existingIndex >= 0) {
       this.flats[existingIndex] = JSON.parse(JSON.stringify(flat));
@@ -60,13 +69,35 @@ export class InMemoryAccommodationRepository implements AccommodationRepository 
     return JSON.parse(JSON.stringify(flat));
   }
 
-  public saveAll(flats: Flat[]): Flat[] {
+  public saveSync(flat: Flat): Flat {
+    const existingIndex = this.flats.findIndex((f) => f.id === flat.id);
+    if (existingIndex >= 0) {
+      this.flats[existingIndex] = JSON.parse(JSON.stringify(flat));
+    } else {
+      this.flats.push(JSON.parse(JSON.stringify(flat)));
+    }
+    this.persist();
+    return JSON.parse(JSON.stringify(flat));
+  }
+
+  public async saveAll(flats: Flat[]): Promise<Flat[]> {
     this.flats = JSON.parse(JSON.stringify(flats));
     this.persist();
     return this.findAll();
   }
 
-  public delete(id: string): void {
+  public saveAllSync(flats: Flat[]): Flat[] {
+    this.flats = JSON.parse(JSON.stringify(flats));
+    this.persist();
+    return JSON.parse(JSON.stringify(this.flats));
+  }
+
+  public async delete(id: string): Promise<void> {
+    this.flats = this.flats.filter((f) => f.id !== id);
+    this.persist();
+  }
+
+  public deleteSync(id: string): void {
     this.flats = this.flats.filter((f) => f.id !== id);
     this.persist();
   }

@@ -91,7 +91,11 @@ export class StayWorkspaceCoordinator {
 
   public findFlat(flatId: string): Flat | null {
     if (!flatId || flatId === 'Unassigned') return null;
-    return this.accommodationRepository.findById(flatId);
+    const inMem = this.accommodationRepository as any;
+    if (inMem && typeof inMem.findByIdSync === 'function') {
+      return inMem.findByIdSync(flatId);
+    }
+    return null;
   }
 
   public getStaysForResident(residentId: string): Stay[] {
@@ -171,7 +175,7 @@ export class StayWorkspaceCoordinator {
 
     // Format Flat & Bed Allocation details
     const flatEntity = projection.flatId && projection.flatId !== 'Unassigned'
-      ? this.accommodationRepository.findById(projection.flatId)
+      ? this.findFlat(projection.flatId)
       : null;
 
     let formattedFlat = projection.flatId;

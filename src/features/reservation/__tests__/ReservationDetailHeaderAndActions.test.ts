@@ -222,7 +222,7 @@ describe('RU-2C.1 — Reservation Detail: Header & Action Bar Suite (UI Polish)'
         },
       ]);
 
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       expect(flat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
 

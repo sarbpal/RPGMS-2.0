@@ -1,10 +1,9 @@
 import type { Flat } from '../entities/Flat';
 
 export interface AccommodationRepository {
-  findAll(): Flat[];
-  findById(id: string): Flat | null;
-  save(flat: Flat): Flat;
-  saveAll(flats: Flat[]): Flat[];
-  delete(id: string): void;
+  findAll(): Promise<Flat[]>;
+  findById(id: string): Promise<Flat | null>;
+  save(flat: Flat): Promise<Flat>;
+  saveAll(flats: Flat[]): Promise<Flat[]>;
+  delete(id: string): Promise<void>;
 }
-

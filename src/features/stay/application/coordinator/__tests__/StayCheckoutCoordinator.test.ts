@@ -111,7 +111,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
       expect(persisted?.actualCheckoutDate).toBe('2026-05-01');
 
       // Physical bed released to VACANT
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const bed = flat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       expect(bed?.status).toBe(BedStatus.VACANT);
       expect(bed?.residentName).toBeUndefined();
@@ -132,7 +132,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
       expect(projection.status).toBe(StayStatus.CHECKED_OUT);
       expect(projection.actualCheckoutDate).toBe('2026-05-01');
 
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const bed = flat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       expect(bed?.status).toBe(BedStatus.VACANT);
     });
@@ -216,7 +216,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
           },
         ],
       };
-      accommodationRepo.save(multiBedFlat);
+      accommodationRepo.saveSync(multiBedFlat);
 
       const multiBedStay = new Stay({
         id: 'stay-multi',
@@ -236,7 +236,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
         actualCheckoutDate: '2026-05-01',
       });
 
-      const flatAfter = accommodationRepo.findById('flat-102')!;
+      const flatAfter = accommodationRepo.findByIdSync('flat-102')!;
       expect(flatAfter.areas[0].beds[0].status).toBe(BedStatus.VACANT);
       expect(flatAfter.areas[0].beds[1].status).toBe(BedStatus.VACANT);
     });
@@ -261,7 +261,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
           },
         ],
       };
-      accommodationRepo.save(normalizedFlat);
+      accommodationRepo.saveSync(normalizedFlat);
 
       const stay = new Stay({
         id: 'stay-prefix',
@@ -281,7 +281,7 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
         actualCheckoutDate: '2026-05-01',
       });
 
-      const flat = accommodationRepo.findById('101');
+      const flat = accommodationRepo.findByIdSync('101');
       expect(flat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
   });
@@ -290,7 +290,11 @@ describe('StayCheckoutCoordinator Comprehensive Suite (FC-05 Operational Checkou
     it('reverts Stay state if accommodation persistence throws an error', () => {
       const failingAccommodationRepo = {
         findById: vi.fn().mockReturnValue(sampleFlat101),
+        findByIdSync: vi.fn().mockReturnValue(sampleFlat101),
         save: vi.fn().mockImplementation(() => {
+          throw new Error('Accommodation DB Write Failure');
+        }),
+        saveSync: vi.fn().mockImplementation(() => {
           throw new Error('Accommodation DB Write Failure');
         }),
       };

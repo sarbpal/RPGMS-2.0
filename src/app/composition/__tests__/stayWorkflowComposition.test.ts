@@ -4,9 +4,10 @@ import { ReservationStatus } from '../../../features/reservation/domain/valueObj
 import { ReservationUseCases } from '../../../features/reservation/application/useCases/ReservationUseCases';
 
 describe('stayWorkflowComposition', () => {
-  it('makes a walk-in admission visible to the composed Stay and Accommodation workspaces', () => {
+  it('makes a walk-in admission visible to the composed Stay and Accommodation workspaces', async () => {
     const { admissionCoordinator, stayWorkspaceCoordinator, accommodationWorkspaceCoordinator, accommodationRepository } = stayWorkflowComposition;
-    const flat = accommodationRepository.findAll().find((candidate) => candidate.areas.some((area) => area.beds.some((bed) => bed.status === 'VACANT')));
+    const allFlats = await accommodationRepository.findAll();
+    const flat = allFlats.find((candidate) => candidate.areas.some((area) => area.beds.some((bed) => bed.status === 'VACANT')));
     const bed = flat?.areas.flatMap((area) => area.beds).find((candidate) => candidate.status === 'VACANT');
     expect(flat).toBeDefined();
     expect(bed).toBeDefined();
@@ -20,7 +21,7 @@ describe('stayWorkflowComposition', () => {
 
     const stay = stayWorkspaceCoordinator.findStay(result.stayId);
     expect(stay).toMatchObject({ id: result.stayId, residentId: result.residentId, status: 'ACTIVE', checkInDate: '2026-08-10' });
-    const accommodationView = accommodationWorkspaceCoordinator.loadAndSynchronizeFlats();
+    const accommodationView = await accommodationWorkspaceCoordinator.loadAndSynchronizeFlats();
     const composedBed = accommodationView.find((candidate) => candidate.id === flat!.id)?.areas.flatMap((area) => area.beds).find((candidate) => candidate.id === bed!.id);
     expect(composedBed?.status).toBe('OCCUPIED');
   });
@@ -116,7 +117,7 @@ describe('stayWorkflowComposition', () => {
       expect(resolved?.auditLog.some((entry) => entry.action === 'Joining Date Updated')).toBe(true);
     });
 
-    it('D. Reservation → Admission Handoff: admission workflow resolves and converts the composed reservation', () => {
+    it('D. Reservation → Admission Handoff: admission workflow resolves and converts the composed reservation', async () => {
       const {
         reservationRepository,
         reservationWorkspaceCoordinator,
@@ -126,7 +127,8 @@ describe('stayWorkflowComposition', () => {
       } = stayWorkflowComposition;
 
       // Find vacant bed for admission
-      const flat = accommodationRepository.findAll().find((candidate) =>
+      const allFlats = await accommodationRepository.findAll();
+      const flat = allFlats.find((candidate) =>
         candidate.areas.some((area) => area.beds.some((bed) => bed.status === 'VACANT'))
       );
       const bed = flat?.areas.flatMap((area) => area.beds).find((candidate) => candidate.status === 'VACANT');

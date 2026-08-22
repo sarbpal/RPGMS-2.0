@@ -19,10 +19,16 @@ import {
   defaultFinanceRepository,
   SupabaseFinanceRepository,
 } from '../features/finance/infrastructure';
+import type { ReservationRepository } from '../features/reservation/domain/interfaces/ReservationRepository';
+import {
+  defaultReservationRepository,
+  SupabaseReservationRepository,
+} from '../features/reservation/infrastructure';
 
 export interface RepositoryRegistry {
   accommodationRepository: AccommodationRepository;
   residentRepository: ResidentRepository;
+  reservationRepository: ReservationRepository;
   stayRepository: StayRepository;
   financeRepository: FinanceRepository;
 }
@@ -34,6 +40,7 @@ export function createRepositoryRegistry(): RepositoryRegistry {
     return {
       accommodationRepository: new SupabaseAccommodationRepository(),
       residentRepository: new SupabaseResidentRepository(),
+      reservationRepository: new SupabaseReservationRepository(),
       stayRepository: new SupabaseStayRepository(),
       financeRepository: new SupabaseFinanceRepository(),
     };
@@ -42,6 +49,7 @@ export function createRepositoryRegistry(): RepositoryRegistry {
   return {
     accommodationRepository: defaultAccommodationRepository,
     residentRepository: defaultResidentRepository,
+    reservationRepository: defaultReservationRepository,
     stayRepository: defaultStayRepository,
     financeRepository: defaultFinanceRepository,
   };

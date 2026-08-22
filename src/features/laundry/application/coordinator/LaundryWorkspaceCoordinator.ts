@@ -205,7 +205,11 @@ export class LaundryWorkspaceCoordinator {
       typeof (this.residentRepo as any).getAll === 'function'
         ? await (this.residentRepo as any).getAll()
         : this.residentRepo.getAllSync();
-    const flats = this.accommodationRepo.findAll();
+    const inMemAccom = this.accommodationRepo as any;
+    const flats: any[] =
+      inMemAccom && typeof inMemAccom.findAllSync === 'function'
+        ? inMemAccom.findAllSync()
+        : await this.accommodationRepo.findAll();
 
     const residentMap = new Map<string, any>(residents.map((r: any) => [r.id, r]));
     const flatMap = new Map<string, any>(flats.map((f: any) => [f.id, f]));
@@ -917,8 +921,9 @@ export class LaundryWorkspaceCoordinator {
   }
 
   private buildFlatMap(): Map<string, any> {
-    const flats = this.accommodationRepo.findAll();
-    return new Map(flats.map((f) => [f.id, f]));
+    const inMem = this.accommodationRepo as any;
+    const flats: any[] = inMem && typeof inMem.findAllSync === 'function' ? inMem.findAllSync() : [];
+    return new Map(flats.map((f: any) => [f.id, f]));
   }
 
   private formatCurrency(amount: number): string {

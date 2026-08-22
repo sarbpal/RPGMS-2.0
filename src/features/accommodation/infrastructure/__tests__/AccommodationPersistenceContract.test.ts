@@ -92,16 +92,30 @@ describe('Accommodation Persistence & Mapping Contract', () => {
     expect(reconstructed.areas[0].beds[0].defaultRent).toBe(8000);
   });
 
-  it('InMemoryAccommodationRepository satisfies contract with deep isolation', () => {
+  it('InMemoryAccommodationRepository satisfies async contract with deep isolation', async () => {
     const repo = new InMemoryAccommodationRepository([sampleFlat]);
-    const found = repo.findById('FLAT-TEST-101');
+    const found = await repo.findById('FLAT-TEST-101');
     expect(found).not.toBeNull();
     expect(found?.name).toBe('Flat 101');
     expect(found?.areas[0].beds.length).toBe(2);
 
     // Mutation isolation check
     found!.name = 'Mutated Name';
-    const reQueried = repo.findById('FLAT-TEST-101');
+    const reQueried = await repo.findById('FLAT-TEST-101');
     expect(reQueried?.name).toBe('Flat 101');
+
+    // Async findAll
+    const all = await repo.findAll();
+    expect(all.length).toBe(1);
+
+    // Async save
+    await repo.save({ ...sampleFlat, id: 'FLAT-TEST-102', name: 'Flat 102' });
+    const allAfterSave = await repo.findAll();
+    expect(allAfterSave.length).toBe(2);
+
+    // Async delete
+    await repo.delete('FLAT-TEST-102');
+    const allAfterDelete = await repo.findAll();
+    expect(allAfterDelete.length).toBe(1);
   });
 });

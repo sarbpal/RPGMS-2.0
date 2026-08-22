@@ -127,7 +127,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
           },
         ],
       };
-      accommodationRepo.save(occupiedFlat);
+      accommodationRepo.saveSync(occupiedFlat);
 
       const readiness = coordinator.evaluateReadiness(validWalkInDraft, null, 'WALK_IN');
       expect(readiness.isAccommodationValid).toBe(false);
@@ -241,7 +241,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       expect(createdStay?.businessEvents[0].metadata).toEqual({ admissionSource: 'WALK_IN' });
 
       // Verify Bed status, residentName and stayId updated in AccommodationRepository
-      const updatedFlat = accommodationRepo.findById('flat-201');
+      const updatedFlat = accommodationRepo.findByIdSync('flat-201');
       const allocatedBed = updatedFlat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
       expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);
       expect(allocatedBed?.residentName).toBe('Anand Kumar');
@@ -262,7 +262,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       const result = coordinator.confirmWalkInAdmission(multiWalkInDraft);
       expect(result.success).toBe(true);
 
-      const flat = accommodationRepo.findById('flat-201');
+      const flat = accommodationRepo.findByIdSync('flat-201');
       const beds = flat?.areas.flatMap((a) => a.beds) || [];
       const bed1 = beds.find((b) => b.id === 'bed-201-a');
       const bed2 = beds.find((b) => b.id === 'bed-201-b');
@@ -292,7 +292,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       expect(stayRepo.getAllSync()).toHaveLength(0);
 
       // Verify Bed status remains VACANT
-      const flat = accommodationRepo.findById('flat-201');
+      const flat = accommodationRepo.findByIdSync('flat-201');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
       expect(bed?.status).toBe(BedStatus.VACANT);
     });
@@ -326,7 +326,7 @@ describe('AdmissionCoordinator Walk-in Admission Suite (Sprint RA-7)', () => {
       expect(stayRepo.getAllSync()).toHaveLength(0);
 
       // Verify Bed projection state was fully rolled back to pre-admission snapshot
-      const flat = accommodationRepo.findById('flat-201');
+      const flat = accommodationRepo.findByIdSync('flat-201');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-201-a');
       expect(bed?.status).toBe(BedStatus.VACANT);
       expect(bed?.residentName).toBeUndefined();

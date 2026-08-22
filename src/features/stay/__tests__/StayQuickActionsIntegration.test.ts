@@ -65,7 +65,7 @@ describe('Stay Workspace Quick Actions End-to-End Integration Suite', () => {
     );
 
     // Seed flat with one occupied and one vacant bed
-    accommodationRepo.save({
+    accommodationRepo.saveSync({
       id: '102',
       name: '102',
       floor: '1st Floor',

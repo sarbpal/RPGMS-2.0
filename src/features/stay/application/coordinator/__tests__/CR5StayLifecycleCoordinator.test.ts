@@ -32,6 +32,13 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
           }
           return super.save(flat);
         }
+        override saveSync(flat: Parameters<InMemoryAccommodationRepository['saveSync']>[0]) {
+          if (this.failNextSave) {
+            this.failNextSave = false;
+            throw new Error('Accommodation persistence failed');
+          }
+          return super.saveSync(flat);
+        }
       }
 
       const stayRepo = new InMemoryStayRepository([]);
@@ -41,7 +48,7 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
 
       expect(() => coordinator.activateStay({ stayId: 'STAY-ROLLBACK-01' })).toThrow('Accommodation persistence failed');
       expect(stayRepo.findByIdSync('STAY-ROLLBACK-01')?.status).toBe(StayStatus.PLANNED);
-      expect(accommodationRepo.findById('101')?.areas.flatMap((area) => area.beds).find((bed) => bed.id === '101-H1')?.status).toBe(BedStatus.VACANT);
+      expect(accommodationRepo.findByIdSync('101')?.areas.flatMap((area) => area.beds).find((bed) => bed.id === '101-H1')?.status).toBe(BedStatus.VACANT);
     });
 
     it('activates a PLANNED Stay and updates physical Bed status to OCCUPIED with stayId projection', () => {
@@ -68,7 +75,7 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
       expect(projection.status).toBe(StayStatus.ACTIVE);
 
       // Verify bed projection in AccommodationRepository
-      const flat = accommodationRepo.findById('101');
+      const flat = accommodationRepo.findByIdSync('101');
       expect(flat).toBeDefined();
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === '101-H1');
       expect(bed?.status).toBe(BedStatus.OCCUPIED);
@@ -99,7 +106,7 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
 
       expect(projection.status).toBe(StayStatus.CANCELLED);
 
-      const flat = accommodationRepo.findById('102');
+      const flat = accommodationRepo.findByIdSync('102');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === '102-B1');
       expect(bed?.status).toBe(BedStatus.VACANT);
       expect(bed?.stayId).toBeUndefined();
@@ -127,7 +134,7 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
 
       expect(projection.status).toBe(StayStatus.ON_NOTICE);
 
-      const flat = accommodationRepo.findById('101');
+      const flat = accommodationRepo.findByIdSync('101');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === '101-H2');
       expect(bed?.status).toBe(BedStatus.ON_NOTICE);
       expect(bed?.stayId).toBe('STAY-LC-03');
@@ -155,7 +162,7 @@ describe('CR-5 Stay Application Coordinators - Integration Tests', () => {
 
       expect(projection.status).toBe(StayStatus.CHECKED_OUT);
 
-      const flat = accommodationRepo.findById('101');
+      const flat = accommodationRepo.findByIdSync('101');
       const bed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === '101-H1');
       expect(bed?.status).toBe(BedStatus.VACANT);
       expect(bed?.stayId).toBeUndefined();

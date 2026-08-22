@@ -103,6 +103,33 @@ export class AdmissionCoordinator {
     return this._readinessEvaluator;
   }
 
+  private getAccomFlat(flatId: string): Flat | null {
+    const inMemAccomRepo = this._accommodationRepo as any;
+    if (inMemAccomRepo.findByIdSync) {
+      return inMemAccomRepo.findByIdSync(flatId);
+    }
+    const flat = this._accommodationRepo.findById(flatId);
+    return flat && typeof (flat as any).then !== 'function' ? (flat as any) : null;
+  }
+
+  private getAllAccomFlats(): Flat[] {
+    const inMemAccomRepo = this._accommodationRepo as any;
+    if (inMemAccomRepo.findAllSync) {
+      return inMemAccomRepo.findAllSync();
+    }
+    const flats = this._accommodationRepo.findAll();
+    return Array.isArray(flats) ? flats : [];
+  }
+
+  private saveAccomFlat(flat: Flat): void {
+    const inMemAccomRepo = this._accommodationRepo as any;
+    if (inMemAccomRepo.saveSync) {
+      inMemAccomRepo.saveSync(flat);
+    } else {
+      this._accommodationRepo.save(flat);
+    }
+  }
+
   /**
    * Pure advisory Admission Readiness Assessment (Sprint RA-8).
    * Evaluates current draft against expected truth, accommodation state, and resident state.
@@ -111,7 +138,7 @@ export class AdmissionCoordinator {
     draft: AdmissionDraft,
     reservation?: Reservation | null
   ): AdmissionReadinessAssessment {
-    const flats = this.accommodationRepo.findAll();
+    const flats = this.getAllAccomFlats();
     const inMemResidentRepo = this.residentRepo as InMemoryResidentRepository;
     const residents = inMemResidentRepo.getAllSync ? inMemResidentRepo.getAllSync() : [];
     return this.readinessEvaluator.evaluateReadiness(draft, reservation, flats, residents);
@@ -173,7 +200,7 @@ export class AdmissionCoordinator {
     flatId: string,
     bedIdOrIds: string | string[]
   ): { defaultRent: number; defaultDeposit: number } | null {
-    const flat = this.accommodationRepo.findById(flatId);
+    const flat = this.getAccomFlat(flatId);
     if (!flat) return null;
     const targetBedIds = Array.isArray(bedIdOrIds) ? bedIdOrIds : [bedIdOrIds];
     if (targetBedIds.length === 0) return null;
@@ -271,7 +298,7 @@ export class AdmissionCoordinator {
     const bedsValid = Array.isArray(draft.bedIds) && draft.bedIds.length > 0;
 
     if (flatValid && bedsValid) {
-      const flat = this.accommodationRepo.findById(draft.flatId!);
+      const flat = this.getAccomFlat(draft.flatId!);
       if (!flat) {
         validationMessages.push(`Flat ${draft.flatId} not found.`);
       } else {
@@ -381,7 +408,7 @@ export class AdmissionCoordinator {
     name: string;
     vacantBeds: Array<{ id: string; name: string }>;
   }> {
-    const flats = this.accommodationRepo.findAll ? this.accommodationRepo.findAll() : [];
+    const flats = this.getAllAccomFlats();
     return flats.map((flat) => {
       const vacantBeds = flat.areas
         .flatMap((area) => area.beds)
@@ -422,7 +449,7 @@ export class AdmissionCoordinator {
 
     // Compensating Cleanup Strategy (MVP): Take Pre-Commit Snapshots
     const reservationSnapshot = JSON.parse(JSON.stringify(reservation));
-    const targetFlat = this.accommodationRepo.findById(draft.flatId || '');
+    const targetFlat = this.getAccomFlat(draft.flatId || '');
     const flatSnapshot: Flat | null = targetFlat ? JSON.parse(JSON.stringify(targetFlat)) : null;
 
     let createdResidentId: string | null = null;
@@ -567,7 +594,7 @@ export class AdmissionCoordinator {
             bed.stayId = createdStayId || stayId;
           }
         });
-        this.accommodationRepo.save(targetFlat);
+        this.saveAccomFlat(targetFlat);
       }
 
       const admissionResult: AdmissionResult = {
@@ -603,7 +630,7 @@ export class AdmissionCoordinator {
       }
       if (createdResidentId) (this.residentRepo as any).delete?.(createdResidentId);
       this.reservationRepo.saveSync(reservationSnapshot);
-      if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
+      if (targetFlat && flatSnapshot) this.saveAccomFlat(flatSnapshot);
       throw error;
     }
   }
@@ -627,7 +654,7 @@ export class AdmissionCoordinator {
     }
 
     const nowIso = new Date().toISOString();
-    const targetFlat = this.accommodationRepo.findById(draft.flatId || '');
+    const targetFlat = this.getAccomFlat(draft.flatId || '');
     const flatSnapshot: Flat | null = targetFlat ? JSON.parse(JSON.stringify(targetFlat)) : null;
 
     let createdResidentId: string | null = null;
@@ -760,7 +787,7 @@ export class AdmissionCoordinator {
             bed.stayId = createdStayId || stayId;
           }
         });
-        this.accommodationRepo.save(targetFlat);
+        this.saveAccomFlat(targetFlat);
       }
 
       const admissionResult: AdmissionResult = {
@@ -801,7 +828,7 @@ export class AdmissionCoordinator {
           (this.residentRepo as any).delete?.(createdResidentId);
         }
       }
-      if (targetFlat && flatSnapshot) this.accommodationRepo.save(flatSnapshot);
+      if (targetFlat && flatSnapshot) this.saveAccomFlat(flatSnapshot);
       throw error;
     }
   }

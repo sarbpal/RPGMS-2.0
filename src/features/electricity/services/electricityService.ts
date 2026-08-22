@@ -192,7 +192,11 @@ export class ElectricityApplicationService {
     const billedStayIds: string[] = [];
     const billingErrors: string[] = [];
 
-    const flatObj = this.accommodationRepo.findById(preview.meter.flatId);
+    const inMemAccom = this.accommodationRepo as any;
+    const flatObj =
+      inMemAccom && typeof inMemAccom.findByIdSync === 'function'
+        ? inMemAccom.findByIdSync(preview.meter.flatId)
+        : null;
     const flatLabel = flatObj ? flatObj.name : `Flat ${preview.meter.flatId}`;
 
     for (const stayItem of preview.eligibleStays) {

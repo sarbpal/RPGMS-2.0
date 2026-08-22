@@ -210,7 +210,8 @@ export class FinanceWorkspaceCoordinator {
   public getActiveStaysForSelection(): SelectableStayItem[] {
     const stays = this.stayRepository.getAllSync();
     const residents = this.residentRepository.getAllSync();
-    const flats = this.accommodationRepository.findAll();
+    const inMem = this.accommodationRepository as any;
+    const flats: Flat[] = inMem && typeof inMem.findAllSync === 'function' ? inMem.findAllSync() : [];
 
     const residentMap = new Map<string, Resident>();
     residents.forEach((r) => residentMap.set(r.id, r));

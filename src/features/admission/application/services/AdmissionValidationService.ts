@@ -202,38 +202,56 @@ export class AdmissionValidationService {
     }
 
     if (flatValid && bedsValid) {
-      // Re-read live flat state from repository immediately before commit
-      const flat = accommodationRepo.findById(draft.flatId!);
-      if (!flat) {
-        errors.push({
-          code: 'ADM_VAL_FLAT_NOT_FOUND',
-          field: 'flatId',
-          message: `Flat ${draft.flatId} not found.`,
-        });
-      } else {
-        const flatBeds = flat.areas.flatMap((area) => area.beds);
-        for (const bedId of draft.bedIds!) {
-          const bed = flatBeds.find((b) => b.id === bedId);
-          if (!bed) {
-            errors.push({
-              code: 'ADM_VAL_BED_NOT_FOUND',
-              field: 'bedIds',
-              message: `Bed ${bedId} does not belong to Flat ${flat.name}.`,
-            });
-          } else if (bed.status === BedStatus.OCCUPIED) {
-            errors.push({
-              code: 'ADM_VAL_BED_OCCUPIED',
-              field: 'bedIds',
-              message: `Bed ${bed.name} is already OCCUPIED.`,
-            });
-          } else if (bed.status === BedStatus.BLOCKED || bed.status === BedStatus.MAINTENANCE) {
-            errors.push({
-              code: 'ADM_VAL_BED_UNAVAILABLE',
-              field: 'bedIds',
-              message: `Bed ${bed.name} is currently in ${bed.status} status and unavailable for allocation.`,
-            });
+      // Re-read live flat state from repository immediately before commit.
+      // AccommodationRepository.findById() is async (Promise<Flat|null>).
+      // AdmissionValidationService.validate() is synchronous.
+      // Synchronous access is required to perform live T2 bed vacancy validation.
+      // Use the *Sync helper when available (in-memory mode).
+      // If unavailable (Supabase mode), do NOT silently skip validation —
+      // admission persistence migration is deferred; Supabase mode must fail explicitly.
+      const inMemAccomRepo = accommodationRepo as any;
+      if (typeof inMemAccomRepo.findByIdSync === 'function') {
+        const flat = inMemAccomRepo.findByIdSync(draft.flatId!) as ReturnType<typeof inMemAccomRepo.findByIdSync>;
+        if (!flat) {
+          errors.push({
+            code: 'ADM_VAL_FLAT_NOT_FOUND',
+            field: 'flatId',
+            message: `Flat ${draft.flatId} not found.`,
+          });
+        } else {
+          const flatBeds = flat.areas.flatMap((area: any) => area.beds);
+          for (const bedId of draft.bedIds!) {
+            const bed = flatBeds.find((b: any) => b.id === bedId);
+            if (!bed) {
+              errors.push({
+                code: 'ADM_VAL_BED_NOT_FOUND',
+                field: 'bedIds',
+                message: `Bed ${bedId} does not belong to Flat ${flat.name}.`,
+              });
+            } else if (bed.status === BedStatus.OCCUPIED) {
+              errors.push({
+                code: 'ADM_VAL_BED_OCCUPIED',
+                field: 'bedIds',
+                message: `Bed ${bed.name} is already OCCUPIED.`,
+              });
+            } else if (bed.status === BedStatus.BLOCKED || bed.status === BedStatus.MAINTENANCE) {
+              errors.push({
+                code: 'ADM_VAL_BED_UNAVAILABLE',
+                field: 'bedIds',
+                message: `Bed ${bed.name} is currently in ${bed.status} status and unavailable for allocation.`,
+              });
+            }
           }
         }
+      } else {
+        // Synchronous accommodation access unavailable (Supabase mode).
+        // Admission synchronous validation cannot proceed without synchronous flat access.
+        // Block the admission explicitly rather than silently skipping T2 bed vacancy checks.
+        errors.push({
+          code: 'ADM_VAL_SYNC_ACCOM_UNAVAILABLE',
+          field: 'flatId',
+          message: 'Accommodation validation requires synchronous repository access. Supabase admission migration is deferred.',
+        });
       }
     }
 

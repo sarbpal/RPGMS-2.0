@@ -54,13 +54,30 @@ export class StayCheckoutCoordinator {
     return null;
   }
 
-  private findFlat(flatId: string): Flat | null {
-    let flat = this.accommodationRepo.findById(flatId);
-    if (!flat && flatId.startsWith('FLAT-')) {
-      flat = this.accommodationRepo.findById(flatId.replace('FLAT-', ''));
+  private getFlat(id: string): Flat | null {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.findByIdSync === 'function') {
+      return inMem.findByIdSync(id);
     }
-    if (!flat && !flatId.startsWith('FLAT-')) {
-      flat = this.accommodationRepo.findById(`FLAT-${flatId}`);
+    return null;
+  }
+
+  private saveFlat(flat: Flat): void {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.saveSync === 'function') {
+      inMem.saveSync(flat);
+    } else {
+      this.accommodationRepo.save(flat);
+    }
+  }
+
+  private findFlat(flatId: string): Flat | null {
+    let flat = this.getFlat(flatId);
+    if (!flat && flatId.startsWith('FLAT-')) {
+      flat = this.getFlat(flatId.replace('FLAT-', ''));
+    }
+    if (!flat) {
+      flat = this.getFlat(`FLAT-${flatId}`);
     }
     return flat;
   }
@@ -159,7 +176,7 @@ export class StayCheckoutCoordinator {
               }),
             }));
 
-            this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+            this.saveFlat({ ...flat, areas: updatedAreas });
           }
         });
       }
@@ -173,7 +190,7 @@ export class StayCheckoutCoordinator {
       this.persistStay(staySnapshot);
       flatSnapshots.forEach((snap) => {
         try {
-          this.accommodationRepo.save(snap);
+          this.saveFlat(snap);
         } catch {
           /* preserve original error */
         }

@@ -99,7 +99,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       const updatedStay = stayRepo.findByIdSync('stay-000001');
       expect(updatedStay?.allocatedBedIds).toEqual(['bed-101-a', 'bed-101-b']);
 
-      const updatedFlat = accommodationRepo.findById('flat-101');
+      const updatedFlat = accommodationRepo.findByIdSync('flat-101');
       const bedB = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-b');
       expect(bedB?.status).toBe(BedStatus.OCCUPIED);
       expect(bedB?.residentName).toBe('Rohan Sharma');
@@ -137,7 +137,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
 
       expect(projection.activeBedIds).toEqual(['bed-101-a']);
 
-      const updatedFlat = accommodationRepo.findById('flat-101');
+      const updatedFlat = accommodationRepo.findByIdSync('flat-101');
       const bedB = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-b');
       expect(bedB?.status).toBe(BedStatus.VACANT);
       expect(bedB?.residentName).toBeUndefined();
@@ -157,7 +157,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
 
       expect(projection.activeBedIds).toEqual(['bed-101-b']);
 
-      const updatedFlat = accommodationRepo.findById('flat-101');
+      const updatedFlat = accommodationRepo.findByIdSync('flat-101');
       const bedA = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       const bedB = updatedFlat?.areas[0].beds.find((b) => b.id === 'bed-101-b');
 
@@ -183,13 +183,13 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       expect(projection.flatId).toBe('flat-102');
       expect(projection.activeBedIds).toEqual(['bed-102-a']);
 
-      const prevFlat = accommodationRepo.findById('flat-101');
+      const prevFlat = accommodationRepo.findByIdSync('flat-101');
       const prevBedA = prevFlat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       expect(prevBedA?.status).toBe(BedStatus.VACANT);
       expect(prevBedA?.residentName).toBeUndefined();
       expect(prevBedA?.stayId).toBeUndefined();
 
-      const newFlat = accommodationRepo.findById('flat-102');
+      const newFlat = accommodationRepo.findByIdSync('flat-102');
       const newBedA = newFlat?.areas[0].beds.find((b) => b.id === 'bed-102-a');
       expect(newBedA?.status).toBe(BedStatus.OCCUPIED);
       expect(newBedA?.residentName).toBe('Rohan Sharma');
@@ -214,7 +214,7 @@ describe('StayAccommodationCoordinator Integration Suite (CR-3.3)', () => {
       expect(stay?.allocatedBedIds).toEqual(['bed-101-a']);
 
       // Verify Flat 101 bed remains OCCUPIED
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const bedA = flat?.areas[0].beds.find((b) => b.id === 'bed-101-a');
       expect(bedA?.status).toBe(BedStatus.OCCUPIED);
     });

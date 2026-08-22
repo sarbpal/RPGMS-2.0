@@ -196,7 +196,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(stay?.allocatedBedIds).toEqual(['bed-101-a']);
 
       // Verify Accommodation Repository State (Bed allocated to OCCUPIED with residentName and stayId)
-      const updatedFlat = accommodationRepo.findById('flat-101');
+      const updatedFlat = accommodationRepo.findByIdSync('flat-101');
       const allFlatBeds = updatedFlat?.areas.flatMap((a) => a.beds) || [];
       const allocatedBed = allFlatBeds.find((b) => b.id === 'bed-101-a');
       expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);
@@ -276,7 +276,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(stay?.bedAllocations[0].bedId).toBe('bed-101-a');
       expect(stay?.bedAllocations[1].bedId).toBe('bed-101-b');
 
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const allFlatBeds = flat?.areas.flatMap((a) => a.beds) || [];
       expect(allFlatBeds[0].status).toBe(BedStatus.OCCUPIED);
       expect(allFlatBeds[0].residentName).toBe('Vikram Singh');
@@ -314,7 +314,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
           },
         ],
       };
-      accommodationRepo.save(occupiedFlat);
+      accommodationRepo.saveSync(occupiedFlat);
 
       const readiness = coordinator.evaluateReadiness(validDraft, sampleActiveReservation);
       expect(readiness.isAccommodationValid).toBe(false);
@@ -339,7 +339,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(stayRepo.getAllSync()).toHaveLength(0);
 
       // Verify Bed status unchanged (remains VACANT)
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const allFlatBeds = flat?.areas.flatMap((a) => a.beds) || [];
       expect(allFlatBeds[0].status).toBe(BedStatus.VACANT);
 
@@ -377,7 +377,7 @@ describe('AdmissionCoordinator Integration Suite (CR-2.5 Validation)', () => {
       expect(stayRepo.getAllSync()).toHaveLength(0);
 
       // Verify Bed projection state was fully rolled back to pre-admission snapshot
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       const targetBed = flat?.areas.flatMap((a) => a.beds).find((b) => b.id === 'bed-101-a');
       expect(targetBed?.status).toBe(BedStatus.VACANT);
       expect(targetBed?.residentName).toBeUndefined();

@@ -7,60 +7,36 @@ import { AccommodationMappers } from '../mappers/AccommodationMappers';
 
 export class SupabaseAccommodationRepository implements AccommodationRepository {
   private client: SupabaseClient<Database>;
-  private cache: Flat[] = [];
 
   constructor(client: SupabaseClient<Database> = getSupabaseClient()) {
     this.client = client;
   }
 
-  public findAll(): Flat[] {
-    return this.cache;
-  }
-
-  public findById(id: string): Flat | null {
-    const flat = this.cache.find((f) => f.id === id || f.name === id);
-    return flat ? JSON.parse(JSON.stringify(flat)) : null;
-  }
-
-  public save(flat: Flat): Flat {
-    const idx = this.cache.findIndex((f) => f.id === flat.id);
-    if (idx >= 0) {
-      this.cache[idx] = JSON.parse(JSON.stringify(flat));
-    } else {
-      this.cache.push(JSON.parse(JSON.stringify(flat)));
-    }
-    this.saveAsync(flat).catch(() => {});
-    return flat;
-  }
-
-  public saveAll(flats: Flat[]): Flat[] {
-    for (const flat of flats) {
-      this.save(flat);
-    }
-    return flats;
-  }
-
-  public delete(id: string): void {
-    this.cache = this.cache.filter((f) => f.id !== id);
-    this.deleteAsync(id).catch(() => {});
-  }
-
-  // --- Async Methods ---
-
-  public async findAllAsync(): Promise<Flat[]> {
+  public async findAll(): Promise<Flat[]> {
     const { data: flatRows, error: flatErr } = await this.client
       .from('flats')
       .select('*')
       .order('name');
 
-    if (flatErr || !flatRows) {
+    if (flatErr) {
+      throw new Error(`Failed to load flats from Supabase: ${flatErr.message}`);
+    }
+
+    if (!flatRows || flatRows.length === 0) {
       return [];
     }
 
-    const { data: areaRows } = await this.client.from('areas').select('*');
-    const { data: bedRows } = await this.client.from('beds').select('*');
+    const { data: areaRows, error: areaErr } = await this.client.from('areas').select('*');
+    if (areaErr) {
+      throw new Error(`Failed to load areas from Supabase: ${areaErr.message}`);
+    }
 
-    const loaded = (flatRows as Database['public']['Tables']['flats']['Row'][]).map((flatRow) =>
+    const { data: bedRows, error: bedErr } = await this.client.from('beds').select('*');
+    if (bedErr) {
+      throw new Error(`Failed to load beds from Supabase: ${bedErr.message}`);
+    }
+
+    return (flatRows as Database['public']['Tables']['flats']['Row'][]).map((flatRow) =>
       AccommodationMappers.toDomain(
         flatRow,
         ((areaRows || []) as Database['public']['Tables']['areas']['Row'][]).filter(
@@ -71,31 +47,40 @@ export class SupabaseAccommodationRepository implements AccommodationRepository 
         )
       )
     );
-
-    this.cache = loaded;
-    return loaded;
   }
 
-  public async findByIdAsync(id: string): Promise<Flat | null> {
+  public async findById(id: string): Promise<Flat | null> {
     const { data: flatRow, error } = await this.client
       .from('flats')
       .select('*')
       .or(`id.eq.${id},name.eq.${id}`)
-      .single();
+      .maybeSingle();
 
-    if (error || !flatRow) {
+    if (error) {
+      throw new Error(`Failed to find flat by ID ${id} in Supabase: ${error.message}`);
+    }
+
+    if (!flatRow) {
       return null;
     }
 
-    const { data: areaRows } = await this.client
+    const { data: areaRows, error: areaErr } = await this.client
       .from('areas')
       .select('*')
       .eq('flat_id', (flatRow as Database['public']['Tables']['flats']['Row']).id);
 
-    const { data: bedRows } = await this.client
+    if (areaErr) {
+      throw new Error(`Failed to load areas for flat ${id}: ${areaErr.message}`);
+    }
+
+    const { data: bedRows, error: bedErr } = await this.client
       .from('beds')
       .select('*')
       .eq('flat_id', (flatRow as Database['public']['Tables']['flats']['Row']).id);
+
+    if (bedErr) {
+      throw new Error(`Failed to load beds for flat ${id}: ${bedErr.message}`);
+    }
 
     return AccommodationMappers.toDomain(
       flatRow as Database['public']['Tables']['flats']['Row'],
@@ -104,26 +89,47 @@ export class SupabaseAccommodationRepository implements AccommodationRepository 
     );
   }
 
-  public async saveAsync(flat: Flat): Promise<Flat> {
+  public async save(flat: Flat): Promise<Flat> {
     const flatInsert = AccommodationMappers.toFlatInsert(flat);
-    await this.client.from('flats').upsert(flatInsert as any);
+    const { error: flatErr } = await this.client.from('flats').upsert(flatInsert as any);
+    if (flatErr) {
+      throw new Error(`Failed to upsert flat ${flat.id} in Supabase: ${flatErr.message}`);
+    }
 
     for (const area of flat.areas) {
       const areaInsert = AccommodationMappers.toAreaInsert(area, flat.id);
-      await this.client.from('areas').upsert(areaInsert as any);
+      const { error: areaErr } = await this.client.from('areas').upsert(areaInsert as any);
+      if (areaErr) {
+        throw new Error(`Failed to upsert area ${area.id} in Supabase: ${areaErr.message}`);
+      }
 
       for (const bed of area.beds) {
         const bedInsert = AccommodationMappers.toBedInsert(bed, area.id, flat.id);
-        await this.client.from('beds').upsert(bedInsert as any);
+        const { error: bedErr } = await this.client.from('beds').upsert(bedInsert as any);
+        if (bedErr) {
+          throw new Error(`Failed to upsert bed ${bed.id} in Supabase: ${bedErr.message}`);
+        }
       }
     }
 
     return flat;
   }
 
-  public async deleteAsync(id: string): Promise<void> {
-    await this.client.from('beds').delete().eq('flat_id', id);
-    await this.client.from('areas').delete().eq('flat_id', id);
-    await this.client.from('flats').delete().eq('id', id);
+  public async saveAll(flats: Flat[]): Promise<Flat[]> {
+    for (const flat of flats) {
+      await this.save(flat);
+    }
+    return flats;
+  }
+
+  public async delete(id: string): Promise<void> {
+    const { error: bedErr } = await this.client.from('beds').delete().eq('flat_id', id);
+    if (bedErr) throw new Error(`Failed to delete beds for flat ${id}: ${bedErr.message}`);
+
+    const { error: areaErr } = await this.client.from('areas').delete().eq('flat_id', id);
+    if (areaErr) throw new Error(`Failed to delete areas for flat ${id}: ${areaErr.message}`);
+
+    const { error: flatErr } = await this.client.from('flats').delete().eq('id', id);
+    if (flatErr) throw new Error(`Failed to delete flat ${id}: ${flatErr.message}`);
   }
 }

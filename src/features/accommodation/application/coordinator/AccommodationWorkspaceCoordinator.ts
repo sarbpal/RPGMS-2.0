@@ -64,13 +64,13 @@ export class AccommodationWorkspaceCoordinator {
   /**
    * Load flats from repository and perform self-healing synchronization against active/on-notice stays.
    */
-  public loadAndSynchronizeFlats(occupants?: BedOccupantInput[]): Flat[] {
-    const initialFlats: Flat[] = this.repository.findAll();
+  public async loadAndSynchronizeFlats(occupants?: BedOccupantInput[]): Promise<Flat[]> {
+    const initialFlats: Flat[] = await this.repository.findAll();
 
     const { synchronizedFlats, hasUpdates } = this.synchronizeFlats(initialFlats, occupants);
 
     if (hasUpdates) {
-      this.repository.saveAll(synchronizedFlats);
+      await this.repository.saveAll(synchronizedFlats);
     }
 
     return synchronizedFlats;
@@ -80,7 +80,7 @@ export class AccommodationWorkspaceCoordinator {
    * Transforms a FlatDraft into a Flat domain entity and saves it via repository abstraction.
    * Preserves existing bed status and occupant details when updating a flat.
    */
-  public saveFlatDraft(draft: FlatDraft, flatToEdit?: Flat): Flat {
+  public async saveFlatDraft(draft: FlatDraft, flatToEdit?: Flat): Promise<Flat> {
     // Enforce domain area configuration validation rules
     const validation = validateFlatAreaConfigs(draft.areas);
     if (!validation.isValid) {
@@ -136,7 +136,7 @@ export class AccommodationWorkspaceCoordinator {
       })),
     };
 
-    return this.saveFlat(newFlat);
+    return await this.saveFlat(newFlat);
   }
 
   /**
@@ -149,22 +149,22 @@ export class AccommodationWorkspaceCoordinator {
   /**
    * Save flat entity via repository abstraction.
    */
-  public saveFlat(flat: Flat): Flat {
-    return this.repository.save(flat);
+  public async saveFlat(flat: Flat): Promise<Flat> {
+    return await this.repository.save(flat);
   }
 
   /**
    * Delete flat entity by ID via repository abstraction.
    */
-  public deleteFlat(id: string): void {
-    this.repository.delete(id);
+  public async deleteFlat(id: string): Promise<void> {
+    await this.repository.delete(id);
   }
 
   /**
    * Business Operation: Block a Bed (VACANT or MAINTENANCE -> BLOCKED).
    */
-  public blockBed(flatId: string, bedId: string): Flat {
-    const flat = this.repository.findById(flatId);
+  public async blockBed(flatId: string, bedId: string): Promise<Flat> {
+    const flat = await this.repository.findById(flatId);
     if (!flat) throw new Error(`Flat ${flatId} not found.`);
 
     let targetBedFound = false;
@@ -182,14 +182,14 @@ export class AccommodationWorkspaceCoordinator {
     if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
 
     const updatedFlat: Flat = { ...flat, areas: updatedAreas };
-    return this.saveFlat(updatedFlat);
+    return await this.saveFlat(updatedFlat);
   }
 
   /**
    * Business Operation: Unblock a Bed (BLOCKED -> VACANT).
    */
-  public unblockBed(flatId: string, bedId: string): Flat {
-    const flat = this.repository.findById(flatId);
+  public async unblockBed(flatId: string, bedId: string): Promise<Flat> {
+    const flat = await this.repository.findById(flatId);
     if (!flat) throw new Error(`Flat ${flatId} not found.`);
 
     let targetBedFound = false;
@@ -207,14 +207,14 @@ export class AccommodationWorkspaceCoordinator {
     if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
 
     const updatedFlat: Flat = { ...flat, areas: updatedAreas };
-    return this.saveFlat(updatedFlat);
+    return await this.saveFlat(updatedFlat);
   }
 
   /**
    * Business Operation: Put a Bed into Maintenance (VACANT or BLOCKED -> MAINTENANCE).
    */
-  public startBedMaintenance(flatId: string, bedId: string): Flat {
-    const flat = this.repository.findById(flatId);
+  public async startBedMaintenance(flatId: string, bedId: string): Promise<Flat> {
+    const flat = await this.repository.findById(flatId);
     if (!flat) throw new Error(`Flat ${flatId} not found.`);
 
     let targetBedFound = false;
@@ -232,14 +232,14 @@ export class AccommodationWorkspaceCoordinator {
     if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
 
     const updatedFlat: Flat = { ...flat, areas: updatedAreas };
-    return this.saveFlat(updatedFlat);
+    return await this.saveFlat(updatedFlat);
   }
 
   /**
    * Business Operation: Complete Maintenance on a Bed (MAINTENANCE -> VACANT).
    */
-  public completeBedMaintenance(flatId: string, bedId: string): Flat {
-    const flat = this.repository.findById(flatId);
+  public async completeBedMaintenance(flatId: string, bedId: string): Promise<Flat> {
+    const flat = await this.repository.findById(flatId);
     if (!flat) throw new Error(`Flat ${flatId} not found.`);
 
     let targetBedFound = false;
@@ -257,7 +257,7 @@ export class AccommodationWorkspaceCoordinator {
     if (!targetBedFound) throw new Error(`Bed ${bedId} not found in Flat ${flatId}.`);
 
     const updatedFlat: Flat = { ...flat, areas: updatedAreas };
-    return this.saveFlat(updatedFlat);
+    return await this.saveFlat(updatedFlat);
   }
 
   /**
@@ -351,28 +351,13 @@ export class AccommodationWorkspaceCoordinator {
             expectedAreaRent,
             expectedAreaDeposit
           );
-
           if (isChanged) {
             hasUpdates = true;
           }
           return synchronizedBed;
         });
 
-        if (
-          area.defaultRent !== expectedAreaRent ||
-          area.defaultDeposit !== expectedAreaDeposit ||
-          updatedBeds !== area.beds
-        ) {
-          hasUpdates = true;
-          return {
-            ...area,
-            defaultRent: expectedAreaRent,
-            defaultDeposit: expectedAreaDeposit,
-            beds: updatedBeds,
-          };
-        }
-
-        return area;
+        return { ...area, beds: updatedBeds };
       });
 
       return { ...flat, areas: updatedAreas };
@@ -382,66 +367,94 @@ export class AccommodationWorkspaceCoordinator {
   }
 
   /**
-   * Constructs the ViewModel for Accommodation Workspace given the current flats state and filters.
+   * Filters flats by search query (flat name, description, area name, bed ID, occupant name)
+   * and by bed status (VACANT, OCCUPIED, ON_NOTICE, BLOCKED, MAINTENANCE).
    */
-  public createViewModel(
-    flats: Flat[],
-    searchQuery: string = '',
-    statusFilter: string = 'ALL'
-  ): AccommodationWorkspaceViewModel {
-    // 1. Calculate Summary Stats
-    const totalFlats = flats.length;
+  public filterFlats(flats: Flat[], searchQuery: string, statusFilter: string): Flat[] {
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    const isStatusFiltered = statusFilter !== 'ALL';
+
+    return flats
+      .map((flat) => {
+        const flatMatchesQuery =
+          flat.name.toLowerCase().includes(trimmedQuery) ||
+          (flat.floor ? flat.floor.toLowerCase().includes(trimmedQuery) : false) ||
+          (flat.description && flat.description.toLowerCase().includes(trimmedQuery));
+
+        const filteredAreas = flat.areas
+          .map((area) => {
+            const areaMatchesQuery = area.name.toLowerCase().includes(trimmedQuery);
+
+            const filteredBeds = area.beds.filter((bed) => {
+              const bedMatchesQuery =
+                flatMatchesQuery ||
+                areaMatchesQuery ||
+                bed.name.toLowerCase().includes(trimmedQuery) ||
+                bed.id.toLowerCase().includes(trimmedQuery) ||
+                (bed.residentName && bed.residentName.toLowerCase().includes(trimmedQuery));
+
+              const bedMatchesStatus = !isStatusFiltered || bed.status === statusFilter;
+
+              return bedMatchesQuery && bedMatchesStatus;
+            });
+
+            return { ...area, beds: filteredBeds };
+          })
+          .filter((area) => area.beds.length > 0 || (!isStatusFiltered && flatMatchesQuery));
+
+        return { ...flat, areas: filteredAreas };
+      })
+      .filter((flat) => flat.areas.length > 0);
+  }
+
+  /**
+   * Computes aggregate stats across all loaded and synchronized flats.
+   */
+  public calculateStats(flats: Flat[]): AccommodationStats {
     let totalBeds = 0;
-    let vacantBeds = 0;
-    let occupiedBeds = 0;
-    let onNoticeBeds = 0;
+    let occupied = 0;
+    let onNotice = 0;
+    let vacant = 0;
 
     flats.forEach((flat) => {
       flat.areas.forEach((area) => {
         area.beds.forEach((bed) => {
           totalBeds++;
-          if (bed.status === BedStatus.VACANT) {
-            vacantBeds++;
-          } else if (bed.status === BedStatus.OCCUPIED) {
-            occupiedBeds++;
-          } else if (bed.status === BedStatus.ON_NOTICE) {
-            onNoticeBeds++;
+          switch (bed.status) {
+            case BedStatus.OCCUPIED:
+              occupied++;
+              break;
+            case BedStatus.ON_NOTICE:
+              onNotice++;
+              break;
+            case BedStatus.VACANT:
+              vacant++;
+              break;
           }
         });
       });
     });
 
-    const stats: AccommodationStats = {
-      totalFlats,
+    return {
+      totalFlats: flats.length,
       totalBeds,
-      vacantBeds,
-      occupiedBeds,
-      onNoticeBeds,
+      occupiedBeds: occupied,
+      onNoticeBeds: onNotice,
+      vacantBeds: vacant,
     };
+  }
 
-    // 2. Filter Flats
-    const filteredFlats = flats.filter((flat) => {
-      const matchesStatus =
-        statusFilter === 'ALL' ||
-        flat.areas.some((area) =>
-          area.beds.some((bed) => bed.status === statusFilter)
-        );
-
-      const matchesSearch =
-        searchQuery.trim() === '' ||
-        flat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        flat.areas.some((area) =>
-          area.beds.some(
-            (bed) =>
-              bed.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              bed.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (bed.residentName &&
-                bed.residentName.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        );
-
-      return matchesStatus && matchesSearch;
-    });
+  /**
+   * Pure ViewModel Transformation function.
+   * Derives presentation state from domain data, applied filters, and calculated stats.
+   */
+  public createViewModel(
+    flats: Flat[],
+    searchQuery: string,
+    statusFilter: string
+  ): AccommodationWorkspaceViewModel {
+    const stats = this.calculateStats(flats);
+    const filteredFlats = this.filterFlats(flats, searchQuery, statusFilter);
 
     return {
       stats,

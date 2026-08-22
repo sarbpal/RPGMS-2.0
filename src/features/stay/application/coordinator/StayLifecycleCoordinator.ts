@@ -77,13 +77,30 @@ export class StayLifecycleCoordinator {
     return null;
   }
 
+  private getFlat(id: string): Flat | null {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.findByIdSync === 'function') {
+      return inMem.findByIdSync(id);
+    }
+    return null;
+  }
+
+  private saveFlat(flat: Flat): void {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.saveSync === 'function') {
+      inMem.saveSync(flat);
+    } else {
+      this.accommodationRepo.save(flat);
+    }
+  }
+
   private findFlat(flatId: string): Flat | null {
-    let flat = this.accommodationRepo.findById(flatId);
+    let flat = this.getFlat(flatId);
     if (!flat && flatId.startsWith('FLAT-')) {
-      flat = this.accommodationRepo.findById(flatId.replace('FLAT-', ''));
+      flat = this.getFlat(flatId.replace('FLAT-', ''));
     }
     if (!flat) {
-      flat = this.accommodationRepo.findById(`FLAT-${flatId}`);
+      flat = this.getFlat(`FLAT-${flatId}`);
     }
     return flat;
   }
@@ -149,7 +166,7 @@ export class StayLifecycleCoordinator {
               return b;
             }),
           }));
-          this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+          this.saveFlat({ ...flat, areas: updatedAreas });
         }
       }
 
@@ -157,7 +174,7 @@ export class StayLifecycleCoordinator {
     } catch (err) {
       this.persistStay(staySnapshot);
       if (flatSnapshot) {
-        try { this.accommodationRepo.save(flatSnapshot); } catch { /* retain original failure */ }
+        try { this.saveFlat(flatSnapshot); } catch { /* retain original failure */ }
       }
       throw err;
     }
@@ -193,17 +210,16 @@ export class StayLifecycleCoordinator {
             ...area,
             beds: area.beds.map((b) => {
               if (bedIdsToClear.some((targetId) => this.isBedMatch(b, targetId))) {
+                const { stayId: _s, residentName: _r, ...clearedBed } = b;
                 return {
-                  ...b,
+                  ...clearedBed,
                   status: BedStatus.VACANT,
-                  residentName: undefined,
-                  stayId: undefined,
                 };
               }
               return b;
             }),
           }));
-          this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+          this.saveFlat({ ...flat, areas: updatedAreas });
         }
       }
 
@@ -257,7 +273,7 @@ export class StayLifecycleCoordinator {
               return b;
             }),
           }));
-          this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+          this.saveFlat({ ...flat, areas: updatedAreas });
         }
       }
 

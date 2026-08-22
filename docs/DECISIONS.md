@@ -1480,10 +1480,56 @@ Following the completion and remote verification of the Financial Core (FC-01 th
 
 ---
 
+## ADR-043 — Master & Guest Operational Persistence Implementation (Accommodation, Resident, Reservation)
+
+### Status
+Accepted (S-IMP-02 Implementation Checkpoint)
+
+### Context
+Following the foundational persistence architecture established in S-ARCH-01 and S-IMP-01 (ADR-042), S-IMP-02 activates production-ready Supabase persistence for the Master and Guest Operational domains: **Accommodation**, **Resident**, and **Reservation**.
+
+Prior to S-IMP-02:
+1. `AccommodationRepository` was partially synchronous, leading to contract friction when interacting with relational database adapters.
+2. `ResidentRepository` Supabase adapter had stubs that required fail-fast error handling and `.maybeSingle()` queries.
+3. `ReservationRepository` lacked a Supabase adapter, relational row mapper, and persistence contract tests.
+4. Callers across coordinators and UI components needed harmonization for async persistence (`Promise<T>`) while retaining synchronous in-memory test double helpers (`*Sync`) for deterministic unit and integration test assertions.
+
+### Decision
+1. **Harmonized Async Domain Repository Contracts**:
+   - `AccommodationRepository` domain interface is standardized to return `Promise<T>` for all I/O operations (`findAll`, `findById`, `save`, `saveAll`, `delete`).
+   - `InMemoryAccommodationRepository` fulfills the async contract and provides `*Sync` helper methods (`findAllSync`, `findByIdSync`, `saveSync`, `saveAllSync`, `deleteSync`) for synchronous in-memory test doubles and coordinators.
+2. **Reservation Persistence Adapter & Mappers**:
+   - Implemented `ReservationMappers` handling bidirectional domain $\leftrightarrow$ relational row translation:
+     - Domain `ACTIVE` $\leftrightarrow$ DB `'CONFIRMED'` (preserving PG enum compatibility).
+     - Audit log serialization and JSON timestamp handling.
+   - Implemented `SupabaseReservationRepository` supporting full async CRUD and search operations with strict fail-fast error handling (no silent memory fallback).
+   - Implemented `ReservationPersistenceContract.test.ts`.
+3. **Resident Persistence Hardening**:
+   - Hardened `SupabaseResidentRepository` with explicit fail-fast errors on database or PostgREST failure.
+   - Replaced `.single()` with `.maybeSingle()` for clean null-handling on missing records.
+4. **Repository Factory & Composition Root Integration**:
+   - Integrated `reservationRepository` into `RepositoryRegistry` and `repositoryFactory.ts`.
+   - Wired `stayWorkflowComposition.ts` to source all domain repositories directly from `repositoryRegistry`.
+5. **Memory-Mode Regression Protection**:
+   - Validated that `VITE_PERSISTENCE_MODE=memory` remains fully functional across all domains (Accommodation, Resident, Reservation, Stay, Admission, Billing, Finance, Electricity, Laundry).
+
+### Consequences
+
+#### Advantages:
+- Complete relational persistence coverage for Master (Accommodation) and Guest (Resident, Reservation) domains.
+- Clear contract boundary: domain repository contracts are strictly asynchronous (`Promise<T>`); in-memory doubles provide synchronous accessors for fast isolated testing.
+- Eliminates silent failure risk by ensuring Supabase adapters propagate explicit persistence errors.
+
+#### Trade-offs:
+- Coordinators interfacing with multiple in-memory doubles must explicitly use synchronous helper methods or async orchestration.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.8 | August 2026 | S-IMP-02: Master & Guest Operational Persistence (ADR-043, Accommodation async harmonization, SupabaseReservationRepository, ReservationMappers, ReservationPersistenceContract tests, Resident hardening, repositoryFactory integration). |
 | 4.7 | August 2026 | S-IMP-01: Supabase Persistence Foundation (ADR-042, initial DDL migrations, atomic functions, database types, Supabase repository adapters, mappers, contract tests, repository factory). |
 | 4.6 | August 2026 | UI-INTEGRATION-01: Stay & Finance Operational UI Integration (ADR-041, ReversePaymentModal, Deposit & Ledger Action Wiring). |
 | 4.5 | August 2026 | Pre-Supabase Hardening: Advance Credit Application Compensation Boundary (ADR-040, BR-425). |

@@ -40,19 +40,16 @@ Development is now focused on Reservation and Admission Management.
 
 # Current Milestone
 
-## Capability Release 3 (CR-3) / Operational UI Integration
+## S-IMP-02 — Master & Guest Operational Persistence
 
 **Status:** ✅ Completed
 
 ### Delivered
 
-- Finance Dashboard & Operational Integration (UI-INTEGRATION-01)
-- Payment Reversal Confirmation & Audit Journal (ADR-039, ADR-041)
-- Security Deposit Operations (Partial Returns & Deductions) Entry Points
-- Authoritative Resident Double-Entry Ledger Modal
-- Financial Core Hardening & Advance Credit Compensation Boundary (ADR-040)
-
-Business documentation is considered frozen for MVP implementation.
+- S-IMP-01: Supabase Persistence Foundation (ADR-042, Initial Schema & Atomic PL/pgSQL RPC Migrations, Database Types, Client Provider, Repository Factory)
+- S-IMP-02: Master & Guest Operational Persistence (ADR-043, Accommodation Async Harmonization, SupabaseReservationRepository, ReservationMappers, ReservationPersistenceContract tests, Resident Hardening, Repository Registry Wiring)
+- Memory-Mode Regression Protection: 100% operational parity maintained across all domains under `VITE_PERSISTENCE_MODE=memory`
+- Clean TypeScript compilation and production bundle verification
 
 ---
 

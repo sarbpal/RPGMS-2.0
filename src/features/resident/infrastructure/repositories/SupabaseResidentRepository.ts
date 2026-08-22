@@ -17,12 +17,13 @@ export class SupabaseResidentRepository implements ResidentRepository {
       .from('residents')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
-      return null;
+    if (error) {
+      throw new Error(`Failed to find resident by ID ${id} in Supabase: ${error.message}`);
     }
-    return ResidentMappers.toDomain(data as Database['public']['Tables']['residents']['Row']);
+
+    return data ? ResidentMappers.toDomain(data as Database['public']['Tables']['residents']['Row']) : null;
   }
 
   public async getAll(): Promise<Resident[]> {
@@ -31,10 +32,11 @@ export class SupabaseResidentRepository implements ResidentRepository {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error || !data) {
-      return [];
+    if (error) {
+      throw new Error(`Failed to fetch all residents from Supabase: ${error.message}`);
     }
-    return (data as Database['public']['Tables']['residents']['Row'][]).map(ResidentMappers.toDomain);
+
+    return (data || []).map((row) => ResidentMappers.toDomain(row as Database['public']['Tables']['residents']['Row']));
   }
 
   public async search(query: string): Promise<Resident[]> {
@@ -50,15 +52,19 @@ export class SupabaseResidentRepository implements ResidentRepository {
         `full_name.ilike.%${cleanQuery}%,mobile_number.ilike.%${cleanQuery}%,resident_code.ilike.%${cleanQuery}%`
       );
 
-    if (error || !data) {
-      return [];
+    if (error) {
+      throw new Error(`Failed to search residents with query "${query}" in Supabase: ${error.message}`);
     }
-    return (data as Database['public']['Tables']['residents']['Row'][]).map(ResidentMappers.toDomain);
+
+    return (data || []).map((row) => ResidentMappers.toDomain(row as Database['public']['Tables']['residents']['Row']));
   }
 
   public async save(resident: Resident): Promise<Resident> {
     const row = ResidentMappers.toRow(resident);
-    await this.client.from('residents').upsert(row as any);
+    const { error } = await this.client.from('residents').upsert(row as any);
+    if (error) {
+      throw new Error(`Failed to save resident ${resident.id} in Supabase: ${error.message}`);
+    }
     return resident;
   }
 
@@ -67,14 +73,17 @@ export class SupabaseResidentRepository implements ResidentRepository {
   }
 
   public async delete(id: string): Promise<void> {
-    await this.client.from('residents').delete().eq('id', id);
+    const { error } = await this.client.from('residents').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Failed to delete resident ${id} in Supabase: ${error.message}`);
+    }
   }
 
   public getByIdSync(_id: string): Resident | null {
-    return null;
+    throw new Error('Synchronous getByIdSync is not supported on SupabaseResidentRepository.');
   }
 
   public getAllSync(): Resident[] {
-    return [];
+    throw new Error('Synchronous getAllSync is not supported on SupabaseResidentRepository.');
   }
 }

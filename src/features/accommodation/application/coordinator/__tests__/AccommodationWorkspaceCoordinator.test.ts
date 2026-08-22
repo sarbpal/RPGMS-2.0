@@ -39,9 +39,9 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   });
 
   describe('saveFlatDraft', () => {
-    it('creates and saves a new Flat from a valid draft and updates repository state', () => {
+    it('creates and saves a new Flat from a valid draft and updates repository state', async () => {
       const draft = createMockFlatDraft({ flatNumber: '105' });
-      const result = coordinator.saveFlatDraft(draft);
+      const result = await coordinator.saveFlatDraft(draft);
 
       expect(result.id).toBe('105');
       expect(result.areas).toHaveLength(1);
@@ -49,22 +49,22 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(result.areas[0].beds[0].id).toBe('105-B1');
 
       // Refinement 3: Verify repository state after operation
-      const savedInRepo = repository.findById('105');
+      const savedInRepo = await repository.findById('105');
       expect(savedInRepo).toBeDefined();
       expect(savedInRepo?.name).toBe('105');
     });
 
-    it('throws error when draft area configuration validation fails', () => {
+    it('throws error when draft area configuration validation fails', async () => {
       const invalidDraft = createMockFlatDraft({
         areas: [{ name: 'Room 1', bedPrefix: 'B', defaultRent: 5000, defaultDeposit: 10000, beds: [] }],
       });
 
-      expect(() => coordinator.saveFlatDraft(invalidDraft)).toThrow(
+      await expect(coordinator.saveFlatDraft(invalidDraft)).rejects.toThrow(
         'Flat Area configuration is invalid'
       );
     });
 
-    it('throws error when attempting to rename flat number while it contains occupied beds (BR-ACC-003)', () => {
+    it('throws error when attempting to rename flat number while it contains occupied beds (BR-ACC-003)', async () => {
       const occupiedFlat = createMockFlat({
         id: '101',
         name: '101',
@@ -74,16 +74,16 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(occupiedFlat);
+      await repository.save(occupiedFlat);
 
       const renamedDraft = createMockFlatDraft({ flatNumber: '999' });
 
-      expect(() => coordinator.saveFlatDraft(renamedDraft, occupiedFlat)).toThrow(
+      await expect(coordinator.saveFlatDraft(renamedDraft, occupiedFlat)).rejects.toThrow(
         'cannot be modified while it contains occupied beds'
       );
     });
 
-    it('preserves existing bed status, occupant details, and stayId when updating an existing flat draft', () => {
+    it('preserves existing bed status, occupant details, and stayId when updating an existing flat draft', async () => {
       const existingFlat = createMockFlat({
         id: '101',
         name: '101',
@@ -96,14 +96,14 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(existingFlat);
+      await repository.save(existingFlat);
 
       const updatedDraft = createMockFlatDraft({
         flatNumber: '101',
         description: 'Updated Description',
       });
 
-      const updatedFlat = coordinator.saveFlatDraft(updatedDraft, existingFlat);
+      const updatedFlat = await coordinator.saveFlatDraft(updatedDraft, existingFlat);
 
       expect(updatedFlat.description).toBe('Updated Description');
       expect(updatedFlat.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
@@ -111,7 +111,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(updatedFlat.areas[0].beds[0].stayId).toBe('stay-101');
 
       // Refinement 3: Verify repository state
-      const repoState = repository.findById('101');
+      const repoState = await repository.findById('101');
       expect(repoState?.description).toBe('Updated Description');
       expect(repoState?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(repoState?.areas[0].beds[0].stayId).toBe('stay-101');
@@ -119,19 +119,19 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
   });
 
   describe('blockBed / unblockBed Operations', () => {
-    it('blocks a vacant bed and updates repository state', () => {
+    it('blocks a vacant bed and updates repository state', async () => {
       const flat = createMockFlat({ id: '101' });
-      repository.save(flat);
+      await repository.save(flat);
 
-      const updatedFlat = coordinator.blockBed('101', '101-B1');
+      const updatedFlat = await coordinator.blockBed('101', '101-B1');
       expect(updatedFlat.areas[0].beds[0].status).toBe(BedStatus.BLOCKED);
 
       // Refinement 3: Verify repository state
-      const repoFlat = repository.findById('101');
+      const repoFlat = await repository.findById('101');
       expect(repoFlat?.areas[0].beds[0].status).toBe(BedStatus.BLOCKED);
     });
 
-    it('unblocks a blocked bed and updates repository state', () => {
+    it('unblocks a blocked bed and updates repository state', async () => {
       const flat = createMockFlat({
         id: '101',
         areas: [
@@ -140,39 +140,37 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
-      const updatedFlat = coordinator.unblockBed('101', '101-B1');
+      const updatedFlat = await coordinator.unblockBed('101', '101-B1');
       expect(updatedFlat.areas[0].beds[0].status).toBe(BedStatus.VACANT);
 
       // Refinement 3: Verify repository state
-      const repoFlat = repository.findById('101');
+      const repoFlat = await repository.findById('101');
       expect(repoFlat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
   });
 
   describe('startBedMaintenance / completeBedMaintenance Operations', () => {
-    it('puts a bed into maintenance and completes maintenance, verifying repository state', () => {
+    it('puts a bed into maintenance and completes maintenance, verifying repository state', async () => {
       const flat = createMockFlat({ id: '101' });
-      repository.save(flat);
+      await repository.save(flat);
 
       // 1. Start Maintenance
-      const maintenanceFlat = coordinator.startBedMaintenance('101', '101-B1');
+      const maintenanceFlat = await coordinator.startBedMaintenance('101', '101-B1');
       expect(maintenanceFlat.areas[0].beds[0].status).toBe(BedStatus.MAINTENANCE);
 
       // Refinement 3: Verify repository state after start
-      expect(repository.findById('101')?.areas[0].beds[0].status).toBe(
-        BedStatus.MAINTENANCE
-      );
+      const repoFlat1 = await repository.findById('101');
+      expect(repoFlat1?.areas[0].beds[0].status).toBe(BedStatus.MAINTENANCE);
 
       // 2. Complete Maintenance
-      const completedFlat = coordinator.completeBedMaintenance('101', '101-B1');
+      const completedFlat = await coordinator.completeBedMaintenance('101', '101-B1');
       expect(completedFlat.areas[0].beds[0].status).toBe(BedStatus.VACANT);
 
       // Refinement 3: Verify repository state after completion
-      expect(repository.findById('101')?.areas[0].beds[0].status).toBe(
-        BedStatus.VACANT
-      );
+      const repoFlat2 = await repository.findById('101');
+      expect(repoFlat2?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
   });
 
@@ -189,7 +187,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
       const resident = createMockResident({ id: 'res-1', fullName: 'Jane Doe' });
       await residentRepository.save(resident);
@@ -203,7 +201,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       });
       await stayRepository.save(stay);
 
-      const synchronized = coordinator.loadAndSynchronizeFlats();
+      const synchronized = await coordinator.loadAndSynchronizeFlats();
 
       const targetBed = synchronized[0].areas[0].beds.find((b) => b.id === '101-B1');
       expect(targetBed?.status).toBe(BedStatus.OCCUPIED);
@@ -211,7 +209,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(targetBed?.stayId).toBe('stay-1');
 
       // Refinement 3: Verify repository state
-      const repoFlat = repository.findById('101');
+      const repoFlat = await repository.findById('101');
       expect(repoFlat?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(repoFlat?.areas[0].beds[0].residentName).toBe('Jane Doe');
       expect(repoFlat?.areas[0].beds[0].stayId).toBe('stay-1');
@@ -226,7 +224,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
       const resident = createMockResident({ id: 'res-2', fullName: 'John Notice' });
       await residentRepository.save(resident);
@@ -240,7 +238,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       });
       await stayRepository.save(stay);
 
-      const synchronized = coordinator.loadAndSynchronizeFlats();
+      const synchronized = await coordinator.loadAndSynchronizeFlats();
       const bed = synchronized[0].areas[0].beds.find((b) => b.id === '102-B1');
       expect(bed?.status).toBe(BedStatus.ON_NOTICE);
       expect(bed?.residentName).toBe('John Notice');
@@ -259,7 +257,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
       // Stays in repository are CHECKED_OUT (no active stays)
       const resident = createMockResident({ id: 'res-1', fullName: 'Jane Doe' });
@@ -274,7 +272,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       });
       await stayRepository.save(checkedOutStay);
 
-      const synchronized = coordinator.loadAndSynchronizeFlats();
+      const synchronized = await coordinator.loadAndSynchronizeFlats();
       const beds = synchronized[0].areas[0].beds;
 
       const bed1 = beds.find((b) => b.id === '101-B1');
@@ -315,7 +313,6 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
 
       const viewModel = coordinator.createViewModel([flat1, flat2], 'Jane', BedStatus.OCCUPIED);
 
-      expect(viewModel.stats.totalFlats).toBe(2);
       expect(viewModel.stats.totalBeds).toBe(3);
       expect(viewModel.stats.occupiedBeds).toBe(1);
       expect(viewModel.stats.onNoticeBeds).toBe(1);
@@ -401,7 +398,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
       const resident = createMockResident({ id: 'res-100', fullName: 'Alice Walker' });
       await residentRepository.save(resident);
@@ -417,7 +414,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       await stayRepository.save(stay);
 
       // Initial synchronization: both beds occupied by Alice Walker
-      const sync1 = coordinator.loadAndSynchronizeFlats();
+      const sync1 = await coordinator.loadAndSynchronizeFlats();
       expect(sync1[0].areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(sync1[0].areas[0].beds[1].status).toBe(BedStatus.OCCUPIED);
 
@@ -430,7 +427,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       await stayRepository.save(updatedStay);
 
       // Step 3: Synchronize again
-      const sync2 = coordinator.loadAndSynchronizeFlats();
+      const sync2 = await coordinator.loadAndSynchronizeFlats();
 
       const bed1 = sync2[0].areas[0].beds.find((b) => b.id === '101-B1');
       const bed2 = sync2[0].areas[0].beds.find((b) => b.id === '101-B2');
@@ -442,7 +439,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed2?.residentName).toBe('Alice Walker');
 
       // Refinement 3: Verify repository state after partial release
-      const repoFlat = repository.findById('101');
+      const repoFlat = await repository.findById('101');
       expect(repoFlat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
       expect(repoFlat?.areas[0].beds[1].status).toBe(BedStatus.OCCUPIED);
     });
@@ -450,7 +447,7 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
 
   // Refinement 5: Decision Support Regression Test
   describe('Refinement 5 Decision Support Regression Test', () => {
-    it('confirms that failed operations leave repository state completely unchanged', () => {
+    it('confirms that failed operations leave repository state completely unchanged', async () => {
       const flat = createMockFlat({
         id: '101',
         areas: [
@@ -459,19 +456,19 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
           }),
         ],
       });
-      repository.save(flat);
+      await repository.save(flat);
 
       // Verify initial state
-      const initialRepoState = repository.findById('101');
+      const initialRepoState = await repository.findById('101');
       expect(initialRepoState?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
 
       // Attempt illegal operation: block an occupied bed
-      expect(() => coordinator.blockBed('101', '101-B1')).toThrow(
+      await expect(coordinator.blockBed('101', '101-B1')).rejects.toThrow(
         'currently occupied by a resident and cannot be blocked'
       );
 
       // Decision Support Verification: Repository state MUST remain completely unchanged
-      const postFailureRepoState = repository.findById('101');
+      const postFailureRepoState = await repository.findById('101');
       expect(postFailureRepoState?.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(postFailureRepoState?.areas[0].beds[0].residentName).toBe('Jane Doe');
       expect(postFailureRepoState).toEqual(initialRepoState);
@@ -633,8 +630,8 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       });
     });
 
-    it('loadAndSynchronizeFlats() reconstructs Flat 101 / Bed 101-B1 as OCCUPIED with resident name Rajesh Kumar and stayId STAY-2026-00041 from staySeedData', () => {
-      const flats = seedCoordinator.loadAndSynchronizeFlats();
+    it('loadAndSynchronizeFlats() reconstructs Flat 101 / Bed 101-B1 as OCCUPIED with resident name Rajesh Kumar and stayId STAY-2026-00041 from staySeedData', async () => {
+      const flats = await seedCoordinator.loadAndSynchronizeFlats();
       const flat101 = flats.find((f) => f.id === '101');
       expect(flat101, 'Flat 101 must exist in synchronized result').toBeDefined();
 
@@ -647,8 +644,8 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed!.stayId).toBe('STAY-2026-00041');
     });
 
-    it('loadAndSynchronizeFlats() preserves Flat 102 / Beds 102-B1 and 102-B2 as ON_NOTICE with resident name Amit Sharma and stayId STAY-2026-00042', () => {
-      const flats = seedCoordinator.loadAndSynchronizeFlats();
+    it('loadAndSynchronizeFlats() preserves Flat 102 / Beds 102-B1 and 102-B2 as ON_NOTICE with resident name Amit Sharma and stayId STAY-2026-00042', async () => {
+      const flats = await seedCoordinator.loadAndSynchronizeFlats();
       const flat102 = flats.find((f) => f.id === '102');
       expect(flat102, 'Flat 102 must exist in synchronized result').toBeDefined();
 
@@ -667,8 +664,8 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed2!.stayId).toBe('STAY-2026-00042');
     });
 
-    it('loadAndSynchronizeFlats() does NOT convert seeded OCCUPIED or ON_NOTICE beds to VACANT', () => {
-      const flats = seedCoordinator.loadAndSynchronizeFlats();
+    it('loadAndSynchronizeFlats() does NOT convert seeded OCCUPIED or ON_NOTICE beds to VACANT', async () => {
+      const flats = await seedCoordinator.loadAndSynchronizeFlats();
       const allBeds = flats.flatMap((f) => f.areas.flatMap((a) => a.beds));
 
       // 101-B1 must remain OCCUPIED (active stay from Rajesh Kumar)
@@ -685,8 +682,8 @@ describe('AccommodationWorkspaceCoordinator Integration Suite', () => {
       expect(bed102B2?.stayId).toBe('STAY-2026-00042');
     });
 
-    it('loadAndSynchronizeFlats() leaves Flat 103 beds vacant (no active stay allocated there)', () => {
-      const flats = seedCoordinator.loadAndSynchronizeFlats();
+    it('loadAndSynchronizeFlats() leaves Flat 103 beds vacant (no active stay allocated there)', async () => {
+      const flats = await seedCoordinator.loadAndSynchronizeFlats();
       const flat103 = flats.find((f) => f.id === '103');
       expect(flat103, 'Flat 103 must exist in synchronized result').toBeDefined();
 

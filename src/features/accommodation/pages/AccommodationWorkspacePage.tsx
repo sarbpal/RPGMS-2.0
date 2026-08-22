@@ -20,9 +20,7 @@ export default function AccommodationWorkspacePage() {
   const navigate = useNavigate();
   const coordinator = useMemo(() => stayWorkflowComposition.accommodationWorkspaceCoordinator, []);
 
-  const [flats, setFlats] = useState<Flat[]>(() => {
-    return coordinator.loadAndSynchronizeFlats();
-  });
+  const [flats, setFlats] = useState<Flat[]>([]);
 
   const [flatToEdit, setFlatToEdit] = useState<Flat | undefined>(undefined);
   const [flatToDelete, setFlatToDelete] = useState<Flat | undefined>(undefined);
@@ -39,6 +37,12 @@ export default function AccommodationWorkspacePage() {
   const maintenanceCoordinator = useMemo(() => new MaintenanceWorkspaceCoordinator(), []);
   const [maintenancePersonnel, setMaintenancePersonnel] = useState<readonly MaintenancePersonnel[]>([]);
   const [maintenanceFlatId, setMaintenanceFlatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    coordinator.loadAndSynchronizeFlats().then((loaded) => {
+      setFlats(loaded);
+    });
+  }, [coordinator]);
 
   useEffect(() => {
     maintenanceCoordinator.createViewModel().then((vm) => {
@@ -65,26 +69,34 @@ export default function AccommodationWorkspacePage() {
     [coordinator, flats, searchQuery, statusFilter]
   );
 
-  const handleSaveFlat = (draft: FlatDraft) => {
-    const savedFlat = coordinator.saveFlatDraft(draft, flatToEdit);
+  const handleSaveFlat = async (draft: FlatDraft) => {
+    try {
+      const savedFlat = await coordinator.saveFlatDraft(draft, flatToEdit);
 
-    if (flatToEdit) {
-      setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? savedFlat : f)));
+      if (flatToEdit) {
+        setFlats((prev) => prev.map((f) => (f.id === flatToEdit.id ? savedFlat : f)));
+        setSnackbar({
+          open: true,
+          message: `Flat ${draft.flatNumber} updated successfully.`,
+          severity: 'success',
+        });
+      } else {
+        setFlats((prev) => [...prev, savedFlat]);
+        setSnackbar({
+          open: true,
+          message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
+          severity: 'success',
+        });
+      }
+
+      setFlatToEdit(undefined);
+    } catch (err: any) {
       setSnackbar({
         open: true,
-        message: `Flat ${draft.flatNumber} updated successfully.`,
-        severity: 'success',
-      });
-    } else {
-      setFlats((prev) => [...prev, savedFlat]);
-      setSnackbar({
-        open: true,
-        message: `Flat ${draft.flatNumber} created successfully with ${draft.capacity} beds.`,
-        severity: 'success',
+        message: err.message || 'Failed to save flat.',
+        severity: 'error',
       });
     }
-
-    setFlatToEdit(undefined);
   };
 
   const handleAddFlatClick = () => {
@@ -113,7 +125,7 @@ export default function AccommodationWorkspacePage() {
     setIsDeleteConfirmationOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (flatToDelete) {
       const { canDelete } = coordinator.canDeleteFlat(flatToDelete);
 
@@ -128,14 +140,22 @@ export default function AccommodationWorkspacePage() {
         return;
       }
 
-      coordinator.deleteFlat(flatToDelete.id);
-      setFlats((prev) => prev.filter((f) => f.id !== flatToDelete.id));
+      try {
+        await coordinator.deleteFlat(flatToDelete.id);
+        setFlats((prev) => prev.filter((f) => f.id !== flatToDelete.id));
 
-      setSnackbar({
-        open: true,
-        message: `Flat ${flatToDelete.name} deleted successfully.`,
-        severity: 'success',
-      });
+        setSnackbar({
+          open: true,
+          message: `Flat ${flatToDelete.name} deleted successfully.`,
+          severity: 'success',
+        });
+      } catch (err: any) {
+        setSnackbar({
+          open: true,
+          message: err.message || 'Failed to delete flat.',
+          severity: 'error',
+        });
+      }
     }
     setIsDeleteConfirmationOpen(false);
     setFlatToDelete(undefined);
@@ -145,9 +165,9 @@ export default function AccommodationWorkspacePage() {
     setSelectedBed({ bed, flatId, flatName, areaName });
   };
 
-  const handleBlockBed = (flatId: string, bedId: string) => {
+  const handleBlockBed = async (flatId: string, bedId: string) => {
     try {
-      const updatedFlat = coordinator.blockBed(flatId, bedId);
+      const updatedFlat = await coordinator.blockBed(flatId, bedId);
       setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
       setSnackbar({ open: true, message: `Bed ${bedId} has been blocked.`, severity: 'success' });
     } catch (err: any) {
@@ -155,9 +175,9 @@ export default function AccommodationWorkspacePage() {
     }
   };
 
-  const handleUnblockBed = (flatId: string, bedId: string) => {
+  const handleUnblockBed = async (flatId: string, bedId: string) => {
     try {
-      const updatedFlat = coordinator.unblockBed(flatId, bedId);
+      const updatedFlat = await coordinator.unblockBed(flatId, bedId);
       setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
       setSnackbar({ open: true, message: `Bed ${bedId} has been unblocked.`, severity: 'success' });
     } catch (err: any) {
@@ -165,9 +185,9 @@ export default function AccommodationWorkspacePage() {
     }
   };
 
-  const handleStartMaintenance = (flatId: string, bedId: string) => {
+  const handleStartMaintenance = async (flatId: string, bedId: string) => {
     try {
-      const updatedFlat = coordinator.startBedMaintenance(flatId, bedId);
+      const updatedFlat = await coordinator.startBedMaintenance(flatId, bedId);
       setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
       setSnackbar({ open: true, message: `Bed ${bedId} placed into maintenance.`, severity: 'warning' });
     } catch (err: any) {
@@ -175,9 +195,9 @@ export default function AccommodationWorkspacePage() {
     }
   };
 
-  const handleCompleteMaintenance = (flatId: string, bedId: string) => {
+  const handleCompleteMaintenance = async (flatId: string, bedId: string) => {
     try {
-      const updatedFlat = coordinator.completeBedMaintenance(flatId, bedId);
+      const updatedFlat = await coordinator.completeBedMaintenance(flatId, bedId);
       setFlats((prev) => prev.map((f) => (f.id === flatId ? updatedFlat : f)));
       setSnackbar({ open: true, message: `Maintenance on Bed ${bedId} completed. Released to vacant.`, severity: 'success' });
     } catch (err: any) {

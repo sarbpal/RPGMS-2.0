@@ -187,7 +187,7 @@ describe('CR-2.5 End-to-End Business Journey Regression Test Suite', () => {
     expect(createdStay?.agreedRent).toBe(8500);
 
     // Accommodation Repository
-    const updatedFlat = accommodationRepo.findById('flat-101');
+    const updatedFlat = accommodationRepo.findByIdSync('flat-101');
     const allFlatBeds = updatedFlat?.areas.flatMap((a) => a.beds) || [];
     const allocatedBed = allFlatBeds.find((b) => b.id === 'bed-101-a');
     expect(allocatedBed?.status).toBe(BedStatus.OCCUPIED);

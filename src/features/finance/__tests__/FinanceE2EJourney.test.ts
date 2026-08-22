@@ -54,7 +54,7 @@ describe('Sprint FR-5 — End-to-End Complete Financial Lifecycle Journey', () =
 
     const coordinator = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
     const reservation = resRepo.findByIdSync('resv-e2e-001')!;
-    const flat = accomRepo.findAll()[0];
+    const flat = accomRepo.findAllSync()[0];
     const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
     const admissionDraft: AdmissionDraft = {

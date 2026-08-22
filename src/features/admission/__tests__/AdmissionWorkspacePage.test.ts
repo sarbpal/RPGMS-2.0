@@ -53,7 +53,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
     const coordinator = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
 
     const reservation = resRepo.findByIdSync('resv-000001');
-    const flats = accomRepo.findAll();
+    const flats = accomRepo.findAllSync();
     expect(flats.length).toBeGreaterThan(0);
 
     const flat = flats[0];
@@ -93,7 +93,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
 
     // Verify ZERO database state mutation during preparation phase
     const bedAfterEval = accomRepo
-      .findAll()
+      .findAllSync()
       .flatMap((f) => f.areas)
       .flatMap((a) => a.beds)
       .find((b) => b.id === vacantBed!.id);
@@ -112,7 +112,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
     const coordinator = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
     const reservation = resRepo.findByIdSync('resv-000001')!;
 
-    const flat = accomRepo.findAll()[0];
+    const flat = accomRepo.findAllSync()[0];
     const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
     const validDraft: AdmissionDraft = {
@@ -147,7 +147,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
     expect(createdStay?.residentId).toBe(result.residentId);
 
     // 3. Verify Accommodation bed marked OCCUPIED
-    const updatedFlat = accomRepo.findById(flat.id)!;
+    const updatedFlat = accomRepo.findByIdSync(flat.id)!;
     const occupiedBed = updatedFlat.areas.flatMap((a) => a.beds).find((b) => b.id === vacantBed.id);
     expect(occupiedBed?.status).toBe('OCCUPIED');
 
@@ -249,7 +249,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       // Simulate resolving commercial terms via coordinator helper (used by AdmissionWorkspacePage)
@@ -281,7 +281,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBeds = flat.areas.flatMap((a) => a.beds).filter((b) => b.status === 'VACANT');
       expect(vacantBeds.length).toBeGreaterThanOrEqual(2);
 
@@ -318,7 +318,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coordinator = new AdmissionCoordinator(undefined, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBeds = flat.areas.flatMap((a) => a.beds).filter((b) => b.status === 'VACANT');
       expect(vacantBeds.length).toBeGreaterThanOrEqual(2);
 
@@ -405,7 +405,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const draft: AdmissionDraft = {
@@ -446,7 +446,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const draft: AdmissionDraft = {
@@ -482,7 +482,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       // Clean reservation matching bed terms
@@ -522,7 +522,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const cleanReservation: Reservation = {
@@ -583,7 +583,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
       const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
 
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const cleanReservation: Reservation = {
@@ -621,7 +621,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const coord = new AdmissionCoordinator(resRepo, undefined, undefined, accomRepo);
 
       const reservation = resRepo.findByIdSync('resv-000001')!;
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const draft: AdmissionDraft = {
@@ -659,7 +659,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
       const reservation = resRepo.findByIdSync('resv-000001')!;
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const validDraft: AdmissionDraft = {
@@ -741,7 +741,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
       const reservation = resRepo.findByIdSync('resv-000001')!;
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const targetBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const draft: AdmissionDraft = {
@@ -762,7 +762,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       // Simulate external concurrent transaction marking the bed OCCUPIED in repository
       targetBed.status = BedStatus.OCCUPIED;
       targetBed.residentName = 'Concurrent Resident';
-      accomRepo.save(flat);
+      accomRepo.saveSync(flat);
 
       expect(() => coord.confirmReservedAdmission(draft, reservation)).toThrow(
         /Bed.*is already OCCUPIED/
@@ -784,7 +784,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const walkInDraft: AdmissionDraft = {
@@ -823,7 +823,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
       const reservation = resRepo.findByIdSync('resv-000001')!;
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       // Draft with missing document number -> AWAITING_INFORMATION
@@ -878,7 +878,7 @@ describe('Sprint RA-6 — Complete Admission Unit & Integration Suite', () => {
       const accomRepo = new InMemoryAccommodationRepository();
 
       const coord = new AdmissionCoordinator(resRepo, residentRepo, stayRepo, accomRepo);
-      const flat = accomRepo.findAll()[0];
+      const flat = accomRepo.findAllSync()[0];
       const vacantBed = flat.areas.flatMap((a) => a.beds).find((b) => b.status === 'VACANT')!;
 
       const cleanReservation: Reservation = {

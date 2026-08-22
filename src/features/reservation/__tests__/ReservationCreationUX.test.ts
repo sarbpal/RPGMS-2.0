@@ -248,7 +248,7 @@ describe('RU-2B.2 — Reservation Creation UX & Verification Suite', () => {
       coordinator.saveReservation(draft);
 
       // Verify accommodation repository is 100% untouched
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       expect(flat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
 

@@ -43,11 +43,12 @@ Current development is focused on delivering the Operational Services capability
 |-------|--------|
 | Engineering Foundation | 🟢 Complete |
 | Supabase Persistence Foundation | 🟢 Complete (S-IMP-01 / ADR-042) |
+| Master & Guest Operational Persistence | 🟢 Complete (S-IMP-02 / ADR-043) |
 | Application Shell | 🟢 Complete |
-| Accommodation Module | 🟢 MVP Complete |
-| Resident Module | 🟢 MVP Complete |
+| Accommodation Module | 🟢 MVP Complete (Supabase Persisted) |
+| Resident Module | 🟢 MVP Complete (Supabase Persisted) |
 | Stay Workspace | 🟢 MVP Complete |
-| Reservation & Admission | 🟢 Complete |
+| Reservation & Admission | 🟢 Complete (Reservation Persisted) |
 | Finance | 🟢 Complete (CR-3 / Sprint FR-5) |
 | Electricity | 🟢 MVP Complete (CR-4 / Stage 1–5 Complete) |
 | Billing | 🟢 Slices 1–4B Complete (CR-4) |

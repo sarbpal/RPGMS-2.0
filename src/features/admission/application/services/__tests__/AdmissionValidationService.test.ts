@@ -426,9 +426,9 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
     });
 
     it('14. fails validation when selected bed is currently OCCUPIED', () => {
-      const flat = accommodationRepo.findById('flat-101')!;
+      const flat = accommodationRepo.findByIdSync('flat-101')!;
       flat.areas[0].beds[0].status = BedStatus.OCCUPIED;
-      accommodationRepo.save(flat);
+      accommodationRepo.saveSync(flat);
 
       const result = validationService.validate(validReservationDraft, sampleReservation, 'RESERVATION', accommodationRepo, residentRepo);
 
@@ -439,9 +439,9 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
     });
 
     it('15. fails validation when selected bed is BLOCKED', () => {
-      const flat = accommodationRepo.findById('flat-101')!;
+      const flat = accommodationRepo.findByIdSync('flat-101')!;
       flat.areas[0].beds[0].status = BedStatus.BLOCKED;
-      accommodationRepo.save(flat);
+      accommodationRepo.saveSync(flat);
 
       const result = validationService.validate(validReservationDraft, sampleReservation, 'RESERVATION', accommodationRepo, residentRepo);
 
@@ -452,9 +452,9 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
     });
 
     it('16. fails validation when selected bed is in MAINTENANCE', () => {
-      const flat = accommodationRepo.findById('flat-101')!;
+      const flat = accommodationRepo.findByIdSync('flat-101')!;
       flat.areas[0].beds[0].status = BedStatus.MAINTENANCE;
-      accommodationRepo.save(flat);
+      accommodationRepo.saveSync(flat);
 
       const result = validationService.validate(validReservationDraft, sampleReservation, 'RESERVATION', accommodationRepo, residentRepo);
 
@@ -470,9 +470,9 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
       expect(initialCheck.isValid).toBe(true);
 
       // Step B: Another process marks bed OCCUPIED in repository
-      const flat = accommodationRepo.findById('flat-101')!;
+      const flat = accommodationRepo.findByIdSync('flat-101')!;
       flat.areas[0].beds[0].status = BedStatus.OCCUPIED;
-      accommodationRepo.save(flat);
+      accommodationRepo.saveSync(flat);
 
       // Step C: Validation re-reads live repository state and detects change
       const liveCheck = validationService.validate(validReservationDraft, sampleReservation, 'RESERVATION', accommodationRepo, residentRepo);
@@ -713,13 +713,13 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
     });
 
     it('34. validation service is strictly read-only and never mutates repository state', () => {
-      const flatSnapshot = JSON.stringify(accommodationRepo.findAll());
+      const flatSnapshot = JSON.stringify(accommodationRepo.findAllSync());
       const residentSnapshot = JSON.stringify(residentRepo.getAllSync());
       const resSnapshot = JSON.stringify(reservationRepo.findAllSync());
 
       validationService.validate(validReservationDraft, sampleReservation, 'RESERVATION', accommodationRepo, residentRepo);
 
-      expect(JSON.stringify(accommodationRepo.findAll())).toBe(flatSnapshot);
+      expect(JSON.stringify(accommodationRepo.findAllSync())).toBe(flatSnapshot);
       expect(JSON.stringify(residentRepo.getAllSync())).toBe(residentSnapshot);
       expect(JSON.stringify(reservationRepo.findAllSync())).toBe(resSnapshot);
     });
@@ -740,10 +740,10 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
       };
 
       // Phase 2: Another operation marks Bed 101-B1 as OCCUPIED in repository
-      const flat = accommodationRepo.findById('flat-101')!;
+      const flat = accommodationRepo.findByIdSync('flat-101')!;
       flat.areas[0].beds[0].status = BedStatus.OCCUPIED;
       flat.areas[0].beds[0].residentName = 'Existing Occupant';
-      accommodationRepo.save(flat);
+      accommodationRepo.saveSync(flat);
 
       // Phase 3: Operator clicks Approve & Admit -> Pre-Commit Validation re-reads Accommodation and fails
       expect(() => coordinator.confirmReservedAdmission(draft, sampleReservation)).toThrow(
@@ -761,7 +761,7 @@ describe('AdmissionValidationService Pre-Commit Validation Gate (Sprint RA-8 Sli
       expect(reservationAfter.convertedStayId).toBeUndefined();
 
       // Bed remains untouched with existing occupant
-      const flatAfter = accommodationRepo.findById('flat-101')!;
+      const flatAfter = accommodationRepo.findByIdSync('flat-101')!;
       expect(flatAfter.areas[0].beds[0].status).toBe(BedStatus.OCCUPIED);
       expect(flatAfter.areas[0].beds[0].residentName).toBe('Existing Occupant');
     });

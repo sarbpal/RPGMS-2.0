@@ -73,6 +73,23 @@ export class StayAccommodationCoordinator {
     return null;
   }
 
+  private getFlat(id: string): Flat | null {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.findByIdSync === 'function') {
+      return inMem.findByIdSync(id);
+    }
+    return null;
+  }
+
+  private saveFlat(flat: Flat): void {
+    const inMem = this.accommodationRepo as any;
+    if (inMem && typeof inMem.saveSync === 'function') {
+      inMem.saveSync(flat);
+    } else {
+      this.accommodationRepo.save(flat);
+    }
+  }
+
   private persistStay(stay: Stay): void {
     const inMem = this.stayRepo as InMemoryStayRepository;
     if (inMem.saveSync) {
@@ -91,7 +108,7 @@ export class StayAccommodationCoordinator {
       throw new Error(`Stay with ID ${input.stayId} not found.`);
     }
 
-    const flat = this.accommodationRepo.findById(input.flatId);
+    const flat = this.getFlat(input.flatId);
     if (!flat) {
       throw new Error(`Flat with ID ${input.flatId} not found.`);
     }
@@ -135,13 +152,13 @@ export class StayAccommodationCoordinator {
           return b;
         }),
       }));
-      this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+      this.saveFlat({ ...flat, areas: updatedAreas });
 
       return projection;
     } catch (err) {
       // Rollback on failure
       this.persistStay(staySnapshot);
-      this.accommodationRepo.save(flatSnapshot);
+      this.saveFlat(flatSnapshot);
       throw err;
     }
   }
@@ -160,7 +177,7 @@ export class StayAccommodationCoordinator {
       throw new Error(`Active bed allocation for bed ${input.bedId} not found on Stay ${input.stayId}.`);
     }
 
-    const flat = this.accommodationRepo.findById(activeAlloc.flatId);
+    const flat = this.getFlat(activeAlloc.flatId);
     const staySnapshot = stay;
     const flatSnapshot = flat ? (JSON.parse(JSON.stringify(flat)) as Flat) : null;
 
@@ -186,14 +203,14 @@ export class StayAccommodationCoordinator {
             return b;
           }),
         }));
-        this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+        this.saveFlat({ ...flat, areas: updatedAreas });
       }
 
       return projection;
     } catch (err) {
       this.persistStay(staySnapshot);
       if (flatSnapshot) {
-        this.accommodationRepo.save(flatSnapshot);
+        this.saveFlat(flatSnapshot);
       }
       throw err;
     }
@@ -213,7 +230,7 @@ export class StayAccommodationCoordinator {
       throw new Error(`Active bed allocation for bed ${input.fromBedId} not found on Stay ${input.stayId}.`);
     }
 
-    const flat = this.accommodationRepo.findById(fromAlloc.flatId);
+    const flat = this.getFlat(fromAlloc.flatId);
     if (!flat) {
       throw new Error(`Flat with ID ${fromAlloc.flatId} not found.`);
     }
@@ -259,12 +276,12 @@ export class StayAccommodationCoordinator {
           return b;
         }),
       }));
-      this.accommodationRepo.save({ ...flat, areas: updatedAreas });
+      this.saveFlat({ ...flat, areas: updatedAreas });
 
       return projection;
     } catch (err) {
       this.persistStay(staySnapshot);
-      this.accommodationRepo.save(flatSnapshot);
+      this.saveFlat(flatSnapshot);
       throw err;
     }
   }
@@ -281,8 +298,8 @@ export class StayAccommodationCoordinator {
     const previousFlatId = stay.flatId;
     const previousActiveBedIds = stay.allocatedBedIds;
 
-    const previousFlat = this.accommodationRepo.findById(previousFlatId);
-    const newFlat = this.accommodationRepo.findById(input.newFlatId);
+    const previousFlat = this.getFlat(previousFlatId);
+    const newFlat = this.getFlat(input.newFlatId);
     if (!newFlat) {
       throw new Error(`Destination Flat with ID ${input.newFlatId} not found.`);
     }
@@ -328,7 +345,7 @@ export class StayAccommodationCoordinator {
             return b;
           }),
         }));
-        this.accommodationRepo.save({ ...previousFlat, areas: updatedPrevAreas });
+        this.saveFlat({ ...previousFlat, areas: updatedPrevAreas });
       }
 
       // Step 4: Occupy new flat beds in AccommodationRepository
@@ -341,15 +358,15 @@ export class StayAccommodationCoordinator {
           return b;
         }),
       }));
-      this.accommodationRepo.save({ ...newFlat, areas: updatedNewAreas });
+      this.saveFlat({ ...newFlat, areas: updatedNewAreas });
 
       return projection;
     } catch (err) {
       this.persistStay(staySnapshot);
       if (previousFlatSnapshot) {
-        this.accommodationRepo.save(previousFlatSnapshot);
+        this.saveFlat(previousFlatSnapshot);
       }
-      this.accommodationRepo.save(newFlatSnapshot);
+      this.saveFlat(newFlatSnapshot);
       throw err;
     }
   }

@@ -185,7 +185,7 @@ describe('RU-2C.2A — Reservation Detail: Consolidated Information Architecture
           ],
         },
       ]);
-      const flat = accommodationRepo.findById('flat-101');
+      const flat = accommodationRepo.findByIdSync('flat-101');
       expect(flat?.areas[0].beds[0].status).toBe(BedStatus.VACANT);
     });
 

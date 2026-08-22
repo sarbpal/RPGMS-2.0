@@ -140,14 +140,15 @@ export const AdmissionWorkspacePage: React.FC = () => {
 
   const selectedFlat = useMemo(() => {
     if (!flatId) return null;
-    return accommodationRepo.findById(flatId);
+    const inMem = accommodationRepo as any;
+    return inMem.findByIdSync ? inMem.findByIdSync(flatId) : null;
   }, [flatId, accommodationRepo]);
 
   const selectedBedNames = useMemo(() => {
     if (!selectedFlat || bedIds.length === 0) return [];
-    const flatBeds = selectedFlat.areas.flatMap((a) => a.beds);
+    const flatBeds = selectedFlat.areas.flatMap((a: any) => a.beds);
     return bedIds
-      .map((bId) => flatBeds.find((b) => b.id === bId)?.name)
+      .map((bId) => flatBeds.find((b: any) => b.id === bId)?.name)
       .filter((name): name is string => Boolean(name));
   }, [selectedFlat, bedIds]);
 

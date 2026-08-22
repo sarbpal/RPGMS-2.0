@@ -33,7 +33,7 @@ describe('Stage 4 — Electricity Workspace Dual-Tab Integration Tests', () => {
     ]);
 
     const meters = defaultElectricityRepository.getMeters();
-    const flats = accomRepo.findAll();
+    const flats = accomRepo.findAllSync();
     const tariff = defaultElectricityRepository.getActiveTariff();
 
     expect(meters.length).toBeGreaterThan(0);

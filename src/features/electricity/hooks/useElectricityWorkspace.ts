@@ -22,7 +22,8 @@ export function useElectricityWorkspace(
   }, []);
 
   const meters = repo.getMeters();
-  const flats = accomRepo.findAll();
+  const inMemAccom = accomRepo as any;
+  const flats: Flat[] = inMemAccom && typeof inMemAccom.findAllSync === 'function' ? inMemAccom.findAllSync() : [];
   const readings = repo.getMeterReadings();
   const tariff = repo.getActiveTariff();
 

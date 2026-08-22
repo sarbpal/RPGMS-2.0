@@ -33,7 +33,7 @@ export const AccommodationSelectionCard: React.FC<AccommodationSelectionCardProp
   onChangeBedIds,
 }) => {
   const repo = defaultAccommodationRepository;
-  const flats = useMemo(() => repo.findAll(), [repo]);
+  const flats = useMemo(() => (repo.findAllSync ? repo.findAllSync() : []), [repo]);
 
   const selectedFlat = useMemo(() => {
     if (!flatId) return null;

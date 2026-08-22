@@ -292,7 +292,7 @@ describe('RU-2C.2B — Reservation Cancellation Token Disposition + Notes UX Sui
         tokenDisposition: 'REFUND',
       });
 
-      const bed = accommodationRepo.findById('flat-101')?.areas[0].beds[0];
+      const bed = accommodationRepo.findByIdSync('flat-101')?.areas[0].beds[0];
       expect(bed?.status).toBe(BedStatus.VACANT);
     });
 

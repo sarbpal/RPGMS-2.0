@@ -1356,10 +1356,54 @@ Following the completion of deposit return workflows (FC-06), the financial arch
 
 ---
 
+## ADR-040 — Advance Credit Application Compensation Boundary (Pre-Supabase Hardening)
+
+### Status
+Accepted (Pre-Supabase Hardening Checkpoint)
+
+### Context
+The post-FC-07 architectural review (see Final Decision in the review report) identified a HIGH-severity structural gap in `applyAdvanceCreditToBills()`:
+
+1. The function posts `ADVANCE_APPLICATION` ledger entries via `ledgerService.postEntries()`.
+2. It then mutates Bill projections (`paidAmount`, `balanceAmount`, `status`) and persists them via `repository.saveBills()`.
+3. No compensating rollback existed for the window between steps 1 and 2.
+
+If Bill persistence failed after ledger entries were committed, the system could reach an inconsistent state:
+- Ledger: `ADVANCE_CREDIT` consumed (debit posted), `ACCOUNTS_RECEIVABLE` reduced.
+- Bills: `paidAmount` / `status` unchanged (stale projection).
+- `ADV-APP:{bill.id}` idempotency guard: prevents a corrective re-application on the same bill.
+
+This left no automatic recovery path short of manual ledger correction, a forbidden operation.
+
+The review explicitly noted that the existing `ADV-APP:{bill.id}` deduplication key prevents a second ledger posting but does **not** heal a stale bill projection when the first application's bill update failed — making it not a substitute for a proper compensation boundary.
+
+### Decision
+1. **Compensating Rollback Boundary**: Before any mutation, deep-copy snapshots of the full ledger entry array and the full bill array are captured independently. These snapshots serve as the `BEGIN` boundary for the joint ledger + bill mutation pair.
+2. **Mutation Sequencing Preserved**: The ledger is posted first (as before), then bills are updated. The sequencing is unchanged; only the failure-path behavior is hardened.
+3. **Inner Try/Catch on Bill Persistence**: The bill persistence step is wrapped in an inner `try/catch`. On any thrown error, both the ledger snapshot and the bill snapshot are restored via `repository.saveLedgerEntries(snapshotLedger)` and `repository.saveBills(snapshotBills)`.
+4. **Ledger Validation Failure Path Unchanged**: If `ledgerService.postEntries()` returns `success: false` (validation failure before any mutation), no rollback is needed and the early-return path remains unchanged.
+5. **Idempotency Consistency**: After a compensating rollback, no `ADV-APP:{bill.id}` entries remain in the ledger for the affected bills, ensuring a subsequent retry executes from a clean idempotent state identical to the pre-operation state.
+6. **No New Lock Namespace**: The existing `activeStayLocks (stayId)` mutex is preserved without modification. Compensation does not alter concurrency semantics.
+7. **Snapshot Depth**: Snapshots use `array.map(obj => ({ ...obj }))` — shallow-cloning each record object. LedgerEntry and Bill domain entities are plain objects with no nested mutable references, making shallow-clone sufficient for correct restoration.
+
+### Consequences
+
+#### Advantages:
+- Eliminates the HIGH-severity class of inconsistency where Advance Credit is ledger-consumed but bills remain stale.
+- Preserves full ADV-APP idempotency across both successful and failed application attempts.
+- Retry after failure produces exactly the correct financial result with no duplicate entries.
+- Establishes the canonical logical transaction scope for the Supabase migration (the snapshot+rollback boundary maps directly to a single database transaction).
+
+#### Trade-offs:
+- Adds two full-array reads (`getLedgerEntries()`, `getBills()`) for snapshot capture before every successful application. Accepted cost in the in-memory runtime; will be superseded by database-level transaction isolation at Supabase migration time.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.5 | August 2026 | Pre-Supabase Hardening: Advance Credit Application Compensation Boundary (ADR-040, BR-425). |
 | 4.4 | August 2026 | FC-07: Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424). |
 | 4.3 | August 2026 | FC-05: Operational Checkout Closure Orchestration & Cross-Domain Alumni Evaluation (ADR-038, BR-460, BR-461, AL-002, DEF-CHK-001 through DEF-CHK-007). |
 | 4.2 | August 2026 | FC-04: Settlement ↔ Bill Synchronization, Live T2 Revalidation & Checkout Decoupling (ADR-037, DEF-FIN-007, DEF-FIN-008, DEF-FIN-009, DEF-FIN-010). |

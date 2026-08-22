@@ -2166,6 +2166,51 @@ Enforces FC-07 financial integrity, preserving historical accounting truth, prev
 
 ---
 
+## BR-425 Advance Credit Application Compensation Boundary
+
+### Rule
+
+Advance Credit application (FC-03A) is governed by the following compensating-transaction invariant:
+
+1. **Joint Ledger + Bill Persistence Boundary**: Ledger realization entries (`ADVANCE_APPLICATION` reference type, `ADV-APP:{bill.id}` reference ID) and Bill projection field updates (`paidAmount`, `balanceAmount`, `status`) form a single application-level compensation boundary. Both MUST succeed or BOTH MUST be restored.
+
+2. **Pre-Operation Snapshots**: Before any persistence mutation, independent deep-copy snapshots of the full ledger entry array and the full bill array MUST be captured. Snapshots must contain fully isolated copies, not mutable references to in-memory objects.
+
+3. **Rollback Semantics**: If Bill projection persistence fails after ledger entries have been committed:
+   - The ledger snapshot is restored (removing the partially applied `ADVANCE_APPLICATION` entries).
+   - The bill snapshot is restored (returning all affected Bill entities to their pre-operation state).
+   - A failed result is returned; no partial financial state remains.
+   - The rollback itself is best-effort; in the current in-memory runtime this is guaranteed synchronous.
+
+4. **Retry Safety**: After a compensating rollback the system state is identical to the state before the operation began. A subsequent retry is safe and correct:
+   - Ledger derivation will show the same available advance balance.
+   - No `ADV-APP:{bill.id}` entries remain in the ledger for the affected bills.
+   - `calculateAdvanceAllocations()` will recompute identical allocation amounts.
+
+5. **ADV-APP Idempotency Preserved**: The `ADV-APP:{bill.id}` reference pattern continues to serve as the double-application guard. A successful application leaves idempotency markers in the ledger. A rolled-back attempt leaves none, preserving clean retry semantics.
+
+6. **Ledger Validation Failure Path**: If ledger posting fails at validation time (before any mutation), no rollback is needed and no snapshot restoration is performed. The operation returns a failed result with no state change.
+
+7. **Authoritative Balance**: Advance Credit availability is always evaluated from the authoritative ledger balance via `getAccountBalance(stayId, ADVANCE_CREDIT)` immediately before mutation, preserving the T2 authority principle.
+
+8. **Future Database Equivalent**: Under Supabase integration, this compensation boundary will be replaced by a single database transaction covering both `INSERT` of ledger entries and `UPDATE` of bill rows. The logical boundary defined here is the exact transaction scope.
+
+### Reason
+
+Prevents the class of failure where the ledger records Advance Credit as consumed while the corresponding Bill projections remain in a stale `UNPAID`/`PARTIALLY_PAID` state. Without this boundary, the system could enter an inconsistent state where:
+- Ledger-derived balances show zero remaining advance credit.
+- Bill entities still reflect outstanding receivables.
+- The `ADV-APP:{bill.id}` idempotency guard prevents a corrective re-application.
+
+### Applies To
+
+- Finance
+- Billing
+- Ledger Engine
+- Advance Credit Engine
+
+---
+
 # Payment Allocation
 
 Payment Allocation governs how Payments settle Charges.

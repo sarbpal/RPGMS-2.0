@@ -648,6 +648,11 @@ export class PaymentApplicationService {
    * 4. Posts balanced double-entry ledger entries (Debit ADVANCE_CREDIT, Credit ACCOUNTS_RECEIVABLE).
    * 5. Updates and persists Bill financial realization states (paidAmount, balanceAmount, status).
    * 6. Implements concurrency locking and deterministic idempotency (ADV-APP:${bill.id}).
+   *
+   * Pre-Supabase Hardening (BR-425): Ledger posting and Bill projection updates are jointly wrapped
+   * in a compensating rollback boundary. If Bill persistence fails after ledger entries are committed,
+   * both the ledger and all affected Bill entities are fully restored to their pre-operation snapshots
+   * so that a subsequent retry executes from a clean state.
    */
   public applyAdvanceCreditToBills(stayId: string): ApplyAdvanceCreditResult {
     if (!stayId || stayId.trim() === '') {
@@ -681,7 +686,7 @@ export class PaymentApplicationService {
     PaymentApplicationService.activeStayLocks.add(stayId);
 
     try {
-      // 1. Determine available Advance Credit liability from Ledger
+      // 1. Determine available Advance Credit liability from Ledger (T2 authoritative read)
       const availableAdvance = this.balanceService.getAccountBalance(
         stayId,
         AccountType.ADVANCE_CREDIT
@@ -786,7 +791,15 @@ export class PaymentApplicationService {
         });
       }
 
-      // 5. Post double-entry entries via ledgerService
+      // 5. Capture independent pre-operation snapshots for compensating rollback boundary (BR-425).
+      //    Snapshots must be deep copies of each individual object so that subsequent in-place
+      //    mutations cannot corrupt the values needed for restoration on failure.
+      //    This establishes the logical BEGIN boundary for the joint ledger + bill mutation pair.
+      const snapshotLedger = this.repository.getLedgerEntries().map((e) => ({ ...e }));
+      const snapshotBills = this.repository.getBills().map((b) => ({ ...b }));
+
+      // 6. Post double-entry entries via ledgerService.
+      //    Validation failure here means no mutation has occurred; return early without rollback.
       const ledgerResult = this.ledgerService.postEntries(ledgerEntriesData);
       if (!ledgerResult.success) {
         return {
@@ -803,15 +816,42 @@ export class PaymentApplicationService {
         };
       }
 
-      // 6. Update and persist Bill financial states
-      const allBills = this.repository.getBills();
-      allocationResult.updatedBills.forEach((ub) => {
-        const idx = allBills.findIndex((b) => b.id === ub.id);
-        if (idx >= 0) {
-          allBills[idx] = ub;
+      // 7. Update and persist Bill financial states.
+      //    If this step throws after ledger entries have been committed, the compensating rollback
+      //    below restores both repositories so the next retry executes from a clean state.
+      //    After restoration, ADV-APP idempotency will correctly re-derive allocations.
+      try {
+        const allBills = this.repository.getBills();
+        allocationResult.updatedBills.forEach((ub) => {
+          const idx = allBills.findIndex((b) => b.id === ub.id);
+          if (idx >= 0) {
+            allBills[idx] = ub;
+          }
+        });
+        this.repository.saveBills(allBills);
+      } catch (billPersistErr: unknown) {
+        // Compensating rollback: restore both repositories to pre-operation snapshots.
+        try {
+          this.repository.saveLedgerEntries(snapshotLedger);
+          this.repository.saveBills(snapshotBills);
+        } catch {
+          /* rollback best-effort */
         }
-      });
-      this.repository.saveBills(allBills);
+        return {
+          success: false,
+          stayId,
+          consumedTotal: 0,
+          remainingAdvanceCredit: availableAdvance,
+          updatedBills: [],
+          allocations: [],
+          ledgerEntryIds: [],
+          errors: [
+            billPersistErr instanceof Error
+              ? `Advance credit application failed and was rolled back: ${billPersistErr.message}`
+              : 'Advance credit application failed and was rolled back cleanly.',
+          ],
+        };
+      }
 
       return {
         success: true,

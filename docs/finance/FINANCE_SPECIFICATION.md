@@ -17,6 +17,7 @@ Changes to this document require an Architecture Decision Record (ADR) when they
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|
+| 2.3.0 | 2026-08-22 | Active | Pre-Supabase Hardening: Advance Credit Application Compensation Boundary (ADR-040, BR-425) |
 | 2.2.0 | 2026-08-22 | Active | FC-07 Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424) |
 | 2.1.0 | 2026-08-22 | Active | FC-03C Payment Intake Workflow, Advance Credit UI Semantics & Idempotency Lifecycle (ADR-036, BR-423) |
 | 2.0.0 | 2026-07-21 | Sealed | Canonical Finance Specification for RPGMS 2.0 |
@@ -473,6 +474,7 @@ Auto-Consumption & Accounting Lifecycle
    - Reference: `LedgerReferenceType.ADVANCE_APPLICATION` with deterministic idempotency key `ADV-APP:${bill.id}`
 4. **Bill Settlement State**: The bill's `paidAmount` increases, `balanceAmount` decreases, and status transitions to `PARTIALLY_PAID` or `PAID`.
 5. **Settlement Resolution**: Any surplus unconsumed advance credit at checkout is resolved via Financial Settlement.
+6. **Compensating Rollback Boundary**: Ledger realization entries (`ADVANCE_APPLICATION`) and Bill projection updates (`paidAmount`, `balanceAmount`, `status`) form a single application-level compensation boundary. If Bill persistence fails after ledger posting, both the ledger entries and affected bills are restored to their pre-operation snapshots, ensuring zero partial financial state and safe retry (BR-425, ADR-040).
 
 Payment Idempotency & Ingestion Architecture (FC-03B, ADR-035)
 

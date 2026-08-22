@@ -934,6 +934,10 @@ The Settlement Engine guarantees that:
 - Every allocation can be explained.
 - Every allocation preserves historical integrity.
 - Financial value always flows through explicit Domain Events.
+- **Bill Obligation Synchronization**: Confirmed settlement synchronizes open non-cancelled Bills for the stay using canonical FIFO obligation allocation (`calculatePaymentAllocations`) strictly for the resolved receivable amount (BR-462, ADR-037).
+- **Live T2 Revalidation**: Confirmation re-reads live Ledger balances and rejects stale preview snapshots ($T_1 \to T_2$) (BR-463).
+- **Idempotency, Concurrency & Rollback Safety**: Settlement confirmations are protected by session-scoped idempotency keys, per-stay concurrency locks (`activeStayLocks`), and an application-level compensating snapshot rollback boundary.
+- **Deposit Audit Trail**: Clearance of deposit liability creates a corresponding `SETTLEMENT_CLEARANCE` transaction in the deposit ledger.
   
 ---
 

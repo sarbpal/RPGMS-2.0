@@ -2355,6 +2355,57 @@ Financial completion represents the conclusion of the monetary relationship.
 
 ---
 
+## BR-462 Settlement ↔ Bill Obligation Synchronization
+
+### Rule
+
+When a Financial Settlement is confirmed for a Stay:
+
+1. Accounts receivable resolved by Settlement shall be applied across open, non-cancelled Bills (`UNPAID` or `PARTIALLY_PAID`) for the Stay in chronological `dueDate` order using canonical FIFO obligation allocation (`calculatePaymentAllocations`).
+2. For obligations fully resolved by the settlement amount, `paidAmount` is updated by the allocated amount, `balanceAmount` becomes 0, and `status` transitions to `PAID`.
+3. Already-paid Bills, cancelled Bills, and future/unrelated obligations exceeding the resolved settlement amount shall remain untouched in historical state.
+4. Upon settlement confirmation, the post-settlement parity invariant must strictly hold:
+   $$\text{Ledger AR Balance} = 0 \land \sum_{\text{resolved Bills}} \text{balanceAmount} = 0$$
+5. When security deposit liability is cleared in settlement, a corresponding `DepositTransaction` with `transactionType = SETTLEMENT_CLEARANCE` shall be persisted in the deposit ledger.
+
+### Reason
+
+Guarantees exact parity between the double-entry Ledger accounts receivable and domain Bill obligation entities without creating a competing accounting engine (ADR-037, DEF-FIN-007).
+
+### Applies To
+
+- Settlement
+- Billing
+- Finance
+
+---
+
+## BR-463 Live T2 Settlement Revalidation, Idempotency & Rollback Safety
+
+### Rule
+
+Settlement confirmation shall never rely exclusively on a client-provided pre-calculated snapshot:
+
+1. At confirmation time ($T_2$), the Settlement Application Service shall re-derive live balances from the Unified Stay Ledger.
+2. If live balances (receivables, advance credits, deposit held, net settlement amount, outcome) diverge from the submitted preview snapshot ($T_1$), the confirmation shall be rejected with a stale-preview error requiring client refresh.
+3. Settlement confirmation shall support session-scoped `idempotencyKey` semantics:
+   - Identical key + identical request: Return existing finalized `Settlement` record without duplicate ledger entries.
+   - Identical key + conflicting financial parameters: Reject with idempotency conflict error.
+4. Settlement confirmation shall serialize concurrent executions per stay using in-memory concurrency locks (`activeStayLocks`).
+5. Multi-step execution across Ledger, Deposit, Bill, Settlement, and Resident repositories shall be guarded by a pre-operation snapshot and compensating rollback boundary. If any post-Ledger persistence step fails, state is rolled back cleanly to pre-operation snapshot, preventing partial or duplicate realizations on retry.
+
+### Reason
+
+Prevents race conditions, double-crediting of accounts receivable, negative liabilities, and duplicate financial realizations during checkout settlement (ADR-037, DEF-FIN-008, DEF-FIN-009).
+
+### Applies To
+
+- Settlement
+- Finance
+
+
+---
+
 # Financial Architecture Summary
 
 The Financial Architecture governs the complete monetary relationship between a Stay and the organisation.

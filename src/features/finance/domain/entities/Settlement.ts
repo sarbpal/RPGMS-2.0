@@ -15,5 +15,6 @@ export interface Settlement {
   ledgerReferences: string[];
   createdBy: string;
   status: 'DRAFT' | 'SETTLED' | 'CANCELLED';
+  idempotencyKey?: string;
   createdAt: string;
 }

@@ -34,7 +34,7 @@ describe('FinanceWorkspacePage Component & Global Actions Flow Suite', () => {
       expect(item.residentName).not.toBe('Global Finance Account');
       expect(item.flatName).not.toBe('No Flat');
       expect(item.allocatedBedsLabel).not.toBe('No Bed Allocated');
-      expect(['ACTIVE', 'ON_NOTICE']).toContain(item.status);
+      expect(['ACTIVE', 'ON_NOTICE', 'CHECKED_OUT']).toContain(item.status);
     });
 
     // Check specific Rajesh Kumar stay

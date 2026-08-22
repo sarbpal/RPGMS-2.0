@@ -136,7 +136,7 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
   });
 
   describe('getActiveStaysForSelection', () => {
-    it('returns active and on-notice stays enriched with resident and accommodation data, excluding checked-out stays', () => {
+    it('returns active, on-notice, and checked-out stays enriched with resident and accommodation data for post-checkout settlement', () => {
       const onNoticeStay = new Stay({
         id: 'stay-coord-on-notice',
         residentId: sampleResident.id,
@@ -150,24 +150,38 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
       });
 
       const checkedOutStay = new Stay({
-        id: 'stay-coord-closed',
+        id: 'stay-coord-checked-out',
         residentId: sampleResident.id,
         stayType: 'REGULAR',
         status: StayStatus.CHECKED_OUT,
         checkInDate: '2025-01-01',
         flatId: '102',
         allocatedBedIds: ['102-B1'],
+        agreedRent: 12000,
+        agreedDeposit: 10000,
+      });
+
+      const closedStay = new Stay({
+        id: 'stay-coord-closed',
+        residentId: sampleResident.id,
+        stayType: 'REGULAR',
+        status: StayStatus.CLOSED,
+        checkInDate: '2024-01-01',
+        flatId: '103',
+        allocatedBedIds: ['103-B1'],
       });
 
       stayRepo.saveSync(onNoticeStay);
       stayRepo.saveSync(checkedOutStay);
+      stayRepo.saveSync(closedStay);
 
       const selectableStays = coordinator.getActiveStaysForSelection();
 
-      // Only ACTIVE and ON_NOTICE
+      // ACTIVE, ON_NOTICE, and CHECKED_OUT are selectable
       const stayIds = selectableStays.map((s) => s.stayId);
       expect(stayIds).toContain('stay-coord-1');
       expect(stayIds).toContain('stay-coord-on-notice');
+      expect(stayIds).toContain('stay-coord-checked-out');
       expect(stayIds).not.toContain('stay-coord-closed');
 
       const noticeItem = selectableStays.find((s) => s.stayId === 'stay-coord-on-notice');
@@ -177,6 +191,10 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
       expect(noticeItem?.agreedRent).toBe(15000);
       expect(noticeItem?.agreedDeposit).toBe(15000);
       expect(noticeItem?.allocatedBedsLabel).toBe('Bed 101-B1');
+
+      const checkedOutItem = selectableStays.find((s) => s.stayId === 'stay-coord-checked-out');
+      expect(checkedOutItem).toBeDefined();
+      expect(checkedOutItem?.status).toBe(StayStatus.CHECKED_OUT);
     });
   });
 });

@@ -1224,10 +1224,56 @@ Following the stabilization of FC-03A (Advance Credit auto-consumption) and FC-0
 
 ---
 
+## ADR-037 — Settlement ↔ Bill Synchronization, Live T2 Balance Revalidation, and Checkout Decoupling
+
+### Status
+Accepted (FC-04 Settlement ↔ Bill Synchronization Checkpoint)
+
+### Context
+Following the completion of payment workflows (FC-01 through FC-03C), the FC-04 architectural audit identified that the Settlement subsystem was operating in isolation from `Bill` entities:
+1. **Bill Desynchronization (DEF-FIN-007)**: Settlement credited `ACCOUNTS_RECEIVABLE` in the ledger, but open `Bill` entities remained `UNPAID` or `PARTIALLY_PAID` with unreduced `balanceAmount`.
+2. **Stale Snapshot Blind Confirmation (DEF-FIN-008)**: `confirmSettlement` accepted client-side preview payloads from time $T_1$ and posted ledger entries at $T_2$ without re-evaluating live ledger balances, risking duplicate AR credits and negative liabilities if intermediate payments or billing runs occurred.
+3. **Missing Settlement Idempotency & Concurrency (DEF-FIN-009)**: `SettlementApplicationService` lacked idempotency key support and per-stay concurrency locking.
+4. **Checkout Coupling & Missing Deposit History (DEF-FIN-010)**: Settlement directly mutated `Stay.processCheckout` bypassing `StayCheckoutCoordinator` and bed release, and failed to record a `DepositTransaction` (`SETTLEMENT_CLEARANCE`) in the deposit ledger.
+
+### Decision
+
+1. **Authoritative Obligation Synchronization**:
+   - When a settlement resolves accounts receivable, open non-cancelled `Bill` entities (`UNPAID` / `PARTIALLY_PAID`) for the stay are synchronized using canonical FIFO obligation allocation (`calculatePaymentAllocations`) strictly up to the resolved receivable amount (`outstandingReceivable`).
+   - For obligations fully resolved by settlement, `paidAmount` is incremented by the allocated amount, `balanceAmount` becomes 0, and `status` transitions to `BillStatus.PAID`.
+   - Already-paid bills, cancelled bills, and future/unrelated obligations exceeding the resolved settlement receivable remain untouched in their historical state.
+   - Enforces post-settlement invariant:
+     $$\text{Ledger AR Balance} = 0 \land \sum_{\text{resolved Bills}} \text{balanceAmount} = 0$$
+2. **Live T2 Balance Revalidation**:
+   - At confirmation time ($T_2$), `confirmSettlement` re-derives live stay balances from the ledger.
+   - If live balances (receivable, advance credit, deposit, net amount, outcome) diverge from the submitted preview snapshot ($T_1$), confirmation is rejected with an actionable error requiring a preview refresh.
+3. **Settlement Idempotency, Concurrency & Compensating Rollback Safety**:
+   - `confirmSettlement` accepts an optional session-stable `idempotencyKey`.
+   - Replaying with the same key and identical financial parameters returns the existing `Settlement` record without duplicate ledger entries or deposit transactions. Conflicting parameters with the same key are rejected with an idempotency conflict error.
+   - Serializes concurrent settlement executions via static in-memory `activeStayLocks`.
+   - Protects multi-step execution using a pre-operation snapshot and compensating rollback boundary: if any post-ledger repository write fails, all repository state is restored to pre-operation snapshot, ensuring retries with the same `idempotencyKey` execute cleanly without orphan entries or duplicate Ledger realizations.
+4. **Deposit Settlement Clearance Audit Trail**:
+   - When security deposit liability is cleared in settlement, a `DepositTransaction` with `transactionType: 'SETTLEMENT_CLEARANCE'` is recorded in `FinanceRepository`.
+5. **Decoupled Operational Checkout & Post-Checkout Selection**:
+   - Removed direct `Stay.processCheckout` mutation from `SettlementApplicationService`, strictly delegating operational checkout to `StayCheckoutCoordinator` (BR-460, BR-209).
+   - Updated `FinanceWorkspaceCoordinator.getActiveStaysForSelection()` to include `StayStatus.CHECKED_OUT` stays for post-checkout settlement.
+
+### Consequences
+
+#### Advantages:
+- Establishes zero-discrepancy parity between Ledger `ACCOUNTS_RECEIVABLE` and `Bill` obligation entities using canonical FIFO allocation.
+- Eliminates race conditions and stale ledger double-credits via live T2 validation, concurrency locking, and compensating rollback.
+- Distinguishes Ledger posting atomicity from application-level workflow compensating recovery.
+- Restores clear separation between commercial settlement and operational accommodation checkout.
+- Chronicled complete deposit clearance history in the deposit ledger.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.2 | August 2026 | FC-04: Settlement ↔ Bill Synchronization, Live T2 Revalidation & Checkout Decoupling (ADR-037, DEF-FIN-007, DEF-FIN-008, DEF-FIN-009, DEF-FIN-010). |
 | 4.1 | August 2026 | FC-03C: Receive Payment Workflow & Presentation Truth Boundary (ADR-036, BR-423). |
 | 4.0 | August 2026 | FC-03B: Payment Idempotency & Dependency Injection Architecture (ADR-035, BR-419, DEF-FIN-004, DEF-FIN-006). |
 | 3.9 | August 2026 | FC-03A: Finance-Owned Advance Credit & Auto-Consumption Architecture (ADR-034, DEF-FIN-002). |

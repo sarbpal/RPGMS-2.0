@@ -1959,6 +1959,15 @@ The Deposit Account remains open for post-checkout financial activity, utility b
 
 Completion of final financial settlement clears all financial obligations and transitions the Resident to ALUMNI status. Readmission of an Alumni Resident preserves the permanent Resident identity while establishing a new Stay aggregate.
 
+### Financial Settlement & Obligation Synchronization Architecture
+
+Financial Settlement guarantees complete parity between the double-entry Ledger and domain Bill entities (ADR-037, BR-462, BR-463):
+
+1. **Bill Obligation Synchronization**: Accounts receivable resolved by settlement are applied across open, non-cancelled Bills (`UNPAID` / `PARTIALLY_PAID`) in chronological `dueDate` order using canonical FIFO obligation allocation (`calculatePaymentAllocations`). Fully resolved bills transition to `status = PAID` with `balanceAmount = 0`.
+2. **Live T2 Revalidation**: The Settlement Engine re-derives live balances at confirmation time ($T_2$), rejecting stale snapshots if intermediate payments, charges, or deposit adjustments occurred after preview ($T_1$).
+3. **Idempotency, Concurrency & Rollback Safety**: Sessions are protected by idempotency keys, per-stay in-memory locking (`activeStayLocks`), and an application-level compensating rollback boundary to ensure partial persistence failures leave zero orphan records and allow clean idempotent retries.
+4. **Deposit Audit Trail**: Settlement clearances persist a `SETTLEMENT_CLEARANCE` transaction in the deposit ledger.
+5. **Operational Decoupling**: Settlement never directly mutates Stay occupancy or physical accommodation allocations.
 
 ---
 

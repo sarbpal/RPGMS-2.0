@@ -45,6 +45,10 @@ export function SettlementDialog({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [idempotencyKey] = useState<string>(
+    () => `stl_idem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  );
+
   const parsedDamage = parseFloat(damageDeductionStr);
   const numericDamage = isNaN(parsedDamage) || parsedDamage < 0 ? 0 : parsedDamage;
 
@@ -78,8 +82,8 @@ export function SettlementDialog({
     setErrorMessage(null);
 
     try {
-      // Stage 2 Confirmation
-      const result = settlementService.confirmSettlement(preview, paymentMethod);
+      // Stage 2 Confirmation with live T2 validation and idempotency
+      const result = settlementService.confirmSettlement(preview, paymentMethod, 'OPERATOR', idempotencyKey);
 
       if (result.success && result.settlement) {
         const outcomeMsg =

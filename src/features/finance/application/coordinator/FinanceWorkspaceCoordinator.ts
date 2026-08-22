@@ -154,8 +154,12 @@ export class FinanceWorkspaceCoordinator {
     const selectableStays: SelectableStayItem[] = [];
 
     stays.forEach((stay) => {
-      // Selection candidates: ACTIVE, ON_NOTICE (exclude CHECKED_OUT, CLOSED, CANCELLED)
-      if (stay.status !== StayStatus.ACTIVE && stay.status !== StayStatus.ON_NOTICE) {
+      // Selection candidates: ACTIVE, ON_NOTICE, and CHECKED_OUT (for post-checkout settlement; exclude CLOSED, CANCELLED)
+      if (
+        stay.status !== StayStatus.ACTIVE &&
+        stay.status !== StayStatus.ON_NOTICE &&
+        stay.status !== StayStatus.CHECKED_OUT
+      ) {
         return;
       }
 

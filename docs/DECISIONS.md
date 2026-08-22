@@ -1438,10 +1438,53 @@ While the core financial domain (FC-01 through FC-07) and pre-Supabase hardening
 
 ---
 
+## ADR-042: Supabase Persistence Foundation Architecture (S-IMP-01)
+
+### Status
+Accepted
+
+### Date
+August 2026
+
+### Context
+Following the completion and remote verification of the Financial Core (FC-01 through FC-07), Pre-Supabase Hardening (ADR-040), and Operational UI Integration (UI-INTEGRATION-01, ADR-041), the system required moving from pure in-memory test doubles toward a robust, relational Supabase/PostgreSQL persistence architecture. S-ARCH-01 established the relational schema, SQL precision (`NUMERIC(12,2)`), foreign keys, row-level security, and transactional PL/pgSQL atomic RPC functions. S-IMP-01 establishes the foundational implementation.
+
+### Decision
+1. **Supabase Client & Config Infrastructure**:
+   - Integrated `@supabase/supabase-js` client provider with environment variable configuration (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PERSISTENCE_MODE`).
+   - Implemented strict database types (`Database`, `Tables`, `Functions`) in `src/infrastructure/supabase/database.types.ts`.
+   - Created configuration helper `getPersistenceMode()` defaulting safely to `'memory'` when credentials are absent.
+
+2. **Relational Database Migrations**:
+   - Created foundational migration `20260823000001_initial_schema.sql` defining relational tables for flats, areas, beds, residents, stays, stay_bed_allocations, reservations, bills, bill_line_items, payments, payment_allocations, ledger_transactions, ledger_entries, deposit_transactions, and settlements.
+   - Created atomic migration `20260823000002_atomic_functions.sql` establishing PL/pgSQL RPC procedures for deferred double-entry ledger balance constraints (`fn_check_ledger_transaction_balanced`), batch transaction posting (`fn_post_ledger_transaction`), atomic payment receipt and FIFO allocation with row locking (`fn_record_payment_atomic`), atomic payment reversal (`fn_reverse_payment_atomic`), and operational checkout bed vacancy updates (`fn_process_operational_checkout`).
+
+3. **Supabase Repository Adapters & Domain Mappers**:
+   - Implemented domain entity to DB row mappers: `AccommodationMappers`, `ResidentMappers`, `StayMappers`, and `FinanceMappers`.
+   - Implemented Supabase repository adapters: `SupabaseAccommodationRepository`, `SupabaseResidentRepository`, `SupabaseStayRepository`, and `SupabaseFinanceRepository`.
+   - Created `repositoryFactory` in `src/infrastructure/repositoryFactory.ts` to manage runtime repository dependency resolution based on active persistence mode.
+
+4. **Repository Contract Tests & Test-Double Preservation**:
+   - Created comprehensive contract tests (`AccommodationPersistenceContract.test.ts`, `ResidentPersistenceContract.test.ts`, `StayPersistenceContract.test.ts`, `FinancePersistenceContract.test.ts`) validating entity mapping roundtrips and repository CRUD invariants.
+   - Preserved existing in-memory repository singletons (`InMemoryAccommodationRepository`, `InMemoryResidentRepository`, `InMemoryStayRepository`, `InMemoryFinanceRepository`) ensuring existing unit and integration test suites run completely without external network dependencies.
+
+### Consequences
+
+#### Advantages:
+- Establishes a production-ready PostgreSQL persistence foundation without compromising the pure domain layer or business rules.
+- Guarantees financial double-entry integrity at both the application level and database constraint level.
+- Provides a clean switching mechanism between in-memory and Supabase persistence modes.
+
+#### Trade-offs:
+- Requires dual repository maintenance during the phased migration, mitigated by shared contract tests.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.7 | August 2026 | S-IMP-01: Supabase Persistence Foundation (ADR-042, initial DDL migrations, atomic functions, database types, Supabase repository adapters, mappers, contract tests, repository factory). |
 | 4.6 | August 2026 | UI-INTEGRATION-01: Stay & Finance Operational UI Integration (ADR-041, ReversePaymentModal, Deposit & Ledger Action Wiring). |
 | 4.5 | August 2026 | Pre-Supabase Hardening: Advance Credit Application Compensation Boundary (ADR-040, BR-425). |
 | 4.4 | August 2026 | FC-07: Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424). |

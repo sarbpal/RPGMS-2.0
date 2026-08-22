@@ -42,6 +42,7 @@ Current development is focused on delivering the Operational Services capability
 | Area | Status |
 |-------|--------|
 | Engineering Foundation | 🟢 Complete |
+| Supabase Persistence Foundation | 🟢 Complete (S-IMP-01 / ADR-042) |
 | Application Shell | 🟢 Complete |
 | Accommodation Module | 🟢 MVP Complete |
 | Resident Module | 🟢 MVP Complete |

@@ -1146,10 +1146,49 @@ PaymentApplicationService (Financial Intake & Advance Capability)
 
 ---
 
+## ADR-035 — Payment Idempotency & Dependency Injection Architecture
+
+**Status:** Accepted
+**Date:** August 2026
+**Context:** FC-03B Payment Idempotency & Dependency-Injection Cleanup (DEF-FIN-004, DEF-FIN-006)
+
+### Context
+
+During FC-03 architectural audits, two related financial integrity defects were identified:
+1. **Lack of Payment Idempotency Guard (`DEF-FIN-004`)**: `PaymentApplicationService.recordPayment` generated random UUID payment identifiers on every execution. Retried network requests, user double-clicks, or automated replays created duplicate payments and duplicate cash/advance ledger entries.
+2. **Dependency Injection Leak (`DEF-FIN-006`)**: `PaymentApplicationService` directly imported the global `balanceEngine` singleton, breaking test isolation and causing hermetic services instantiated with mock repositories to query global default state.
+
+### Decision
+
+1. **Payment Identity Separation**:
+   - `payment.id`: Internal persistent identity of the Payment record.
+   - `idempotencyKey`: Optional client/caller submission key identifying a specific payment intent across retries.
+   - `referenceNumber`: Optional external payment identifier (e.g. UPI txn ID, Bank NEFT ref).
+2. **Deterministic Replay & Conflict Semantics**:
+   - **Exact Idempotent Replay**: When `recordPayment` receives an `idempotencyKey` that already exists for the Stay with identical financial attributes (amount, payment method, reference number), it returns the existing `Payment` without posting duplicate ledger entries or mutating bills.
+   - **Idempotency Key Conflict**: If an `idempotencyKey` matches an existing payment but attributes conflict (e.g. different amount), the operation is rejected with an explicit conflict error.
+   - **Reference Number Replay & Conflict**: If a matching `(stayId, paymentMethod, referenceNumber)` exists, matching amounts are replayed as exact duplicates, while conflicting amounts are rejected.
+3. **Current-Process Concurrency Protection**:
+   - `PaymentApplicationService` maintains per-stay active execution locks (`activePaymentLocks`) ensuring concurrent payment submissions for the same stay are strictly serialized across the entire critical section (idempotency check $\rightarrow$ balance read $\rightarrow$ allocation $\rightarrow$ ledger posting $\rightarrow$ persistence).
+4. **BalanceApplicationService Dependency Injection**:
+   - `PaymentApplicationService` accepts `BalanceApplicationService` via constructor injection (`balanceService?: BalanceApplicationService`), defaulting to `new BalanceApplicationService(repository)`.
+   - Direct imports of global `balanceEngine` inside `PaymentApplicationService` are eliminated.
+
+### Consequences
+
+#### Advantages:
+- Prevents double-posting of cash receipts, duplicate bill allocations, and phantom advance credit liabilities.
+- Supports deterministic network retry and duplicate user submission handling.
+- Guarantees hermetic test isolation when custom mock repositories are injected.
+- Establishes a clean architectural foundation for future database unique constraints (`UNIQUE(stay_id, idempotency_key)`).
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.0 | August 2026 | FC-03B: Payment Idempotency & Dependency Injection Architecture (ADR-035, BR-419, DEF-FIN-004, DEF-FIN-006). |
 | 3.9 | August 2026 | FC-03A: Finance-Owned Advance Credit & Auto-Consumption Architecture (ADR-034, DEF-FIN-002). |
 | 3.8 | August 2026 | FC-02: Stay ↔ Finance Financial Truth Boundary & Projection Consumption Architecture (ADR-033, DEF-FIN-001). |
 | 3.7 | August 2026 | FC-01: Core Financial Truth & Admission Obligation Convergence (BR-416, BR-417, DEF-FIN-003, DEF-FIN-005, UI-FIN-001). |

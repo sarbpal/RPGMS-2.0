@@ -8,6 +8,7 @@ export interface Payment {
   amount: number;
   paymentMethod: PaymentMethod;
   referenceNumber?: string;
+  idempotencyKey?: string;
   allocations: PaymentAllocation[];
   remarks?: string;
   createdAt: string;

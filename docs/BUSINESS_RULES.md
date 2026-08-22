@@ -2022,6 +2022,30 @@ Prevents stranded advance funds and ensures that realized operational dues are s
 
 ---
 
+## BR-419 Payment Idempotency & Duplicate Prevention Invariant
+
+### Rule
+
+Every payment intake request submitted to the Finance domain shall enforce deterministic idempotency and duplicate prevention:
+
+1. **Idempotency Key (`idempotencyKey`)**: If a payment submission supplies an `idempotencyKey` that matches an existing payment recorded for the same Stay with identical financial attributes (`amount`, `paymentMethod`, and `referenceNumber`), the system shall perform an **Exact Idempotent Replay**, returning the existing payment record without creating duplicate ledger entries, double-crediting cash/advance, or re-allocating open bills.
+2. **Idempotency Conflict**: If the `idempotencyKey` matches an existing payment but financial attributes conflict (e.g. different amount), the operation shall be rejected as an idempotency conflict.
+3. **External Reference Duplicate & Conflict (`referenceNumber`)**: If a payment method uses an external transaction identifier (`referenceNumber`), duplicate submissions matching the same `(stayId, paymentMethod, referenceNumber)` and amount shall be safely replayed, while conflicting amounts shall be rejected.
+4. **Current-Process Execution Serialization**: Payment recording shall execute under a per-stay concurrency lock ensuring all phases (idempotency evaluation, balance derivation, bill allocation, double-entry ledger posting, and entity persistence) occur as a protected critical section.
+
+### Reason
+
+Prevents duplicate cash/bank debit postings, duplicate bill allocations, and phantom advance liabilities arising from network timeouts, client retries, or rapid double-submissions (FC-03B, DEF-FIN-004, ADR-035).
+
+### Applies To
+
+- Finance
+- Payment Processing
+- General Ledger
+- Workspace Coordination
+
+---
+
 # Payments
 
 Payments represent money received from the Resident.

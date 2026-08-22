@@ -471,6 +471,13 @@ Auto-Consumption & Accounting Lifecycle
 4. **Bill Settlement State**: The bill's `paidAmount` increases, `balanceAmount` decreases, and status transitions to `PARTIALLY_PAID` or `PAID`.
 5. **Settlement Resolution**: Any surplus unconsumed advance credit at checkout is resolved via Financial Settlement.
 
+Payment Idempotency & Ingestion Architecture (FC-03B, ADR-035)
+
+1. **Submission Identity**: Every payment payload supports an optional caller-provided `idempotencyKey` identifying the payment submission across retries.
+2. **Deterministic Replay**: Exact matching submissions (`stayId`, `idempotencyKey`, `amount`, `paymentMethod`, `referenceNumber`) replay the existing `Payment` record without duplicate ledger postings or bill re-allocations.
+3. **Conflict Protection**: Submissions sharing an `idempotencyKey` or external `referenceNumber` with conflicting amounts or methods are rejected with explicit conflict errors.
+4. **Dependency Inversion**: `PaymentApplicationService` derives live accounts receivable balances through an injected `BalanceApplicationService`, eliminating module-level singleton state leaks and ensuring hermetic multi-repository isolation.
+
 ---
 
 ### 4. Settlement Hold Account

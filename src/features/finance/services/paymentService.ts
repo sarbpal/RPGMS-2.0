@@ -9,11 +9,21 @@ import type {
 } from '../domain';
 import { AccountType, LedgerReferenceType, BillStatus, calculateAdvanceAllocations } from '../domain';
 import { defaultFinanceRepository } from '../infrastructure';
-import { balanceEngine } from './balanceEngine';
+import { BalanceApplicationService } from './balanceEngine';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { BillingApplicationService } from './billingService';
 import { LedgerApplicationService } from './ledgerService';
+
+export interface RecordPaymentPayload {
+  stayId: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: PaymentMethod | string;
+  referenceNumber?: string;
+  idempotencyKey?: string;
+  remarks?: string;
+}
 
 export interface RecordPaymentResult {
   success: boolean;
@@ -35,19 +45,29 @@ export interface ApplyAdvanceCreditResult {
 export class PaymentApplicationService {
   private repository: FinanceRepository;
   private stayRepository: StayRepository;
+  private balanceService: BalanceApplicationService;
   private billingService?: BillingApplicationService;
   private ledgerService: LedgerApplicationService;
+
+  private static activePaymentLocks = new Set<string>();
+  private static activeStayLocks = new Set<string>();
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
     stayRepository: StayRepository = defaultStayRepository,
     billingService?: BillingApplicationService,
-    ledgerService?: LedgerApplicationService
+    ledgerService?: LedgerApplicationService,
+    balanceService?: BalanceApplicationService
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
     this.billingService = billingService;
     this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
+    this.balanceService = balanceService ?? new BalanceApplicationService(repository);
+  }
+
+  public getBalanceService(): BalanceApplicationService {
+    return this.balanceService;
   }
 
   private getBillingService(): BillingApplicationService {
@@ -91,9 +111,17 @@ export class PaymentApplicationService {
   /**
    * Application Use Case: Record a payment received for a Stay, post balanced double-entry ledger transactions,
    * handle overpayments via Advance Credit, allocate payment across open bills, and persist payment.
+   *
+   * Enforces FC-03B:
+   * 1. Idempotent replay on identical idempotencyKey + attributes.
+   * 2. Idempotency conflict rejection on identical idempotencyKey + conflicting attributes.
+   * 3. External reference duplicate detection (matching stayId, paymentMethod, referenceNumber).
+   * 4. External reference conflict rejection (matching referenceNumber with conflicting amount).
+   * 5. Current-process per-stay concurrency locking.
+   * 6. Hermetic balance querying via injected BalanceApplicationService.
    */
   public recordPayment(
-    paymentPayload: Omit<Payment, 'id' | 'paymentNumber' | 'allocations' | 'createdAt'>
+    paymentPayload: RecordPaymentPayload
   ): RecordPaymentResult {
     const errors: string[] = [];
 
@@ -117,117 +145,210 @@ export class PaymentApplicationService {
       return { success: false, payment: null, errors };
     }
 
-    const now = new Date().toISOString();
-    const todayStr = now.split('T')[0];
-    const periodTag = todayStr.slice(0, 7).replace('-', '');
-    const existingPayments = this.getAllPayments();
-    const sequenceNum = String(existingPayments.length + 1).padStart(4, '0');
-    const paymentNumber = `PAY-${periodTag}-${sequenceNum}`;
+    const trimmedStayId = paymentPayload.stayId.trim();
+    const trimmedIdemKey = paymentPayload.idempotencyKey?.trim() || undefined;
+    const trimmedRef = paymentPayload.referenceNumber?.trim() || undefined;
 
-    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-    // 1. Determine Debit Account (Cash vs Bank)
-    const debitAccount =
-      paymentPayload.paymentMethod === 'CASH' ? AccountType.CASH : AccountType.BANK;
-
-    // 2. Calculate Receivable vs Advance Credit portions via balanceEngine
-    const outstandingReceivable = balanceEngine.getAccountBalance(
-      paymentPayload.stayId,
-      AccountType.ACCOUNTS_RECEIVABLE
-    );
-
-    const receivablePortion = Math.min(paymentPayload.amount, outstandingReceivable);
-    const advancePortion = Math.round((paymentPayload.amount - receivablePortion) * 100) / 100;
-
-    // 3. Construct double-entry ledger postings
-    const ledgerEntriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[] = [
-      {
-        stayId: paymentPayload.stayId,
-        postingDate: todayStr,
-        effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT' as LedgerReferenceType,
-        referenceId: paymentId,
-        account: debitAccount,
-        debit: paymentPayload.amount,
-        credit: 0,
-        remarks: `Payment #${paymentNumber} via ${paymentPayload.paymentMethod}`,
-        createdBy: 'PAYMENT_ENGINE',
-      },
-    ];
-
-    if (receivablePortion > 0) {
-      ledgerEntriesData.push({
-        stayId: paymentPayload.stayId,
-        postingDate: todayStr,
-        effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT' as LedgerReferenceType,
-        referenceId: paymentId,
-        account: AccountType.ACCOUNTS_RECEIVABLE,
-        debit: 0,
-        credit: receivablePortion,
-        remarks: `Receivable reduction for Payment #${paymentNumber}`,
-        createdBy: 'PAYMENT_ENGINE',
-      });
-    }
-
-    if (advancePortion > 0) {
-      ledgerEntriesData.push({
-        stayId: paymentPayload.stayId,
-        postingDate: todayStr,
-        effectiveDate: paymentPayload.paymentDate,
-        referenceType: 'PAYMENT' as LedgerReferenceType,
-        referenceId: paymentId,
-        account: AccountType.ADVANCE_CREDIT,
-        debit: 0,
-        credit: advancePortion,
-        remarks: `Advance credit overpayment for Payment #${paymentNumber}`,
-        createdBy: 'PAYMENT_ENGINE',
-      });
-    }
-
-    // 4. Post balanced ledger entries via ledgerService
-    const postingResult = this.ledgerService.postEntries(ledgerEntriesData);
-    if (!postingResult.success) {
+    // Concurrency protection: prevent overlapping payment operations on the same Stay
+    if (PaymentApplicationService.activePaymentLocks.has(trimmedStayId)) {
       return {
         success: false,
         payment: null,
-        errors: [`Failed to post payment ledger entries: ${postingResult.errors.join(', ')}`],
+        errors: ['A payment operation is currently in progress for this stay. Please retry.'],
       };
     }
 
-    // 5. Allocate receivable portion across open bills via billingService
-    let allocations: PaymentAllocation[] = [];
-    if (receivablePortion > 0) {
-      allocations = this.getBillingService().allocatePaymentToBills(
-        paymentPayload.stayId,
-        receivablePortion
+    PaymentApplicationService.activePaymentLocks.add(trimmedStayId);
+
+    try {
+      const stayPayments = this.repository.getPaymentsByStayId(trimmedStayId);
+
+      // 1. Idempotency Key Validation (CASE A & CASE B)
+      if (trimmedIdemKey) {
+        const matchingIdem = stayPayments.find((p) => p.idempotencyKey === trimmedIdemKey);
+        if (matchingIdem) {
+          const isAmountMatch = Math.abs(matchingIdem.amount - paymentPayload.amount) < 0.0001;
+          const isMethodMatch = matchingIdem.paymentMethod === paymentPayload.paymentMethod;
+          const existingRef = matchingIdem.referenceNumber?.trim() || undefined;
+          const isRefMatch = trimmedRef === existingRef;
+
+          if (isAmountMatch && isMethodMatch && isRefMatch) {
+            // CASE A: Exact Idempotent Replay
+            return {
+              success: true,
+              payment: matchingIdem,
+              errors: [],
+            };
+          } else {
+            // CASE B: Idempotency Key Conflict
+            return {
+              success: false,
+              payment: null,
+              errors: [
+                `Idempotency key conflict: A payment with idempotency key "${trimmedIdemKey}" already exists with different payment details.`,
+              ],
+            };
+          }
+        }
+      }
+
+      // 2. External Reference Number Validation (CASE C & CASE D)
+      if (trimmedRef) {
+        const matchingRef = stayPayments.find(
+          (p) =>
+            p.paymentMethod === paymentPayload.paymentMethod &&
+            p.referenceNumber?.trim() === trimmedRef
+        );
+
+        if (matchingRef) {
+          const isAmountMatch = Math.abs(matchingRef.amount - paymentPayload.amount) < 0.0001;
+          if (isAmountMatch) {
+            // CASE C: External Reference Exact Duplicate / Replay
+            return {
+              success: true,
+              payment: matchingRef,
+              errors: [],
+            };
+          } else {
+            // CASE D: External Reference Conflict
+            return {
+              success: false,
+              payment: null,
+              errors: [
+                `Duplicate external reference conflict: A payment with reference number "${trimmedRef}" and method "${paymentPayload.paymentMethod}" already exists for this stay with amount ₹${matchingRef.amount}.`,
+              ],
+            };
+          }
+        }
+      }
+
+      // 3. CASE E: New Payment Processing
+      const now = new Date().toISOString();
+      const todayStr = now.split('T')[0];
+      const periodTag = todayStr.slice(0, 7).replace('-', '');
+      const existingPayments = this.getAllPayments();
+      const sequenceNum = String(existingPayments.length + 1).padStart(4, '0');
+      const paymentNumber = `PAY-${periodTag}-${sequenceNum}`;
+
+      const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      // Determine Debit Account (Cash vs Bank)
+      const debitAccount =
+        paymentPayload.paymentMethod === 'CASH' ? AccountType.CASH : AccountType.BANK;
+
+      // Calculate Receivable vs Advance Credit portions via injected balanceService
+      const outstandingReceivable = this.balanceService.getAccountBalance(
+        trimmedStayId,
+        AccountType.ACCOUNTS_RECEIVABLE
       );
+
+      const receivablePortion = Math.min(paymentPayload.amount, outstandingReceivable);
+      const advancePortion = Math.round((paymentPayload.amount - receivablePortion) * 100) / 100;
+
+      // Construct double-entry ledger postings
+      const ledgerEntriesData: Omit<LedgerEntry, 'id' | 'createdAt'>[] = [
+        {
+          stayId: trimmedStayId,
+          postingDate: todayStr,
+          effectiveDate: paymentPayload.paymentDate,
+          referenceType: 'PAYMENT' as LedgerReferenceType,
+          referenceId: paymentId,
+          account: debitAccount,
+          debit: paymentPayload.amount,
+          credit: 0,
+          remarks: `Payment #${paymentNumber} via ${paymentPayload.paymentMethod}`,
+          createdBy: 'PAYMENT_ENGINE',
+        },
+      ];
+
+      if (receivablePortion > 0) {
+        ledgerEntriesData.push({
+          stayId: trimmedStayId,
+          postingDate: todayStr,
+          effectiveDate: paymentPayload.paymentDate,
+          referenceType: 'PAYMENT' as LedgerReferenceType,
+          referenceId: paymentId,
+          account: AccountType.ACCOUNTS_RECEIVABLE,
+          debit: 0,
+          credit: receivablePortion,
+          remarks: `Receivable reduction for Payment #${paymentNumber}`,
+          createdBy: 'PAYMENT_ENGINE',
+        });
+      }
+
+      if (advancePortion > 0) {
+        ledgerEntriesData.push({
+          stayId: trimmedStayId,
+          postingDate: todayStr,
+          effectiveDate: paymentPayload.paymentDate,
+          referenceType: 'PAYMENT' as LedgerReferenceType,
+          referenceId: paymentId,
+          account: AccountType.ADVANCE_CREDIT,
+          debit: 0,
+          credit: advancePortion,
+          remarks: `Advance credit overpayment for Payment #${paymentNumber}`,
+          createdBy: 'PAYMENT_ENGINE',
+        });
+      }
+
+      // Post balanced ledger entries via ledgerService
+      const postingResult = this.ledgerService.postEntries(ledgerEntriesData);
+      if (!postingResult.success) {
+        return {
+          success: false,
+          payment: null,
+          errors: [`Failed to post payment ledger entries: ${postingResult.errors.join(', ')}`],
+        };
+      }
+
+      // Snapshot bills before allocation for safe failure-boundary rollback
+      const originalBillsSnapshot = this.repository.getBills().map((b) => ({ ...b }));
+
+      // Allocate receivable portion across open bills via billingService
+      let allocations: PaymentAllocation[] = [];
+      try {
+        if (receivablePortion > 0) {
+          allocations = this.getBillingService().allocatePaymentToBills(
+            trimmedStayId,
+            receivablePortion
+          );
+        }
+
+        // Create and persist Payment record via repository
+        const newPayment: Payment = {
+          id: paymentId,
+          stayId: trimmedStayId,
+          paymentNumber,
+          paymentDate: paymentPayload.paymentDate,
+          amount: paymentPayload.amount,
+          paymentMethod: paymentPayload.paymentMethod as PaymentMethod,
+          referenceNumber: trimmedRef,
+          idempotencyKey: trimmedIdemKey,
+          allocations,
+          remarks: paymentPayload.remarks?.trim() || undefined,
+          createdAt: now,
+        };
+
+        this.repository.savePayment(newPayment);
+
+        return {
+          success: true,
+          payment: newPayment,
+          errors: [],
+        };
+      } catch (postLedgerError) {
+        // Compensating rollback for in-memory persistence failure:
+        // Revert the uncommitted ledger postings and restore original bill states
+        const currentLedger = this.repository.getLedgerEntries();
+        const postedIds = new Set(postingResult.entries.map((e) => e.id));
+        this.repository.saveLedgerEntries(currentLedger.filter((e) => !postedIds.has(e.id)));
+        this.repository.saveBills(originalBillsSnapshot);
+        throw postLedgerError;
+      }
+    } finally {
+      PaymentApplicationService.activePaymentLocks.delete(trimmedStayId);
     }
-
-    // 6. Create and persist Payment record via repository
-    const newPayment: Payment = {
-      id: paymentId,
-      stayId: paymentPayload.stayId,
-      paymentNumber,
-      paymentDate: paymentPayload.paymentDate,
-      amount: paymentPayload.amount,
-      paymentMethod: paymentPayload.paymentMethod as PaymentMethod,
-      referenceNumber: paymentPayload.referenceNumber,
-      allocations,
-      remarks: paymentPayload.remarks,
-      createdAt: now,
-    };
-
-    this.repository.savePayment(newPayment);
-
-    return {
-      success: true,
-      payment: newPayment,
-      errors: [],
-    };
   }
-
-  private static activeStayLocks = new Set<string>();
 
   /**
    * Application Use Case: Apply available Advance Credit for a Stay against open unpaid bills.
@@ -256,7 +377,7 @@ export class PaymentApplicationService {
 
     // Concurrency protection: prevent overlapping executions on the same Stay
     if (PaymentApplicationService.activeStayLocks.has(stayId)) {
-      const currentAdvance = balanceEngine.getAccountBalance(stayId, AccountType.ADVANCE_CREDIT);
+      const currentAdvance = this.balanceService.getAccountBalance(stayId, AccountType.ADVANCE_CREDIT);
       return {
         success: true,
         stayId,
@@ -273,7 +394,7 @@ export class PaymentApplicationService {
 
     try {
       // 1. Determine available Advance Credit liability from Ledger
-      const availableAdvance = balanceEngine.getAccountBalance(
+      const availableAdvance = this.balanceService.getAccountBalance(
         stayId,
         AccountType.ADVANCE_CREDIT
       );

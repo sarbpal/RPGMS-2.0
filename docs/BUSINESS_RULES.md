@@ -2003,6 +2003,25 @@ Prevents overstatement of collected property revenue when deposit refund payouts
 
 ---
 
+## BR-418 Advance Credit Auto-Consumption Invariant
+
+### Rule
+
+When a new financial obligation (Bill) is realized or when Advance Credit exists for a Stay, the available Advance Credit liability (`AccountType.ADVANCE_CREDIT`) shall be automatically allocated to open unpaid bills in chronological order of due date (`dueDate` ascending, tiebreaker: `createdAt` ascending). The application shall post balanced double-entry ledger transactions (Debit `ADVANCE_CREDIT`, Credit `ACCOUNTS_RECEIVABLE` with reference `ADV-APP:${billId}`) and immediately update the Bill's financial settlement state (`paidAmount`, `balanceAmount`, `status`).
+
+### Reason
+
+Prevents stranded advance funds and ensures that realized operational dues are settled automatically against prepaid credits without manual staff intervention or ledger desynchronization (FC-03A, DEF-FIN-002, ADR-034).
+
+### Applies To
+
+- Finance
+- Billing
+- Payment Processing
+- General Ledger
+
+---
+
 # Payments
 
 Payments represent money received from the Resident.

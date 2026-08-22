@@ -18,6 +18,7 @@ import { defaultFinanceRepository } from '../infrastructure';
 import type { StayRepository } from '../../stay/domain/interfaces/StayRepository';
 import { defaultStayRepository } from '../../stay/infrastructure/repositories/InMemoryStayRepository';
 import { LedgerApplicationService } from './ledgerService';
+import { PaymentApplicationService } from './paymentService';
 
 export interface CreateBillResult {
   success: boolean;
@@ -29,15 +30,30 @@ export class BillingApplicationService {
   private repository: FinanceRepository;
   private stayRepository: StayRepository;
   private ledgerService: LedgerApplicationService;
+  private paymentService?: PaymentApplicationService;
 
   constructor(
     repository: FinanceRepository = defaultFinanceRepository,
     stayRepository: StayRepository = defaultStayRepository,
-    ledgerService?: LedgerApplicationService
+    ledgerService?: LedgerApplicationService,
+    paymentService?: PaymentApplicationService
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
     this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
+    this.paymentService = paymentService;
+  }
+
+  private getPaymentService(): PaymentApplicationService {
+    if (!this.paymentService) {
+      this.paymentService = new PaymentApplicationService(
+        this.repository,
+        this.stayRepository,
+        this,
+        this.ledgerService
+      );
+    }
+    return this.paymentService;
   }
 
   /**
@@ -203,9 +219,19 @@ export class BillingApplicationService {
 
     this.repository.saveBill(newBill);
 
+    // Trigger Finance-owned Advance Credit application (FC-03A)
+    let finalizedBill = newBill;
+    const advanceResult = this.getPaymentService().applyAdvanceCreditToBills(billPayload.stayId);
+    if (advanceResult.success && advanceResult.updatedBills.length > 0) {
+      const updatedSelf = advanceResult.updatedBills.find((b) => b.id === billId);
+      if (updatedSelf) {
+        finalizedBill = updatedSelf;
+      }
+    }
+
     return {
       success: true,
-      bill: newBill,
+      bill: finalizedBill,
       errors: [],
     };
   }

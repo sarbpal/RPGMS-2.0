@@ -453,13 +453,23 @@ The Deposit Account is independent of the Receivable Account.
 
 Purpose
 
-Tracks money received before becoming due.
+Tracks unearned/prepaid funds received from a resident in excess of active accounts receivable (`AccountType.ADVANCE_CREDIT`).
 
 Examples
 
-Resident pays next month's rent today.
+- Resident pays next month's rent in advance.
+- Overpayment on an existing invoice.
 
-The money is stored in the Advance Account until applied by the Settlement Engine.
+Auto-Consumption & Accounting Lifecycle
+
+1. **Advance Recognition**: Overpayments and prepayments credit `AccountType.ADVANCE_CREDIT` with double-entry debit to `CASH` or `BANK` (Reference: `PAYMENT`).
+2. **Deterministic Auto-Consumption**: Upon realization of any eligible operational bill (Rent, Electricity, Laundry, Maintenance), `PaymentApplicationService.applyAdvanceCreditToBills(stayId)` automatically allocates available advance credit in chronological order of `dueDate` ascending (tiebreaker: `createdAt` ascending).
+3. **Double-Entry Application**: For each allocation, Finance posts:
+   - Debit: `AccountType.ADVANCE_CREDIT` (reduces liability)
+   - Credit: `AccountType.ACCOUNTS_RECEIVABLE` (reduces receivable)
+   - Reference: `LedgerReferenceType.ADVANCE_APPLICATION` with deterministic idempotency key `ADV-APP:${bill.id}`
+4. **Bill Settlement State**: The bill's `paidAmount` increases, `balanceAmount` decreases, and status transitions to `PARTIALLY_PAID` or `PAID`.
+5. **Settlement Resolution**: Any surplus unconsumed advance credit at checkout is resolved via Financial Settlement.
 
 ---
 

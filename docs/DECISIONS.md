@@ -1093,10 +1093,64 @@ Stay UI (StayWorkspacePage, FinancialSummaryCard)
 
 ---
 
+## ADR-034 — Finance-Owned Advance Credit & Auto-Consumption Architecture
+
+**Status:** Accepted
+
+### Context
+
+When residents pay amounts exceeding their current accounts receivable, surplus funds represent an unearned revenue liability. Previously, advance credit was stored in the ledger upon overpayment under `AccountType.ADVANCE_CREDIT` but was never consumed when subsequent bills were realized, leaving new bills unpaid while advance credit sat idle (DEF-FIN-002).
+
+### Decision
+
+RPGMS 2.0 establishes the canonical **Finance-Owned Advance Credit & Auto-Consumption Architecture**:
+
+```
+BillingApplicationService (Obligation Discovery & Invoicing)
+      │
+      │ 1. realizes Bill & posts invoice entries (DR AR, CR Revenue)
+      │ 2. delegates advance credit application
+      ▼
+PaymentApplicationService (Financial Intake & Advance Capability)
+      │
+      ├── AdvanceApplicationRule (Pure Domain Rule)
+      │       │ calculates deterministic allocations (dueDate ASC, createdAt ASC)
+      │
+      ├── LedgerApplicationService
+      │       │ posts balanced double-entry (DR ADVANCE_CREDIT, CR ACCOUNTS_RECEIVABLE)
+      │       │ deterministic reference: ADV-APP:${bill.id}
+      │
+      └── updates & persists Bill settlement state (paidAmount, balanceAmount, status)
+```
+
+1. **Finance Ownership**: Advance Credit is an authoritative Finance-owned liability recorded under `AccountType.ADVANCE_CREDIT`.
+2. **Capability Ownership**: `PaymentApplicationService.applyAdvanceCreditToBills(stayId)` is the canonical owner of the Advance Credit application lifecycle. Billing discovers obligations and triggers this capability without directly mutating ledger accounts or evaluating credit balances.
+3. **Pure Domain Rule**: `AdvanceApplicationRule` deterministically calculates allocation amounts across open non-cancelled bills in chronological order of due date (`dueDate` ASC, tiebreaker `createdAt` ASC).
+4. **Balanced Accounting Model**: Advance consumption posts balanced double-entry ledger entries:
+   - Debit: `AccountType.ADVANCE_CREDIT` (reduces advance liability)
+   - Credit: `AccountType.ACCOUNTS_RECEIVABLE` (reduces invoice receivable)
+   - Reference: `LedgerReferenceType.ADVANCE_APPLICATION` with deterministic key `ADV-APP:${bill.id}`
+5. **Operational Scope**: Advance Credit is stay-scoped operationally (`stayId`). Resolution of surplus credit at checkout is governed by Financial Settlement.
+6. **Security Deposit Independence**: Security deposits (`AccountType.SECURITY_DEPOSIT_LIABILITY`) are independent collateral and are strictly excluded from monthly bill auto-consumption.
+
+### Consequences
+
+#### Advantages:
+- Eliminates stranded advance credit balances; bills automatically settle upon realization when advance funds exist.
+- Strictly preserves double-entry accounting integrity and zero phantom balances.
+- Deterministic idempotency (`ADV-APP:${bill.id}`) prevents duplicate consumption across retries.
+- Upholds the FC-02 Stay ↔ Finance truth boundary and FI-01 uniqueness invariants.
+
+#### Trade-offs & Costs:
+- `BillingApplicationService.createBill` executes advance auto-consumption post-realization.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 3.9 | August 2026 | FC-03A: Finance-Owned Advance Credit & Auto-Consumption Architecture (ADR-034, DEF-FIN-002). |
 | 3.8 | August 2026 | FC-02: Stay ↔ Finance Financial Truth Boundary & Projection Consumption Architecture (ADR-033, DEF-FIN-001). |
 | 3.7 | August 2026 | FC-01: Core Financial Truth & Admission Obligation Convergence (BR-416, BR-417, DEF-FIN-003, DEF-FIN-005, UI-FIN-001). |
 | 3.6 | August 2026 | Added ADR-032 (Financial Obligation Uniqueness Boundary & Cross-Module Deduplication Architecture). |

@@ -40,23 +40,17 @@ Development is now focused on Reservation and Admission Management.
 
 # Current Milestone
 
-## Capability Release 2 (CR-2)
+## Capability Release 3 (CR-3) / Operational UI Integration
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Completed
 
-### Current Objective
+### Delivered
 
-Implement the Reservation and Admission Management capabilities using the frozen business architecture established during Documentation Capability Sprint 2 (DCS-2).
-
-### Current Focus
-
-- Reservation Workspace
-- Reservations List
-- Admission Workspace
-- Walk-in Admission
-- Reservation Conversion
-- Resident Creation
-- Stay Creation
+- Finance Dashboard & Operational Integration (UI-INTEGRATION-01)
+- Payment Reversal Confirmation & Audit Journal (ADR-039, ADR-041)
+- Security Deposit Operations (Partial Returns & Deductions) Entry Points
+- Authoritative Resident Double-Entry Ledger Modal
+- Financial Core Hardening & Advance Credit Compensation Boundary (ADR-040)
 
 Business documentation is considered frozen for MVP implementation.
 
@@ -91,9 +85,9 @@ Each Capability Release delivers one complete business capability rather than a 
 
 ## CR-2 — Reservation & Admission Management
 
-**Status:** 🔄 In Progress
+**Status:** ✅ Completed
 
-### Planned Deliverables
+### Delivered
 
 - Reservations List Workspace
 - Reservation Workspace
@@ -122,6 +116,8 @@ Each Capability Release delivers one complete business capability rather than a 
 - Mid-Stay Partial Deposit Returns & Over-Return Balance Guards (DEC-DEP-01)
 - Damage Deductions & Mandatory Reason Auditing
 - Payment Management & Advance Overpayment Handling
+- Payment Reversal & Counter-Entry Posting (ADR-039)
+- Operational UI Integration across Stay and Finance Workspaces (ADR-041, UI-INTEGRATION-01)
 - Decoupled Post-Checkout Settlement Preview & Confirmation (BR-460)
 - Resident ALUMNI Status Transition on Financial Completion (BR-461 & DEC-DEP-03)
 

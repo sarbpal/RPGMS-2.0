@@ -27,6 +27,10 @@ import {
   MonetizationOn,
   LocalLaundryService,
   ExitToApp,
+  AccountBalanceWallet,
+  MoneyOff,
+  ReceiptLong,
+  History,
 } from '@mui/icons-material';
 
 import { useFinanceWorkspace, type FinanceModalType } from '../hooks/useFinanceWorkspace';
@@ -36,10 +40,14 @@ import { ReceivePaymentModal } from '../components/ReceivePaymentModal';
 import { GenerateRentModal } from '../components/GenerateRentModal';
 import { AddLaundryModal } from '../components/AddLaundryModal';
 import { SettlementDialog } from '../components/SettlementDialog';
+import { PartialDepositReturnModal } from '../components/PartialDepositReturnModal';
+import { DepositDeductionModal } from '../components/DepositDeductionModal';
+import { ResidentLedgerModal } from '../components/ResidentLedgerModal';
+import { ReversePaymentModal } from '../components/ReversePaymentModal';
 import { SelectStayModal } from '../components/SelectStayModal';
 import type { SelectableStayItem } from '../application/coordinator/FinanceWorkspaceCoordinator';
+import type { PaymentHistoryItem } from '../application/models/FinanceWorkspaceViewModel';
 import { formatCurrency } from '../utils/currencyFormatters';
-import type { Resident } from '../../resident';
 import type { OutstandingResidentReportItem, SettlementReportItem } from '../types';
 
 export default function FinanceWorkspacePage() {
@@ -51,6 +59,7 @@ export default function FinanceWorkspacePage() {
     selectedStayId,
     selectedFlat,
     selectedBalances,
+    selectedPayment,
     coordinator,
     openModal,
     closeModal,
@@ -62,7 +71,7 @@ export default function FinanceWorkspacePage() {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<FinanceModalType>(null);
 
-  const { metrics, outstandingResidents, settlementsReport } = viewModel;
+  const { metrics, outstandingResidents, settlementsReport, paymentHistory = [] } = viewModel;
 
   const selectableStays = useMemo(() => {
     return coordinator.getActiveStaysForSelection();
@@ -98,23 +107,27 @@ export default function FinanceWorkspacePage() {
     if (!selectedStayId || !selectedBills) return 0;
     return selectedBills
       .filter((b) => b.period === currentMonthStr && b.status !== 'CANCELLED')
-      .reduce((sum, b) => sum + b.totalAmount, 0);
+      .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
   }, [selectedStayId, selectedBills, currentMonthStr]);
 
-  const handleSuccess = (message: string) => {
-    refresh();
-    refreshStayFinance();
-    setSnackbarMessage(message);
+  const handleSuccess = (msg: string) => {
+    setSnackbarMessage(msg);
     setSnackbarOpen(true);
+    refresh();
+    if (selectedStayId) {
+      refreshStayFinance();
+    }
   };
 
-  const getEventChipColor = (type: string) => {
+  const getTimelineEventChipColor = (type: string) => {
     switch (type) {
-      case 'BILL':
-        return 'error';
-      case 'PAYMENT':
+      case 'BILL_GENERATED':
+        return 'primary';
+      case 'PAYMENT_RECEIVED':
         return 'success';
-      case 'SETTLEMENT':
+      case 'SETTLEMENT_RECORDED':
+        return 'warning';
+      case 'CHARGE_POSTED':
         return 'info';
       default:
         return 'default';
@@ -166,6 +179,33 @@ export default function FinanceWorkspacePage() {
             </Button>
             <Button
               variant="outlined"
+              color="primary"
+              startIcon={<AccountBalanceWallet />}
+              onClick={() => handleGlobalActionClick('PARTIAL_DEPOSIT_RETURN')}
+              sx={{ fontWeight: 600 }}
+            >
+              Deposit Return
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<MoneyOff />}
+              onClick={() => handleGlobalActionClick('DEPOSIT_DEDUCTION')}
+              sx={{ fontWeight: 600 }}
+            >
+              Deposit Deduction
+            </Button>
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<ReceiptLong />}
+              onClick={() => handleGlobalActionClick('VIEW_LEDGER')}
+              sx={{ fontWeight: 600 }}
+            >
+              View Ledger
+            </Button>
+            <Button
+              variant="outlined"
               color="warning"
               startIcon={<ExitToApp />}
               onClick={() => handleGlobalActionClick('PROCESS_SETTLEMENT')}
@@ -191,7 +231,7 @@ export default function FinanceWorkspacePage() {
           <FinancialSummaryCard
             title="Monthly Billing"
             amount={metrics.totalMonthlyBilling}
-            subtitle="Current month total billed rent"
+            subtitle="Total billed this month"
             color="primary.main"
           />
         </Grid>
@@ -199,7 +239,7 @@ export default function FinanceWorkspacePage() {
           <FinancialSummaryCard
             title="Total Collections"
             amount={metrics.totalCollections}
-            subtitle="Total cash & bank payments"
+            subtitle="Total payments collected"
             color="success.main"
           />
         </Grid>
@@ -207,75 +247,72 @@ export default function FinanceWorkspacePage() {
           <FinancialSummaryCard
             title="Pending Settlements"
             amount={metrics.pendingSettlementsCount}
-            subtitle="Residents on notice / pending checkout"
+            subtitle="Active stays awaiting final settlement"
             color="warning.main"
           />
         </Grid>
       </Grid>
 
-      {/* Main Content Grid: Activity Stream & Outstanding Table */}
+      {/* Main Two-Column Layout */}
       <Grid container spacing={3}>
-        {/* Left Column: Recent Activity Stream */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        {/* Left Column: Recent Financial Activity Stream */}
+        <Grid size={{ xs: 12, md: 5 }}>
           <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
-              Recent Financial Activity Stream
+              Recent Financial Activity
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Unified chronological timeline from Billing, Payment, and Settlement engines.
+              Chronological log of bills generated, payments received, and settlements processed.
             </Typography>
 
             {activity.length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  No financial activity recorded yet.
+                  No recent financial activity recorded.
                 </Typography>
               </Box>
             ) : (
               <List disablePadding>
-                {activity.map((evt, idx) => (
-                  <Box key={evt.id}>
-                    {idx > 0 && <Divider component="li" />}
-                    <ListItem sx={{ py: 1.5, px: 1 }}>
+                {activity.map((event, index) => (
+                  <Box key={event.id}>
+                    <ListItem alignItems="flex-start" sx={{ px: 0, py: 1.5 }}>
                       <ListItemText
                         primary={
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                            <Chip
-                              label={evt.type}
-                              size="small"
-                              color={getEventChipColor(evt.type)}
-                              variant="outlined"
-                            />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                              {evt.title}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip
+                                label={event.type.replace(/_/g, ' ')}
+                                size="small"
+                                color={getTimelineEventChipColor(event.type)}
+                                sx={{ fontSize: '0.7rem', height: 20 }}
+                              />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {event.title}
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {formatCurrency(event.amount)}
                             </Typography>
-                            <Typography
-                              variant="subtitle2"
-                              sx={{ fontWeight: 700, ml: 'auto !important' }}
-                            >
-                              {formatCurrency(evt.amount)}
-                            </Typography>
-                          </Stack>
+                          </Box>
                         }
                         secondary={
-                          <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
                             <Typography variant="caption" color="text.secondary">
-                              {evt.description}
+                              {event.description}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ ml: 'auto !important' }}
-                            >
-                              {evt.date.toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                              })}
+                            <Typography variant="caption" color="text.disabled">
+                              {event.date instanceof Date
+                                ? event.date.toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                  })
+                                : String(event.date)}
                             </Typography>
-                          </Stack>
+                          </Box>
                         }
                       />
                     </ListItem>
+                    {index < activity.length - 1 && <Divider component="li" />}
                   </Box>
                 ))}
               </List>
@@ -283,20 +320,20 @@ export default function FinanceWorkspacePage() {
           </Paper>
         </Grid>
 
-        {/* Right Column: Outstanding Residents Table */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        {/* Right Column: Outstanding Dues by Resident Table */}
+        <Grid size={{ xs: 12, md: 7 }}>
           <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
               Outstanding Dues by Resident
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Active residents with pending receivable balances (highest first).
+              Active resident accounts with unsettled balances or pending payments.
             </Typography>
 
             {outstandingResidents.length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  No outstanding receivables! All active residents are fully paid.
+                  No active accounts with pending dues.
                 </Typography>
               </Box>
             ) : (
@@ -307,7 +344,7 @@ export default function FinanceWorkspacePage() {
                       <TableCell sx={{ fontWeight: 700 }}>Resident</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>
-                        Outstanding Dues
+                        Current Dues
                       </TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>
                         Action
@@ -316,15 +353,7 @@ export default function FinanceWorkspacePage() {
                   </TableHead>
                   <TableBody>
                     {outstandingResidents.map((row: OutstandingResidentReportItem) => {
-                      const rowResident: Resident = {
-                        id: row.stayId,
-                        residentCode: row.stayId.toUpperCase(),
-                        fullName: row.residentName,
-                        status: 'ACTIVE' as const,
-                        mobileNumber: row.phone || '9999999999',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                      };
+                      const selectableItem = selectableStays.find((s) => s.stayId === row.stayId);
                       return (
                         <TableRow key={row.stayId} hover>
                           <TableCell>
@@ -343,27 +372,26 @@ export default function FinanceWorkspacePage() {
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
-                            <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>
                               {formatCurrency(row.outstandingAmount)}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Tooltip title="Receive Payment for Resident">
+                            <Tooltip title="Receive Payment for this resident">
                               <IconButton
                                 size="small"
                                 color="success"
                                 onClick={() => {
-                                  const matchingStay = selectableStays.find((s) => s.stayId === row.stayId);
-                                  if (matchingStay) {
+                                  if (selectableItem) {
                                     openModal(
                                       'RECEIVE_PAYMENT',
-                                      matchingStay.resident,
-                                      matchingStay.stayId,
-                                      matchingStay.flat,
-                                      matchingStay.balances
+                                      selectableItem.resident,
+                                      selectableItem.stayId,
+                                      selectableItem.flat,
+                                      selectableItem.balances
                                     );
                                   } else {
-                                    openModal('RECEIVE_PAYMENT', rowResident, row.stayId);
+                                    handleGlobalActionClick('RECEIVE_PAYMENT');
                                   }
                                 }}
                               >
@@ -381,6 +409,118 @@ export default function FinanceWorkspacePage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Middle Section: Payment Receipts & Reversal Audit Table */}
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
+          Payment Receipts & Reversal Audit
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Authoritative ledger-backed payment journal across all resident stays. Initiate double-entry compensating reversals for returned or erroneous payments.
+        </Typography>
+
+        {paymentHistory.length === 0 ? (
+          <Box sx={{ py: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No recorded payments found.
+            </Typography>
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Receipt #</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Resident</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Stay ID</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Payment Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Method / Ref</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    Amount
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>
+                    Actions
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paymentHistory.map((row: PaymentHistoryItem) => (
+                  <TableRow key={row.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {row.paymentNumber}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {row.residentName} {row.residentCode ? `(${row.residentCode})` : ''}
+                    </TableCell>
+                    <TableCell>{row.stayId}</TableCell>
+                    <TableCell>{row.paymentDate}</TableCell>
+                    <TableCell>
+                      {row.paymentMethod}
+                      {row.referenceNumber ? ` (${row.referenceNumber})` : ''}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 700,
+                          color: row.status === 'REVERSED' ? 'text.secondary' : 'success.main',
+                        }}
+                      >
+                        {formatCurrency(row.amount)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {row.status === 'REVERSED' ? (
+                        <Tooltip
+                          title={`Reversed on ${row.reversedAt || ''} by ${row.reversedBy || 'OPERATOR'}: ${
+                            row.reversalReason || ''
+                          }`}
+                        >
+                          <Chip label="REVERSED" size="small" color="error" variant="outlined" />
+                        </Tooltip>
+                      ) : (
+                        <Chip label="RECORDED" size="small" color="success" variant="outlined" />
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {row.status !== 'REVERSED' ? (
+                        <Tooltip title="Reverse Payment (Compensating Double-Entry Counter-Posting)">
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={<History />}
+                            onClick={() =>
+                              openModal(
+                                'REVERSE_PAYMENT',
+                                null,
+                                row.stayId,
+                                null,
+                                null,
+                                row
+                              )
+                            }
+                            sx={{ textTransform: 'none', fontWeight: 600 }}
+                          >
+                            Reverse
+                          </Button>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Reversed
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
 
       {/* Bottom Section: Recent Settlements Audit Report */}
       <Paper variant="outlined" sx={{ p: 3 }}>
@@ -524,6 +664,49 @@ export default function FinanceWorkspacePage() {
           onClose={closeModal}
           resident={selectedResident}
           stayId={selectedStayId}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {/* 5. Partial Deposit Return Modal */}
+      {activeModal === 'PARTIAL_DEPOSIT_RETURN' && selectedStayId && (
+        <PartialDepositReturnModal
+          open={activeModal === 'PARTIAL_DEPOSIT_RETURN'}
+          stayId={selectedStayId}
+          currentDepositHeld={selectedBalances?.securityDepositHeld || 0}
+          onClose={closeModal}
+          onSuccess={() => handleSuccess('Partial deposit return recorded successfully.')}
+        />
+      )}
+
+      {/* 6. Deposit Deduction Modal */}
+      {activeModal === 'DEPOSIT_DEDUCTION' && selectedStayId && (
+        <DepositDeductionModal
+          open={activeModal === 'DEPOSIT_DEDUCTION'}
+          stayId={selectedStayId}
+          currentDepositHeld={selectedBalances?.securityDepositHeld || 0}
+          onClose={closeModal}
+          onSuccess={() => handleSuccess('Deposit deduction recorded successfully.')}
+        />
+      )}
+
+      {/* 7. Resident Financial Ledger Modal */}
+      {activeModal === 'VIEW_LEDGER' && selectedResident && selectedStayId && (
+        <ResidentLedgerModal
+          open={activeModal === 'VIEW_LEDGER'}
+          resident={selectedResident}
+          selectedFlat={selectedFlat}
+          stayId={selectedStayId}
+          onClose={closeModal}
+        />
+      )}
+
+      {/* 8. Reverse Payment Modal */}
+      {activeModal === 'REVERSE_PAYMENT' && selectedPayment && (
+        <ReversePaymentModal
+          open={activeModal === 'REVERSE_PAYMENT'}
+          payment={selectedPayment}
+          onClose={closeModal}
           onSuccess={handleSuccess}
         />
       )}

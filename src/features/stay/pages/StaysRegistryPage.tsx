@@ -38,7 +38,6 @@ import { Stay } from '../domain/entities/Stay';
 import { ChangeBillingCycleModal } from '../components/ChangeBillingCycleModal';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 
-const residentRepo = stayWorkflowComposition.residentRepository;
 const stayCoordinator = stayWorkflowComposition.stayWorkspaceCoordinator;
 
 export function StaysRegistryPage() {
@@ -62,7 +61,7 @@ export function StaysRegistryPage() {
   }, [refreshTrigger]);
 
   const residentsMap = useMemo(() => {
-    const residents = residentRepo.getAllSync();
+    const residents = stayCoordinator.getAllResidents();
     const map = new Map<string, { fullName: string; residentCode: string }>();
     residents.forEach((r) => {
       map.set(r.id, { fullName: r.fullName, residentCode: r.residentCode });

@@ -7,6 +7,9 @@ import {
   Payments,
   Receipt,
   AccountBalance,
+  AccountBalanceWallet,
+  MoneyOff,
+  ReceiptLong,
 } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 
@@ -22,6 +25,9 @@ export interface QuickActionsProps {
   onTransferFlat?: () => void;
   onAllocateAdditionalBed?: () => void;
   onReleaseBed?: () => void;
+  onPartialDepositReturn?: () => void;
+  onDepositDeduction?: () => void;
+  onViewLedger?: () => void;
   stayStatus?: string;
 }
 
@@ -37,6 +43,9 @@ export function QuickActions({
   onTransferFlat,
   onAllocateAdditionalBed,
   onReleaseBed,
+  onPartialDepositReturn,
+  onDepositDeduction,
+  onViewLedger,
   stayStatus,
 }: QuickActionsProps = {}) {
   const isCheckedOutOrClosed = stayStatus === 'CHECKED_OUT' || stayStatus === 'CLOSED';
@@ -46,6 +55,9 @@ export function QuickActions({
     { label: 'Generate Monthly Rent', icon: <Receipt /> },
     { label: 'Add Laundry Charges', icon: <LocalLaundryService /> },
     { label: 'Add Electricity Charges', icon: <Bolt /> },
+    { label: 'Partial Deposit Return', icon: <AccountBalanceWallet /> },
+    { label: 'Deposit Deduction', icon: <MoneyOff /> },
+    { label: 'View Full Ledger', icon: <ReceiptLong /> },
     { label: 'Transfer Bed', icon: <Hotel /> },
     { label: 'Give Notice', icon: <EventNote /> },
     { label: 'Begin Checkout', icon: <ExitToApp /> },
@@ -55,6 +67,9 @@ export function QuickActions({
     { label: 'Record Payment', icon: <Payments /> },
     { label: 'Add Laundry Charges', icon: <LocalLaundryService /> },
     { label: 'Add Electricity Charges', icon: <Bolt /> },
+    { label: 'Partial Deposit Return', icon: <AccountBalanceWallet /> },
+    { label: 'Deposit Deduction', icon: <MoneyOff /> },
+    { label: 'View Full Ledger', icon: <ReceiptLong /> },
     { label: 'Financial Settlement', icon: <AccountBalance /> },
   ];
 
@@ -70,6 +85,12 @@ export function QuickActions({
         return onAddLaundry;
       case 'Add Electricity Charges':
         return onAddElectricity;
+      case 'Partial Deposit Return':
+        return onPartialDepositReturn;
+      case 'Deposit Deduction':
+        return onDepositDeduction;
+      case 'View Full Ledger':
+        return onViewLedger;
       case 'Transfer Bed':
         return onTransferBed;
       case 'Give Notice':

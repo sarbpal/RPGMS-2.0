@@ -439,12 +439,16 @@ Manages the complete financial lifecycle of residents, including rent, running s
 ### Workspaces & Components
 
 - Finance Dashboard & Workspace (`FinanceWorkspacePage.tsx`)
+- Payment Receipts & Reversal Audit Journal Table
 - Authoritative Stay Selector Dialog (`SelectStayModal.tsx`)
+- Reverse Payment Confirmation Modal (`ReversePaymentModal.tsx`)
 - Resident Financial Profile (`ResidentFinancialProfile.tsx`)
+- Resident Double-Entry Ledger Viewer (`ResidentLedgerModal.tsx`)
 - Deposit Ledger Table (`DepositLedgerTable.tsx`)
 - Partial Deposit Return Modal (`PartialDepositReturnModal.tsx`)
 - Deposit Deduction Modal (`DepositDeductionModal.tsx`)
 - Two-Stage Checkout Settlement Dialog (`SettlementDialog.tsx`)
+- Stay Workspace Quick Actions Integration (`QuickActions.tsx`, `StayWorkspacePage.tsx`)
 
 ### Business Capabilities
 
@@ -456,9 +460,11 @@ Manages the complete financial lifecycle of residents, including rent, running s
 - Additional deposit contributions (`DEPOSIT_RECEIPT`) & mid-stay partial returns (`PARTIAL_RETURN`)
 - Damage deductions (`DEPOSIT_DEDUCTION`) with mandatory reason auditing
 - Over-return & over-deduction balance guards
+- Payment reversal workflow with balanced double-entry compensating counter-postings & obligation restoration (ADR-039, ADR-041)
+- Operator-facing UI integration for Deposit Return, Deposit Deduction, Resident Ledger, and Payment Reversals across Stay and Finance workspaces (UI-INTEGRATION-01)
 - Decoupled settlement preview & confirmation (`CHECKED_OUT` stay support under BR-460)
 - Resident status transition to `ALUMNI` on final financial completion (BR-461)
-- Complete Vitest test suite (51 test files, 324 passing tests)
+- Complete Vitest test suite (123 passing test files, 1,247 passing tests)
 
 ---
 

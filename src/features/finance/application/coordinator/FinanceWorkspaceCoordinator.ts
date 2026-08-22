@@ -1,10 +1,13 @@
 import { reportingService as defaultReportingService, ReportingApplicationService } from '../../services/reportingService';
 import { timelineService as defaultTimelineService, TimelineApplicationService } from '../../services/timelineService';
 import { balanceEngine as defaultBalanceEngine, BalanceApplicationService } from '../../services/balanceEngine';
+import { paymentService as defaultPaymentService, PaymentApplicationService, type ReversePaymentPayload, type ReversePaymentResult } from '../../services/paymentService';
+import { depositService as defaultDepositService, DepositApplicationService } from '../../services/depositService';
 import type {
   FinanceWorkspaceViewModel,
   StayFinanceViewModel,
   PropertyFinanceSummaryViewModel,
+  PaymentHistoryItem,
 } from '../models/FinanceWorkspaceViewModel';
 import type {
   FinanceTimelineEvent,
@@ -20,6 +23,7 @@ import type { AccommodationRepository } from '../../../accommodation/domain/inte
 import { defaultAccommodationRepository } from '../../../accommodation/infrastructure/repositories/InMemoryAccommodationRepository';
 import type { Resident } from '../../../resident/domain/entities/Resident';
 import type { Flat } from '../../../accommodation/domain/entities/Flat';
+import type { Stay } from '../../../stay/domain/entities/Stay';
 import { StayStatus } from '../../../stay/domain/valueObjects/StayStatus';
 
 export interface SelectableStayItem {
@@ -45,6 +49,8 @@ export class FinanceWorkspaceCoordinator {
   private _reportingService: ReportingApplicationService;
   private _timelineService: TimelineApplicationService;
   private _balanceEngine: BalanceApplicationService;
+  private _paymentService: PaymentApplicationService;
+  private _depositService: DepositApplicationService;
   private _stayRepository: StayRepository;
   private _residentRepository: ResidentRepository;
   private _accommodationRepository: AccommodationRepository;
@@ -55,11 +61,15 @@ export class FinanceWorkspaceCoordinator {
     balanceEngine: BalanceApplicationService = defaultBalanceEngine,
     stayRepository: StayRepository = defaultStayRepository,
     residentRepository: ResidentRepository = defaultResidentRepository,
-    accommodationRepository: AccommodationRepository = defaultAccommodationRepository
+    accommodationRepository: AccommodationRepository = defaultAccommodationRepository,
+    paymentService: PaymentApplicationService = defaultPaymentService,
+    depositService: DepositApplicationService = defaultDepositService
   ) {
     this._reportingService = reportingService;
     this._timelineService = timelineService;
     this._balanceEngine = balanceEngine;
+    this._paymentService = paymentService;
+    this._depositService = depositService;
     this._stayRepository = stayRepository;
     this._residentRepository = residentRepository;
     this._accommodationRepository = accommodationRepository;
@@ -77,6 +87,14 @@ export class FinanceWorkspaceCoordinator {
     return this._balanceEngine;
   }
 
+  public get paymentService(): PaymentApplicationService {
+    return this._paymentService;
+  }
+
+  public get depositService(): DepositApplicationService {
+    return this._depositService;
+  }
+
   public get stayRepository(): StayRepository {
     return this._stayRepository;
   }
@@ -90,18 +108,67 @@ export class FinanceWorkspaceCoordinator {
   }
 
   /**
+   * Constructs enriched payment history items for property-wide inspection and reversal.
+   */
+  public getPaymentRecords(): PaymentHistoryItem[] {
+    const payments = this._paymentService.getAllPayments();
+    const residents = this._residentRepository.getAllSync();
+    const residentMap = new Map<string, Resident>();
+    residents.forEach((r) => residentMap.set(r.id, r));
+
+    const stays = this._stayRepository.getAllSync();
+    const stayMap = new Map<string, Stay>();
+    stays.forEach((s) => stayMap.set(s.id, s));
+
+    return payments
+      .slice()
+      .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || '') || b.createdAt.localeCompare(a.createdAt))
+      .map((p) => {
+        const stay = stayMap.get(p.stayId);
+        const resident = stay ? residentMap.get(stay.residentId) : undefined;
+        return {
+          id: p.id,
+          paymentNumber: p.paymentNumber,
+          stayId: p.stayId,
+          residentId: stay?.residentId || '',
+          residentName: resident?.fullName || 'Resident',
+          residentCode: resident?.residentCode || '',
+          amount: p.amount,
+          paymentDate: p.paymentDate,
+          paymentMethod: p.paymentMethod,
+          referenceNumber: p.referenceNumber,
+          status: p.status || 'RECORDED',
+          reversedAt: p.reversedAt,
+          reversedBy: p.reversedBy,
+          reversalReason: p.reversalReason,
+          remarks: p.remarks,
+          createdAt: p.createdAt,
+        };
+      });
+  }
+
+  /**
+   * Delegates payment reversal to the authoritative payment application service.
+   */
+  public reversePayment(payload: ReversePaymentPayload): ReversePaymentResult {
+    return this._paymentService.reversePayment(payload);
+  }
+
+  /**
    * Constructs the ViewModel for Finance Workspace.
    */
   public createViewModel(activityLimit = 8): FinanceWorkspaceViewModel {
     const metrics = this.reportingService.getFinanceDashboard();
     const outstandingResidents = this.reportingService.getOutstandingResidents();
     const settlementsReport = this.reportingService.getSettlementReport();
+    const paymentHistory = this.getPaymentRecords();
     const activity = this.timelineService.getRecentFinanceActivity(activityLimit);
 
     return {
       metrics,
       outstandingResidents,
       settlementsReport,
+      paymentHistory,
       activity,
     };
   }

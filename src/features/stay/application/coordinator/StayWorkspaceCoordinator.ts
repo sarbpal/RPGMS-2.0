@@ -85,6 +85,10 @@ export class StayWorkspaceCoordinator {
     return inMem.getByIdSync ? inMem.getByIdSync(residentId) : null;
   }
 
+  public getAllResidents(): Resident[] {
+    return this._residentRepository.getAllSync();
+  }
+
   public findFlat(flatId: string): Flat | null {
     if (!flatId || flatId === 'Unassigned') return null;
     return this.accommodationRepository.findById(flatId);

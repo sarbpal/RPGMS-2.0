@@ -30,6 +30,7 @@ export * from './components/SettlementDialog';
 export * from './components/PartialDepositReturnModal';
 export * from './components/DepositDeductionModal';
 export * from './components/DepositLedgerTable';
+export * from './components/ReversePaymentModal';
 export { default as FinanceWorkspacePage, default as FinancePage } from './pages/FinanceWorkspacePage';
 
 

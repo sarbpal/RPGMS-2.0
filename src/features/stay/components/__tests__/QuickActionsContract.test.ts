@@ -13,6 +13,9 @@ describe('QuickActions Contract & Action Wiring', () => {
     const onTransferFlat = vi.fn();
     const onAllocateAdditionalBed = vi.fn();
     const onReleaseBed = vi.fn();
+    const onPartialDepositReturn = vi.fn();
+    const onDepositDeduction = vi.fn();
+    const onViewLedger = vi.fn();
 
     const props: QuickActionsProps = {
       onRecordPayment,
@@ -25,6 +28,9 @@ describe('QuickActions Contract & Action Wiring', () => {
       onTransferFlat,
       onAllocateAdditionalBed,
       onReleaseBed,
+      onPartialDepositReturn,
+      onDepositDeduction,
+      onViewLedger,
     };
 
     // Instantiate QuickActions component element
@@ -42,6 +48,9 @@ describe('QuickActions Contract & Action Wiring', () => {
     props.onTransferFlat?.();
     props.onAllocateAdditionalBed?.();
     props.onReleaseBed?.();
+    props.onPartialDepositReturn?.();
+    props.onDepositDeduction?.();
+    props.onViewLedger?.();
 
     expect(onRecordPayment).toHaveBeenCalledTimes(1);
     expect(onGenerateRent).toHaveBeenCalledTimes(1);
@@ -53,6 +62,9 @@ describe('QuickActions Contract & Action Wiring', () => {
     expect(onTransferFlat).toHaveBeenCalledTimes(1);
     expect(onAllocateAdditionalBed).toHaveBeenCalledTimes(1);
     expect(onReleaseBed).toHaveBeenCalledTimes(1);
+    expect(onPartialDepositReturn).toHaveBeenCalledTimes(1);
+    expect(onDepositDeduction).toHaveBeenCalledTimes(1);
+    expect(onViewLedger).toHaveBeenCalledTimes(1);
   });
 
   it('handles default empty props safely without error', () => {

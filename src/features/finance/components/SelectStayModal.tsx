@@ -52,6 +52,12 @@ export function SelectStayModal({
         return 'Add Extra Charge — Select Resident / Stay';
       case 'PROCESS_SETTLEMENT':
         return 'Process Settlement — Select Resident / Stay';
+      case 'PARTIAL_DEPOSIT_RETURN':
+        return 'Partial Deposit Return — Select Resident / Stay';
+      case 'DEPOSIT_DEDUCTION':
+        return 'Deposit Damage Deduction — Select Resident / Stay';
+      case 'VIEW_LEDGER':
+        return 'Resident Financial Ledger — Select Resident / Stay';
       default:
         return 'Select Target Resident / Stay';
     }
@@ -67,6 +73,12 @@ export function SelectStayModal({
         return 'Choose the resident stay to post additional ancillary or laundry charges.';
       case 'PROCESS_SETTLEMENT':
         return 'Choose the resident stay (active or on-notice) to process checkout settlement.';
+      case 'PARTIAL_DEPOSIT_RETURN':
+        return 'Choose the resident stay to issue a partial security deposit refund.';
+      case 'DEPOSIT_DEDUCTION':
+        return 'Choose the resident stay to record a damage deduction against security deposit.';
+      case 'VIEW_LEDGER':
+        return 'Choose the resident stay to inspect the complete double-entry financial ledger.';
       default:
         return 'Choose an active resident stay to continue.';
     }

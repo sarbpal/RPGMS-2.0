@@ -197,4 +197,47 @@ describe('FinanceWorkspaceCoordinator Unit Test Suite (Sprint FR-4)', () => {
       expect(checkedOutItem?.status).toBe(StayStatus.CHECKED_OUT);
     });
   });
+
+  describe('getPaymentRecords & reversePayment', () => {
+    it('returns enriched payment history and executes authoritative reversal', () => {
+      // 1. Record a payment
+      const recordResult = paymentService.recordPayment({
+        stayId: sampleStay.id,
+        amount: 10000,
+        paymentMethod: 'UPI',
+        paymentDate: '2026-08-10',
+        referenceNumber: 'UPI-REC-001',
+      });
+
+      expect(recordResult.success).toBe(true);
+      const paymentId = recordResult.payment!.id;
+
+      // 2. Fetch payment records from coordinator
+      const paymentRecords = coordinator.getPaymentRecords();
+      expect(paymentRecords.length).toBeGreaterThanOrEqual(1);
+
+      const found = paymentRecords.find((p) => p.id === paymentId);
+      expect(found).toBeDefined();
+      expect(found?.residentName).toBe('Ananya Verma');
+      expect(found?.amount).toBe(10000);
+      expect(found?.status).toBe('RECORDED');
+
+      // 3. Reverse payment through coordinator
+      const revResult = coordinator.reversePayment({
+        paymentId,
+        reversalReason: 'Wrong account transfer',
+        reversedBy: 'ACCOUNTS_MGR',
+      });
+
+      expect(revResult.success).toBe(true);
+      expect(revResult.payment?.status).toBe('REVERSED');
+
+      // 4. Verify updated coordinator records reflect reversal status
+      const updatedRecords = coordinator.getPaymentRecords();
+      const updatedPayment = updatedRecords.find((p) => p.id === paymentId);
+      expect(updatedPayment?.status).toBe('REVERSED');
+      expect(updatedPayment?.reversalReason).toBe('Wrong account transfer');
+      expect(updatedPayment?.reversedBy).toBe('ACCOUNTS_MGR');
+    });
+  });
 });

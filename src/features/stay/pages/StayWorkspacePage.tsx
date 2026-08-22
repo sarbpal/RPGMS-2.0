@@ -17,6 +17,9 @@ import { ReceivePaymentModal } from '../../finance/components/ReceivePaymentModa
 import { GenerateRentModal } from '../../finance/components/GenerateRentModal';
 import { AddLaundryModal } from '../../finance/components/AddLaundryModal';
 import { SettlementDialog } from '../../finance/components/SettlementDialog';
+import { PartialDepositReturnModal } from '../../finance/components/PartialDepositReturnModal';
+import { DepositDeductionModal } from '../../finance/components/DepositDeductionModal';
+import { ResidentLedgerModal } from '../../finance/components/ResidentLedgerModal';
 import { useStayFinance } from '../../finance/hooks/useStayFinance';
 import { stayWorkflowComposition } from '../../../app/composition/stayWorkflowComposition';
 
@@ -34,6 +37,9 @@ export default function StayWorkspacePage() {
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+  const [isDepositReturnModalOpen, setIsDepositReturnModalOpen] = useState(false);
+  const [isDepositDeductionModalOpen, setIsDepositDeductionModalOpen] = useState(false);
+  const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   const coordinator = useMemo(() => stayWorkflowComposition.stayWorkspaceCoordinator, []);
@@ -136,6 +142,9 @@ export default function StayWorkspacePage() {
           onGenerateRent={() => setIsRentModalOpen(true)}
           onAddLaundry={() => setIsLaundryModalOpen(true)}
           onAddElectricity={() => navigate('/electricity')}
+          onPartialDepositReturn={() => setIsDepositReturnModalOpen(true)}
+          onDepositDeduction={() => setIsDepositDeductionModalOpen(true)}
+          onViewLedger={() => setIsLedgerModalOpen(true)}
           onTransferBed={() => setIsTransferModalOpen(true)}
           onGiveNotice={() => setIsNoticeModalOpen(true)}
           onBeginCheckout={() => setIsCheckoutModalOpen(true)}
@@ -277,7 +286,40 @@ export default function StayWorkspacePage() {
         />
       )}
 
-      {/* 7. Change Billing Cycle Modal */}
+      {/* 8. Partial Deposit Return Modal */}
+      {isDepositReturnModalOpen && (
+        <PartialDepositReturnModal
+          open={isDepositReturnModalOpen}
+          stayId={stayId || ''}
+          currentDepositHeld={balances.securityDepositHeld || 0}
+          onClose={() => setIsDepositReturnModalOpen(false)}
+          onSuccess={() => handleActionSuccess('Partial deposit return recorded successfully.')}
+        />
+      )}
+
+      {/* 9. Deposit Deduction Modal */}
+      {isDepositDeductionModalOpen && (
+        <DepositDeductionModal
+          open={isDepositDeductionModalOpen}
+          stayId={stayId || ''}
+          currentDepositHeld={balances.securityDepositHeld || 0}
+          onClose={() => setIsDepositDeductionModalOpen(false)}
+          onSuccess={() => handleActionSuccess('Deposit deduction recorded successfully.')}
+        />
+      )}
+
+      {/* 10. Resident Double-Entry Ledger Modal */}
+      {isLedgerModalOpen && (modalResident || resident) && (
+        <ResidentLedgerModal
+          open={isLedgerModalOpen}
+          resident={modalResident || resident!}
+          selectedFlat={selectedFlat}
+          stayId={stayId}
+          onClose={() => setIsLedgerModalOpen(false)}
+        />
+      )}
+
+      {/* 11. Change Billing Cycle Modal */}
       {stayDomainEntity && (
         <ChangeBillingCycleModal
           open={isBillingModalOpen}

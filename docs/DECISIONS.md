@@ -1399,10 +1399,50 @@ The review explicitly noted that the existing `ADV-APP:{bill.id}` deduplication 
 
 ---
 
+## ADR-041: Stay & Finance Operational UI Integration Architecture (UI-INTEGRATION-01)
+
+### Status
+Accepted
+
+### Date
+August 2026
+
+### Context
+While the core financial domain (FC-01 through FC-07) and pre-Supabase hardening (ADR-040) completed and verified all backend business capabilities, the UI-READINESS-01 audit identified critical functional integration gaps:
+1. **Deposit Operations Entry Points**: `PartialDepositReturnModal`, `DepositDeductionModal`, and `DepositLedgerTable` existed as tested components but had no operator-facing action buttons on `StayWorkspacePage.tsx` or `FinanceWorkspacePage.tsx`.
+2. **Payment Reversal Workflow**: `paymentService.reversePayment()` (FC-07, ADR-039) was fully implemented in the domain layer, but the Finance Workspace lacked a Payment Receipts & Reversal Journal table and confirmation dialog to inspect payments and trigger reversals.
+3. **Resident Double-Entry Ledger Viewer**: `ResidentLedgerModal.tsx` was unmounted from the main workspace pages.
+
+### Decision
+1. **Stay Workspace Integration**:
+   - Extended `QuickActions.tsx` with `onPartialDepositReturn`, `onDepositDeduction`, and `onViewLedger` actions across both active and post-checkout stay lifecycles.
+   - Connected `StayWorkspacePage.tsx` to mount `PartialDepositReturnModal`, `DepositDeductionModal`, and `ResidentLedgerModal` using authoritative stay context and financial balance projections.
+   - Refactored `StaysRegistryPage.tsx` to access residents via `stayCoordinator.getAllResidents()`, preserving Clean Architecture presentation boundaries.
+2. **Finance Workspace Integration**:
+   - Created `ReversePaymentModal.tsx` capturing mandatory operational reversal reasons, enforcing double-entry counter-posting notices, and using session-stable idempotency keys.
+   - Added a property-wide **Payment Receipts & Reversal Audit** journal table in `FinanceWorkspacePage.tsx` displaying payment details, status chips (`RECORDED` vs `REVERSED`), reversal metadata tooltips, and action triggers.
+   - Added global header actions in `FinanceWorkspacePage.tsx` for Deposit Return, Deposit Deduction, and View Full Ledger via `SelectStayModal.tsx`.
+   - Mounted `PartialDepositReturnModal`, `DepositDeductionModal`, `ResidentLedgerModal`, and `ReversePaymentModal` in `FinanceWorkspacePage.tsx`.
+3. **Financial Truth Boundary Preservation**:
+   - Presentation components perform zero accounting math. All financial data is rendered strictly from application service ViewModels (`BalanceApplicationService`, `LedgerApplicationService`, `DepositApplicationService`, `PaymentApplicationService`).
+
+### Consequences
+
+#### Advantages:
+- Closes the end-to-end operator feedback loop across all financial capabilities (FC-01 through FC-07).
+- Freezes all application layer ViewModel and coordinator contracts prior to relational persistence design (S-ARCH-01).
+- Provides comprehensive operational auditability for deposits, payments, reversals, and double-entry ledger rows from the UI.
+
+#### Trade-offs:
+- None. Reused existing tested components and application services without architectural drift or visual redesign overhead.
+
+---
+
 # Change Log
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.6 | August 2026 | UI-INTEGRATION-01: Stay & Finance Operational UI Integration (ADR-041, ReversePaymentModal, Deposit & Ledger Action Wiring). |
 | 4.5 | August 2026 | Pre-Supabase Hardening: Advance Credit Application Compensation Boundary (ADR-040, BR-425). |
 | 4.4 | August 2026 | FC-07: Payment Reversal Architecture, Obligation Restoration & Advance Credit Integrity (ADR-039, BR-424). |
 | 4.3 | August 2026 | FC-05: Operational Checkout Closure Orchestration & Cross-Domain Alumni Evaluation (ADR-038, BR-460, BR-461, AL-002, DEF-CHK-001 through DEF-CHK-007). |

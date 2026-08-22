@@ -20,4 +20,5 @@ export interface DepositTransaction {
   ledgerEntryIds: string[];
   createdBy: string;
   createdAt: string;
+  idempotencyKey?: string;
 }

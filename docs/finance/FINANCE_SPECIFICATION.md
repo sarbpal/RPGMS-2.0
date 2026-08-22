@@ -1574,70 +1574,43 @@ Future obligations are handled separately through the Settlement Hold process.
 
 ---
 
-## Deposit Settlement
+## Deposit Settlement & Running Account Lifecycle
 
-At Checkout, the Deposit Account is evaluated.
+Operational Checkout (BR-460) releases accommodation inventory and transitions the Stay to `CHECKED_OUT` without modifying financial balances or closing the Deposit Account. The Security Deposit remains a running financial account throughout `ACTIVE`, `ON_NOTICE`, and `CHECKED_OUT` stay states.
 
-Possible outcomes include:
+During the financial lifecycle of the Stay:
+- Additional deposit contributions (`DEPOSIT_RECEIPT`) accumulate in `SECURITY_DEPOSIT_LIABILITY`.
+- Partial deposit returns (`PARTIAL_RETURN`) reduce deposit liability and disburse funds via `CASH`/`BANK`.
+- Deposit damage deductions (`DEPOSIT_DEDUCTION`) reduce deposit liability and recognize `DAMAGE_RECOVERY` income.
 
-- Full refund
-- Partial refund
-- Deposit utilization against outstanding dues
-- Transfer of remaining funds to Settlement Hold
-
-The Deposit Account itself is completed during Checkout.
-
-Any retained amount becomes part of the Settlement Hold Account.
-
----
-
-## Settlement Hold
-
-Settlement Hold represents money temporarily retained after Checkout while awaiting future financial obligations.
-
-Typical examples include:
-
-- Electricity Adjustment
-- Water Charges
-- Damage Recovery
-- Cleaning Charges
-- Other post-checkout recoveries
-
-Settlement Hold is a temporary Financial Account.
-
-It exists only while the Stay is in the Settlement Pending financial state.
-
-Settlement Hold is not part of the Deposit Account.
-
-It is an independent account created during Checkout.
+At Financial Settlement (BR-462, FC-04, FC-06):
+- Live deposit liability is evaluated against outstanding accounts receivable and damage adjustments.
+- The remaining deposit liability is cleared via a `SETTLEMENT_CLEARANCE` transaction in the deposit ledger.
+- Settlement outcomes:
+  - If deposit + advance exceeds dues: surplus is disbursed as a net refund payout (`HOSTEL_REFUNDS_RESIDENT`).
+  - If dues exceed deposit + advance: remaining balance is paid by resident (`RESIDENT_PAYS_HOSTEL`).
+  - If deposit + advance equals dues: net balance is zero (`BALANCED`).
+- Final financial settlement concludes the financial relationship and triggers resident ALUMNI status evaluation (BR-461).
 
 ---
 
-## Settlement Hold Lifecycle
+## Deposit Accounting Lifecycle
 
-Deposit Account
-
+Deposit Contribution
 ↓
-
-Checkout Settlement
-
+Running Deposit Liability (`SECURITY_DEPOSIT_LIABILITY`)
 ↓
-
-Immediate Refund
-
-+
-
-Settlement Hold Created
-
+Optional Partial Returns / Deductions (Mid-Stay or Post-Checkout)
 ↓
-
-Post-Checkout Adjustments
-
+Operational Checkout (`Stay` -> `CHECKED_OUT`, Beds -> `VACANT`)
 ↓
-
-Final Refund (or Recovery)
-
+Financial Settlement (`SettlementApplicationService`)
 ↓
+Settlement Clearance (`SETTLEMENT_CLEARANCE` -> Liability = 0)
+↓
+Surplus Refund Payout (if applicable) & Resident ALUMNI Transition (BR-461)
+↓
+Stay Financially Closed
 
 Settlement Hold Balance = 0
 

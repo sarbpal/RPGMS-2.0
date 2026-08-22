@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -17,13 +17,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
+  Tab,
   Typography,
 } from '@mui/material';
-import { ReceiptLong } from '@mui/icons-material';
+import { ReceiptLong, Shield } from '@mui/icons-material';
 
 import type { Resident } from '../../resident';
 import type { Flat } from '../../accommodation/types';
 import { ledgerService } from '../services/ledgerService';
+import { depositService } from '../services/depositService';
+import { DepositLedgerTable } from './DepositLedgerTable';
 import { formatCurrency } from '../utils/currencyFormatters';
 
 export interface ResidentLedgerModalProps {
@@ -41,10 +45,23 @@ export function ResidentLedgerModal({
   selectedFlat,
   stayId,
 }: ResidentLedgerModalProps) {
+  const [activeTab, setActiveTab] = useState<number>(0);
+
   // Retrieve application view model
   const viewModel = useMemo(
     () => ledgerService.getResidentLedgerViewModel(stayId || '', resident),
     [stayId, resident]
+  );
+
+  // Retrieve deposit transactions and deposit balance
+  const depositTransactions = useMemo(
+    () => (stayId ? depositService.getDepositTransactionsByStayId(stayId) : []),
+    [stayId]
+  );
+
+  const depositHeld = useMemo(
+    () => (stayId ? depositService.getDepositBalance(stayId) : 0),
+    [stayId]
   );
 
   const getTransactionTypeChipColor = (type: string) => {
@@ -107,8 +124,7 @@ export function ResidentLedgerModal({
           {/* Context Header Summary */}
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: 'grey.50' }}>
             <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Resident Account
                 </Typography>
@@ -120,7 +136,7 @@ export function ResidentLedgerModal({
                 </Typography>
               </Grid>
 
-              <Grid size={{ xs: 6, sm: 3 }}>
+              <Grid size={{ xs: 4, sm: 2.6 }}>
                 <Box
                   sx={{
                     p: 1.5,
@@ -145,7 +161,7 @@ export function ResidentLedgerModal({
                 </Box>
               </Grid>
 
-              <Grid size={{ xs: 6, sm: 3 }}>
+              <Grid size={{ xs: 4, sm: 2.6 }}>
                 <Box
                   sx={{
                     p: 1.5,
@@ -169,11 +185,60 @@ export function ResidentLedgerModal({
                   </Typography>
                 </Box>
               </Grid>
+
+              <Grid size={{ xs: 4, sm: 2.6 }}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Deposit Held
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 700,
+                      color: depositHeld > 0 ? 'info.main' : 'text.primary',
+                    }}
+                  >
+                    {formatCurrency(depositHeld)}
+                  </Typography>
+                </Box>
+              </Grid>
             </Grid>
           </Paper>
 
-          {/* Ledger Table */}
-          {viewModel.rows.length === 0 ? (
+          {/* Tab Navigation */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, val) => setActiveTab(val)}
+              textColor="primary"
+              indicatorColor="primary"
+            >
+              <Tab
+                label={`Operating Ledger (${viewModel.rows.length})`}
+                icon={<ReceiptLong fontSize="small" />}
+                iconPosition="start"
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              />
+              <Tab
+                label={`Security Deposit History (${depositTransactions.length})`}
+                icon={<Shield fontSize="small" />}
+                iconPosition="start"
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              />
+            </Tabs>
+          </Box>
+
+          {activeTab === 1 ? (
+            <DepositLedgerTable transactions={depositTransactions} />
+          ) : viewModel.rows.length === 0 ? (
             <Alert severity="info" sx={{ borderRadius: 2 }}>
               No financial transactions recorded for Stay ID '{viewModel.stayId}' yet.
             </Alert>

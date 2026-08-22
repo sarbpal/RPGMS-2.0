@@ -2309,6 +2309,49 @@ Security Deposits represent financial liabilities requiring explicit operator de
 
 ---
 
+## BR-453 Running Deposit Account & Live T2 Validation
+
+### Rule
+
+1. Security Deposit shall be maintained as a running financial account (`AccountType.SECURITY_DEPOSIT_LIABILITY`) derived dynamically from the Unified Stay Ledger ($\sum \text{Credit} - \sum \text{Debit}$), accumulating multiple contributions and decrementing upon partial returns or deductions.
+2. Partial deposit returns and damage deductions are permitted during `ACTIVE`, `ON_NOTICE`, and `CHECKED_OUT` stay states (ADR-024).
+3. Any money-moving deposit return or deduction shall perform live authoritative ledger revalidation ($T_2$) at execution time:
+   - If an optional expected balance snapshot is provided and live balance has diverged, the operation is rejected with a stale-preview error.
+   - Return or deduction amounts exceeding the live available deposit balance ($\text{amount} > \text{Deposit Held}$) shall be strictly rejected.
+4. Operational checkout does not clear or return deposits. A deposit balance of ₹0 does not independently trigger settlement completion or resident ALUMNI conversion (BR-460, BR-461).
+
+### Reason
+
+Guarantees double-entry liability integrity, prevents over-returns and negative liabilities, and decouples operational checkout from financial settlement (ADR-024, FC-06).
+
+### Applies To
+
+- Finance
+- Deposit Management
+- Settlement
+
+---
+
+## BR-454 Deposit Mutation Idempotency, Concurrency & Rollback Safety
+
+### Rule
+
+1. All deposit financial mutations (`recordDepositContribution`, `recordPartialDepositReturn`, `recordDepositDeduction`) shall support session-scoped `idempotencyKey` semantics:
+   - Identical key + identical parameters: Return existing finalized `DepositTransaction` without duplicate ledger postings.
+   - Identical key + conflicting parameters: Reject with idempotency conflict error.
+2. Deposit mutations for the same Stay shall be serialized using in-memory concurrency locks (`activeStayLocks`).
+3. Multi-repository operations across Ledger and Deposit repositories shall be guarded by a pre-operation snapshot and compensating rollback boundary. If `DepositTransaction` persistence fails after ledger posting, state is restored to pre-operation snapshot cleanly.
+
+### Reason
+
+Prevents race conditions, double payouts, duplicate transactions, and partial repository states during concurrent operations or network retries (FC-06).
+
+### Applies To
+
+- Finance
+- Deposit Management
+- Infrastructure
+
 # Financial Settlement
 
 Financial Settlement concludes the monetary obligations of a Stay.

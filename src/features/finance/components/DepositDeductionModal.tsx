@@ -33,6 +33,11 @@ export const DepositDeductionModal: React.FC<DepositDeductionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Generate a stable session-scoped idempotency key for this deduction dialog instance
+  const [idempotencyKey] = useState<string>(
+    () => `IDEMP-DEP-DED-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+  );
+
   const handleSubmit = () => {
     setError(null);
 
@@ -52,13 +57,15 @@ export const DepositDeductionModal: React.FC<DepositDeductionModalProps> = ({
     }
 
     setIsSubmitting(true);
-    const result = depositService.recordDepositDeduction(
+    const result = depositService.recordDepositDeduction({
       stayId,
       amount,
       reason,
+      expectedDepositBalance: currentDepositHeld,
       remarks,
-      'OPERATOR_UI'
-    );
+      createdBy: 'OPERATOR_UI',
+      idempotencyKey,
+    });
     setIsSubmitting(false);
 
     if (!result.success) {

@@ -82,17 +82,24 @@ export function ResidentFinancialProfile({
     agreedDeposit?: number;
   };
 
-  // Fetch active stay for resident from authoritative Stay repository
+  // Fetch active stay for resident from authoritative Stay repository (or latest checked-out stay pending financial closure)
   const activeStay = useMemo(() => {
-    return (
-      defaultStayRepository
-        .getAllSync()
-        .find(
-          (s) =>
-            s.residentId === resident.id &&
-            (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE)
-        ) || null
+    const allResidentStays = defaultStayRepository
+      .getAllSync()
+      .filter((s) => s.residentId === resident.id);
+
+    // 1. Prefer ongoing ACTIVE or ON_NOTICE stay
+    const ongoing = allResidentStays.find(
+      (s) => s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE
     );
+    if (ongoing) return ongoing;
+
+    // 2. Fallback to latest CHECKED_OUT stay (for post-checkout deposit operations and settlement)
+    const checkedOutStays = allResidentStays
+      .filter((s) => s.status === StayStatus.CHECKED_OUT)
+      .sort((a, b) => (b.actualCheckoutDate || b.createdAt || '').localeCompare(a.actualCheckoutDate || a.createdAt || ''));
+
+    return checkedOutStays[0] || null;
   }, [resident.id]);
   const stayId = activeStay?.id;
 
@@ -654,6 +661,44 @@ export function ResidentFinancialProfile({
               }}
             >
               Checkout
+            </Button>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Button
+              variant="outlined"
+              color="info"
+              fullWidth
+              startIcon={<Shield />}
+              onClick={() => setActiveAction('PARTIAL_DEPOSIT_RETURN')}
+              disabled={!stayId || balances.securityDepositHeld <= 0}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                justify: 'flex-start',
+                fontWeight: 600,
+              }}
+            >
+              Return Deposit
+            </Button>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Button
+              variant="outlined"
+              color="warning"
+              fullWidth
+              startIcon={<Shield />}
+              onClick={() => setActiveAction('DEPOSIT_DEDUCTION')}
+              disabled={!stayId || balances.securityDepositHeld <= 0}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                justify: 'flex-start',
+                fontWeight: 600,
+              }}
+            >
+              Deposit Deduction
             </Button>
           </Grid>
         </Grid>

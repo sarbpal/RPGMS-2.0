@@ -691,14 +691,16 @@ Following the initial Settlement Implementation (Sprint FR-1), deposit tracking 
 1. **DEC-DEP-01 (Partial Deposit Returns):** Partial deposit returns are permitted during `ACTIVE`, `ON_NOTICE`, and `CHECKED_OUT` stay states. Returns are strictly guarded against live available deposit balance (`sum(deposit credits) - sum(deposit debits)`). Rejects zero, negative, or over-return amounts.
 2. **DEC-DEP-02 (Additional Deposit Contributions):** Additional deposit contributions are permitted after the initial admission deposit. Each contribution is recorded as an independent immutable transaction (`DEPOSIT_RECEIPT`), posting double-entry ledger entries (`Debit CASH/BANK`, `Credit SECURITY_DEPOSIT_LIABILITY`).
 3. **DEC-DEP-03 (Alumni Re-admission Identity Invariant):** Readmission of an `ALUMNI` resident preserves the permanent `Resident` identity and establishes a new `Stay` aggregate. Returning alumni do not require duplicate resident profiles.
-4. **Decoupled Post-Checkout Settlement (BR-460):** `generateSettlementPreview` allows preview calculations on stays with operational status `CHECKED_OUT` without forcing operational checkout re-execution.
-5. **Resident ALUMNI Transition (BR-461):** `confirmSettlement` converts `Resident.status` to `ResidentStatus.ALUMNI` upon completion of final financial settlement when all stays for the resident are settled and closed.
+4. **DEC-DEP-04 (Deposit Mutation Idempotency & Concurrency):** All deposit mutations support session-scoped `idempotencyKey` replay and conflict detection, and are serialized per stay using `activeStayLocks` (BR-454).
+5. **DEC-DEP-05 (Live T2 Revalidation & Rollback Boundary):** Deposit returns and deductions re-derive authoritative live ledger balances at $T_2$ immediately before posting, and multi-step mutations are protected by snapshot-based compensating rollback boundaries (BR-453, BR-454).
+6. **Decoupled Post-Checkout Settlement (BR-460):** `generateSettlementPreview` allows preview calculations on stays with operational status `CHECKED_OUT` without forcing operational checkout re-execution.
+7. **Resident ALUMNI Transition (BR-461):** `confirmSettlement` converts `Resident.status` to `ResidentStatus.ALUMNI` upon completion of final financial settlement when all stays for the resident are settled and closed.
 
 ### Consequences
 
 #### Advantages:
 - **Running Deposit Ledger**: Reflects real-world running deposit accounts with immutable audit history.
-- **Over-Return Protection**: Prevents negative or excessive deposit refunds through live double-entry liability balance validation.
+- **Over-Return Protection & Replay Safety**: Prevents negative or excessive deposit refunds through live double-entry liability balance validation and deterministic idempotency.
 - **Decoupled Financial Completion**: Allows post-checkout utility ingestion, damage adjustments, and final settlement without disturbing operational bed inventory release.
 - **Identity Integrity**: Preserves permanent resident identity across multiple stays over time.
 

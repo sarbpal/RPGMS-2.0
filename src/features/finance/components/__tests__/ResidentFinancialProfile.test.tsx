@@ -146,4 +146,16 @@ describe('Sprint FR-5 — ResidentFinancialProfile & SettlementDialog Integratio
     const { ResidentFinancialProfile } = await import('../ResidentFinancialProfile');
     expect(typeof ResidentFinancialProfile).toBe('function');
   });
+
+  it('renders and supports partial deposit return and deduction components', async () => {
+    const { PartialDepositReturnModal } = await import('../PartialDepositReturnModal');
+    const { DepositDeductionModal } = await import('../DepositDeductionModal');
+    const { DepositLedgerTable } = await import('../DepositLedgerTable');
+    const { ResidentLedgerModal } = await import('../ResidentLedgerModal');
+
+    expect(typeof PartialDepositReturnModal).toBe('function');
+    expect(typeof DepositDeductionModal).toBe('function');
+    expect(typeof DepositLedgerTable).toBe('function');
+    expect(typeof ResidentLedgerModal).toBe('function');
+  });
 });

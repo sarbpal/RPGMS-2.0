@@ -35,6 +35,11 @@ export const PartialDepositReturnModal: React.FC<PartialDepositReturnModalProps>
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Generate a stable session-scoped idempotency key for this return dialog instance
+  const [idempotencyKey] = useState<string>(
+    () => `IDEMP-DEP-RET-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+  );
+
   const handleSubmit = () => {
     setError(null);
 
@@ -49,13 +54,15 @@ export const PartialDepositReturnModal: React.FC<PartialDepositReturnModalProps>
     }
 
     setIsSubmitting(true);
-    const result = depositService.recordPartialDepositReturn(
+    const result = depositService.recordPartialDepositReturn({
       stayId,
       amount,
       paymentMethod,
+      expectedDepositBalance: currentDepositHeld,
       remarks,
-      'OPERATOR_UI'
-    );
+      createdBy: 'OPERATOR_UI',
+      idempotencyKey,
+    });
     setIsSubmitting(false);
 
     if (!result.success) {

@@ -18,3 +18,4 @@ export * from './components/ResidentsSummaryCards';
 export * from './components/ResidentCardItem';
 export { ResidentsPage } from './pages/ResidentsPage';
 export { default as ResidentWorkspacePage } from './pages/ResidentWorkspacePage';
+export * from './services/ResidentLifecycleService';

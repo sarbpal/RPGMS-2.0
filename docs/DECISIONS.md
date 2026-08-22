@@ -1265,7 +1265,43 @@ Following the completion of payment workflows (FC-01 through FC-03C), the FC-04 
 - Eliminates race conditions and stale ledger double-credits via live T2 validation, concurrency locking, and compensating rollback.
 - Distinguishes Ledger posting atomicity from application-level workflow compensating recovery.
 - Restores clear separation between commercial settlement and operational accommodation checkout.
-- Chronicled complete deposit clearance history in the deposit ledger.
+---
+
+## ADR-038 — Operational Checkout Closure Orchestration and Cross-Domain Alumni Evaluation
+
+### Status
+Accepted (FC-05 Operational Checkout Checkpoint)
+
+### Context
+Following the completion of FC-04 (which cleanly decoupled Financial Settlement from Operational Checkout), the FC-05 architectural audit identified several operational and lifecycle defects:
+1. **Broken UI Entry Point (DEF-CHK-001)**: The "Begin Checkout" action in `StayWorkspacePage` triggered `SettlementDialog` instead of an Operational Checkout workflow.
+2. **Inverted Resident → Alumni Lifecycle (DEF-CHK-002)**: `SettlementApplicationService` prematurely marked `ACTIVE` residents as `ALUMNI`, while `StayCheckoutCoordinator` did not evaluate the `ALUMNI` invariant at all. Per AL-002 and BR-461, `ALUMNI` conversion requires **both** operational checkout (`CHECKED_OUT`/`CLOSED`) and final financial settlement.
+3. **Broken Snapshot Rollback (DEF-CHK-003)**: `StayCheckoutCoordinator` used shallow reference assignment for snapshot capture, breaking rollback on downstream accommodation save failures.
+4. **Identifier Inconsistency & Duplicate Logic (DEF-CHK-004, DEF-CHK-006)**: Flat/Bed lookups lacked prefix normalization, and checkout logic was duplicated between `StayCheckoutCoordinator` and `StayLifecycleCoordinator`.
+
+### Decision
+
+1. **Canonical Operational Checkout Owner**:
+   - `StayCheckoutCoordinator` is established as the single canonical coordinator for operational checkout. `StayLifecycleCoordinator.processCheckout` delegates directly to `StayCheckoutCoordinator`.
+2. **True Snapshot & Compensating Rollback**:
+   - Captures independent deep clone snapshots (`new Stay(stay)`, `flatSnapshots`, `residentSnapshot`).
+   - If any accommodation or resident persistence step fails, all mutations across Stay, Accommodation, and Resident repositories are reverted cleanly.
+3. **Cross-Domain Resident Lifecycle Evaluation (`ResidentLifecycleService`)**:
+   - Implemented a reusable, cross-domain `ResidentLifecycleService` enforcing the complete Alumni invariant (AL-002, BR-461):
+     $$\text{Status} = \text{ALUMNI} \iff (\forall s \in \text{Stays}(\text{residentId}), s.\text{status} \in \{\text{CHECKED\_OUT}, \text{CLOSED}\} \land \text{SettlementCompleted}(s))$$
+   - Both `StayCheckoutCoordinator` (operational closure) and `SettlementApplicationService` (financial closure) trigger this shared evaluation upon completing their respective domain workflows.
+4. **Prefix-Resilient Identifier Normalization**:
+   - Bed and Flat lookups use prefix normalization (`findFlat`, `isBedMatch`), ensuring physical bed vacancy is synchronized reliably across all active allocations.
+5. **Dedicated Operational Checkout UI (`CheckOutModal.tsx`)**:
+   - "Begin Checkout" opens `CheckOutModal`, capturing `actualCheckoutDate` and departure notes, while post-checkout stays expose "Financial Settlement".
+
+### Consequences
+
+#### Advantages:
+- Enforces permanent separation: Checkout manages operational bed vacating; Settlement manages financial closure.
+- Eliminates premature or skipped `ALUMNI` conversions regardless of whether Settlement or Checkout occurs first.
+- Guarantees multi-domain failure recovery via deep snapshot rollback.
+- Eliminates coordinator duplication and provides a thin, dedicated operational checkout UI.
 
 ---
 
@@ -1273,6 +1309,7 @@ Following the completion of payment workflows (FC-01 through FC-03C), the FC-04 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 4.3 | August 2026 | FC-05: Operational Checkout Closure Orchestration & Cross-Domain Alumni Evaluation (ADR-038, BR-460, BR-461, AL-002, DEF-CHK-001 through DEF-CHK-007). |
 | 4.2 | August 2026 | FC-04: Settlement ↔ Bill Synchronization, Live T2 Revalidation & Checkout Decoupling (ADR-037, DEF-FIN-007, DEF-FIN-008, DEF-FIN-009, DEF-FIN-010). |
 | 4.1 | August 2026 | FC-03C: Receive Payment Workflow & Presentation Truth Boundary (ADR-036, BR-423). |
 | 4.0 | August 2026 | FC-03B: Payment Idempotency & Dependency Injection Architecture (ADR-035, BR-419, DEF-FIN-004, DEF-FIN-006). |

@@ -6,18 +6,9 @@ import {
   LocalLaundryService,
   Payments,
   Receipt,
+  AccountBalance,
 } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
-
-const actions = [
-  { label: 'Record Payment', icon: <Payments /> },
-  { label: 'Generate Monthly Rent', icon: <Receipt /> },
-  { label: 'Add Laundry Charges', icon: <LocalLaundryService /> },
-  { label: 'Add Electricity Charges', icon: <Bolt /> },
-  { label: 'Transfer Bed', icon: <Hotel /> },
-  { label: 'Give Notice', icon: <EventNote /> },
-  { label: 'Begin Checkout', icon: <ExitToApp /> },
-];
 
 export interface QuickActionsProps {
   onRecordPayment?: () => void;
@@ -27,9 +18,11 @@ export interface QuickActionsProps {
   onTransferBed?: () => void;
   onGiveNotice?: () => void;
   onBeginCheckout?: () => void;
+  onOpenSettlement?: () => void;
   onTransferFlat?: () => void;
   onAllocateAdditionalBed?: () => void;
   onReleaseBed?: () => void;
+  stayStatus?: string;
 }
 
 export function QuickActions({
@@ -40,10 +33,33 @@ export function QuickActions({
   onTransferBed,
   onGiveNotice,
   onBeginCheckout,
+  onOpenSettlement,
   onTransferFlat,
   onAllocateAdditionalBed,
   onReleaseBed,
+  stayStatus,
 }: QuickActionsProps = {}) {
+  const isCheckedOutOrClosed = stayStatus === 'CHECKED_OUT' || stayStatus === 'CLOSED';
+
+  const defaultActions = [
+    { label: 'Record Payment', icon: <Payments /> },
+    { label: 'Generate Monthly Rent', icon: <Receipt /> },
+    { label: 'Add Laundry Charges', icon: <LocalLaundryService /> },
+    { label: 'Add Electricity Charges', icon: <Bolt /> },
+    { label: 'Transfer Bed', icon: <Hotel /> },
+    { label: 'Give Notice', icon: <EventNote /> },
+    { label: 'Begin Checkout', icon: <ExitToApp /> },
+  ];
+
+  const postCheckoutActions = [
+    { label: 'Record Payment', icon: <Payments /> },
+    { label: 'Add Laundry Charges', icon: <LocalLaundryService /> },
+    { label: 'Add Electricity Charges', icon: <Bolt /> },
+    { label: 'Financial Settlement', icon: <AccountBalance /> },
+  ];
+
+  const actionsToRender = isCheckedOutOrClosed ? postCheckoutActions : defaultActions;
+
   const getClickHandler = (label: string) => {
     switch (label) {
       case 'Record Payment':
@@ -60,6 +76,8 @@ export function QuickActions({
         return onGiveNotice;
       case 'Begin Checkout':
         return onBeginCheckout;
+      case 'Financial Settlement':
+        return onOpenSettlement;
       case 'Transfer Flat':
         return onTransferFlat;
       case 'Allocate Additional Bed':
@@ -78,7 +96,7 @@ export function QuickActions({
           Quick Actions
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-          {actions.map((action) => {
+          {actionsToRender.map((action) => {
             const handler = getClickHandler(action.label);
             return (
               <Button

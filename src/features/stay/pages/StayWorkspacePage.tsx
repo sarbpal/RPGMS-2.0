@@ -12,6 +12,7 @@ import { BillingCycleHistoryCard } from '../components/BillingCycleHistoryCard';
 import { ChangeBillingCycleModal } from '../components/ChangeBillingCycleModal';
 import { TransferBedModal } from '../components/TransferBedModal';
 import { GiveNoticeModal } from '../components/GiveNoticeModal';
+import { CheckOutModal } from '../components/CheckOutModal';
 import { ReceivePaymentModal } from '../../finance/components/ReceivePaymentModal';
 import { GenerateRentModal } from '../../finance/components/GenerateRentModal';
 import { AddLaundryModal } from '../../finance/components/AddLaundryModal';
@@ -32,6 +33,7 @@ export default function StayWorkspacePage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   const coordinator = useMemo(() => stayWorkflowComposition.stayWorkspaceCoordinator, []);
@@ -129,6 +131,7 @@ export default function StayWorkspacePage() {
 
         {/* 2. Quick Actions */}
         <QuickActions
+          stayStatus={stayDomainEntity?.status}
           onRecordPayment={() => setIsPaymentModalOpen(true)}
           onGenerateRent={() => setIsRentModalOpen(true)}
           onAddLaundry={() => setIsLaundryModalOpen(true)}
@@ -136,6 +139,7 @@ export default function StayWorkspacePage() {
           onTransferBed={() => setIsTransferModalOpen(true)}
           onGiveNotice={() => setIsNoticeModalOpen(true)}
           onBeginCheckout={() => setIsCheckoutModalOpen(true)}
+          onOpenSettlement={() => setIsSettlementModalOpen(true)}
         />
 
         {/* 3. Responsive Grid with Stay Summary and Financial Summary */}
@@ -244,15 +248,30 @@ export default function StayWorkspacePage() {
         />
       )}
 
-      {/* 6. Settlement / Checkout Dialog */}
-      {isCheckoutModalOpen && (
-        <SettlementDialog
+      {/* 6. Operational Checkout Modal */}
+      {isCheckoutModalOpen && stayDomainEntity && (
+        <CheckOutModal
           open={isCheckoutModalOpen}
-          resident={modalResident || resident}
-          stayId={stayId}
+          stay={stayDomainEntity}
+          summary={viewModel.summary}
           onClose={() => setIsCheckoutModalOpen(false)}
           onSuccess={(msg) => {
             setIsCheckoutModalOpen(false);
+            handleActionSuccess(msg);
+          }}
+          onCheckout={(input) => coordinator.processCheckout(input)}
+        />
+      )}
+
+      {/* 7. Post-Checkout Settlement Dialog */}
+      {isSettlementModalOpen && (
+        <SettlementDialog
+          open={isSettlementModalOpen}
+          resident={modalResident || resident}
+          stayId={stayId}
+          onClose={() => setIsSettlementModalOpen(false)}
+          onSuccess={(msg) => {
+            setIsSettlementModalOpen(false);
             handleActionSuccess(msg);
           }}
         />

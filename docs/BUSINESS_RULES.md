@@ -2315,43 +2315,51 @@ Financial Settlement concludes the monetary obligations of a Stay.
 
 ---
 
-## BR-460 Settlement
+## BR-460 Operational Checkout & Physical Bed Release
 
 ### Rule
 
-Financial Settlement shall occur independently of Operational Checkout.
-
-Settlement shall resolve all outstanding financial obligations according to business policy.
+1. Operational Checkout is the authoritative domain workflow for physical departure and accommodation release:
+   - A Stay may be operationally checked out from `ACTIVE` or `ON_NOTICE` status.
+   - Upon operational checkout, the Stay transitions to `CHECKED_OUT`, active `BedAllocation` items transition to `RELEASED`, and active `CommercialAgreement` items transition to `HISTORICAL`.
+   - All physical beds in `AccommodationRepository` associated with the active Stay allocations shall be updated to `BedStatus.VACANT`, clearing `residentName` and `stayId`.
+   - Operational checkout does not post financial ledger entries or perform settlement.
+2. Financial Settlement shall occur independently of Operational Checkout (ADR-038).
 
 ### Reason
 
-Operational completion does not imply financial completion.
+Ensures clear separation: Checkout vacates the room for immediate housekeeping/re-allocation, while Settlement manages commercial and deposit reconciliation.
 
 ### Applies To
 
-- Settlement
+- Stay Management
+- Accommodation
+- Operational Checkout
 
 ---
 
-## BR-461 Financial Completion
+## BR-461 Cross-Domain Alumni Invariant & Lifecycle Synchronization
 
 ### Rule
 
-A Stay shall be financially complete only after:
+A Resident shall transition to `ResidentStatus.ALUMNI` if and only if all of the following conditions are satisfied:
 
-- Outstanding Charges have been resolved.
-- Payment allocations have been completed.
-- Deposit settlement has been completed.
-- Required adjustments have been recorded.
+1. All non-cancelled Stays associated with the Resident are operationally closed (`status = CHECKED_OUT` or `CLOSED`). No `ACTIVE`, `ON_NOTICE`, or `PLANNED` Stays exist.
+2. Final Financial Settlement has been completed for all operationally closed Stays (`Settlement` record exists in Finance).
+3. The Resident has no other ongoing operational or monetary obligations.
+
+Both `StayCheckoutCoordinator` (operational closure) and `SettlementApplicationService` (financial closure) shall trigger the shared `ResidentLifecycleService` evaluation upon successful completion of their respective workflows. If any condition remains unsatisfied, the Resident remains `ResidentStatus.ACTIVE`.
 
 ### Reason
 
-Financial completion represents the conclusion of the monetary relationship.
+Prevents premature alumni conversion of active residents and guarantees exact synchronization between operational departure and commercial completion (AL-002, ADR-038).
 
 ### Applies To
 
+- Resident Management
+- Stay Management
 - Settlement
-- Reporting
+- Finance
 
 ---
 

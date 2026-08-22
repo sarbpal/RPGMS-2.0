@@ -1953,11 +1953,16 @@ Financial Completion & Alumni Conversion (Resident Status = ALUMNI)
 
 The Deposit lifecycle is independent of the operational Stay lifecycle.
 
-Operational Checkout terminates physical occupancy and releases accommodation beds, but does not close the Deposit Account.
+### Operational Checkout & Bed Release Architecture
 
-The Deposit Account remains open for post-checkout financial activity, utility bill ingestion, damage deductions, and final financial settlement.
+Operational Checkout coordinates physical departure and bed vacancy independently from Financial Settlement (ADR-038, BR-460, BR-461):
 
-Completion of final financial settlement clears all financial obligations and transitions the Resident to ALUMNI status. Readmission of an Alumni Resident preserves the permanent Resident identity while establishing a new Stay aggregate.
+1. **Canonical Coordinator**: `StayCheckoutCoordinator` is the sole authoritative owner of the operational checkout workflow.
+2. **Physical Accommodation Release**: Transitions all active `BedAllocation` entities in the Stay aggregate to `RELEASED` and synchronizes all matching beds in `AccommodationRepository` to `BedStatus.VACANT`, clearing `residentName` and `stayId`. Lookups employ prefix-resilient identifier normalization (`findFlat`, `isBedMatch`).
+3. **Deep Snapshot Rollback Boundary**: Pre-operation deep clones of Stay (`new Stay(stay)`), Accommodation flats, and Resident entities are captured before mutation. If any downstream persistence step fails, all mutations are reverted cleanly.
+4. **Concurrency Locking**: Critical sections are guarded by in-memory per-stay concurrency locks (`activeStayLocks`).
+5. **Cross-Domain Alumni Invariant**: Evaluated by the shared `ResidentLifecycleService`. A Resident transitions to `ALUMNI` only when all stays are operationally closed (`CHECKED_OUT`/`CLOSED`) and financially settled. Both `StayCheckoutCoordinator` and `SettlementApplicationService` trigger this shared evaluator.
+6. **Financial Decoupling**: Operational checkout creates zero financial Ledger postings and does not alter deposit liability or accounts receivable.
 
 ### Financial Settlement & Obligation Synchronization Architecture
 

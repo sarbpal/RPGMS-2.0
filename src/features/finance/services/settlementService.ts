@@ -18,10 +18,10 @@ import {
 import { defaultFinanceRepository } from '../infrastructure';
 import { BalanceApplicationService } from './balanceEngine';
 import type { StayRepository } from '../../stay';
-import { defaultStayRepository, StayStatus } from '../../stay';
+import { defaultStayRepository } from '../../stay';
 
-import type { ResidentRepository, Resident } from '../../resident';
-import { defaultResidentRepository, ResidentStatus } from '../../resident';
+import type { ResidentRepository } from '../../resident';
+import { defaultResidentRepository, ResidentLifecycleService } from '../../resident';
 import { LedgerApplicationService } from './ledgerService';
 import { BillingApplicationService } from './billingService';
 import { financeStorage } from '../storage/financeStorage';
@@ -45,6 +45,7 @@ export class SettlementApplicationService {
   private ledgerService: LedgerApplicationService;
   private balanceService: BalanceApplicationService;
   private billingService?: BillingApplicationService;
+  private residentLifecycleService: ResidentLifecycleService;
 
   private static activeStayLocks = new Set<string>();
 
@@ -54,14 +55,18 @@ export class SettlementApplicationService {
     ledgerService?: LedgerApplicationService,
     residentRepository: ResidentRepository = defaultResidentRepository,
     balanceService?: BalanceApplicationService,
-    billingService?: BillingApplicationService
+    billingService?: BillingApplicationService,
+    residentLifecycleService?: ResidentLifecycleService
   ) {
     this.repository = repository;
     this.stayRepository = stayRepository;
-    this.residentRepository = residentRepository;
     this.ledgerService = ledgerService ?? new LedgerApplicationService(repository, stayRepository);
     this.balanceService = balanceService ?? new BalanceApplicationService(repository);
     this.billingService = billingService;
+    this.residentRepository = residentRepository;
+    this.residentLifecycleService =
+      residentLifecycleService ??
+      new ResidentLifecycleService(residentRepository, stayRepository, repository);
   }
 
   public getBalanceService(): BalanceApplicationService {
@@ -466,24 +471,9 @@ export class SettlementApplicationService {
 
       this.repository.saveSettlement(finalizedSettlement);
 
-      // Convert Resident status to ALUMNI upon final financial completion if all stays are closed/settled (BR-461)
+      // Trigger shared canonical Resident Lifecycle Evaluation (BR-461, AL-002)
       if (currentStay) {
-        const resident = this.residentRepository.getByIdSync(currentStay.residentId);
-        if (resident) {
-          const allStays = this.stayRepository.getAllSync();
-          const residentStays = allStays.filter((s) => s.residentId === resident.id);
-          const hasActiveStay = residentStays.some(
-            (s) => s.id !== stayId && (s.status === StayStatus.ACTIVE || s.status === StayStatus.ON_NOTICE)
-          );
-          if (!hasActiveStay) {
-            const updatedResident: Resident = {
-              ...resident,
-              status: ResidentStatus.ALUMNI,
-              updatedAt: now,
-            };
-            this.residentRepository.save(updatedResident);
-          }
-        }
+        this.residentLifecycleService.evaluateAndSyncResidentStatus(currentStay.residentId);
       }
 
       return {

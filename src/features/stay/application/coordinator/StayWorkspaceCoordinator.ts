@@ -123,7 +123,7 @@ export class StayWorkspaceCoordinator {
     return new StayNoticeCoordinator(this.stayRepository).giveNotice(input);
   }
   public processCheckout(input: ProcessCheckoutInput): CurrentProjection {
-    return new StayCheckoutCoordinator(this.stayRepository, this.accommodationRepository).processCheckout(input);
+    return new StayCheckoutCoordinator(this.stayRepository, this.accommodationRepository, this.residentRepository).processCheckout(input);
   }
 
   public createViewModel(stayId: string): StayWorkspaceViewModel {
